@@ -40,7 +40,7 @@ pub extern "C" fn felt_init() {
 
     assert!(
         !(is_felt_browser && is_felt_ui),
-        "Cannot have both -fletUI and -felt args"
+        "Cannot have both -feltUI and -felt args"
     );
 
     trace!("felt_init() done");

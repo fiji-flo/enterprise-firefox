@@ -6249,8 +6249,7 @@ static const PrefListEntry sRestrictFromWebContentProcesses[] = {
     PREF_LIST_ENTRY("identity.fxaccounts.account.device.name"),
     PREF_LIST_ENTRY("identity.fxaccounts.account.telemetry.sanitized_uid"),
     PREF_LIST_ENTRY("identity.fxaccounts.lastSignedInUserHash"),
-    PREF_LIST_ENTRY("print_printer"),
-    PREF_LIST_ENTRY("services."),
+    PREF_LIST_ENTRY("print_printer"), PREF_LIST_ENTRY("services."),
     PREF_LIST_ENTRY("termsofuse."),
 
     // Remove UUIDs
@@ -6286,7 +6285,12 @@ static const PrefListEntry sRestrictFromWebContentProcesses[] = {
     PREF_LIST_ENTRY("extensions.lastAppBuildId"),
     PREF_LIST_ENTRY("media.gmp-manager.buildID"),
     PREF_LIST_ENTRY("toolkit.telemetry.previousBuildID"),
-};
+
+    // Remove access to console settings
+    PREF_LIST_ENTRY("enterprise.console."),
+
+    // Remove access to settings for live policy polling
+    PREF_LIST_ENTRY("browser.policies.live_polling.")};
 
 // Allowlist for prefs and branches blocklisted in
 // sRestrictFromWebContentProcesses[], including prefs from
