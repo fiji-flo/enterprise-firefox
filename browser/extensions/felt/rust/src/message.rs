@@ -55,6 +55,8 @@ pub enum FeltMessage {
     IntPreference((String, i32)),
     StartupReady,
     Tokens((String, String, i64)),
+    RefreshTokens,
+    TokensRefreshed((String, i64)),
     ExtensionReady,
     OpenURL((String, i32)),
     RestartForced,

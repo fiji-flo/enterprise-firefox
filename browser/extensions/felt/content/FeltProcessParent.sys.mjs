@@ -89,6 +89,7 @@ const kBrowserObserverTopics = [
   "felt-extension-ready",
   "felt-firefox-logout",
   "felt-firefox-tokens",
+  "felt-firefox-refresh-tokens",
 ];
 
 let gObserversRegistered = false;
@@ -214,6 +215,28 @@ export class FeltProcessParent extends JSProcessActorParent {
               data.refresh_token,
               data.expires_at
             );
+            break;
+          }
+
+          case "felt-firefox-refresh-tokens": {
+            console.debug(
+              `FeltExtension: ParentProcess: Trigger a token refresh in FELT.`
+            );
+            const client = lazy.ConsoleClient;
+            client
+              .refreshTokens()
+              .then(({ access_token, refresh_token, expires_at }) => {
+                console.debug("FeltExtension: refreshTokens successful");
+                Services.felt.setTokens(
+                  access_token,
+                  refresh_token,
+                  expires_at
+                );
+                Services.felt.tokensRefreshed(access_token, expires_at);
+              })
+              .catch(error => {
+                console.error("FeltExtension: token refreshm failed", error);
+              });
             break;
           }
 

@@ -54,6 +54,12 @@ interface nsIFelt : nsISupports {
   void sendTokens();
 
   [must_use]
+  void refreshTokens();
+
+  [must_use]
+  void tokensRefreshed(in ACString access_token, in long long expires_at);
+
+  [must_use]
   ACString getRefreshToken();
 
   [must_use]

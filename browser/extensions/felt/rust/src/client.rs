@@ -10,7 +10,7 @@ use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc, Mutex};
 use xpcom::interfaces::{nsIObserver, nsIObserverService, nsISupports};
 use xpcom::RefPtr;
 
-use log::trace;
+use log::{info, trace};
 
 use crate::message::{nsICookieWrapper, FeltMessage, FELT_IPC_VERSION};
 use crate::utils::{self, Tokens, TOKENS};
@@ -83,6 +83,17 @@ impl FeltIpcClient {
             match tx.send(msg) {
                 Ok(()) => trace!("FeltIpcClient::notify_signout() SENT"),
                 Err(err) => trace!("FeltIpcClient::notify_signout() TX ERROR: {}", err),
+            }
+        }
+    }
+
+    pub fn notify_refresh_tokens(&self) {
+        info!("FeltIpcClient::notify_refresh_tokens()");
+        let msg = FeltMessage::RefreshTokens;
+        if let Some(tx) = &self.tx {
+            match tx.send(msg) {
+                Ok(()) => trace!("FeltIpcClient::notify_refresh_tokens() SENT"),
+                Err(err) => trace!("FeltIpcClient::notify_refresh_tokens() TX ERROR: {}", err),
             }
         }
     }
@@ -246,7 +257,7 @@ impl FeltClientThread {
                                     if let Err(err) = tx.send(FeltMessage::Restarting) {
                                         trace!("FeltClientThread::start_thread::observe() failed to send restart: {:?}", err);
                                     }
-                                },
+                                }
                                 "shutdown" => {
                                     trace!("FeltClientThread::start_thread::observe() quit-application: shutdown");
                                     if let Err(err) = tx.send(FeltMessage::Exiting) {
@@ -375,6 +386,16 @@ impl FeltClientThread {
                                     trace!("FeltClientThread::felt_client::ipc_loop(): IntPreference({}, {})", name, value);
                                     utils::inject_int_pref(name, value);
                                 },
+                                Ok(FeltMessage::TokensRefreshed((access_token, expires_at))) => {
+                                    info!("FeltServerThread::felt_server::ipc_loop(): TokensRefreshed FELT has refreshed tokens");
+                                    let payload = serde_json::json!({
+                                        "access_token": access_token,
+                                        "expires_at": expires_at,
+                                    })
+                                    .to_string();
+                                    info!("FeltServerThread::felt_server::ipc_loop(): TokensRefreshed notifying with payload {}", payload);
+                                    utils::notify_observers_with_payload("felt-firefox-tokens-refreshed".to_string(), Some(payload));
+                                },
                                 Ok(FeltMessage::StartupReady) => {
                                     trace!("FeltClientThread::felt_client::ipc_loop(): StartupReady");
                                     let barrier = barrier.clone();
@@ -481,6 +502,18 @@ impl FeltClientThread {
         let client = self.ipc_client.borrow();
         client.notify_signout();
     }
+
+    pub fn notify_refresh_tokens(&self) {
+        trace!("FeltClientThread::refresh_tokens()");
+        let client = self.ipc_client.borrow();
+        client.notify_refresh_tokens();
+    }
+
+    // pub fn notify_tokens_refreshed(&self) {
+    //     trace!("FeltClientThread::tokens_refreshed()");
+    //     let client = self.ipc_client.borrow();
+    //     client.notify_tokens_refreshed();
+    // }
 
     pub fn send_back_tokens(&self) {
         trace!("FeltClientThread::send_back_tokens()");

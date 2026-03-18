@@ -76,6 +76,8 @@ class InvalidAuthError extends Error {
  */
 export const ConsoleClient = {
   _refreshPromise: null,
+  _refreshResolve: null,
+  _refreshReject: null,
 
   /**
    * Base URL of the remote enterprise console
@@ -481,18 +483,31 @@ export const ConsoleClient = {
   },
 
   /**
-   * Refreshes the session using a refresh token.
-   * Uses the provided token if given; otherwise the stored token.
-   * Serializes concurrent refreshes via an internal promise.
+   * Refreshes the access_token using the refresh token.
+   * This should only be called for the Felt UI context.
+   * Serializes concurrent refreshes via the internal promise.
    *
    * @throws {InvalidAuthError} If unable to refresh session
-   * @returns {Promise<void>}
+   * @returns {Promise<{ access_token, refresh_token, expires_at }>}
    */
-  async _refreshSession() {
+  async refreshTokens() {
+    // Process only if we are in the Felt UI context.
+    if (Services.felt.isFeltBrowser()) {
+      console.debug(
+        `refreshTokens(): Called from Browser context, which is not allowed.`
+      );
+      return;
+    }
+
     if (this._refreshPromise) {
+      console.debug(
+        `refreshTokens(): _refreshPromise exists, returning that existing promise.`
+      );
       return this._refreshPromise;
     }
 
+    // Ok, we are in the Felt UI context and no _refreshPromise exists, let's go.
+    console.debug("refreshTokens(): attempt token refresh");
     this._refreshPromise = (async () => {
       let refreshToken = Services.felt.getRefreshToken();
       if (!refreshToken) {
@@ -549,11 +564,47 @@ export const ConsoleClient = {
 
       const { access_token, refresh_token, expires_in } = await res.json();
       const expires_at = Math.floor(Date.now() / 1000) + Number(expires_in);
-      Services.felt.setTokens(access_token, refresh_token, expires_at);
+      console.debug("refreshTokens() got new tokens!");
+      return { access_token, refresh_token, expires_at };
     })().finally(() => {
       this._refreshPromise = null;
     });
     return this._refreshPromise;
+  },
+
+  /**
+   * Refreshes the session using a refresh token.
+   * Uses the provided token if given; otherwise the stored token.
+   * Serializes concurrent refreshes via an internal promise.
+   *
+   * @throws {InvalidAuthError} If unable to refresh session
+   * @returns {Promise<void>}
+   */
+  async _refreshSession() {
+    this._testFlag = true;
+
+    if (this._refreshPromise) {
+      console.debug(
+        `_refreshSession(): _refreshPromise already exists, returning existing promise.`
+      );
+      return this._refreshPromise;
+    }
+
+    // If we are in the Browser, notify felt via IPC to refresh the token
+    if (Services.felt.isFeltBrowser) {
+      // create a promise that will be resolved when FELT comes back with the refreshed token
+      const that = this;
+      this._refreshPromise = new Promise((resolve, reject) => {
+        that._refreshResolve = resolve;
+        that._refreshReject = reject;
+        // notify FELT to refresh the token
+        Services.felt.refreshTokens();
+      });
+      return this._refreshPromise;
+    } else {
+      console.error("_refreshSession: called from non-Browser context.");
+      return;
+    }
   },
 
   /**
@@ -664,6 +715,7 @@ export const ConsoleClient = {
     Services.obs.addObserver(this, "xpcom-shutdown");
 
     if (Services.felt.isFeltBrowser()) {
+      Services.obs.addObserver(this, "felt-firefox-tokens-refreshed");
       lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
         `ConsoleClient: Sending back tokens to felt on shutdown`,
         () => {
@@ -681,12 +733,25 @@ export const ConsoleClient = {
     return this;
   },
 
-  observe(_, topic) {
+  observe(_, topic, data) {
     switch (topic) {
       case "xpcom-shutdown": {
+        console.debug("ConsoleClient: xpcom-shutdown observed, cleaning up");
         Services.obs.removeObserver(this, "xpcom-shutdown");
         this.clearTokenData();
         this._refreshPromise = null;
+        break;
+      }
+      case "felt-firefox-tokens-refreshed": {
+        const { access_token, expires_at } = JSON.parse(data);
+        console.debug("ConsoleClient: felt-firefox-tokens-refreshed observed");
+        // Store the new token we got from FELT, leaving the refresh token as an empty string.
+        // Only FELT should do refreshes and has to know about he refresh token.
+        Services.felt.setTokens(access_token, "", expires_at);
+        this._refreshResolve?.();
+        this._refreshPromise = null;
+        this._refreshResolve = null;
+        this._refreshReject = null;
         break;
       }
     }
