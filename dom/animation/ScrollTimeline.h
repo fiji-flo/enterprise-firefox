@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,9 +6,14 @@
 #define mozilla_dom_ScrollTimeline_h
 
 #include "mozilla/LinkedList.h"
-#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/WritingModes.h"
 #include "mozilla/dom/AnimationTimeline.h"
+
+namespace mozilla {
+enum class StyleScrollAxis : uint8_t;
+enum class StyleScroller : uint8_t;
+enum class StyleOverflow : uint8_t;
+}  // namespace mozilla
 
 #define PROGRESS_TIMELINE_DURATION_MILLISEC 100000
 

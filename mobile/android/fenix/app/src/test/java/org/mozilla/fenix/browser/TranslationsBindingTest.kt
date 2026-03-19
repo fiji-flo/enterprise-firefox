@@ -6,7 +6,6 @@ package org.mozilla.fenix.browser
 
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -29,7 +28,6 @@ import mozilla.components.concept.engine.translate.TranslationOperation
 import mozilla.components.concept.engine.translate.TranslationPair
 import mozilla.components.concept.engine.translate.TranslationSupport
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.store.BrowserScreenAction.PageTranslationStatusUpdated
 import org.mozilla.fenix.browser.store.BrowserScreenStore
@@ -39,7 +37,6 @@ import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState.None
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState.TranslationInProgress
 
-@RunWith(AndroidJUnit4::class)
 class TranslationsBindingTest {
     private val testDispatcher = StandardTestDispatcher()
 

@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=4 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -786,14 +784,15 @@ nsresult nsDragSession::InvokeDragSessionImpl(
           "nsDragSession::InvokeDragSessionImpl(): Missing origin GdkWindow!");
       return NS_ERROR_FAILURE;
     }
-#ifdef MOZ_WAYLAND
-    if (!gdk_wayland_window_get_wl_surface(originGdkWindow)) {
-      NS_WARNING(
-          "nsDragSession::InvokeDragSessionImpl(): Missing origin wl_surface!");
-      return NS_ERROR_FAILURE;
-    }
-#endif
   }
+#ifdef MOZ_WAYLAND
+  if (widget::GdkIsWaylandDisplay() &&
+      !gdk_wayland_window_get_wl_surface(originGdkWindow)) {
+    NS_WARNING(
+        "nsDragSession::InvokeDragSessionImpl(): Missing origin wl_surface!");
+    return NS_ERROR_FAILURE;
+  }
+#endif
 
   // get the list of items we offer for drags
   GtkTargetList* sourceList = GetSourceList();

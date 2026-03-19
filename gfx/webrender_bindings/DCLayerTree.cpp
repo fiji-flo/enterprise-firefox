@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -264,7 +262,7 @@ DCLayerTree::DCLayerTree(gl::GLContext* aGL, EGLConfig aEGLConfig,
   LOG("DCLayerTree::DCLayerTree()");
 
   if (gfx::gfxVars::UseWebRenderCompositor()) {
-    if (StaticPrefs::gfx_webrender_layer_compositor_AtStartup()) {
+    if (StaticPrefs::gfx_webrender_layer_compositor()) {
       mCompositorKind = Some(WebRenderOsCompositorKind::LayerCompositor);
     } else {
       mCompositorKind = Some(WebRenderOsCompositorKind::NativeCompositor);
@@ -2392,8 +2390,11 @@ bool DCSurfaceVideo::CalculateSwapChainSize(gfx::Matrix& aTransform) {
 
   bool useHDR =
       gfx::gfxVars::WebRenderOverlayHDR() && contentIsHDR && monitorIsHDR;
-  bool useHDRRGB10A2 = useHDR && mDCLayerTree->SupportsHardwareOverlayRGB10A2();
-  bool useHDRRGBA16F = useHDR && mDCLayerTree->SupportsHardwareOverlayRGBA16F();
+  // We can't rely on SupportsHardwareOverlayRGB10A2 because DWM may convert for
+  // us, let's hope this works on older GPUs (~2016 GPUs that support HDR for
+  // the whole desktop but may not support MPO overlays that are HDR).
+  bool useHDRRGB10A2 = useHDR;
+  bool useHDRRGBA16F = false;
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsPrintfCString str(

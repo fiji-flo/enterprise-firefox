@@ -11,6 +11,8 @@ ChromeUtils.defineESModuleGetters(this, {
   AIWindowAccountAuth:
     "moz-src:///browser/components/aiwindow/ui/modules/AIWindowAccountAuth.sys.mjs",
   Chat: "moz-src:///browser/components/aiwindow/models/Chat.sys.mjs",
+  ChatConversation:
+    "moz-src:///browser/components/aiwindow/ui/modules/ChatConversation.sys.mjs",
   openAIEngine: "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
@@ -31,15 +33,23 @@ add_setup(async function () {
 /**
  * Opens a new AI Window
  *
+ * @param {object} options
+ * @param {string|boolean} options.waitForTabURL - URL to wait for or false to skip waiting
  * @returns {Promise<Window>}
  */
-async function openAIWindow() {
-  const win = await BrowserTestUtils.openNewBrowserWindow({ aiWindow: true });
+async function openAIWindow({ waitForTabURL = AIWINDOW_URL } = {}) {
+  info("Opening new AI Window");
+  const win = await BrowserTestUtils.openNewBrowserWindow({
+    aiWindow: true,
+    waitForTabURL,
+  });
+  info("Waiting for AI window attr");
   await BrowserTestUtils.waitForMutationCondition(
     win.document.documentElement,
     { attributes: true },
     () => win.document.documentElement.hasAttribute("ai-window")
   );
+  info("Promising focus");
   await SimpleTest.promiseFocus(win);
   return win;
 }
@@ -56,14 +66,47 @@ async function openAIWindowWithSidebar() {
     win.gBrowser.selectedBrowser,
     "about:blank"
   );
-  await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
-  AIWindowUI.toggleSidebar(win);
+  await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser, {
+    wantLoad: "about:blank",
+  });
+  if (!AIWindowUI.isSidebarOpen(win)) {
+    info("Opening sidebar");
+    AIWindowUI.toggleSidebar(win);
+  }
   const sidebarBrowser = win.document.getElementById("ai-window-browser");
   await BrowserTestUtils.waitForCondition(
     () => sidebarBrowser.contentDocument?.querySelector("ai-window:defined"),
     "Sidebar ai-window should be loaded"
   );
   return { win, sidebarBrowser };
+}
+
+function promiseNavigateAndLoad(browser, url) {
+  let loaded = BrowserTestUtils.browserLoaded(browser, {
+    wantLoad: url,
+  });
+  BrowserTestUtils.startLoadingURIString(browser, url);
+  return loaded;
+}
+
+async function getPromptButtons(browser) {
+  const aiWindow = await TestUtils.waitForCondition(
+    () => browser.contentDocument?.querySelector("ai-window"),
+    "Wait for ai-window element"
+  );
+  const promptsEl = await TestUtils.waitForCondition(
+    () => aiWindow.shadowRoot.querySelector("smartwindow-prompts"),
+    "Wait for smartwindow-prompts element"
+  );
+  return promptsEl.shadowRoot.querySelectorAll(".sw-prompt-button");
+}
+
+async function getConversationId(browser) {
+  const aiWindow = await TestUtils.waitForCondition(
+    () => browser.contentDocument?.querySelector("ai-window"),
+    "Wait for ai-window element"
+  );
+  return aiWindow.conversationId.toString();
 }
 
 /**
@@ -253,7 +296,13 @@ function startMockOpenAI({
     };
 
     const sendSSE = obj => {
-      response.write(`data: ${JSON.stringify(obj)}\n\n`);
+      // Encode data so special §followup:§-type tokens preserves utf-8
+      response.write(
+        Array.from(
+          new TextEncoder().encode(`data: ${JSON.stringify(obj)}\n\n`),
+          b => String.fromCharCode(b)
+        ).join("")
+      );
     };
 
     if (wantsStream && toolCall && askedForTools && !hasToolResult) {

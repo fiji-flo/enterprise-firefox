@@ -19,7 +19,7 @@ use crate::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
     PropertyDeclarationIdSet,
 };
-use crate::rule_tree::CascadeLevel;
+use crate::rule_tree::{CascadeLevel, CascadeOrigin};
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::style_resolver::StyleResolverForElement;
@@ -231,7 +231,7 @@ impl IntermediateComputedKeyframe {
         let mut important_rules_changed = false;
         let rule_node = base_style.rules().clone();
         let new_node = context.stylist.rule_tree().update_rule_at_level(
-            CascadeLevel::Animations,
+            CascadeLevel::new(CascadeOrigin::Animations),
             LayerOrder::root(),
             Some(locked_block.borrow_arc()),
             &rule_node,
@@ -247,6 +247,7 @@ impl IntermediateComputedKeyframe {
             rules: new_node,
             visited_rules: base_style.visited_rules().cloned(),
             flags: base_style.flags.for_cascade_inputs(),
+            include_starting_style: Default::default(),
         };
         resolver
             .cascade_style_and_visited_with_default_parents(inputs)

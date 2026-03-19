@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -812,7 +810,7 @@ FilterNodeSoftware::GetInputDataSourceSurface(
       // to use the Map API yet. We can still read the stride/data
       // values as long as we don't try to dereference them.
       result->Unmap();
-      if (map.mStride != GetAlignedStride<16>(map.mStride, 1) ||
+      if (map.mStride != GetAlignedStride<16>(map.mStride, 1).valueOr(0) ||
           reinterpret_cast<uintptr_t>(map.mData) % 16 != 0) {
         // Align unaligned surface.
         result = CloneAligned(result);
@@ -2439,9 +2437,11 @@ template <typename CoordType>
 already_AddRefed<DataSourceSurface> FilterNodeConvolveMatrixSoftware::DoRender(
     const IntRect& aRect, CoordType aKernelUnitLengthX,
     CoordType aKernelUnitLengthY) {
+  // Ensure multiply fits in an int32_t so convolve math won't overflow.
+  auto kernelArea = CheckedInt32(mKernelSize.width) * mKernelSize.height;
   if (mKernelSize.width <= 0 || mKernelSize.height <= 0 ||
-      mKernelMatrix.size() !=
-          uint32_t(mKernelSize.width * mKernelSize.height) ||
+      !kernelArea.isValid() ||
+      mKernelMatrix.size() != size_t(kernelArea.value()) ||
       !IntRect(IntPoint(0, 0), mKernelSize).Contains(mTarget) ||
       mDivisor == 0) {
     return Factory::CreateDataSourceSurface(aRect.Size(),

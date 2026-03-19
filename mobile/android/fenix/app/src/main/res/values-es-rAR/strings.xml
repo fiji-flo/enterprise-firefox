@@ -373,7 +373,7 @@
   -->
   <string name="browser_toolbar_translated_successfully">Página traducida de %1$s a %2$s.</string>
   <!-- CFR description for the browser toolbar describing the "Shake to summarize feature" -->
-  <string name="browser_toolbar_summarize_cfr_description">Agite su dispositivo para resumir esta página en segundos. ⚡️</string>
+  <string name="browser_toolbar_summarize_cfr_description">Sacudí tu dispositivo para resumir esta página en segundos. ⚡️</string>
   <!--
     Translation Toolbar
 
@@ -2051,11 +2051,11 @@
   -->
   <string name="bookmark_deletion_snackbar_message">Se eliminó %1$s</string>
   <!-- Bookmark undo button for deletion snackbar action -->
-  <string name="bookmark_undo_deletion">DESHACER</string>
+  <string name="bookmark_undo_deletion" tools:ignore="UnusedResources" moz:removedIn="150">DESHACER</string>
   <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
-  <string name="bookmark_delete_single_item">Se eliminó %s</string>
+  <string name="bookmark_delete_single_item" tools:ignore="UnusedResources" moz:removedIn="150">Se eliminó %s</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
-  <string name="bookmark_delete_multiple_items">Elementos borrados: %s</string>
+  <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources" moz:removedIn="150">Elementos borrados: %s</string>
   <!-- Content description for the bookmark navigation bar back button -->
   <string name="bookmark_navigate_back_button_content_description">Navegar hacia atrás</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
@@ -2523,7 +2523,7 @@
 
       Text shown on the trackers blocked card. %d is the number of trackers blocked.
     -->
-    <item quantity="one">%d Rastreador bloqueado</item>
+    <item quantity="one">%d rastreador bloqueado</item>
     <item quantity="other">%d rastreadores bloqueados</item>
   </plurals>
   <!-- Text shown on the trackers blocked card when no trackers have been blocked yet -->

@@ -49,11 +49,6 @@
     "dark": "transparent",
     "forcedColors": "{HCM Theme$CanvasText}"
   },
-  "border/color/card": {
-    "light": "color-mix(in srgb, currentColor 10%, transparent)",
-    "dark": "color-mix(in srgb, currentColor 10%, transparent)",
-    "forcedColors": "{HCM Theme$CanvasText}"
-  },
   "border/color/deemphasized": {
     "light": "{Colors$color/gray/30}",
     "dark": "{Colors$color/gray/70}",
@@ -83,6 +78,11 @@
     "light": "{Theme$color/accent/primary}",
     "dark": "{Theme$color/accent/primary}",
     "forcedColors": "{HCM Theme$SelectedItem}"
+  },
+  "border/color/error": {
+    "light": "{Colors$color/red/70}",
+    "dark": "{Colors$color/red/20}",
+    "forcedColors": "{Theme$border/color}"
   },
   "box/shadow/level-1/shadow-1/color": "{Theme$box/shadow/color/darker/layer-1}",
   "box/shadow/level-1/shadow-2/color": "{Theme$box/shadow/color/darker/layer-2}",
@@ -141,11 +141,6 @@
     "light": "{Theme$color/accent/primary}",
     "dark": "{Theme$color/accent/primary}",
     "forcedColors": "{Theme$text/color}"
-  },
-  "outline/color/error": {
-    "light": "{Colors$color/red/70}",
-    "dark": "{Colors$color/red/20}",
-    "forcedColors": "{Theme$border/color}"
   },
   "text/color": {
     "light": "{Colors$color/gray/100}",
@@ -563,6 +558,11 @@
     "light": "{Theme$button/text/color/active}",
     "dark": "{Theme$button/text/color/active}",
     "forcedColors": "{Theme$button/text/color/active}"
+  },
+  "card/border/color": {
+    "light": "color-mix(in srgb, currentColor 10%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 10%, transparent)",
+    "forcedColors": "{HCM Theme$CanvasText}"
   },
   "icon/color": {
     "light": "{Colors$color/gray/70}",

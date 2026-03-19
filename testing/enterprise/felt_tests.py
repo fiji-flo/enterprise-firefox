@@ -341,6 +341,28 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
         path = parsed.path
         print("path: ", path)
         if path == "/sso/token":
+            payload = self.rfile.read(int(self.headers.get("Content-Length"))).decode(
+                "utf-8"
+            )
+            parsed_payload = json.loads(payload)
+
+            if parsed_payload["grant_type"] != "refresh_token":
+                self.reply("", 401, "Authorization required")
+                return
+
+            if (
+                parsed_payload["refresh_token"]
+                != self.server.policy_refresh_token.value
+            ):
+                self.reply("", 401, "Authorization required")
+                return
+
+            self.server.policy_access_token.value = str(uuid.uuid4())
+            self.server.policy_refresh_token.value = str(uuid.uuid4())
+            print(
+                f"Refreshed tokens: ({self.server.policy_access_token.value}, {self.server.policy_refresh_token.value})"
+            )
+
             # Sending back the same session
             m = json.dumps({
                 "access_token": self.server.policy_access_token.value,

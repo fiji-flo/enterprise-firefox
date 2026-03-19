@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -40,6 +38,7 @@
 #endif
 #include "mozilla/net/DocumentLoadListener.h"
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/ScopedPrefs.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_docshell.h"
 #include "mozilla/StaticPrefs_fission.h"
@@ -145,6 +144,10 @@ CanonicalBrowsingContext::CanonicalBrowsingContext(WindowContext* aParentWindow,
   // You are only ever allowed to create CanonicalBrowsingContexts in the
   // parent process.
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+
+  if (IsTop()) {
+    mScopedPrefs = new ScopedPrefs();
+  }
 
   // The initial URI in a BrowsingContext is always "about:blank".
   MOZ_ALWAYS_SUCCEEDS(
@@ -255,6 +258,7 @@ void CanonicalBrowsingContext::ReplacedBy(
 
   mWebProgress->ContextReplaced(aNewContext);
   aNewContext->mWebProgress = std::move(mWebProgress);
+  aNewContext->mScopedPrefs = mScopedPrefs;
 
   // Use the Transaction for the fields which need to be updated whether or not
   // the new context has been attached before.
@@ -3701,6 +3705,10 @@ CanonicalBrowsingContext::GetBounceTrackingState() {
     return nullptr;
   }
   return mWebProgress->GetBounceTrackingState();
+}
+
+already_AddRefed<nsIScopedPrefs> CanonicalBrowsingContext::GetScopedPrefs() {
+  return do_AddRef(Top()->mScopedPrefs);
 }
 
 bool CanonicalBrowsingContext::CanOpenModalPicker() {

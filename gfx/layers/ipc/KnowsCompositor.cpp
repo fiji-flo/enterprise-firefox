@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -78,9 +76,12 @@ already_AddRefed<gfx::DataSourceSurface> GetSurfaceForDescriptor(
   uint8_t* data = GetAddressFromDescriptor(aDescriptor);
   auto rgb =
       aDescriptor.get_SurfaceDescriptorBuffer().desc().get_RGBDescriptor();
-  uint32_t stride = ImageDataSerializer::GetRGBStride(rgb);
-  return gfx::Factory::CreateWrappingDataSourceSurface(data, stride, rgb.size(),
-                                                       rgb.format());
+  auto stride = ImageDataSerializer::GetRGBStride(rgb);
+  if (stride.isNothing()) {
+    return nullptr;
+  }
+  return gfx::Factory::CreateWrappingDataSourceSurface(
+      data, stride.value(), rgb.size(), rgb.format());
 }
 
 void DestroySurfaceDescriptor(ipc::IShmemAllocator* aAllocator,

@@ -758,13 +758,15 @@ JS_PUBLIC_API void js::RemapRemoteWindowProxies(
     oomUnsafe.crash("js::RemapRemoteWindowProxies");
   }
 
-  RootedObject targetCompartmentProxy(cx);
+  RootedTuple<JSObject*, JSObject*, JSObject*> roots(cx);
+  RootedField<JSObject*, 0> targetCompartmentProxy(roots);
   JS::RootedVector<JSObject*> otherProxies(cx);
 
   // Use the callback to find remote proxies in all compartments that match
   // whatever criteria callback uses.
+  RootedField<JSObject*, 1> remoteProxy(roots);
   for (CompartmentsIter c(cx->runtime()); !c.done(); c.next()) {
-    RootedObject remoteProxy(cx, callback->getObjectToTransplant(c));
+    remoteProxy = callback->getObjectToTransplant(c);
     if (!remoteProxy) {
       continue;
     }
@@ -796,8 +798,9 @@ JS_PUBLIC_API void js::RemapRemoteWindowProxies(
     target.set(targetCompartmentProxy);
   }
 
+  RootedField<JSObject*, 2> deadWrapper(roots);
   for (JSObject*& obj : otherProxies) {
-    RootedObject deadWrapper(cx, obj);
+    deadWrapper = obj;
     js::RemapDeadWrapper(cx, deadWrapper, target);
   }
 }

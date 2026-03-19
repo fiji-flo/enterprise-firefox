@@ -10,7 +10,7 @@ export const LINKS = Object.freeze({
         "browser.ipProtection.productVpn.endpoint",
         "https://www.mozilla.org"
       ) +
-      "/products/vpn/?utm_medium=firefox-desktop&utm_source=freevpnpilot&utm_campaign=evergreen&utm_content=vpnpanel"
+      "/products/vpn/?utm_medium=firefox-desktop&utm_source=vpn-panel&utm_campaign=fx-vpn&utm_content=upgrade-button"
     );
   },
 
@@ -25,6 +25,7 @@ export const ERRORS = Object.freeze({
   MISSING_ABORT: "missing-abort-controller", // Expected abort controller was not returned
   PASS_UNAVAILABLE: "pass-unavailable", // No pass was returned from the server
   SERVER_NOT_FOUND: "server-not-found", // No server was found for the location
+  CANCELED: "activation-canceled", // Activation was canceled
 });
 
 export const SIGNIN_DATA = Object.freeze({
@@ -33,12 +34,8 @@ export const SIGNIN_DATA = Object.freeze({
   autoClose: false,
   extraParams: {
     service: "vpn",
-    entrypoint_experiment: "fx-vpn-pilot",
-    entrypoint_variation: "alpha",
-    utm_source: "callout",
-    utm_campaign: "fx-vpn-pilot",
+    utm_campaign: "fx-vpn",
     utm_medium: "firefox-desktop",
-    utm_term: "fx-vpn-pilot-panel-button",
   },
 });
 

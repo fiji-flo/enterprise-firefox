@@ -100,6 +100,7 @@
 #include "nsString.h"
 #include "nsStyleConsts.h"
 #include "nsStyleStructInlines.h"
+#include "nsStyleTransformMatrix.h"
 #include "nsTableWrapperFrame.h"
 #include "nsTextControlFrame.h"
 #include "nsXULElement.h"
@@ -9108,7 +9109,8 @@ void nsIFrame::ListTextRuns(FILE* out, nsTHashSet<const void*>& aSeen) const {
 
 void nsIFrame::ListMatchedRules(FILE* out, const char* aPrefix) const {
   AutoTArray<StyleMatchingDeclarationBlock, 8> decls;
-  Servo_ComputedValues_GetMatchingDeclarations(Style(), &decls);
+  Servo_ComputedValues_GetMatchingDeclarations(
+      Style(), /* with_starting_style = */ false, &decls);
   for (const StyleMatchingDeclarationBlock& block : decls) {
     nsAutoCString ruleText;
     Servo_DeclarationBlock_GetCssText(block.block, &ruleText);
@@ -12337,6 +12339,7 @@ PhysicalAxes nsIFrame::ShouldApplyOverflowClipping(
       case LayoutFrameType::SVGOuterSVG:
       case LayoutFrameType::SVGSymbol:
       case LayoutFrameType::Image:
+      case LayoutFrameType::HTMLVideo:
       case LayoutFrameType::TableCell:
         return kPhysicalAxesBoth;
       case LayoutFrameType::Table:

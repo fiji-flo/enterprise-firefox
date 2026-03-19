@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2193,21 +2191,6 @@ void Document::RecordPageLoadEventTelemetry() {
   }
 }
 
-#ifndef ANDROID
-static void AccumulatePriorityFcpGleanPref(
-    const nsCString& http3WithPriorityKey, const TimeDuration& duration) {
-  if (http3WithPriorityKey == "with_priority"_ns) {
-    glean::performance_pageload::h3p_fcp_with_priority.AccumulateRawDuration(
-        duration);
-  } else if (http3WithPriorityKey == "without_priority"_ns) {
-    glean::performance_pageload::http3_fcp_without_priority
-        .AccumulateRawDuration(duration);
-  } else {
-    MOZ_ASSERT_UNREACHABLE("Unknown value for http3WithPriorityKey");
-  }
-}
-#endif
-
 void Document::AccumulatePageLoadTelemetry() {
   // Interested only in top level documents for real websites that are in the
   // foreground.
@@ -2299,8 +2282,6 @@ void Document::AccumulatePageLoadTelemetry() {
   }
 
   nsAutoCString dnsKey("Native");
-  nsAutoCString http3Key;
-  nsAutoCString http3WithPriorityKey;
   nsAutoCString earlyHintKey;
   nsCOMPtr<nsIHttpChannelInternal> httpChannel =
       do_QueryInterface(GetChannel());
@@ -2321,28 +2302,7 @@ void Document::AccumulatePageLoadTelemetry() {
     uint32_t major;
     uint32_t minor;
     if (NS_SUCCEEDED(httpChannel->GetResponseVersion(&major, &minor))) {
-      if (major == 3) {
-        http3Key = "http3"_ns;
-        nsCOMPtr<nsIHttpChannel> httpChannel2 = do_QueryInterface(GetChannel());
-        nsCString header;
-        if (httpChannel2 &&
-            NS_SUCCEEDED(
-                httpChannel2->GetResponseHeader("priority"_ns, header)) &&
-            !header.IsEmpty()) {
-          http3WithPriorityKey = "with_priority"_ns;
-        } else {
-          http3WithPriorityKey = "without_priority"_ns;
-        }
-      } else if (major == 2) {
-        bool supportHttp3 = false;
-        if (NS_FAILED(httpChannel->GetSupportsHTTP3(&supportHttp3))) {
-          supportHttp3 = false;
-        }
-        if (supportHttp3) {
-          http3Key = "supports_http3"_ns;
-        }
-      }
-
+      (void)minor;
       // Don't record http version for cache hits since the version stored in
       // the cache entry reflects the original request, not this navigation.
       if (!isCacheHit) {
@@ -2374,15 +2334,6 @@ void Document::AccumulatePageLoadTelemetry() {
     glean::performance_pageload::fcp.AccumulateRawDuration(
         firstContentfulComposite - navigationStart);
 
-    if (!http3WithPriorityKey.IsEmpty()) {
-      glean::perf::h3p_first_contentful_paint.Get(http3WithPriorityKey)
-          .AccumulateRawDuration(firstContentfulComposite - navigationStart);
-#ifndef ANDROID
-      AccumulatePriorityFcpGleanPref(
-          http3WithPriorityKey, firstContentfulComposite - navigationStart);
-#endif
-    }
-
     glean::performance_pageload::fcp_responsestart.AccumulateRawDuration(
         firstContentfulComposite - responseStart);
 
@@ -2406,11 +2357,6 @@ void Document::AccumulatePageLoadTelemetry() {
           GetNavigationTiming()->GetLoadEventStartTimeStamp()) {
     glean::performance_pageload::load_time.AccumulateRawDuration(
         loadEventStart - navigationStart);
-
-    if (!http3WithPriorityKey.IsEmpty()) {
-      glean::perf::h3p_page_load_time.Get(http3WithPriorityKey)
-          .AccumulateRawDuration(loadEventStart - navigationStart);
-    }
 
     glean::performance_pageload::load_time_responsestart.AccumulateRawDuration(
         loadEventStart - responseStart);
@@ -10394,16 +10340,20 @@ Document* Document::Open(const Optional<nsAString>& /* unused */,
   // loads it's doing) if we're the active document of our browsing context.
   // Note that we do not want to stop anything if there is no existing
   // navigation.
-  if (shell && IsCurrentActiveDocument() &&
-      shell->GetIsAttemptingToNavigate()) {
-    shell->Stop(nsIWebNavigation::STOP_NETWORK);
+  if (shell && IsCurrentActiveDocument()) {
+    if (shell->GetIsAttemptingToNavigate()) {
+      shell->Stop(nsIWebNavigation::STOP_NETWORK);
 
-    // The Stop call may have cancelled the onload blocker request or
-    // prevented it from getting added, so we need to make sure it gets added
-    // to the document again otherwise the document could have a non-zero
-    // onload block count without the onload blocker request being in the
-    // loadgroup.
-    EnsureOnloadBlocker();
+      // The Stop call may have cancelled the onload blocker request or
+      // prevented it from getting added, so we need to make sure it gets added
+      // to the document again otherwise the document could have a non-zero
+      // onload block count without the onload blocker request being in the
+      // loadgroup.
+      EnsureOnloadBlocker();
+    } else {
+      // See https://github.com/whatwg/html/issues/12247
+      shell->InformNavigationAPIAboutAbortingNavigation();
+    }
   }
 
   // Step 9 -- clear event listeners out of our DOM tree
@@ -13974,10 +13924,23 @@ void Document::ScrollToRef() {
   // This also covers 2.3 of the Monkeypatch for text fragments mentioned above:
   // 2.3 Set firstRange as document's indicated part, return.
 
+  // Scroll position restored from history trumps scrolling to anchor.
+  // Check this once before calling GoToAnchor, so that the two-step fragment
+  // lookup (raw, then percent-decoded) doesn't consume the flag on the first
+  // failed attempt. See bug 2020309.
+  bool scroll = mChangeScrollPosWhenScrollingToRef;
+  if (ScrollContainerFrame* rootScroll =
+          presShell->GetRootScrollContainerFrame()) {
+    if (rootScroll->DidHistoryRestore()) {
+      scroll = false;
+      rootScroll->ClearDidHistoryRestore();
+    }
+  }
+
   const bool scrollToTextDirective =
       textDirectiveToScroll
-          ? fragmentDirective->IsTextDirectiveAllowedToBeScrolledTo()
-          : mChangeScrollPosWhenScrollingToRef;
+          ? fragmentDirective->IsTextDirectiveAllowedToBeScrolledTo() && scroll
+          : scroll;
 
   auto rv =
       presShell->GoToAnchor(ref, textDirectiveToScroll, scrollToTextDirective);
@@ -14008,8 +13971,7 @@ void Document::ScrollToRef() {
 
   // 7. Set potentialIndicatedElement to the result of finding a potential
   // indicated element given document and decodedFragment.
-  rv = presShell->GoToAnchor(decodedFragment, nullptr,
-                             mChangeScrollPosWhenScrollingToRef);
+  rv = presShell->GoToAnchor(decodedFragment, nullptr, scroll);
   if (NS_SUCCEEDED(rv)) {
     mScrolledToRefAlready = true;
   }
@@ -18941,6 +18903,8 @@ void Document::MaybeStoreUserInteractionAsPermission() {
   if (!mUserHasInteracted) {
     // First interaction, let's store this info now.
     (void)BounceTrackingProtection::RecordUserActivation(GetWindowContext());
+
+    (void)PermissionManager::RecordSiteInteraction(GetWindowContext());
 
     // For ContentBlockingUserInteraction we care about user-interaction stored
     // only for top-level documents and documents with access to the Storage

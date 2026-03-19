@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18898,6 +18896,14 @@ void NormalTransactionOp::ActorDestroy(ActorDestroyReason aWhy) {
 mozilla::ipc::IPCResult NormalTransactionOp::RecvContinue(
     const PreprocessResponse& aResponse) {
   AssertIsOnOwningThread();
+
+  // mWaitingForContinue is only touched on the owning thread. If it is not
+  // set, either we never sent Preprocess (child is misbehaving) or the op is
+  // still running on the connection thread. Calling NoteContinueReceived()
+  // in either case would race Cleanup() with DoDatabaseWork().
+  if (NS_WARN_IF(!IsWaitingForContinue())) {
+    return IPC_FAIL(this, "Continue received when not waiting for continue");
+  }
 
   switch (aResponse.type()) {
     case PreprocessResponse::Tnsresult:

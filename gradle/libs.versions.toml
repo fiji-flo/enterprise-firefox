@@ -83,7 +83,7 @@ ktlint = "1.8.0"
 spotless = "8.3.0"
 
 # Mozilla
-glean = "67.0.0"
+glean = "67.1.0"
 
 # Testing libraries
 androidx-test = "1.7.0"
@@ -96,7 +96,7 @@ androidx-test-uiautomator = "2.3.0"
 junit4 = "4.13.2"
 junit6 = "6.0.3"
 leakcanary = "2.14"
-mockito = "5.22.0"
+mockito = "5.23.0"
 mockk = "1.14.9"
 robolectric = "4.16"
 

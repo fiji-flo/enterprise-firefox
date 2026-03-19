@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,7 +17,7 @@
 namespace mozilla::profiler {
 
 class PlatformData {
-#if (defined(_MSC_VER) || defined(__MINGW32__)) && defined(MOZ_GECKO_PROFILER)
+#if defined(_MSC_VER) || defined(__MINGW32__)
  public:
   explicit PlatformData(ProfilerThreadId aThreadId);
   ~PlatformData();
@@ -32,7 +30,7 @@ class PlatformData {
 
  private:
   WindowsHandle mProfiledThread;
-#elif defined(__APPLE__) && defined(MOZ_GECKO_PROFILER)
+#elif defined(__APPLE__)
  public:
   explicit PlatformData(ProfilerThreadId aThreadId);
   ~PlatformData();
@@ -43,8 +41,7 @@ class PlatformData {
   // because the latter doesn't provide thread manipulation primitives
   // required. For details, consult "Mac OS X Internals" book, Section 7.3.
   thread_act_t mProfiledThread;
-#elif (defined(__linux__) || defined(__ANDROID__) || defined(__FreeBSD__)) && \
-    defined(MOZ_GECKO_PROFILER)
+#elif defined(__linux__) || defined(__ANDROID__) || defined(__FreeBSD__)
  public:
   explicit PlatformData(ProfilerThreadId aThreadId);
   ~PlatformData();
@@ -65,15 +62,8 @@ class PlatformData {
  *
  * @return true on success.
  */
-#if defined(MOZ_GECKO_PROFILER)
 bool GetCpuTimeSinceThreadStartInNs(uint64_t* aResult,
                                     const PlatformData& aPlatformData);
-#else
-static inline bool GetCpuTimeSinceThreadStartInNs(
-    uint64_t* aResult, const PlatformData& aPlatformData) {
-  return false;
-}
-#endif
 
 }  // namespace mozilla::profiler
 

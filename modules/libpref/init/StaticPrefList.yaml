@@ -1897,6 +1897,20 @@
   value: 300
   mirror: always
 
+# Whether to enable the negative cache for the simulation.
+# When enabled, full hashes that don't trigger a simulated hit are cached
+# to skip sending real-time requests for subsequent lookups.
+- name: browser.safebrowsing.realTime.simulation.negativeCacheEnabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# TTL for negative cache entries in the simulation cache (seconds).
+- name: browser.safebrowsing.realTime.simulation.negativeCacheTTLSec
+  type: RelaxedAtomicUint32
+  value: 300
+  mirror: always
+
 # Number of noise entries to include in simulated requests.
 # These are random hash prefixes added to mask the true URL being checked.
 - name: browser.safebrowsing.realTime.simulation.noiseEntryCount
@@ -3610,14 +3624,6 @@
 #else
   value: true
 #endif
-  mirror: always
-
-# Enable/disable KeyboardEvent.initKeyEvent function in addons even if it's
-# disabled. This is false on release since Firefox 147 on release, and
-# deprecated, see: https://bugzilla.mozilla.org/show_bug.cgi?id=2015079
-- name: dom.keyboardevent.init_key_event.enabled_in_addons
-  type: bool
-  value: false
   mirror: always
 
 # If this is true, keypress events for non-printable keys are dispatched only
@@ -6072,6 +6078,18 @@
   value: ""
   mirror: never
 
+# Whether to enable about:blank async-load workaround for ZE.
+- name: dom.about-blank-ze-hack.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Per-domain blocklist for the previous hack.
+- name: dom.about-blank-ze-hack.disabled-domains
+  type: String
+  value: ""
+  mirror: never
+
 # Whether to include common ancestor when serializing HTML data for clipboard copy.
 - name: dom.serializer.includeCommonAncestor.enabled
   type: bool
@@ -7941,13 +7959,13 @@
   mirror: once
 
 - name: gfx.webrender.layer-compositor
-  type: bool
+  type: RelaxedAtomicBool
 #if defined(XP_WIN)
   value: true
 #else
   value: false
 #endif
-  mirror: once
+  mirror: always
 
 #ifdef XP_WIN
 - name: gfx.webrender.layer-compositor-force-composition-surface
@@ -10335,7 +10353,7 @@
 # Is support for light-dark() on images in content enabled?
 - name: layout.css.light-dark.images.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
   rust: true
 
@@ -11736,6 +11754,12 @@
 - name: media.eme.hdcp-policy-check.enabled
   type: bool
   value: true
+  mirror: always
+
+# Enable per-origin provisioning for MediaDrm on Android
+- name: media.eme.mediadrm.origin-id.enabled
+  type: bool
+  value: @IS_ANDROID@
   mirror: always
 
 - name: media.eme.max-throughput-ms
@@ -16266,6 +16290,27 @@
   type: bool
   value: true
   mirror: always
+
+# Enable expiration of permissions that haven't been used recently.
+- name: permissions.expireUnused.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Duration in seconds after which unused permissions expire.
+# Default: 13 months (13 * 30 * 24 * 60 * 60 = 33696000)
+- name: permissions.expireUnusedThresholdSec
+  type: uint32_t
+  value: 33696000
+  mirror: always
+
+# Comma-separated list of permission types that can expire due to inactivity.
+# Derived from SitePermissions.sys.mjs gPermissions._permissions
+# Double-keyed permissions must include the ^ delimiter (e.g., "open-protocol-handler^")
+- name: permissions.expireUnusedTypes
+  type: String
+  value: "autoplay-media,cookie,desktop-notification,camera,localhost,local-network,microphone,screen,speaker,popup,install,geo,open-protocol-handler^,xr,focus-tab-by-prompt,shortcuts,canvas,midi,midi-sysex,storage-access,3rdPartyStorage^,3rdPartyFrameStorage^"
+  mirror: never
 
 #---------------------------------------------------------------------------
 # Prefs starting with "places."

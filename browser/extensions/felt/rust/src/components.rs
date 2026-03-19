@@ -122,13 +122,13 @@ impl FeltXPCOM {
     }
 
     fn SendTokens(&self) -> nserror::nsresult {
+        trace!("FeltXPCOM::SendTokens(): sending tokens");
         if self.is_felt_browser {
             let guard = crate::FELT_CLIENT.lock().expect("Could not get lock");
             match &*guard {
                 Some(client) => {
                     trace!("FeltXPCOM::SendTokens(): sending back to client");
-                    client.send_back_tokens();
-                    NS_OK
+                    client.send_back_tokens()
                 }
                 None => {
                     trace!("FeltXPCOM::SendTokens(): missing client");
@@ -138,7 +138,7 @@ impl FeltXPCOM {
         } else {
             match TOKENS.read() {
                 Ok(tokens) => {
-                    trace!("FeltXPCOM::SendTokens()");
+                    trace!("FeltXPCOM::SendTokens(): performing send");
                     self.send(FeltMessage::Tokens((
                         tokens.access_token.clone(),
                         tokens.refresh_token.clone(),
@@ -153,27 +153,80 @@ impl FeltXPCOM {
         }
     }
 
-    fn SetTokens(
+    fn set_tokens(
         &self,
-        access_token: *const nsACString,
-        refresh_token: *const nsACString,
+        access_token: String,
+        refresh_token: String,
         expires_at: i64,
+        can_mirror: bool,
     ) -> nserror::nsresult {
-        let access_token = unsafe { (*access_token).to_string() };
-        let refresh_token = unsafe { (*refresh_token).to_string() };
-        match TOKENS.write() {
+        let set = match TOKENS.write() {
             Ok(mut t) => {
                 *t = Tokens {
                     access_token,
                     refresh_token,
                     expires_at,
                 };
-                NS_OK
+                Ok(())
             }
-            Err(_) => NS_ERROR_FAILURE,
+            Err(_) => Err(()),
+        };
+
+        match set {
+            Ok(_) => {
+                trace!(
+                    "FeltXPCOM::set_tokens(): successfull set of token, expires_at={}",
+                    expires_at
+                );
+                if self.is_felt_browser && can_mirror {
+                    trace!(
+                        "FeltXPCOM::set_tokens(): maybe mirroring tokens, expires_at={}",
+                        expires_at
+                    );
+                    self.SendTokens()
+                } else {
+                    trace!(
+                        "FeltXPCOM::set_tokens(): not mirroring tokens, expires_at={}",
+                        expires_at
+                    );
+                    NS_OK
+                }
+            }
+            Err(_) => {
+                trace!(
+                    "FeltXPCOM::set_tokens(): failure while setting tokens, expires_at={}",
+                    expires_at
+                );
+                NS_ERROR_FAILURE
+            }
         }
     }
 
+    fn SetTokens(
+        &self,
+        access_token: *const nsACString,
+        refresh_token: *const nsACString,
+        expires_at: i64,
+    ) -> nserror::nsresult {
+        trace!(
+            "FeltXPCOM::SetTokens(): setting tokens, expires_at={}",
+            expires_at
+        );
+        self.set_tokens(
+            unsafe { (*access_token).to_string() },
+            unsafe { (*refresh_token).to_string() },
+            expires_at,
+            true,
+        )
+    }
+
+    fn ClearTokens(&self, allow_mirror: bool) -> nserror::nsresult {
+        trace!(
+            "FeltXPCOM::ClearTokens(): clearing, allow_mirror={}",
+            allow_mirror
+        );
+        self.set_tokens("".to_string(), "".to_string(), 0, allow_mirror)
+    
     fn RefreshTokens(&self) -> nserror::nsresult {
         trace!("FeltXPCOM::RefreshTokens");
         let guard = crate::FELT_CLIENT.lock().expect("Could not get lock");

@@ -98,7 +98,7 @@ impl FeltIpcClient {
         }
     }
 
-    pub fn send_back_tokens(&self) {
+    pub fn send_back_tokens(&self) -> nserror::nsresult {
         trace!("FeltIpcClient::send_back_tokens()");
         match TOKENS.read() {
             Ok(tokens) => {
@@ -109,13 +109,22 @@ impl FeltIpcClient {
                 ));
                 if let Some(tx) = &self.tx {
                     match tx.send(msg) {
-                        Ok(()) => trace!("FeltIpcClient::send_back_tokens() SENT"),
-                        Err(err) => trace!("FeltIpcClient::send_back_tokens() TX ERROR: {}", err),
+                        Ok(()) => {
+                            trace!("FeltIpcClient::send_back_tokens() SENT");
+                            NS_OK
+                        },
+                        Err(err) => {
+                            trace!("FeltIpcClient::send_back_tokens() TX ERROR: {}", err);
+                            NS_ERROR_FAILURE
+                        }
                     }
+                } else {
+                    NS_ERROR_FAILURE
                 }
             }
             Err(_) => {
-                trace!("FeltIpcClient::send_back_tokens failed: couldn't acquire lock",);
+                trace!("FeltIpcClient::send_back_tokens failed: couldn't acquire lock");
+                NS_ERROR_FAILURE
             }
         }
     }
@@ -515,9 +524,9 @@ impl FeltClientThread {
     //     client.notify_tokens_refreshed();
     // }
 
-    pub fn send_back_tokens(&self) {
+    pub fn send_back_tokens(&self) -> nserror::nsresult {
         trace!("FeltClientThread::send_back_tokens()");
         let client = self.ipc_client.borrow();
-        client.send_back_tokens();
+        client.send_back_tokens()
     }
 }

@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1157,22 +1155,6 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvGetHyphDict(
       nsIURI* aURIParams, mozilla::ipc::ReadOnlySharedMemoryHandle* aOutHandle);
-
-  mozilla::ipc::IPCResult RecvNotifyPushObservers(const nsACString& aScope,
-                                                  nsIPrincipal* aPrincipal,
-                                                  const nsAString& aMessageId);
-
-  mozilla::ipc::IPCResult RecvNotifyPushObserversWithData(
-      const nsACString& aScope, nsIPrincipal* aPrincipal,
-      const nsAString& aMessageId, nsTArray<uint8_t>&& aData);
-
-  mozilla::ipc::IPCResult RecvPushError(const nsACString& aScope,
-                                        nsIPrincipal* aPrincipal,
-                                        const nsAString& aMessage,
-                                        const uint32_t& aFlags);
-
-  mozilla::ipc::IPCResult RecvNotifyPushSubscriptionModifiedObservers(
-      const nsACString& aScope, nsIPrincipal* aPrincipal);
 
   mozilla::ipc::IPCResult RecvGetFilesRequest(
       const nsID& aID, nsTArray<nsString>&& aDirectoryPaths,

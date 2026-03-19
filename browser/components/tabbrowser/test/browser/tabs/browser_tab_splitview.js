@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", true]],
@@ -61,7 +57,7 @@ add_task(async function test_splitViewCreateAndAddTabs() {
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let tab3 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let tab4 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-
+  const tabpanels = document.getElementById("tabbrowser-tabpanels");
   // Add tabs to split view
   let splitview = gBrowser.addTabSplitView([tab1, tab2]);
   let splitview2 = gBrowser.addTabSplitView([tab3, tab4]);
@@ -125,8 +121,8 @@ add_task(async function test_splitViewCreateAndAddTabs() {
     "The split view wrapper has the expected attribute when it contains the selected tab"
   );
 
-  // Unsplit tabs
-  splitview.unsplitTabs();
+  // TODO Bug 2022919- fix discrepancy between splitview.unsplitTabs and gBrowser.unsplitTabs()
+  gBrowser.unsplitTabs(splitview);
   await BrowserTestUtils.waitForMutationCondition(
     tabbrowserTabs,
     { childList: true },
@@ -153,6 +149,16 @@ add_task(async function test_splitViewCreateAndAddTabs() {
     !tab3Panel.classList.contains("split-view-panel-active") &&
       !tab4Panel.classList.contains("split-view-panel-active"),
     "Split view active classes have been removed from the tab panels"
+  );
+
+  await BrowserTestUtils.waitForMutationCondition(
+    tabpanels,
+    { attributes: true },
+    () => !tabpanels.hasAttribute("splitview")
+  );
+  Assert.ok(
+    !tabpanels.hasAttribute("splitview"),
+    "Tab panel does not have blue outline"
   );
 
   // Add tabs back to split view
@@ -346,66 +352,6 @@ add_task(async function test_resize_split_view_panels() {
 
   BrowserTestUtils.removeTab(tab1);
   BrowserTestUtils.removeTab(tab2);
-});
-
-add_task(async function test_resize_throttled_for_keyboard() {
-  const tab1 = await addTabAndLoadBrowser();
-  const tab2 = await addTabAndLoadBrowser();
-  await BrowserTestUtils.switchTab(gBrowser, tab1);
-
-  info("Activate split view.");
-  const splitView = gBrowser.addTabSplitView([tab1, tab2]);
-  const { tabpanels } = gBrowser;
-  const splitter = tabpanels.splitViewSplitter;
-  await BrowserTestUtils.waitForMutationCondition(
-    tabpanels,
-    { childList: true },
-    () => tabpanels.querySelector(".split-view-splitter")
-  );
-  await BrowserTestUtils.waitForMutationCondition(
-    splitter,
-    { attributes: true },
-    () => BrowserTestUtils.isVisible(splitter)
-  );
-
-  splitter.focus();
-  Assert.equal(document.activeElement, splitter, "Splitter should be focused");
-
-  const [browser] = gBrowser.splitViewBrowsers;
-  const docShellIsActiveProp = sinon.spy(browser, "docShellIsActive", ["set"]);
-
-  info("Move the splitter to the left using keyboard.");
-  let movedPromise = waitForSplitterMoved(splitter);
-  EventUtils.synthesizeKey("KEY_ArrowLeft", { type: "keydown" });
-  await movedPromise;
-  EventUtils.synthesizeKey("KEY_ArrowLeft", { type: "keyup" });
-
-  Assert.ok(
-    docShellIsActiveProp.set.calledWith(false),
-    "Rendering was paused at least once."
-  );
-  Assert.ok(
-    docShellIsActiveProp.set.calledWith(true),
-    "Rendering was resumed at least once."
-  );
-  docShellIsActiveProp.set.resetHistory();
-
-  info("Move the splitter to the right using keyboard.");
-  movedPromise = waitForSplitterMoved(splitter);
-  EventUtils.synthesizeKey("KEY_ArrowRight", { type: "keydown" });
-  await movedPromise;
-  EventUtils.synthesizeKey("KEY_ArrowRight", { type: "keyup" });
-
-  Assert.ok(
-    docShellIsActiveProp.set.calledWith(false),
-    "Rendering was paused at least once."
-  );
-  Assert.ok(
-    docShellIsActiveProp.set.calledWith(true),
-    "Rendering was resumed at least once."
-  );
-
-  splitView.close();
 });
 
 add_task(async function test_resize_split_view_panels_exceeds_max_width() {

@@ -2852,9 +2852,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "67.0.0"
+version = "67.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b43d851e3966fafee2933c2891e6b7f7f346866bab7835cb0410700336f424b"
+checksum = "1dad1253e7c6c9056c3cd07e8dd896a7aec519a8d5c5f72b4c62f571c3d72480"
 dependencies = [
  "crossbeam-channel",
  "glean-core",
@@ -2867,9 +2867,9 @@ dependencies = [
 
 [[package]]
 name = "glean-core"
-version = "67.0.0"
+version = "67.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8146e9829a5fe15343fd3c42d8d41e478b02f68b8359346273cc56d7f7feff8"
+checksum = "0dbb14b253c35609e7b8b5b20d22b8bb6c6553451746a421fb7f1e7b81f5bc33"
 dependencies = [
  "android_logger",
  "bincode",
@@ -3040,8 +3040,8 @@ dependencies = [
 
 [[package]]
 name = "happy-eyeballs"
-version = "0.1.0"
-source = "git+https://github.com/mozilla/happy-eyeballs?tag=v0.1.0#68741fb9b59b48ba995808bbbe32d6c8bf6933e8"
+version = "0.2.0"
+source = "git+https://github.com/mozilla/happy-eyeballs?tag=v0.2.0#f4f9c5b7b3002103f4aef4335a80b840ad02624b"
 dependencies = [
  "log",
  "thiserror 2.0.12",
@@ -3884,9 +3884,9 @@ dependencies = [
 
 [[package]]
 name = "keccak"
-version = "0.1.4"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f6d5ed8676d904364de097082f4e7d240b571b67989ced0240f08b7f966f940"
+checksum = "cb26cec98cce3a3d96cbb7bced3c4b16e3d13f27ec56dbd62cbc8f39cfb9d653"
 dependencies = [
  "cpufeatures",
 ]

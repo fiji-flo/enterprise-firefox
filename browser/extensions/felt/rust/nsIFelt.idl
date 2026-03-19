@@ -70,6 +70,9 @@ interface nsIFelt : nsISupports {
   void setTokens(in ACString access_token, in ACString refresh_token, in long long expires_at);
 
   [must_use]
+  void clearTokens(in boolean allowMirror);
+
+  [must_use]
   void sendExtensionReady();
 
   [must_use]

@@ -90,14 +90,14 @@ use style::parser::{Parse, ParserContext};
 use style::properties::LonghandIdSet;
 use style::properties::{
     animated_properties::{AnimationValue, AnimationValueMap},
-    parse_one_declaration_into, parse_style_attribute, ComputedValues, CountedUnknownProperty,
-    CSSWideKeyword, Importance, LonghandId, NonCustomPropertyId, OwnedPropertyDeclarationId,
-    PropertyDeclarationBlock, PropertyDeclarationId, PropertyDeclarationIdSet, PropertyId,
-    ShorthandId, SourcePropertyDeclaration, StyleBuilder,
+    parse_one_declaration_into, parse_style_attribute, CSSWideKeyword, ComputedValues,
+    CountedUnknownProperty, Importance, LonghandId, NonCustomPropertyId,
+    OwnedPropertyDeclarationId, PropertyDeclarationBlock, PropertyDeclarationId,
+    PropertyDeclarationIdSet, PropertyId, ShorthandId, SourcePropertyDeclaration, StyleBuilder,
 };
 use style::properties_and_values::registry::PropertyRegistration;
 use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::StrongRuleNode;
+use style::rule_tree::{RuleCascadeFlags, StrongRuleNode};
 use style::selector_parser::PseudoElementCascadeType;
 use style::shared_lock::{
     Locked, SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard,
@@ -155,7 +155,8 @@ use style::values::specified::svg_path::PathCommand;
 use style::values::specified::{AbsoluteLength, NoCalcLength};
 use style::values::{specified, AtomIdent, CustomIdent, KeyframesName};
 use style_traits::{
-    CssWriter, NumericValue, ParseError, ParsingMode, SpecifiedValueInfo, ToCss, ToTyped, TypedValue, UnitValue,
+    CssWriter, NumericValue, ParseError, ParsingMode, SpecifiedValueInfo, ToCss, ToTyped,
+    TypedValue, UnitValue,
 };
 use thin_vec::ThinVec as nsTArray;
 use to_shmem::SharedMemoryBuilder;
@@ -744,15 +745,12 @@ pub extern "C" fn Servo_AnimationValue_GetColor(
     value: &AnimationValue,
     foreground_color: structs::nscolor,
 ) -> structs::nscolor {
-    use style::gecko::values::{
-        convert_absolute_color_to_nscolor, convert_nscolor_to_absolute_color,
-    };
     use style::values::computed::color::Color as ComputedColor;
     match *value {
         AnimationValue::BackgroundColor(ref color) => {
             let computed: ComputedColor = color.clone();
-            let foreground_color = convert_nscolor_to_absolute_color(foreground_color);
-            convert_absolute_color_to_nscolor(&computed.resolve_to_absolute(&foreground_color))
+            let foreground_color = AbsoluteColor::from_nscolor(foreground_color);
+            computed.resolve_to_absolute(&foreground_color).to_nscolor()
         },
         _ => panic!("Other color properties are not supported yet"),
     }
@@ -788,13 +786,12 @@ pub extern "C" fn Servo_AnimationValue_Color(
     color_property: NonCustomCSSPropertyId,
     color: structs::nscolor,
 ) -> Strong<AnimationValue> {
-    use style::gecko::values::convert_nscolor_to_absolute_color;
     use style::values::animated::color::Color;
 
     let property = LonghandId::from_noncustomcsspropertyid(color_property)
         .expect("We don't have shorthand property animation value");
 
-    let animated = convert_nscolor_to_absolute_color(color);
+    let animated = AbsoluteColor::from_nscolor(color);
 
     match property {
         LonghandId::BackgroundColor => {
@@ -1069,6 +1066,7 @@ fn resolve_rules_for_element_with_context<'a>(
         rules: Some(rules),
         visited_rules: None,
         flags: original_computed_values.flags.for_cascade_inputs(),
+        include_starting_style: Default::default(),
     };
 
     // Actually `PseudoElementResolution` doesn't matter.
@@ -1429,11 +1427,10 @@ pub unsafe extern "C" fn Servo_Property_GetCSSValuesForProperty(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_Property_GetCSSWideKeywords(
-    result: &mut nsTArray<nsString>,
-) {
-    CSSWideKeyword::collect_completion_keywords(
-        &mut |list| result.extend(list.iter().map(|k| nsString::from(&**k))));
+pub unsafe extern "C" fn Servo_Property_GetCSSWideKeywords(result: &mut nsTArray<nsString>) {
+    CSSWideKeyword::collect_completion_keywords(&mut |list| {
+        result.extend(list.iter().map(|k| nsString::from(&**k)))
+    });
 }
 
 #[no_mangle]
@@ -1551,17 +1548,6 @@ pub extern "C" fn Servo_Element_IsPrimaryStyleReusedViaRuleNode(element: &RawGec
         .expect("Invoking Servo_Element_IsPrimaryStyleReusedViaRuleNode on unstyled element");
     data.flags
         .contains(data::ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE)
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_Element_MayHaveStartingStyle(element: &RawGeckoElement) -> bool {
-    let element = GeckoElement(element);
-    let data = match element.borrow_data() {
-        Some(d) => d,
-        None => return false,
-    };
-    data.flags
-        .contains(data::ElementDataFlags::MAY_HAVE_STARTING_STYLE)
 }
 
 #[no_mangle]
@@ -2793,8 +2779,7 @@ where
     F: FnOnce(Option<&ScopeRootCandidate>) -> R,
 {
     use selectors::matching::{
-        matches_selector, IncludeStartingStyle, MatchingContext, MatchingMode, NeedsSelectorFlags,
-        VisitedHandlingMode,
+        matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags, VisitedHandlingMode,
     };
 
     let quirks_mode = element.as_node().owner_doc().quirks_mode();
@@ -2843,7 +2828,6 @@ where
         /* bloom_filter = */ None,
         &mut selector_caches,
         visited_mode,
-        IncludeStartingStyle::No,
         quirks_mode,
         NeedsSelectorFlags::No,
         MatchingForInvalidation::No,
@@ -4664,9 +4648,10 @@ pub struct MatchingDeclarationBlock {
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetMatchingDeclarations(
     values: &ComputedValues,
+    with_starting_style: bool,
     rules: &mut nsTArray<MatchingDeclarationBlock>,
 ) {
-    use style::rule_tree::CascadeLevel;
+    use style::rule_tree::CascadeOrigin;
     let rule_node = match values.rules {
         Some(ref r) => r,
         None => return,
@@ -4685,21 +4670,20 @@ pub extern "C" fn Servo_ComputedValues_GetMatchingDeclarations(
             continue;
         };
 
-        let origin = match node.cascade_level() {
-            CascadeLevel::UANormal | CascadeLevel::UAImportant => {
-                MatchingDeclarationBlockOrigin::UserAgent
-            },
-            CascadeLevel::UserNormal | CascadeLevel::UserImportant => {
-                MatchingDeclarationBlockOrigin::User
-            },
-            CascadeLevel::AuthorNormal { .. } | CascadeLevel::AuthorImportant { .. } => {
-                MatchingDeclarationBlockOrigin::Author
-            },
-            CascadeLevel::PositionFallback => MatchingDeclarationBlockOrigin::PositionFallback,
-            CascadeLevel::PresHints => MatchingDeclarationBlockOrigin::PresHints,
-            CascadeLevel::Animations => MatchingDeclarationBlockOrigin::Animations,
-            CascadeLevel::Transitions => MatchingDeclarationBlockOrigin::Transitions,
-            CascadeLevel::SMILOverride => MatchingDeclarationBlockOrigin::SMIL,
+        let prio = node.cascade_priority();
+        if prio.flags().intersects(RuleCascadeFlags::STARTING_STYLE) && !with_starting_style {
+            continue;
+        }
+
+        let origin = match prio.cascade_level().origin() {
+            CascadeOrigin::UA => MatchingDeclarationBlockOrigin::UserAgent,
+            CascadeOrigin::User => MatchingDeclarationBlockOrigin::User,
+            CascadeOrigin::Author => MatchingDeclarationBlockOrigin::Author,
+            CascadeOrigin::PositionFallback => MatchingDeclarationBlockOrigin::PositionFallback,
+            CascadeOrigin::PresHints => MatchingDeclarationBlockOrigin::PresHints,
+            CascadeOrigin::Animations => MatchingDeclarationBlockOrigin::Animations,
+            CascadeOrigin::Transitions => MatchingDeclarationBlockOrigin::Transitions,
+            CascadeOrigin::SMILOverride => MatchingDeclarationBlockOrigin::SMIL,
         };
 
         rules.push(MatchingDeclarationBlock {
@@ -4737,14 +4721,13 @@ fn dump_properties_and_rules(cv: &ComputedValues, properties: &LonghandIdSet) {
 #[cfg(feature = "gecko_debug")]
 fn dump_rules(cv: &ComputedValues) {
     println_stderr!("  Rules({:?}):", cv.pseudo());
-    if let Some(rules) = cv.rules.as_ref() {
-        for rn in rules.self_and_ancestors() {
-            if rn.importance().important() {
-                continue;
-            }
-            if let Some(d) = rn.style_source() {
-                println_stderr!("    {:?}", d.get());
-            }
+    let Some(ref rules) = cv.rules else { return };
+    for rn in rules.self_and_ancestors() {
+        if rn.importance().important() {
+            continue;
+        }
+        if let Some(d) = rn.style_source() {
+            println_stderr!("    {:?} - {:?}", d.get(), rn.cascade_priority());
         }
     }
 }
@@ -5304,7 +5287,7 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_GetPropertyTypedValue(
     let property_id = get_property_id_from_property!(property, false);
 
     *result = read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
-        let typed_value = decls.property_value_to_typed(&property_id);
+        let typed_value = decls.property_value_to_typed_value(&property_id);
 
         match typed_value {
             Err(()) => PropertyTypedValue::None,
@@ -5598,7 +5581,7 @@ pub unsafe extern "C" fn Servo_NumericDeclaration_GetValue(
     declaration: &NumericDeclaration,
     result: *mut NumericValueResult,
 ) {
-    *result = match declaration.to_typed() {
+    *result = match declaration.to_typed_value() {
         Some(TypedValue::Numeric(numeric)) => NumericValueResult::Numeric(numeric),
         _ => NumericValueResult::Unsupported,
     };
@@ -6477,13 +6460,12 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(
     property: NonCustomCSSPropertyId,
     value: structs::nscolor,
 ) {
-    use style::gecko::values::convert_nscolor_to_absolute_color;
     use style::properties::longhands;
     use style::properties::PropertyDeclaration;
     use style::values::specified::Color;
 
     let long = get_longhand_from_id!(property);
-    let rgba = convert_nscolor_to_absolute_color(value);
+    let rgba = AbsoluteColor::from_nscolor(value);
     let color = Color::from_absolute_color(rgba);
 
     let prop = match_wrap_declared! { long,
@@ -6849,44 +6831,6 @@ pub extern "C" fn Servo_ResolveStyleLazily(
     finish(&styles, /* is_probe = */ false)
         .expect("We're not probing, so we should always get a style back")
         .into()
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ResolveStartingStyle(
-    element: &RawGeckoElement,
-    snapshots: *const ServoElementSnapshotTable,
-    raw_data: &PerDocumentStyleData,
-) -> Strong<ComputedValues> {
-    use style::style_resolver::{PseudoElementResolution, StyleResolverForElement};
-
-    let doc_data = raw_data.borrow();
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
-    let shared = create_shared_context(
-        &global_style_data,
-        &guard,
-        &doc_data.stylist,
-        TraversalFlags::empty(),
-        unsafe { &*snapshots },
-    );
-    let mut tlc = ThreadLocalStyleContext::new();
-    let mut context = StyleContext {
-        shared: &shared,
-        thread_local: &mut tlc,
-    };
-
-    let element = GeckoElement(element);
-    context.thread_local.bloom_filter.rebuild(element);
-
-    let mut resolver = StyleResolverForElement::new(
-        element,
-        &mut context,
-        RuleInclusion::All,
-        PseudoElementResolution::IfApplicable,
-    );
-
-    let starting_style = resolver.resolve_starting_style();
-    starting_style.style.0.into()
 }
 
 #[no_mangle]
@@ -8949,12 +8893,12 @@ pub unsafe extern "C" fn Servo_ComputeColor(
     was_current_color: *mut bool,
     loader: *mut Loader,
 ) -> bool {
-    let current_color = style::gecko::values::convert_nscolor_to_absolute_color(current_color);
+    let current_color = AbsoluteColor::from_nscolor(current_color);
     let Some(result) = compute_color(raw_data, &current_color, value, loader) else {
         return false;
     };
 
-    *result_color = style::gecko::values::convert_absolute_color_to_nscolor(&result.result_color);
+    *result_color = result.result_color.to_nscolor();
     if !was_current_color.is_null() {
         *was_current_color = result.was_current_color
     }
@@ -9896,13 +9840,13 @@ pub extern "C" fn Servo_SlowRgbToNearestColorName(
 pub extern "C" fn Servo_ColorNameToRgb(name: &nsACString, out: &mut structs::nscolor) -> bool {
     match cssparser::color::parse_named_color(unsafe { name.as_str_unchecked() }) {
         Ok((r, g, b)) => {
-            *out = style::gecko::values::convert_absolute_color_to_nscolor(&AbsoluteColor::new(
+            *out = AbsoluteColor::new(
                 ColorSpace::Srgb,
                 r,
                 g,
                 b,
                 1.0,
-            ));
+            ).to_nscolor();
             true
         },
         _ => false,

@@ -15,23 +15,24 @@ use crate::dom::{AttributeTracker, TElement};
 use crate::font_metrics::FontMetricsOrientation;
 use crate::logical_geometry::WritingMode;
 use crate::properties::{
-    property_counts, CSSWideKeyword, ComputedValues, DeclarationImportanceIterator, Importance,
-    LonghandId, LonghandIdSet, PrioritaryPropertyId, PropertyDeclaration, PropertyDeclarationId,
-    PropertyFlags, ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
+    property_counts, CSSWideKeyword, ComputedValues, DeclarationImportanceIterator, LonghandId,
+    LonghandIdSet, PrioritaryPropertyId, PropertyDeclaration, PropertyDeclarationId, PropertyFlags,
+    ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
 };
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
-use crate::rule_tree::{CascadeLevel, StrongRuleNode};
+use crate::rule_tree::{CascadeLevel, CascadeOrigin, RuleCascadeFlags, StrongRuleNode};
 use crate::selector_parser::PseudoElement;
 use crate::shared_lock::StylesheetGuards;
 use crate::style_adjuster::StyleAdjuster;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
-use crate::stylesheets::{layer_rule::LayerOrder, Origin};
+use crate::stylesheets::layer_rule::LayerOrder;
 use crate::stylist::Stylist;
 #[cfg(feature = "gecko")]
 use crate::values::specified::length::FontBaseSize;
 use crate::values::specified::position::PositionTryFallbacksTryTactic;
 use crate::values::{computed, specified};
 use rustc_hash::FxHashMap;
+use selectors::context::IncludeStartingStyle;
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -74,6 +75,7 @@ pub fn cascade<E>(
     try_tactic: &PositionTryFallbacksTryTactic,
     visited_rules: Option<&StrongRuleNode>,
     cascade_input_flags: ComputedValueFlags,
+    include_starting_style: IncludeStartingStyle,
     rule_cache: Option<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
     element: Option<E>,
@@ -92,6 +94,7 @@ where
         try_tactic,
         CascadeMode::Unvisited { visited_rules },
         cascade_input_flags,
+        include_starting_style,
         rule_cache,
         rule_cache_conditions,
         element,
@@ -106,8 +109,6 @@ struct DeclarationIterator<'a> {
     current_rule_node: Option<&'a StrongRuleNode>,
     // Per rule state.
     declarations: DeclarationImportanceIterator<'a>,
-    origin: Origin,
-    importance: Importance,
     priority: CascadePriority,
 }
 
@@ -122,9 +123,11 @@ impl<'a> DeclarationIterator<'a> {
         let mut iter = Self {
             guards,
             current_rule_node: Some(rule_node),
-            origin: Origin::UserAgent,
-            importance: Importance::Normal,
-            priority: CascadePriority::new(CascadeLevel::UANormal, LayerOrder::root()),
+            priority: CascadePriority::new(
+                CascadeLevel::new(CascadeOrigin::UA),
+                LayerOrder::root(),
+                RuleCascadeFlags::empty(),
+            ),
             declarations: DeclarationImportanceIterator::default(),
             restriction,
         };
@@ -134,13 +137,7 @@ impl<'a> DeclarationIterator<'a> {
 
     fn update_for_node(&mut self, node: &'a StrongRuleNode) {
         self.priority = node.cascade_priority();
-        let level = self.priority.cascade_level();
-        self.origin = level.origin();
-        self.importance = level.importance();
-        let guard = match self.origin {
-            Origin::Author => self.guards.author,
-            Origin::User | Origin::UserAgent => self.guards.ua_or_user,
-        };
+        let guard = self.priority.cascade_level().origin().guard(&self.guards);
         self.declarations = match node.style_source() {
             Some(source) => source.read(guard).declaration_importance_iter(),
             None => DeclarationImportanceIterator::default(),
@@ -155,7 +152,7 @@ impl<'a> Iterator for DeclarationIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some((decl, importance)) = self.declarations.next_back() {
-                if self.importance != importance {
+                if self.priority.cascade_level().is_important() != importance.important() {
                     continue;
                 }
 
@@ -165,7 +162,9 @@ impl<'a> Iterator for DeclarationIterator<'a> {
                     // longhands are only allowed if they have our
                     // restriction flag set.
                     if let PropertyDeclarationId::Longhand(id) = decl.id() {
-                        if !id.flags().contains(restriction) && self.origin != Origin::UserAgent {
+                        if !id.flags().contains(restriction)
+                            && self.priority.cascade_level().origin() != CascadeOrigin::UA
+                        {
                             continue;
                         }
                     }
@@ -192,6 +191,7 @@ fn cascade_rules<E>(
     try_tactic: &PositionTryFallbacksTryTactic,
     cascade_mode: CascadeMode,
     cascade_input_flags: ComputedValueFlags,
+    include_starting_style: IncludeStartingStyle,
     rule_cache: Option<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
     element: Option<E>,
@@ -211,6 +211,7 @@ where
         try_tactic,
         cascade_mode,
         cascade_input_flags,
+        include_starting_style,
         rule_cache,
         rule_cache_conditions,
         element,
@@ -269,6 +270,7 @@ pub fn apply_declarations<'a, E, I>(
     try_tactic: &'a PositionTryFallbacksTryTactic,
     cascade_mode: CascadeMode,
     cascade_input_flags: ComputedValueFlags,
+    include_starting_style: IncludeStartingStyle,
     rule_cache: Option<&'a RuleCache>,
     rule_cache_conditions: &'a mut RuleCacheConditions,
     element: Option<E>,
@@ -300,6 +302,7 @@ where
         stylist.quirks_mode(),
         rule_cache_conditions,
         container_size_query,
+        include_starting_style,
     );
 
     context.style().add_flags(cascade_input_flags);
@@ -313,6 +316,7 @@ where
         Some(ref attr_provider) => AttributeTracker::new(attr_provider),
         None => AttributeTracker::new_dummy(),
     };
+
     let properties_to_apply = match cascade_mode {
         CascadeMode::Visited { unvisited_context } => {
             context.builder.custom_properties = unvisited_context.builder.custom_properties.clone();
@@ -378,11 +382,8 @@ where
                 );
             }
 
-            using_cached_reset_properties = cascade.try_to_use_cached_reset_properties(
-                &mut context.builder,
-                rule_cache,
-                guards,
-            );
+            using_cached_reset_properties =
+                cascade.try_to_use_cached_reset_properties(&mut context, rule_cache, guards);
 
             if using_cached_reset_properties {
                 LonghandIdSet::late_group_only_inherited()
@@ -438,7 +439,7 @@ type DeclarationsToApplyUnlessOverriden = SmallVec<[PropertyDeclaration; 2]>;
 fn tweak_when_ignoring_colors(
     context: &computed::Context,
     longhand_id: LonghandId,
-    origin: Origin,
+    origin: CascadeOrigin,
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overridden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
@@ -449,7 +450,7 @@ fn tweak_when_ignoring_colors(
         return;
     }
 
-    let is_ua_or_user_rule = matches!(origin, Origin::User | Origin::UserAgent);
+    let is_ua_or_user_rule = matches!(origin, CascadeOrigin::User | CascadeOrigin::UA);
     if is_ua_or_user_rule {
         return;
     }
@@ -954,8 +955,13 @@ impl<'b> Cascade<'b> {
         attribute_tracker: &mut AttributeTracker,
     ) {
         debug_assert!(!longhand_id.is_logical());
-        let origin = priority.cascade_level().origin();
         if self.seen.contains(longhand_id) {
+            return;
+        }
+
+        if priority.flags().contains(RuleCascadeFlags::STARTING_STYLE)
+            && context.include_starting_style == IncludeStartingStyle::No
+        {
             return;
         }
 
@@ -972,6 +978,7 @@ impl<'b> Cascade<'b> {
 
         // When document colors are disabled, do special handling of
         // properties that are marked as ignored in that mode.
+        let origin = priority.cascade_level().origin();
         if self.ignore_colors {
             tweak_when_ignoring_colors(
                 context,
@@ -1007,7 +1014,7 @@ impl<'b> Cascade<'b> {
         };
 
         self.seen.insert(longhand_id);
-        if origin == Origin::Author {
+        if origin.is_author_origin() {
             self.author_specified.insert(longhand_id);
         }
 
@@ -1079,6 +1086,7 @@ impl<'b> Cascade<'b> {
             // Cascade input flags don't matter for the visited style, they are
             // in the main (unvisited) style.
             Default::default(),
+            context.include_starting_style,
             // The rule cache doesn't care about caching :visited
             // styles, we cache the unvisited style instead. We still do
             // need to set the caching dependencies properly if present
@@ -1154,7 +1162,7 @@ impl<'b> Cascade<'b> {
 
     fn try_to_use_cached_reset_properties(
         &self,
-        builder: &mut StyleBuilder<'b>,
+        context: &mut computed::Context<'b>,
         cache: Option<&'b RuleCache>,
         guards: &StylesheetGuards,
     ) -> bool {
@@ -1162,14 +1170,14 @@ impl<'b> Cascade<'b> {
             FirstLineReparenting::Yes { style_to_reparent } => style_to_reparent,
             FirstLineReparenting::No => {
                 let Some(cache) = cache else { return false };
-                let Some(style) = cache.find(guards, builder) else {
+                let Some(style) = cache.find(guards, &context) else {
                     return false;
                 };
                 style
             },
         };
 
-        builder.copy_reset_from(style);
+        context.builder.copy_reset_from(style);
 
         // We're using the same reset style as another element, and we'll skip
         // applying the relevant properties. So we need to do the relevant
@@ -1187,7 +1195,7 @@ impl<'b> Cascade<'b> {
             | ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS
             | ComputedValueFlags::USES_CONTAINER_UNITS
             | ComputedValueFlags::USES_VIEWPORT_UNITS;
-        builder.add_flags(style.flags & bits_to_copy);
+        context.builder.add_flags(style.flags & bits_to_copy);
 
         true
     }

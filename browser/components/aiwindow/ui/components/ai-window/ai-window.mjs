@@ -70,8 +70,18 @@ ChromeUtils.defineLazyGetter(lazy, "log", function () {
  * }} TabStateEvent
  */
 
-const FULLPAGE = "fullpage";
-const SIDEBAR = "sidebar";
+const MODE = {
+  FULLPAGE: "fullpage",
+  SIDEBAR: "sidebar",
+  URLBAR: "urlbar",
+};
+
+const ACTION = {
+  CHAT: "chat",
+  SEARCH: "search",
+  NAVIGATE: "navigate",
+};
+
 const PREF_MEMORIES_CONVERSATION =
   "browser.smartwindow.memories.generateFromConversation";
 const PREF_MEMORIES_HISTORY =
@@ -130,7 +140,9 @@ export class AIWindow extends MozLitElement {
   }
 
   #detectModeFromContext() {
-    return this.#hostBrowser?.id === "ai-window-browser" ? SIDEBAR : FULLPAGE;
+    return this.#hostBrowser?.id === "ai-window-browser"
+      ? MODE.SIDEBAR
+      : MODE.FULLPAGE;
   }
 
   /**
@@ -141,7 +153,7 @@ export class AIWindow extends MozLitElement {
    *
    */
   #syncHistoryState() {
-    if (!this.isConnected || this.mode !== FULLPAGE) {
+    if (!this.isConnected || this.mode !== MODE.FULLPAGE) {
       return;
     }
     window.history.replaceState(
@@ -250,8 +262,8 @@ export class AIWindow extends MozLitElement {
 
     this.mode = this.#detectModeFromContext();
     this.showStarters = false;
-    this.showFooter = this.mode === FULLPAGE;
-    this.showDisclaimer = this.mode !== FULLPAGE;
+    this.showFooter = this.mode === MODE.FULLPAGE;
+    this.showDisclaimer = this.mode !== MODE.FULLPAGE;
 
     // Apply chat-active immediately if restoring a conversation
     if (this.#hostBrowser?.getAttribute("data-conversation-id")) {
@@ -465,6 +477,8 @@ export class AIWindow extends MozLitElement {
     browser.setAttribute("id", "aichat-browser");
     browser.setAttribute("type", "content");
     browser.setAttribute("maychangeremoteness", "true");
+    browser.setAttribute("remote", "true");
+    browser.setAttribute("remoteType", "privilegedabout");
     browser.setAttribute("disableglobalhistory", "true");
     browser.setAttribute("transparent", "true");
     browser.setAttribute("src", "about:aichatcontent");
@@ -541,7 +555,7 @@ export class AIWindow extends MozLitElement {
         }
       );
 
-      if (this.mode === SIDEBAR && gBrowser) {
+      if (this.mode === MODE.SIDEBAR && gBrowser) {
         // Get tab context for LLM-generated prompts
         // @todo bug 2015919 to use same context as visualized in smartbar
         const contextTabs = [gBrowser.selectedTab].map(tab => ({
@@ -585,6 +599,10 @@ export class AIWindow extends MozLitElement {
 
     this.#starters = this.#conversation?.messages?.length ? [] : starters;
     this.showStarters = !!starters.length;
+
+    if (this.showStarters) {
+      this.onQuickPromptDisplayed(this.#starters.length);
+    }
     this.requestUpdate();
   }
 
@@ -625,10 +643,10 @@ export class AIWindow extends MozLitElement {
       // below when in fullpage mode.
       smartbar.setAttribute(
         "suggestions-position",
-        this.mode === SIDEBAR ? "top" : "bottom"
+        this.mode === MODE.SIDEBAR ? "top" : "bottom"
       );
       smartbar.setAndUpdateContextWebsites(this.#addedContextWebsites);
-      smartbar.isSidebarMode = this.mode == "sidebar";
+      smartbar.isSidebarMode = this.mode == MODE.SIDEBAR;
 
       smartbar.addEventListener("input", this.#handleSmartbarInput);
       smartbar.addEventListener(
@@ -756,7 +774,7 @@ export class AIWindow extends MozLitElement {
     );
 
     const { value, action, contextMentions, contextPageUrl } = event.detail;
-    if (action === "chat") {
+    if (action === ACTION.CHAT) {
       // Seed @mentioned URLs into security ledger at submission time.
       // URLs come from two sources:
       // 1. contextMentions: "+" button mentions + implicit current tab (sidebar)
@@ -786,21 +804,10 @@ export class AIWindow extends MozLitElement {
           }
         }
       }
-
-      // Disable suggestions after the first chat message.
-      // We only want to show suggestions for the initial query,
-      // but not for follow-up messages in a conversation.
-      if (this.#conversation.messages.length === 0) {
-        this.#smartbar.suppressStartQuery({ permanent: true });
-      }
       this.submitChatMessage(value, contextMentions, contextPageUrl);
-      this.#dispatchChromeEvent(
-        "ai-window:smartbar-input",
-        this.#getAIWindowEventOptions("")
-      );
     } else if (
-      this.mode === SIDEBAR &&
-      (action === "navigate" || action === "search")
+      this.mode === MODE.SIDEBAR &&
+      (action === ACTION.NAVIGATE || action === ACTION.SEARCH)
     ) {
       this.#dispatchChromeEvent(
         "ai-window:sidebar-navigating",
@@ -856,6 +863,10 @@ export class AIWindow extends MozLitElement {
       ...this.#createUserRoleOpts(contextMentions),
       pageUrl,
     });
+    this.#dispatchChromeEvent(
+      "ai-window:smartbar-input",
+      this.#getAIWindowEventOptions("")
+    );
   }
 
   #handleMemoriesToggle = event => {
@@ -881,20 +892,40 @@ export class AIWindow extends MozLitElement {
    * @private
    */
   #handlePromptSelected = event => {
-    Glean.smartWindow.quickPromptClicked.record({
-      chat_id: this.conversationId,
-    });
-
-    lazy.log.debug(
-      "chatId[%s]: %s",
-      this.#handlePromptSelected.name,
-      this.conversationId
-    );
-
-    const { text } = event.detail;
-    this.#recordChatInteraction();
-    this.#fetchAIResponse(text, this.#createUserRoleOpts());
+    this.onQuickPromptClicked(event.detail.text, true);
   };
+
+  /**
+   * Records a quick_prompt_displayed Glean event.
+   * Called for both conversation starters and follow-up suggestions.
+   *
+   * @param {number} prompts - Number of prompts shown
+   */
+  onQuickPromptDisplayed = prompts => {
+    Glean.smartWindow.quickPromptDisplayed.record({
+      location: this.mode,
+      chat_id: this.conversationId,
+      message_seq: this.#conversation.messages.length,
+      prompts,
+    });
+  };
+
+  /**
+   * Records a quick_prompt_clicked Glean event and submits the prompt.
+   * Called for both conversation starters and follow-up suggestions.
+   *
+   * @param {string} text - The prompt text to submit
+   * @param {boolean} starter - Whether this is a conversation starter
+   */
+  onQuickPromptClicked(text, starter) {
+    Glean.smartWindow.quickPromptClicked.record({
+      location: this.mode,
+      chat_id: this.conversationId,
+      message_seq: this.#conversation.messages.length,
+      starter,
+    });
+    this.submitChatMessage(text);
+  }
 
   /**
    * Creates a UserRoleOpts object with current memories settings.
@@ -958,38 +989,12 @@ export class AIWindow extends MozLitElement {
   }
 
   #updateTabFavicon() {
-    if (this.classList.contains("chat-active") || this.mode !== FULLPAGE) {
+    if (this.classList.contains("chat-active") || this.mode !== MODE.FULLPAGE) {
       return;
     }
     const link = document.getElementById("tabIcon");
     link.href = TAB_FAVICON_CHAT;
   }
-
-  /**
-   * Processes tokens from the AI response stream and updates the message.
-   * Adds all tokens to their respective arrays in the tokens object and
-   * builds the _pendingMemoryIds array for existing_memory tokens.
-   * IDs are resolved to full memory objects after streaming ends.
-   *
-   * @param {Array<{key: string, value: string}>} tokens - Array of parsed tokens from the stream
-   * @param {ChatMessage} currentMessage - The message object being updated
-   */
-  handleTokens = (tokens, currentMessage) => {
-    tokens.forEach(({ key, value }) => {
-      currentMessage.tokens[key].push(value);
-
-      if (key === "existing_memory") {
-        currentMessage._pendingMemoryIds ??= [];
-        currentMessage._pendingMemoryIds.push(value);
-      }
-
-      // Build web search queries
-      if (key === "search") {
-        currentMessage.webSearchQueries ??= [];
-        currentMessage.webSearchQueries.push(value);
-      }
-    });
-  };
 
   #resetConversationState() {
     this.classList.remove("chat-active");
@@ -1003,10 +1008,13 @@ export class AIWindow extends MozLitElement {
   #setBrowserContainerActiveState(isActive) {
     if (isActive) {
       this.classList.add("chat-active");
+      this.#smartbar?.suppressStartQuery({ permanent: true });
+      this.#smartbar?.view.close();
       return;
     }
 
     this.classList.remove("chat-active");
+    this.#smartbar?.unsuppressStartQuery();
   }
 
   /**
@@ -1089,6 +1097,12 @@ export class AIWindow extends MozLitElement {
         inputText,
         browsingContext: this.#getBrowsingContext(),
       });
+
+      const lastMsg = this.#conversation.messages.at(-1);
+      const followupCount = lastMsg?.tokens?.followup?.length;
+      if (followupCount) {
+        this.onQuickPromptDisplayed(followupCount);
+      }
     } catch (e) {
       this.showSearchingIndicator(false, null);
       this.#handleError(e);
@@ -1099,7 +1113,7 @@ export class AIWindow extends MozLitElement {
   #getBrowsingContext() {
     // Use the adjacent tab's browsing context for sidebar or current for
     // fullpage for tools that need context.
-    return this.mode === SIDEBAR
+    return this.mode === MODE.SIDEBAR
       ? window.browsingContext.topChromeWindow.gBrowser.selectedBrowser
           .browsingContext
       : window.browsingContext;
@@ -1271,7 +1285,7 @@ export class AIWindow extends MozLitElement {
       );
 
       // Update smartbar chips to reflect the current tab when sidebar reopens
-      if (this.#smartbar && this.mode === "sidebar") {
+      if (this.#smartbar && this.mode === MODE.SIDEBAR) {
         this.#smartbar.updateContextChips();
       }
 
@@ -1495,7 +1509,7 @@ export class AIWindow extends MozLitElement {
       />
       <!-- TODO (Bug 2008938): Make in-page Smartbar styling not dependent on chrome styles -->
       <link rel="stylesheet" href="chrome://browser/skin/smartbar.css" />
-      ${this.mode === SIDEBAR
+      ${this.mode === MODE.SIDEBAR
         ? html`<div class="sidebar-header">
             <moz-button
               data-l10n-id="aiwindow-new-chat"
@@ -1507,7 +1521,7 @@ export class AIWindow extends MozLitElement {
             ></moz-button>
           </div>`
         : ""}
-      ${this.mode === FULLPAGE
+      ${this.mode === MODE.FULLPAGE
         ? html`<smartwindow-heading></smartwindow-heading>`
         : ""}
       <div id="browser-container"></div>

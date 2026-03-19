@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -453,8 +451,10 @@ void nsContentSink::PreloadHref(
   nsCOMPtr<nsIURI> uri;
   NS_NewURI(getter_AddRefs(uri), aHref, encoding, mDocument->GetDocBaseURI());
   if (!uri) {
-    // URL parsing failed.
-    return;
+    if (!aAs.LowerCaseEqualsASCII("image") || aSrcset.IsEmpty()) {
+      // URL parsing failed.
+      return;
+    }
   }
 
   nsAttrValue asAttr;
@@ -468,7 +468,7 @@ void nsContentSink::PreloadHref(
   if (policyType == nsIContentPolicy::TYPE_INVALID ||
       !mozilla::net::CheckPreloadAttrs(asAttr, mimeType, aMedia, mDocument)) {
     // Ignore preload wrong or empty attributes.
-    mozilla::net::WarnIgnoredPreload(*mDocument, *uri);
+    mozilla::net::WarnIgnoredPreload(*mDocument, uri, aSrcset);
     return;
   }
 

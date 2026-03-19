@@ -945,7 +945,7 @@
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Få förslag från webben relaterade till din sökning</string>
   <!-- Preference title for switch preference to show search optimization cards -->
-  <string name="preferences_show_search_optimization_cards">Hämta förslag från Mozilla medan du skriver</string>
+  <string name="preferences_show_search_optimization_cards">Få förslag från Mozilla medan du skriver</string>
   <!-- Preference for link sharing -->
   <string name="preferences_link_sharing">Länkdelning</string>
   <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
@@ -2051,11 +2051,11 @@
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s har tagits bort</string>
   <!-- Bookmark undo button for deletion snackbar action -->
-  <string name="bookmark_undo_deletion">ÅNGRA</string>
+  <string name="bookmark_undo_deletion" tools:ignore="UnusedResources" moz:removedIn="150">ÅNGRA</string>
   <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
-  <string name="bookmark_delete_single_item">%s borttagen</string>
+  <string name="bookmark_delete_single_item" tools:ignore="UnusedResources" moz:removedIn="150">%s borttagen</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
-  <string name="bookmark_delete_multiple_items">Borttagna objekt: %s</string>
+  <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources" moz:removedIn="150">Borttagna objekt: %s</string>
   <!-- Content description for the bookmark navigation bar back button -->
   <string name="bookmark_navigate_back_button_content_description">Navigera bakåt</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->

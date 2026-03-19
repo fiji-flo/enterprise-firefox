@@ -294,11 +294,8 @@ export class IPProtectionPanel {
     const win = this.#window.get();
     const inPrivateBrowsing =
       !!win && lazy.PrivateBrowsingUtils.isWindowPrivate(win);
-    const { started, error } = await lazy.IPPProxyManager.start(
-      true,
-      inPrivateBrowsing
-    );
-    if (!started) {
+    const { error } = await lazy.IPPProxyManager.start(true, inPrivateBrowsing);
+    if (error && error !== ERRORS.CANCELED) {
       const errorMessage =
         error == ERRORS.NETWORK ? ERRORS.NETWORK : ERRORS.GENERIC;
       this.setState({
@@ -475,8 +472,13 @@ export class IPProtectionPanel {
    * @param {object} options
    * @param {string} options.entrypoint
    *  The entrypoint to pass for the sign in flow
+   * @param {string} options.utm_source
+   *  The utm_source to pass for the sign in flow
    */
-  async startLoginFlow({ entrypoint = "vpn_integration_panel" } = {}) {
+  async startLoginFlow({
+    entrypoint = "vpn_integration_panel",
+    utm_source = "panel",
+  } = {}) {
     let window = this.#window.get();
     let browser = window.gBrowser;
 
@@ -488,7 +490,11 @@ export class IPProtectionPanel {
     this.close();
 
     const signedIn = await lazy.SpecialMessageActions.fxaSignInFlow(
-      { ...SIGNIN_DATA, entrypoint },
+      {
+        ...SIGNIN_DATA,
+        entrypoint,
+        extraParams: { ...SIGNIN_DATA.extraParams, utm_source },
+      },
       browser
     );
     return signedIn;

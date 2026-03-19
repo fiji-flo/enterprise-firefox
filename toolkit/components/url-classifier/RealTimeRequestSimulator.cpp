@@ -200,6 +200,9 @@ void RealTimeRequestSimulator::SimulateRealTimeRequest(const nsACString& aURL,
 
   int64_t now = PR_Now() / PR_USEC_PER_SEC;
 
+  bool negativeCacheEnabled = StaticPrefs::
+      browser_safebrowsing_realTime_simulation_negativeCacheEnabled();
+
   // Filter out cached hashes and check for cache hits.
   nsTArray<Completion> hashesToSend;
   for (const auto& fullHash : fullHashes) {
@@ -207,27 +210,44 @@ void RealTimeRequestSimulator::SimulateRealTimeRequest(const nsACString& aURL,
     nsCString fullHashString(reinterpret_cast<const char*>(fullHash.buf),
                              COMPLETE_SIZE);
 
+    // Check the negative cache first if enabled.
+    if (negativeCacheEnabled) {
+      CachedFullHashResponse* negResponse = mNegativeCache.Get(prefix);
+      if (negResponse) {
+        if (negResponse->negativeCacheExpirySec >= now) {
+          continue;
+        }
+        mNegativeCache.Remove(prefix);
+      }
+    }
+
     CachedFullHashResponse* cachedResponse = mSimulatedCache.Get(prefix);
     if (!cachedResponse) {
       hashesToSend.AppendElement(fullHash);
       continue;
     }
 
-    // The cache entry is expired. Remove it and send this hash.
-    if (cachedResponse->negativeCacheExpirySec < now) {
-      mSimulatedCache.Remove(prefix);
+    // Check if this full hash has a cached hit entry.
+    auto fullHashEntry = cachedResponse->fullHashes.Lookup(fullHashString);
+    if (!fullHashEntry) {
       hashesToSend.AppendElement(fullHash);
       continue;
     }
 
-    // We find a match in the cache, so we don't need to send the request.
-    if (cachedResponse->fullHashes.Contains(fullHashString)) {
-      NotifyResult(false, 0, 0, aIsPrivate);
-      return;
+    // The full hash cache entry is expired. Remove it and send this hash.
+    if (fullHashEntry.Data() < now) {
+      fullHashEntry.Remove();
+      if (cachedResponse->fullHashes.IsEmpty()) {
+        mSimulatedCache.Remove(prefix);
+      }
+      hashesToSend.AppendElement(fullHash);
+      continue;
     }
 
-    // The prefix is cached but no full hash match. Still need to send.
-    hashesToSend.AppendElement(fullHash);
+    // We find a valid match in the cache, so we don't need to send the
+    // request.
+    NotifyResult(false, 0, 0, aIsPrivate);
+    return;
   }
 
   if (hashesToSend.IsEmpty()) {
@@ -247,9 +267,18 @@ void RealTimeRequestSimulator::SimulateRealTimeRequest(const nsACString& aURL,
 
   uint32_t numHits = 0;
 
+  uint32_t negativeCacheTTL = StaticPrefs::
+      browser_safebrowsing_realTime_simulation_negativeCacheTTLSec();
+  int64_t negativeCacheExpiry = now + negativeCacheTTL;
+
   for (const auto& fullHash : hashesToSend) {
     // If the server doesn't hit the given full hash, we will continue.
     if (!ShouldSimulateHit()) {
+      if (negativeCacheEnabled) {
+        CachedFullHashResponse* negResponse =
+            mNegativeCache.GetOrInsertNew(fullHash.ToUint32());
+        negResponse->negativeCacheExpirySec = negativeCacheExpiry;
+      }
       continue;
     }
 
@@ -261,7 +290,6 @@ void RealTimeRequestSimulator::SimulateRealTimeRequest(const nsACString& aURL,
     // There is a hit, so we create a cache entry for it.
     CachedFullHashResponse* response =
         mSimulatedCache.GetOrInsertNew(fullHash.ToUint32());
-    response->negativeCacheExpirySec = expiry;
     response->fullHashes.InsertOrUpdate(fullHashString, expiry);
   }
 
@@ -325,6 +353,24 @@ void RealTimeRequestSimulator::CleanCache() {
              NS_GetCurrentThread());
 
   mSimulatedCache.Clear();
+  mNegativeCache.Clear();
+}
+
+void RealTimeRequestSimulator::ExpireCache() {
+  MOZ_ASSERT(nsUrlClassifierDBService::BackgroundThread() ==
+             NS_GetCurrentThread());
+
+  for (auto& entry : mSimulatedCache) {
+    CachedFullHashResponse* response = entry.GetWeak();
+    response->negativeCacheExpirySec = 0;
+    for (auto iter = response->fullHashes.Iter(); !iter.Done(); iter.Next()) {
+      iter.Data() = 0;
+    }
+  }
+
+  for (auto& entry : mNegativeCache) {
+    entry.GetWeak()->negativeCacheExpirySec = 0;
+  }
 }
 
 }  // namespace safebrowsing

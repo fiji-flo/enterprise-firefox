@@ -2248,6 +2248,11 @@ bool IRGenerator::canOptimizeConstantDataProperty(NativeObject* holder,
     return false;
   }
 
+  // Watchtower doesn't watch changes to reserved slots.
+  if (MOZ_UNLIKELY(prop.slot() < JSCLASS_RESERVED_SLOTS(holder->getClass()))) {
+    return false;
+  }
+
   *objFuse = cx_->zone()->objectFuses.getOrCreate(cx_, holder);
   if (!*objFuse) {
     cx_->recoverFromOutOfMemory();

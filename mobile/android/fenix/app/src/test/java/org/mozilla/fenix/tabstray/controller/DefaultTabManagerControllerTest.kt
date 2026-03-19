@@ -12,7 +12,7 @@ import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.impl.annotations.MockK
+import io.mockk.impl.annotations.RelaxedMockK
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
@@ -85,28 +85,28 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class) // for gleanTestRule
 class DefaultTabManagerControllerTest {
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var trayStore: TabsTrayStore
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var browserStore: BrowserStore
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var browsingModeManager: BrowsingModeManager
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var navController: NavController
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var profiler: Profiler
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var tabsUseCases: TabsUseCases
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var fenixBrowserUseCases: FenixBrowserUseCases
 
-    @MockK(relaxed = true)
+    @RelaxedMockK
     private lateinit var accountManager: FxaAccountManager
 
     private lateinit var loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase
@@ -276,7 +276,7 @@ class DefaultTabManagerControllerTest {
 
     @Test
     fun `GIVEN the user is on the synced tabs page WHEN the fab is clicked THEN fire off a sync action`() {
-        every { trayStore.state.syncing } returns false
+        every { trayStore.state.sync.isSyncing } returns false
 
         createController().handleSyncedTabsFabClick()
 
@@ -285,7 +285,7 @@ class DefaultTabManagerControllerTest {
 
     @Test
     fun `GIVEN the user is on the synced tabs page and there is already an active sync WHEN the fab is clicked THEN no action should be taken`() {
-        every { trayStore.state.syncing } returns true
+        every { trayStore.state.sync.isSyncing } returns true
 
         createController().handleSyncedTabsFabClick()
 

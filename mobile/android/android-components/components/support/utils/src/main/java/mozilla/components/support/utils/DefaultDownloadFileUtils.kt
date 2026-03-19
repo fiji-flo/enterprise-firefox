@@ -17,6 +17,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import mozilla.components.support.base.log.logger.Logger
@@ -58,6 +59,8 @@ class DefaultDownloadFileUtils(
 
     companion object {
         private const val SCHEME_CONTENT = "content://"
+        private const val SCHEME_FILE = "file"
+        private const val FILE_PROVIDER_EXTENSION = ".feature.downloads.fileprovider"
     }
     override val currentDownloadLocation: String
         get() = downloadLocation()
@@ -115,8 +118,14 @@ class DefaultDownloadFileUtils(
             fileName = fileName,
             directoryPath = directoryPath,
         )
-        initialUri?.let {
-            val shareableUri = getShareableUriForTree(initialUri, fileName)
+
+        initialUri?.let { uri ->
+            val shareableUri = if (uri.scheme == SCHEME_FILE) {
+                getFilePathUri(uri.path ?: "")
+            } else {
+                getShareableUriForTree(uri, fileName)
+            }
+
             return Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(
                     shareableUri,
@@ -232,6 +241,14 @@ class DefaultDownloadFileUtils(
         }
     }
 
+    @VisibleForTesting
+    internal fun getFilePathUri(filePath: String): Uri =
+        FileProvider.getUriForFile(
+            context,
+            context.packageName + FILE_PROVIDER_EXTENSION,
+            File(filePath),
+        )
+
     private fun deleteSafDocument(contentResolver: ContentResolver, uri: Uri): Boolean {
         logger.debug("Deleting using DocumentsContract (SAF): $uri")
         return DocumentsContract.deleteDocument(contentResolver, uri)
@@ -257,13 +274,14 @@ class DefaultDownloadFileUtils(
         return contentResolver.delete(uri, null, null) > 0
     }
 
-    private fun findInDefaultDownloadDirectory(fileName: String, directoryPath: String): Uri? {
+    @VisibleForTesting
+    internal fun findInDefaultDownloadDirectory(fileName: String, directoryPath: String): Uri? {
         val mediaStoreUri = context.contentResolver.findFileInMediaStore(
             collection = downloadsCollectionUri,
             fileName = fileName,
         )
 
-        if (mediaStoreUri == null && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        if (mediaStoreUri == null) {
             val file = File(directoryPath, fileName)
             if (file.exists()) {
                 return Uri.fromFile(file)

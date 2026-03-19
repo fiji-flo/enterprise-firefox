@@ -20,6 +20,7 @@
 #include "mozilla/SIMD.h"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <limits>
 #include <type_traits>
@@ -2545,11 +2546,11 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
 // Both FromBitMask and ToBitMask must have a single bit set.
 template <uint32_t FromBitMask, uint32_t ToBitMask>
 static void ShiftFlag32(MacroAssembler& masm, Register reg) {
-  static_assert(mozilla::IsPowerOfTwo(FromBitMask));
-  static_assert(mozilla::IsPowerOfTwo(ToBitMask));
+  static_assert(std::has_single_bit(FromBitMask));
+  static_assert(std::has_single_bit(ToBitMask));
   static_assert(FromBitMask != ToBitMask);
-  constexpr uint32_t fromShift = mozilla::CountTrailingZeroes32(FromBitMask);
-  constexpr uint32_t toShift = mozilla::CountTrailingZeroes32(ToBitMask);
+  constexpr uint32_t fromShift = std::countr_zero(FromBitMask);
+  constexpr uint32_t toShift = std::countr_zero(ToBitMask);
   if (fromShift < toShift) {
     masm.lshift32(Imm32(toShift - fromShift), reg);
   } else {
@@ -9185,7 +9186,7 @@ static bool ShouldInitFixedSlots(MIRGenerator* gen, LNewPlainObject* lir,
 
         if (numInitialized == nfixed) {
           // All fixed slots will be initialized.
-          MOZ_ASSERT(mozilla::CountPopulation32(initializedSlots) == nfixed);
+          MOZ_ASSERT(uint32_t(std::popcount(initializedSlots)) == nfixed);
           return false;
         }
       }
@@ -11978,7 +11979,7 @@ void CodeGenerator::visitPowOfTwoI(LPowOfTwoI* ins) {
   Register output = ToRegister(ins->output());
 
   uint32_t base = ins->base();
-  MOZ_ASSERT(mozilla::IsPowerOfTwo(base));
+  MOZ_ASSERT(std::has_single_bit(base));
 
   uint32_t n = mozilla::FloorLog2(base);
   MOZ_ASSERT(n != 0);
@@ -12114,7 +12115,7 @@ void CodeGenerator::visitModD(LModD* ins) {
 void CodeGenerator::visitModPowTwoD(LModPowTwoD* ins) {
   FloatRegister lhs = ToFloatRegister(ins->lhs());
   uint32_t divisor = ins->divisor();
-  MOZ_ASSERT(mozilla::IsPowerOfTwo(divisor));
+  MOZ_ASSERT(std::has_single_bit(divisor));
 
   FloatRegister output = ToFloatRegister(ins->output());
 
@@ -12794,7 +12795,7 @@ void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
   Register temp0 = ToRegister(lir->temp0());
   Register temp1 = ToRegister(lir->temp1());
 
-  bool lowerCase = lir->mir()->lowerCase();
+  bool lowerCase = lir->mir()->stringCase() == StringCase::Lower;
 
   using Fn = JSLinearString* (*)(JSContext*, int32_t, int32_t, bool);
   if (base.is<Register>()) {
@@ -20970,7 +20971,7 @@ void CodeGenerator::visitAssertClass(LAssertClass* ins) {
 }
 
 void CodeGenerator::visitAssertShape(LAssertShape* ins) {
-  Register obj = ToRegister(ins->input());
+  Register obj = ToRegister(ins->object());
 
   Label success;
   masm.branchTestObjShapeNoSpectreMitigations(Assembler::Equal, obj,

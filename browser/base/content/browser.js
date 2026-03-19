@@ -2205,7 +2205,8 @@ var XULBrowserWindow = {
     if (
       (location == "about:blank" &&
         BrowserUIUtils.checkEmptyPageOrigin(gBrowser.selectedBrowser)) ||
-      location == ""
+      location == "" ||
+      window.browsingContext.isDocumentPiP
     ) {
       // Second condition is for new tabs, otherwise
       // reload function is enabled until tab is refreshed.

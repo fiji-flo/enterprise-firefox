@@ -221,7 +221,7 @@ this.felt = class extends ExtensionAPI {
           Services.startup.quit(
             Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
           );
-        } else {
+        } else if (!this._win) {
           Services.felt.makeBackgroundProcess(false);
           this.showWindow();
         }

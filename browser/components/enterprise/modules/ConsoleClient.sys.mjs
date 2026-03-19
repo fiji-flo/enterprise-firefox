@@ -11,6 +11,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  return console.createInstance({
+    prefix: "ConsoleClient",
+    maxLogLevelPref: lazy.EnterpriseCommon.ENTERPRISE_LOGLEVEL_PREF,
+  });
+});
+
 /**
  * Preferences used to integrate the a remote enterprise console
  */
@@ -78,6 +85,15 @@ export const ConsoleClient = {
   _refreshPromise: null,
   _refreshResolve: null,
   _refreshReject: null,
+
+  /**
+   * This is Felt-specific: While the browser is running, it has ownership of the
+   * refresh token. We block Felt from performing a session refresh since
+   * it would invalidate the tokens that the browser is holding. Instead whenever the
+   * browser performs a session refresh, it mirrors back the updated tokens to Felt.
+   * When Firefox is quit, this block is lifted and Felt regains ownership of the tokens.
+   */
+  _isSessionRefreshBlocked: false,
 
   /**
    * Base URL of the remote enterprise console
@@ -486,6 +502,33 @@ export const ConsoleClient = {
    * Refreshes the access_token using the refresh token.
    * This should only be called for the Felt UI context.
    * Serializes concurrent refreshes via the internal promise.
+   * Returns whether refresh is currently blocked in Felt. Always return false
+   * on browser instances.
+   *
+   * @returns {boolean} whether performing a session refresh is blocked
+   */
+  get isSessionRefreshBlocked() {
+    if (Services.felt.isFeltUI()) {
+      return this._isSessionRefreshBlocked === true;
+    }
+    return false;
+  },
+
+  /**
+   * Sets whether refresh should be blocked or not in Felt. Always force false
+   * on browser instances.
+   *
+   * @param {boolean} value - whether performing a session refresh is blocked
+   */
+  set isSessionRefreshBlocked(value) {
+    if (Services.felt.isFeltUI()) {
+      this._isSessionRefreshBlocked = !!value;
+    }
+  },
+
+  /**
+   * Refreshes the session using a refresh token.
+   * Serializes concurrent refreshes via an internal promise.
    *
    * @throws {InvalidAuthError} If unable to refresh session
    * @returns {Promise<{ access_token, refresh_token, expires_at }>}
@@ -667,9 +710,11 @@ export const ConsoleClient = {
 
   /**
    * Clears persisted and in-memory token data.
+   *
+   * @param {boolean} allowMirror - Should the clear be mirrored back to Felt?
    */
-  clearTokenData() {
-    Services.felt.setTokens("", "", 0);
+  clearTokenData(allowMirror = true) {
+    Services.felt.clearTokens(allowMirror);
   },
 
   /**
@@ -738,7 +783,7 @@ export const ConsoleClient = {
       case "xpcom-shutdown": {
         console.debug("ConsoleClient: xpcom-shutdown observed, cleaning up");
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        this.clearTokenData();
+        this.clearTokenData(false);
         this._refreshPromise = null;
         break;
       }

@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -260,7 +259,7 @@ void nsMenuX::OnMenuClosed(dom::Element* aPopupElement) {
   }
 }
 
-void nsMenuX::AddMenuChild(MenuChild&& aChild) {
+void nsMenuX::AddMenuChild(const MenuChild& aChild) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   WillInsertChild(aChild);
@@ -286,7 +285,7 @@ void nsMenuX::AddMenuChild(MenuChild&& aChild) {
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-void nsMenuX::InsertMenuChild(MenuChild&& aChild) {
+void nsMenuX::InsertMenuChild(const MenuChild& aChild) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
   WillInsertChild(aChild);
@@ -807,7 +806,7 @@ void nsMenuX::RebuildMenu() {
   for (nsIContent* child = menuPopup->GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (Maybe<MenuChild> menuChild = CreateMenuChild(child)) {
-      AddMenuChild(std::move(*menuChild));
+      AddMenuChild(*menuChild);
     }
   }  // for each menu item
 
@@ -853,7 +852,7 @@ void nsMenuX::RefreshMenuChildren(const MenuChild& aChildInserted) {
       RemoveMenuChild(*menuChild);
     }
     if (Maybe<MenuChild> menuChild = CreateMenuChild(child)) {
-      InsertMenuChild(std::move(*menuChild));
+      InsertMenuChild(*menuChild);
     }
   }
 
@@ -1224,7 +1223,7 @@ void nsMenuX::ObserveContentInserted(dom::Document* aDocument,
   nsCOMPtr<nsIContent> popupContent = GetMenuPopupContent();
   if (popupContent && aContainer == popupContent) {
     if (Maybe<MenuChild> child = CreateMenuChild(aChild)) {
-      InsertMenuChild(std::move(*child));
+      InsertMenuChild(*child);
       // NSMenu does not properly handle menu items being inserted while a menu
       // is open. On some versions of macOS (at least macOS 15 and 26), doing so
       // will clobber the item added and the existing items after it. Recreating

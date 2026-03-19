@@ -49,13 +49,17 @@ export const SyncPolicy = {
    *
    * @returns {boolean} Whether sync is currently enabled.
    */
-  isSyncEnabled() {
+  isSyncCurrentlyEnabled() {
     return lazy.Weave.Status.checkSetup() == SYNC_STATUS_OK;
   },
 
   /**
    * @typedef {object} SyncPolicyParams
-   * @property {boolean} [Enabled] Whether Sync should be enabled
+   * @property {boolean} [Enabled] Whether the feature sync should be enabled
+   * @property {boolean} [Locked] Whether to lock the customized sync settings, hence
+   *                              the user modifications/preferences will be overridden.
+   *
+   * // Per-engine sync configuration
    * @property {boolean} [Addons] Whether syncing addons should be enabled
    * @property {boolean} [Addresses] Whether syncing addresses should be enabled
    * @property {boolean} [Bookmarks] Whether syncing bookmarks should be enabled
@@ -64,7 +68,6 @@ export const SyncPolicy = {
    * @property {boolean} [Passwords] Whether syncing passwords should be enabled
    * @property {boolean} [PaymentMethods] Whether syncing payment methods should be enabled
    * @property {boolean} [Settings] Whether syncing settings should be enabled
-   * @property {boolean} [Locked] Whether to lock the customized sync settings
    */
 
   /**
@@ -84,27 +87,24 @@ export const SyncPolicy = {
 
     const {
       Enabled: shouldEnableSync,
-      Locked: shouldLock,
+      Locked: isIgnoringUserPreferences,
       ...typeSettings
     } = params;
 
-    const isSyncEnabled = this.isSyncEnabled();
-
-    if (shouldEnableSync === true) {
-      lazy.log.debug("Enable Sync");
-      if (!isSyncEnabled) {
+    if (isIgnoringUserPreferences) {
+      const isSyncCurrentlyEnabled = this.isSyncCurrentlyEnabled();
+      if (shouldEnableSync && !isSyncCurrentlyEnabled) {
+        lazy.log.debug("Enable Sync");
         await this.connectSync(manager);
-      }
-    } else if (shouldEnableSync === false) {
-      lazy.log.debug("Disable Sync");
-      if (isSyncEnabled) {
+      } else if (shouldEnableSync === false && isSyncCurrentlyEnabled) {
+        lazy.log.debug("Disable Sync");
         await this.disconnectSync(manager);
       }
     }
 
     for (const [type, value] of Object.entries(typeSettings)) {
       const pref = ENGINE_PREFS[type];
-      if (shouldLock) {
+      if (isIgnoringUserPreferences) {
         lazy.log.debug(`Setting and locking ${type}: ${pref} : ${value}`);
         setAndLockPref(pref, value);
         continue;
@@ -114,7 +114,7 @@ export const SyncPolicy = {
     }
 
     // Only lock the Sync feature if 'Enabled' is configured
-    if (shouldLock && shouldEnableSync !== undefined) {
+    if (isIgnoringUserPreferences && shouldEnableSync !== undefined) {
       manager.disallowFeature(SYNC_FEATURE);
     }
   },

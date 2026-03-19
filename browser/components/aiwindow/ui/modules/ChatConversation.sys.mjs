@@ -32,6 +32,7 @@ import {
   createParserState,
   flushTokenRemainder,
 } from "chrome://browser/content/aiwindow/modules/TokenStreamParser.mjs";
+import { SecurityProperties } from "moz-src:///browser/components/aiwindow/models/SecurityProperties.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -97,10 +98,8 @@ export class ChatConversation extends EventEmitter {
 
     // NOTE: Destructuring params.status causes a linter error
     this.status = params.status || CONVERSATION_STATUS.ACTIVE;
-    this.securityProperties = params.securityProperties ?? {
-      untrusted_input: false,
-      private_data: false,
-    };
+    this.securityProperties =
+      params.securityProperties ?? new SecurityProperties();
   }
 
   handleChunk(chunk, currentMessage, parserState) {
@@ -155,7 +154,7 @@ export class ChatConversation extends EventEmitter {
     if (currentMessage._pendingMemoryIds?.length) {
       currentMessage.memoriesApplied =
         await lazy.MemoriesManager.getMemoriesByID(
-          ...new Set(currentMessage._pendingMemoryIds)
+          new Set(currentMessage._pendingMemoryIds)
         );
 
       delete currentMessage._pendingMemoryIds;

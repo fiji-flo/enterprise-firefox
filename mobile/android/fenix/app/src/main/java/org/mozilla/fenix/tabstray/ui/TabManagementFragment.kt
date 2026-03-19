@@ -43,7 +43,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.plus
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.compose.base.modifier.thenConditional
@@ -60,6 +59,7 @@ import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.actualInactiveTabs
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.pixelSizeFor
@@ -77,6 +77,7 @@ import org.mozilla.fenix.settings.biometric.ext.isAuthenticatorAvailable
 import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
 import org.mozilla.fenix.share.ShareFragment
 import org.mozilla.fenix.tabstray.InactiveTabsBinding
+import org.mozilla.fenix.tabstray.PbmLockStatusBinding
 import org.mozilla.fenix.tabstray.TabsTrayTelemetryMiddleware
 import org.mozilla.fenix.tabstray.binding.SecureTabManagerBinding
 import org.mozilla.fenix.tabstray.controller.DefaultTabManagerController
@@ -123,6 +124,7 @@ class TabManagementFragment : DialogFragment() {
     @VisibleForTesting internal lateinit var tabsTrayStore: TabsTrayStore
 
     private val inactiveTabsBinding = ViewBoundFeatureWrapper<InactiveTabsBinding>()
+    private val pbmLockStatusBinding = ViewBoundFeatureWrapper<PbmLockStatusBinding>()
     private val secureTabManagerBinding = ViewBoundFeatureWrapper<SecureTabManagerBinding>()
     private val syncedTabsIntegration = ViewBoundFeatureWrapper<SyncedTabsIntegration>()
     private lateinit var snackbarHostState: SnackbarHostState
@@ -173,19 +175,50 @@ class TabManagementFragment : DialogFragment() {
                 initialState = restoredState ?: TabsTrayState(
                     selectedPage = initialPage,
                     mode = initialMode,
-                    inactiveTabsExpanded = initialInactiveExpanded,
-                    tabSearchEnabled = requireComponents.settings.tabSearchEnabled,
-                    tabGroupsEnabled = requireContext().settings().tabGroupsEnabled,
+                    inactiveTabs = TabsTrayState.InactiveTabsState(
+                        isExpanded = initialInactiveExpanded,
+                        showCFR = requireContext().settings().shouldShowInactiveTabsOnboardingPopup &&
+                                requireContext().settings().canShowCfr,
+                        showAutoCloseDialog = requireContext().settings()
+                            .shouldShowInactiveTabsAutoCloseDialog(
+                                requireComponents.core.store.state.actualInactiveTabs(
+                                    requireContext().settings(),
+                                ).size,
+                            ),
+                    ),
+                    privateBrowsing = TabsTrayState.PrivateBrowsingState(
+                        isLocked = requireComponents.appStore.state.isPrivateScreenLocked,
+                        showLockBanner = shouldShowLockPbmBanner(
+                            isPrivateMode = requireComponents.appStore.state.mode.isPrivate,
+                            hasPrivateTabs = requireComponents.core.store.state.privateTabs.isNotEmpty(),
+                            biometricAvailable = BiometricManager.from(requireContext())
+                                .isHardwareAvailable(),
+                            privateLockEnabled = requireContext().settings().privateBrowsingModeLocked,
+                            shouldShowBanner = shouldShowBanner(requireContext().settings()),
+                        ),
+                    ),
+                    sync = TabsTrayState.SyncState(
+                        isSignedIn = requireContext().settings().signedInFxaAccount,
+                    ),
+                    config = TabsTrayState.TabsTrayConfig(
+                        tabGroupsEnabled = requireContext().settings().tabGroupsEnabled,
+                        displayTabsInGrid = requireContext().settings().gridTabView,
+                        isInDebugMode = Config.channel.isDebug ||
+                                requireComponents.settings.showSecretDebugMenuThisSession,
+                        showTabAutoCloseBanner = requireContext().settings().shouldShowAutoCloseTabsBanner &&
+                                requireContext().settings().canShowCfr,
+                        tabSearchEnabled = requireComponents.settings.tabSearchEnabled,
+                    ),
                 ),
                 middlewares = listOf(
                     TabsTrayTelemetryMiddleware(requireComponents.nimbus.events),
                     TabSearchMiddleware(),
                     TabSearchNavigationMiddleware(onSearchResultClicked = ::performTabClick),
-                    TabSearchNavigationMiddleware(onSearchResultClicked = ::performTabClick),
                     TabStorageMiddleware(
                         inactiveTabsEnabled = requireComponents.settings.inactiveTabsAreEnabled,
-                        initialTabData = TabData(browserState = requireComponents.core.store.stateFlow.value),
+                        tabGroupsEnabled = requireComponents.settings.tabGroupsEnabled,
                         tabDataFlow = requireComponents.core.store.stateFlow.map { TabData(browserState = it) },
+                        tabGroupRepository = requireComponents.core.tabGroupRepository,
                         mainScope = lifecycleScope,
                     ),
                 ),
@@ -222,10 +255,6 @@ class TabManagementFragment : DialogFragment() {
 
         return content {
             val state by tabsTrayStore.stateFlow.collectAsState()
-            val isPbmLocked by remember {
-                requireComponents.appStore.stateFlow.map { it.isPrivateScreenLocked }
-            }.collectAsState(initial = requireComponents.appStore.state.isPrivateScreenLocked)
-
             snackbarHostState = remember { SnackbarHostState() }
 
             BackHandler {
@@ -294,27 +323,7 @@ class TabManagementFragment : DialogFragment() {
                             entry<TabManagerNavDestination.Root> {
                                 TabsTray(
                                     tabsTrayStore = tabsTrayStore,
-                                    displayTabsInGrid = requireContext().settings().gridTabView,
-                                    isInDebugMode = Config.channel.isDebug ||
-                                            requireComponents.settings.showSecretDebugMenuThisSession,
-                                    shouldShowTabAutoCloseBanner =
-                                        requireContext().settings().shouldShowAutoCloseTabsBanner &&
-                                                requireContext().settings().canShowCfr,
-                                    shouldShowLockPbmBanner = shouldShowLockPbmBanner(
-                                        isPrivateMode =
-                                            requireComponents.appStore.state.mode.isPrivate,
-                                        hasPrivateTabs =
-                                            requireComponents.core.store.state.privateTabs.isNotEmpty(),
-                                        biometricAvailable = BiometricManager.from(requireContext())
-                                            .isHardwareAvailable(),
-                                        privateLockEnabled = requireContext().settings().privateBrowsingModeLocked,
-                                        shouldShowBanner = shouldShowBanner(requireContext().settings()),
-                                    ),
                                     snackbarHostState = snackbarHostState,
-                                    isSignedIn = requireContext().settings().signedInFxaAccount,
-                                    isPbmLocked = isPbmLocked,
-                                    shouldShowInactiveTabsAutoCloseDialog =
-                                        requireContext().settings()::shouldShowInactiveTabsAutoCloseDialog,
                                     onTabPageClick = { page ->
                                         onTabPageClick(
                                             tabsTrayInteractor = tabManagerInteractor,
@@ -398,10 +407,6 @@ class TabManagementFragment : DialogFragment() {
                                     },
                                     onTabAutoCloseBannerShown = {},
                                     onMove = tabManagerInteractor::onTabsMove,
-                                    shouldShowInactiveTabsCFR = {
-                                        requireContext().settings().shouldShowInactiveTabsOnboardingPopup &&
-                                                requireContext().settings().canShowCfr
-                                    },
                                     onInactiveTabsCFRShown = {
                                         TabsTray.inactiveTabsCfrVisible.record(NoExtras())
                                     },
@@ -499,6 +504,14 @@ class TabManagementFragment : DialogFragment() {
 
         inactiveTabsBinding.set(
             feature = InactiveTabsBinding(
+                tabsTrayStore = tabsTrayStore,
+                appStore = requireComponents.appStore,
+            ),
+            owner = this,
+            view = view,
+        )
+        pbmLockStatusBinding.set(
+            feature = PbmLockStatusBinding(
                 tabsTrayStore = tabsTrayStore,
                 appStore = requireComponents.appStore,
             ),

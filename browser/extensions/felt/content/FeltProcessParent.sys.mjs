@@ -347,6 +347,7 @@ export class FeltProcessParent extends JSProcessActorParent {
       .then(async () => {
         this.sendPrefsToFirefox();
         Services.felt.sendTokens();
+        lazy.ConsoleClient.isSessionRefreshBlocked = true;
 
         // Gets sync tokenserver uri from the console amongst other prefs
         const { prefs } = await lazy.ConsoleClient.getDefaultPrefs();
@@ -385,25 +386,34 @@ export class FeltProcessParent extends JSProcessActorParent {
           this.proc
         );
 
-        this.proc.exitPromise.then(ev => {
-          console.debug(`firefox exit: ev`, JSON.stringify(ev));
-          console.debug(
-            `firefox exit: PID:${this.proc.pid} exitCode:${JSON.stringify(this.proc.exitCode)}`
-          );
+        this.proc.exitPromise
+          .then(ev => {
+            lazy.ConsoleClient.isSessionRefreshBlocked = false;
+            console.debug(`firefox exit: ev`, JSON.stringify(ev));
+            console.debug(
+              `firefox exit: PID:${this.proc.pid} exitCode:${JSON.stringify(this.proc.exitCode)}`
+            );
 
-          if (!this.restartReported && !this.logoutReported) {
-            if (this.proc.exitCode === 0) {
-              this.abnormalExitCounter = 0;
-              this.abnormalExitFirstTime = 0;
-              Services.cpmm.sendAsyncMessage(
-                "FeltParent:FirefoxNormalExit",
-                {}
-              );
-            } else {
-              this.handleRestartAfterAbnormalExit();
+            if (!this.restartReported && !this.logoutReported) {
+              if (this.proc.exitCode === 0) {
+                this.abnormalExitCounter = 0;
+                this.abnormalExitFirstTime = 0;
+                Services.cpmm.sendAsyncMessage(
+                  "FeltParent:FirefoxNormalExit",
+                  {}
+                );
+              } else {
+                this.handleRestartAfterAbnormalExit();
+              }
             }
-          }
-        });
+          })
+          .finally(() => {
+            lazy.ConsoleClient.isSessionRefreshBlocked = false;
+          });
+      })
+      .catch(err => {
+        lazy.ConsoleClient.isSessionRefreshBlocked = false;
+        throw err;
       });
   }
 

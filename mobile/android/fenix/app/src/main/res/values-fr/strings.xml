@@ -373,7 +373,7 @@
   -->
   <string name="browser_toolbar_translated_successfully">Page traduite en %2$s, l’originale est en %1$s.</string>
   <!-- CFR description for the browser toolbar describing the "Shake to summarize feature" -->
-  <string name="browser_toolbar_summarize_cfr_description">Secouez votre appareil pour résumer cette page en quelques secondes. ️</string>
+  <string name="browser_toolbar_summarize_cfr_description">Secouez votre appareil pour résumer cette page en quelques secondes. ️⚡️</string>
   <!--
     Translation Toolbar
 
@@ -2051,11 +2051,11 @@
   -->
   <string name="bookmark_deletion_snackbar_message">%1$s supprimé</string>
   <!-- Bookmark undo button for deletion snackbar action -->
-  <string name="bookmark_undo_deletion">ANNULER</string>
+  <string name="bookmark_undo_deletion" tools:ignore="UnusedResources" moz:removedIn="150">ANNULER</string>
   <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
-  <string name="bookmark_delete_single_item">%s\u00a0: suppression effectuée</string>
+  <string name="bookmark_delete_single_item" tools:ignore="UnusedResources" moz:removedIn="150">%s\u00a0: suppression effectuée</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
-  <string name="bookmark_delete_multiple_items">%s éléments supprimés</string>
+  <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources" moz:removedIn="150">%s éléments supprimés</string>
   <!-- Content description for the bookmark navigation bar back button -->
   <string name="bookmark_navigate_back_button_content_description">Remonter</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
@@ -2523,8 +2523,8 @@
 
       Text shown on the trackers blocked card. %d is the number of trackers blocked.
     -->
-    <item quantity="one">%d Traqueur bloqué</item>
-    <item quantity="other">%d Traqueurs bloqués</item>
+    <item quantity="one">%d traqueur bloqué</item>
+    <item quantity="other">%d traqueurs bloqués</item>
   </plurals>
   <!-- Text shown on the trackers blocked card when no trackers have been blocked yet -->
   <string name="trackers_blocked_empty">Vous êtes protégé·e</string>

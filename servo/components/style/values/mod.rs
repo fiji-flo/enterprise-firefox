@@ -18,8 +18,8 @@ use precomputed_hash::PrecomputedHash;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use style_traits::{
-    CssString, CssWriter, MathSum, NumericValue, ParseError, StyleParseErrorKind, ToCss,
-    TypedValue, UnitValue,
+    CssString, CssWriter, KeywordValue, MathSum, NumericValue, ParseError, StyleParseErrorKind,
+    ToCss, ToTyped, TypedValue, UnitValue,
 };
 use thin_vec::ThinVec;
 use to_shmem::impl_trivial_to_shmem;
@@ -106,7 +106,7 @@ where
 }
 
 /// Reify a number with calc.
-pub fn reify_number(v: f32, was_calc: bool) -> Option<TypedValue> {
+pub fn reify_number(v: f32, was_calc: bool, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
     let numeric_value = NumericValue::Unit(UnitValue {
         value: v,
         unit: CssString::from("number"),
@@ -114,12 +114,14 @@ pub fn reify_number(v: f32, was_calc: bool) -> Option<TypedValue> {
 
     // https://drafts.css-houdini.org/css-typed-om-1/#reify-a-math-expression
     if was_calc {
-        Some(TypedValue::Numeric(NumericValue::Sum(MathSum {
+        dest.push(TypedValue::Numeric(NumericValue::Sum(MathSum {
             values: ThinVec::from([numeric_value]),
-        })))
+        })));
     } else {
-        Some(TypedValue::Numeric(numeric_value))
+        dest.push(TypedValue::Numeric(numeric_value));
     }
+
+    Ok(())
 }
 
 /// Serialize a specified dimension with unit, calc, and NaN/infinity handling (if enabled)
@@ -471,7 +473,11 @@ where
 }
 
 /// Reify a percentage with calc.
-pub fn reify_percentage(value: CSSFloat, was_calc: bool) -> Option<TypedValue> {
+pub fn reify_percentage(
+    value: CSSFloat,
+    was_calc: bool,
+    dest: &mut ThinVec<TypedValue>,
+) -> Result<(), ()> {
     let numeric_value = NumericValue::Unit(UnitValue {
         value: value * 100.,
         unit: CssString::from("percent"),
@@ -479,12 +485,14 @@ pub fn reify_percentage(value: CSSFloat, was_calc: bool) -> Option<TypedValue> {
 
     // https://drafts.css-houdini.org/css-typed-om-1/#reify-a-math-expression
     if was_calc {
-        Some(TypedValue::Numeric(NumericValue::Sum(MathSum {
+        dest.push(TypedValue::Numeric(NumericValue::Sum(MathSum {
             values: ThinVec::from([numeric_value]),
-        })))
+        })));
     } else {
-        Some(TypedValue::Numeric(numeric_value))
+        dest.push(TypedValue::Numeric(numeric_value));
     }
+
+    Ok(())
 }
 
 /// Convenience void type to disable some properties and values through types.
@@ -628,6 +636,15 @@ impl ToCss for CustomIdent {
         W: Write,
     {
         serialize_atom_identifier(&self.0, dest)
+    }
+}
+
+impl ToTyped for CustomIdent {
+    fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
+        // This shouldn't escape identifiers. See bug 2023533.
+        let s = ToCss::to_css_cssstring(self);
+        dest.push(TypedValue::Keyword(KeywordValue(s)));
+        Ok(())
     }
 }
 

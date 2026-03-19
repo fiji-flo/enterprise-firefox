@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -602,11 +600,18 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
 
     RefPtr<MainThreadFetchResolver> resolver = new MainThreadFetchResolver(
         p, observer, signalImpl, request->MozErrors());
+    uint64_t associatedBc = 0;
+    if (internalRequest) {
+      associatedBc = internalRequest->AssociatedBrowsingContextID();
+    }
     RefPtr<FetchDriver> fetch =
         new FetchDriver(std::move(internalRequest), principal, loadGroup,
                         aGlobal->SerialEventTarget(), cookieJarSettings,
                         nullptr,  // PerformanceStorage
                         trackingFlags);
+    if (associatedBc > 0) {
+      fetch->SetAssociatedBrowsingContextID(associatedBc);
+    }
     fetch->SetDocument(doc);
     resolver->SetLoadGroup(loadGroup);
     aRv = fetch->Fetch(signalImpl, resolver);
