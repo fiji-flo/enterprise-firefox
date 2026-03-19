@@ -121,32 +121,25 @@ impl FeltXPCOM {
         self.send(FeltMessage::UpdateReady)
     }
 
-    fn SendTokens(&self) -> nserror::nsresult {
-        trace!("FeltXPCOM::SendTokens(): sending tokens");
+    /**
+     * Sends the current tokens to the browser. Sending from the Browser to FELT is not supported.
+     */
+    fn SendAccessToken(&self) -> nserror::nsresult {
+        trace!("FeltXPCOM::SendAccessToken(): sending tokens");
         if self.is_felt_browser {
-            let guard = crate::FELT_CLIENT.lock().expect("Could not get lock");
-            match &*guard {
-                Some(client) => {
-                    trace!("FeltXPCOM::SendTokens(): sending back to client");
-                    client.send_back_tokens()
-                }
-                None => {
-                    trace!("FeltXPCOM::SendTokens(): missing client");
-                    NS_ERROR_FAILURE
-                }
-            }
+            trace!("FeltXPCOM::SendAccessToken(): Called from the browser, which is not supported");
+            NS_OK
         } else {
             match TOKENS.read() {
                 Ok(tokens) => {
-                    trace!("FeltXPCOM::SendTokens(): performing send");
-                    self.send(FeltMessage::Tokens((
+                    trace!("FeltXPCOM::SendAccessToken(): performing send");
+                    self.send(FeltMessage::AccessToken((
                         tokens.access_token.clone(),
-                        tokens.refresh_token.clone(),
                         tokens.expires_at,
                     )))
                 }
                 Err(_) => {
-                    trace!("FeltXPCOM::SendTokens failed: couldn't acquire lock",);
+                    trace!("FeltXPCOM::SendAccessToken failed: couldn't acquire lock",);
                     NS_ERROR_FAILURE
                 }
             }
@@ -158,39 +151,19 @@ impl FeltXPCOM {
         access_token: String,
         refresh_token: String,
         expires_at: i64,
-        can_mirror: bool,
     ) -> nserror::nsresult {
-        let set = match TOKENS.write() {
+        match TOKENS.write() {
             Ok(mut t) => {
                 *t = Tokens {
                     access_token,
                     refresh_token,
                     expires_at,
                 };
-                Ok(())
-            }
-            Err(_) => Err(()),
-        };
-
-        match set {
-            Ok(_) => {
                 trace!(
                     "FeltXPCOM::set_tokens(): successfull set of token, expires_at={}",
                     expires_at
                 );
-                if self.is_felt_browser && can_mirror {
-                    trace!(
-                        "FeltXPCOM::set_tokens(): maybe mirroring tokens, expires_at={}",
-                        expires_at
-                    );
-                    self.SendTokens()
-                } else {
-                    trace!(
-                        "FeltXPCOM::set_tokens(): not mirroring tokens, expires_at={}",
-                        expires_at
-                    );
-                    NS_OK
-                }
+                NS_OK
             }
             Err(_) => {
                 trace!(
@@ -216,17 +189,14 @@ impl FeltXPCOM {
             unsafe { (*access_token).to_string() },
             unsafe { (*refresh_token).to_string() },
             expires_at,
-            true,
         )
     }
 
-    fn ClearTokens(&self, allow_mirror: bool) -> nserror::nsresult {
-        trace!(
-            "FeltXPCOM::ClearTokens(): clearing, allow_mirror={}",
-            allow_mirror
-        );
-        self.set_tokens("".to_string(), "".to_string(), 0, allow_mirror)
-    
+    fn ClearTokens(&self) -> nserror::nsresult {
+        trace!("FeltXPCOM::ClearTokens(): clearing");
+        self.set_tokens("".to_string(), "".to_string(), 0)
+    }
+
     fn RefreshTokens(&self) -> nserror::nsresult {
         trace!("FeltXPCOM::RefreshTokens");
         let guard = crate::FELT_CLIENT.lock().expect("Could not get lock");
@@ -240,19 +210,6 @@ impl FeltXPCOM {
             }
         }
         NS_OK
-    }
-
-    fn TokensRefreshed(
-        &self,
-        access_token: *const nsACString,
-        expires_at: i64,
-    ) -> nserror::nsresult {
-        trace!("FeltXPCOM::TokensRefreshed()");
-        let access_token = unsafe { (*access_token).to_string() };
-        self.send(FeltMessage::TokensRefreshed((
-            access_token.clone(),
-            expires_at,
-        )))
     }
 
     fn GetRefreshToken(&self, refresh_token: *mut nsACString) -> nserror::nsresult {
@@ -412,11 +369,10 @@ impl FeltXPCOM {
                                 trace!("FeltServerThread::felt_server::ipc_loop(): Shutdown for logout");
                                 crate::utils::notify_observers("felt-firefox-logout".to_string());
                             },
-                            Ok(FeltMessage::Tokens((access_token, refresh_token, expires_at))) => {
+                            Ok(FeltMessage::AccessToken((access_token, expires_at))) => {
                                 trace!("FeltServerThread::felt_server::ipc_loop(): Update tokens from browser");
                                 let payload = serde_json::json!({
                                     "access_token": access_token,
-                                    "refresh_token": refresh_token,
                                     "expires_at": expires_at,
                                 }).to_string();
                                 crate::utils::notify_observers_with_payload("felt-firefox-tokens".to_string(), Some(payload));

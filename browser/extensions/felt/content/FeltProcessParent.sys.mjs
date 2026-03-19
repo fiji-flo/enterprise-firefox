@@ -232,7 +232,7 @@ export class FeltProcessParent extends JSProcessActorParent {
                   refresh_token,
                   expires_at
                 );
-                Services.felt.tokensRefreshed(access_token, expires_at);
+                Services.felt.sendAccessToken();
               })
               .catch(error => {
                 console.error("FeltExtension: token refreshm failed", error);
@@ -346,7 +346,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     this.firefox
       .then(async () => {
         this.sendPrefsToFirefox();
-        Services.felt.sendTokens();
+        Services.felt.sendAccessToken();
         lazy.ConsoleClient.isSessionRefreshBlocked = true;
 
         // Gets sync tokenserver uri from the console amongst other prefs

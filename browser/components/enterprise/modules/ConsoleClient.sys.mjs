@@ -82,18 +82,29 @@ class InvalidAuthError extends Error {
  * Client taking care of the communication with the enterprise console.
  */
 export const ConsoleClient = {
+  /**
+   * This is our guard against concurrent access token refresh operations on the browser side.
+   * When a refresh is in progress, this promise encapsulates the ongoing operation.
+   * If the promise present on subsequent calls, (i.e. a refresh operation is already underway),
+   * it is simply returned to the caller, eventually resolving.
+   * Otherwise, the promise is created and assigned to _refreshPromise.
+   *
+   * Since the refresh operation involves IPC communication with the console process,
+   * the resolve/reject functions of the promise are also pulled out to be called when the console/FELT
+   * signals that a token refresh has successfully completed or failed.
+   */
   _refreshPromise: null,
   _refreshResolve: null,
   _refreshReject: null,
 
   /**
-   * This is Felt-specific: While the browser is running, it has ownership of the
-   * refresh token. We block Felt from performing a session refresh since
-   * it would invalidate the tokens that the browser is holding. Instead whenever the
-   * browser performs a session refresh, it mirrors back the updated tokens to Felt.
-   * When Firefox is quit, this block is lifted and Felt regains ownership of the tokens.
+   * This promise guards agains multiple refresh operations on the console/FELT side, similar
+   * to what happens on the browser side (`_refreshPromise`).
+   *
+   * Concurrent refresh operations are all answered by returning the ongoing promise rather
+   * than starting a new refresh process.
    */
-  _isSessionRefreshBlocked: false,
+  _feltRefreshPromise: null,
 
   /**
    * Base URL of the remote enterprise console
@@ -499,36 +510,9 @@ export const ConsoleClient = {
   },
 
   /**
-   * Refreshes the access_token using the refresh token.
-   * This should only be called for the Felt UI context.
-   * Serializes concurrent refreshes via the internal promise.
-   * Returns whether refresh is currently blocked in Felt. Always return false
-   * on browser instances.
-   *
-   * @returns {boolean} whether performing a session refresh is blocked
-   */
-  get isSessionRefreshBlocked() {
-    if (Services.felt.isFeltUI()) {
-      return this._isSessionRefreshBlocked === true;
-    }
-    return false;
-  },
-
-  /**
-   * Sets whether refresh should be blocked or not in Felt. Always force false
-   * on browser instances.
-   *
-   * @param {boolean} value - whether performing a session refresh is blocked
-   */
-  set isSessionRefreshBlocked(value) {
-    if (Services.felt.isFeltUI()) {
-      this._isSessionRefreshBlocked = !!value;
-    }
-  },
-
-  /**
    * Refreshes the session using a refresh token.
    * Serializes concurrent refreshes via an internal promise.
+   * This should only be called from the Felt UI context.
    *
    * @throws {InvalidAuthError} If unable to refresh session
    * @returns {Promise<{ access_token, refresh_token, expires_at }>}
@@ -542,17 +526,18 @@ export const ConsoleClient = {
       return;
     }
 
-    if (this._refreshPromise) {
+    // If a refresh is already underway, just return the promise.
+    if (this._feltRefreshPromise) {
       console.debug(
-        `refreshTokens(): _refreshPromise exists, returning that existing promise.`
+        `refreshTokens(): _feltRefreshPromise exists, returning existing promise.`
       );
-      return this._refreshPromise;
+      return this._feltRefreshPromise;
     }
 
-    // Ok, we are in the Felt UI context and no _refreshPromise exists, let's go.
-    console.debug("refreshTokens(): attempt token refresh");
-    this._refreshPromise = (async () => {
-      let refreshToken = Services.felt.getRefreshToken();
+    // At this point, we are in the Felt UI context and no _feltRefreshPromise exists, let's go.
+    console.debug("refreshTokens(): starting token refresh");
+    this._feltRefreshPromise = new Promise((resolve, reject) => {
+      const refreshToken = Services.felt.getRefreshToken();
       if (!refreshToken) {
         const e = new ReauthRequiredError(
           "No refresh token available",
@@ -560,71 +545,91 @@ export const ConsoleClient = {
         );
         console.error(e);
         this.promptForReauthentication();
-        return;
-      }
-      let res;
-      try {
-        const url = this.constructURI(this._paths.TOKEN);
-        res = await this._xhrFetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-          }),
-        });
-      } catch (cause) {
-        throw new InvalidAuthError(
-          `Token refresh request failed: ${cause.message}`,
-          "TOKEN_REFRESH_FAILED",
-          { cause }
-        );
-      }
-
-      if (res.status === 401 || res.status === 403) {
-        const e = new ReauthRequiredError(
-          "Invalid refresh token",
-          "INVALID_REFRESH_TOKEN",
-          { status: res.status }
-        );
-        console.error(e);
-        this.promptForReauthentication();
+        resolve();
         return;
       }
 
-      // TODO: Handle network issues, offline support, etc.
+      const url = this.constructURI(this._paths.TOKEN);
+      this._xhrFetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        }),
+      }).then(
+        res => {
+          if (res.status === 401 || res.status === 403) {
+            const e = new ReauthRequiredError(
+              "Invalid refresh token",
+              "INVALID_REFRESH_TOKEN",
+              { status: res.status }
+            );
+            console.error(e);
+            this.promptForReauthentication();
+            resolve();
+            return;
+          }
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new InvalidAuthError(
-          `Token refresh failed (${res.status}): ${text}`,
-          "TOKEN_REFRESH_FAILED"
-        );
-      }
+          // TODO: Handle network issues, offline support, etc.
 
-      const { access_token, refresh_token, expires_in } = await res.json();
-      const expires_at = Math.floor(Date.now() / 1000) + Number(expires_in);
-      console.debug("refreshTokens() got new tokens!");
-      return { access_token, refresh_token, expires_at };
-    })().finally(() => {
-      this._refreshPromise = null;
+          if (!res.ok) {
+            res
+              .text()
+              .catch(() => "")
+              .then(text => {
+                reject(
+                  new InvalidAuthError(
+                    `Token refresh failed (${res.status}): ${text}`,
+                    "TOKEN_REFRESH_FAILED"
+                  )
+                );
+              });
+            return;
+          }
+
+          res.json().then(({ access_token, refresh_token, expires_in }) => {
+            const expires_at =
+              Math.floor(Date.now() / 1000) + Number(expires_in);
+            console.debug("refreshTokens() got new tokens!");
+            resolve({ access_token, refresh_token, expires_at });
+          }, reject);
+        },
+        cause => {
+          reject(
+            new InvalidAuthError(
+              `Token refresh request failed: ${cause.message}`,
+              "TOKEN_REFRESH_FAILED",
+              { cause }
+            )
+          );
+        }
+      );
+    }).finally(() => {
+      this._feltRefreshPromise = null;
     });
-    return this._refreshPromise;
+    return this._feltRefreshPromise;
   },
 
   /**
-   * Refreshes the session using a refresh token.
-   * Uses the provided token if given; otherwise the stored token.
-   * Serializes concurrent refreshes via an internal promise.
+   * Refreshes the session by asking FELT to do a fetch an updated token.
+   * Serializes concurrent refresh calls via an internal promise.
+   * This should only be called from the browser context.
    *
    * @throws {InvalidAuthError} If unable to refresh session
    * @returns {Promise<void>}
    */
   async _refreshSession() {
-    this._testFlag = true;
+    // If we are not in the browser context, bail.
+    if (!Services.felt.isFeltBrowser) {
+      console.error(
+        "_refreshSession: called from non-Browser context, which is not allowed."
+      );
+      return;
+    }
 
     if (this._refreshPromise) {
       console.debug(
@@ -633,21 +638,18 @@ export const ConsoleClient = {
       return this._refreshPromise;
     }
 
-    // If we are in the Browser, notify felt via IPC to refresh the token
-    if (Services.felt.isFeltBrowser) {
-      // create a promise that will be resolved when FELT comes back with the refreshed token
-      const that = this;
-      this._refreshPromise = new Promise((resolve, reject) => {
-        that._refreshResolve = resolve;
-        that._refreshReject = reject;
-        // notify FELT to refresh the token
-        Services.felt.refreshTokens();
-      });
-      return this._refreshPromise;
-    } else {
-      console.error("_refreshSession: called from non-Browser context.");
-      return;
-    }
+    // If we are in the Browser, notify FELT via IPC to refresh the token
+    // create an internal promise that will resolve when FELT signals a refreshed token
+    // Note that only FELT holds the needed refresh token.
+    const that = this;
+    this._refreshPromise = new Promise((resolve, reject) => {
+      // remember our resolve/reject functions
+      that._refreshResolve = resolve;
+      that._refreshReject = reject;
+      // notify FELT to refresh the token
+      Services.felt.refreshTokens();
+    });
+    return this._refreshPromise;
   },
 
   /**
@@ -710,11 +712,9 @@ export const ConsoleClient = {
 
   /**
    * Clears persisted and in-memory token data.
-   *
-   * @param {boolean} allowMirror - Should the clear be mirrored back to Felt?
    */
-  clearTokenData(allowMirror = true) {
-    Services.felt.clearTokens(allowMirror);
+  clearTokenData() {
+    Services.felt.clearTokens();
   },
 
   /**
@@ -760,25 +760,13 @@ export const ConsoleClient = {
     Services.obs.addObserver(this, "xpcom-shutdown");
 
     if (Services.felt.isFeltBrowser()) {
-      Services.obs.addObserver(this, "felt-firefox-tokens-refreshed");
-      lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
-        `ConsoleClient: Sending back tokens to felt on shutdown`,
-        () => {
-          try {
-            Services.felt.sendTokens();
-          } catch (ex) {
-            console.error(
-              `ConsoleClient: Failed to send back tokens to felt on shutdown: ${ex}`
-            );
-          }
-        }
-      );
+      Services.obs.addObserver(this, "felt-firefox-access-token-refreshed");
     }
 
     return this;
   },
 
-  observe(_, topic, data) {
+  observe(_, topic) {
     switch (topic) {
       case "xpcom-shutdown": {
         console.debug("ConsoleClient: xpcom-shutdown observed, cleaning up");
@@ -787,13 +775,13 @@ export const ConsoleClient = {
         this._refreshPromise = null;
         break;
       }
-      case "felt-firefox-tokens-refreshed": {
-        const { access_token, expires_at } = JSON.parse(data);
-        console.debug("ConsoleClient: felt-firefox-tokens-refreshed observed");
-        // Store the new token we got from FELT, leaving the refresh token as an empty string.
-        // Only FELT should do refreshes and has to know about he refresh token.
-        Services.felt.setTokens(access_token, "", expires_at);
+      case "felt-firefox-access-token-refreshed": {
+        console.debug(
+          `ConsoleClient: felt-firefox-access-token-refreshed observed, ${this._refreshPromise ? "resolving refresh promise" : "no refresh promise to resolve"}`
+        );
+        // resolve the promise, if any
         this._refreshResolve?.();
+        // Reset the promise since we're done.
         this._refreshPromise = null;
         this._refreshResolve = null;
         this._refreshReject = null;

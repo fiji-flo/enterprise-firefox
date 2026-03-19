@@ -98,37 +98,6 @@ impl FeltIpcClient {
         }
     }
 
-    pub fn send_back_tokens(&self) -> nserror::nsresult {
-        trace!("FeltIpcClient::send_back_tokens()");
-        match TOKENS.read() {
-            Ok(tokens) => {
-                let msg = FeltMessage::Tokens((
-                    tokens.access_token.clone(),
-                    tokens.refresh_token.clone(),
-                    tokens.expires_at,
-                ));
-                if let Some(tx) = &self.tx {
-                    match tx.send(msg) {
-                        Ok(()) => {
-                            trace!("FeltIpcClient::send_back_tokens() SENT");
-                            NS_OK
-                        },
-                        Err(err) => {
-                            trace!("FeltIpcClient::send_back_tokens() TX ERROR: {}", err);
-                            NS_ERROR_FAILURE
-                        }
-                    }
-                } else {
-                    NS_ERROR_FAILURE
-                }
-            }
-            Err(_) => {
-                trace!("FeltIpcClient::send_back_tokens failed: couldn't acquire lock");
-                NS_ERROR_FAILURE
-            }
-        }
-    }
-
     pub fn report_version(&self) -> bool {
         trace!("FeltIpcClient::report_version()");
         let msg = FeltMessage::VersionProbe(FELT_IPC_VERSION);
@@ -395,16 +364,6 @@ impl FeltClientThread {
                                     trace!("FeltClientThread::felt_client::ipc_loop(): IntPreference({}, {})", name, value);
                                     utils::inject_int_pref(name, value);
                                 },
-                                Ok(FeltMessage::TokensRefreshed((access_token, expires_at))) => {
-                                    info!("FeltServerThread::felt_server::ipc_loop(): TokensRefreshed FELT has refreshed tokens");
-                                    let payload = serde_json::json!({
-                                        "access_token": access_token,
-                                        "expires_at": expires_at,
-                                    })
-                                    .to_string();
-                                    info!("FeltServerThread::felt_server::ipc_loop(): TokensRefreshed notifying with payload {}", payload);
-                                    utils::notify_observers_with_payload("felt-firefox-tokens-refreshed".to_string(), Some(payload));
-                                },
                                 Ok(FeltMessage::StartupReady) => {
                                     trace!("FeltClientThread::felt_client::ipc_loop(): StartupReady");
                                     let barrier = barrier.clone();
@@ -423,12 +382,13 @@ impl FeltClientThread {
                                     trace!("FeltClientThread::felt_client::ipc_loop(): UpdateReady");
                                     utils::notify_observers("felt-update-ready".to_string());
                                 },
-                                Ok(FeltMessage::Tokens((access_token, refresh_token, expires_at))) => {
+                                Ok(FeltMessage::AccessToken((access_token, expires_at))) => {
                                     if let Ok(mut tokens) = TOKENS.write() {
-                                        *tokens = Tokens {access_token, refresh_token, expires_at};
-                                        trace!("FeltClientThread::felt_client::ipc_loop(): RefreshToken({})", tokens.refresh_token);
+                                        *tokens = Tokens { access_token, refresh_token: String::default(), expires_at };
+                                        trace!("FeltClientThread::felt_client::ipc_loop(): access_token({})", tokens.access_token);
+                                        utils::notify_observers("felt-firefox-access-token-refreshed".to_string());
                                     } else {
-                                        trace!("FeltClientThread::felt_client::ipc_loop(): ERROR setting RefreshToken({})", refresh_token);
+                                        trace!("FeltClientThread::felt_client::ipc_loop(): ERROR setting access token");
                                     }
                                 }
                                 Ok(FeltMessage::OpenURL((url, disposition))) => {
@@ -516,17 +476,5 @@ impl FeltClientThread {
         trace!("FeltClientThread::refresh_tokens()");
         let client = self.ipc_client.borrow();
         client.notify_refresh_tokens();
-    }
-
-    // pub fn notify_tokens_refreshed(&self) {
-    //     trace!("FeltClientThread::tokens_refreshed()");
-    //     let client = self.ipc_client.borrow();
-    //     client.notify_tokens_refreshed();
-    // }
-
-    pub fn send_back_tokens(&self) -> nserror::nsresult {
-        trace!("FeltClientThread::send_back_tokens()");
-        let client = self.ipc_client.borrow();
-        client.send_back_tokens()
     }
 }
