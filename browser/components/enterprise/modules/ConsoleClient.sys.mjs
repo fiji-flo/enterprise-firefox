@@ -744,7 +744,7 @@ export const ConsoleClient = {
       case "xpcom-shutdown": {
         console.debug("ConsoleClient: xpcom-shutdown observed, cleaning up");
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        this.clearTokenData(false);
+        this.clearTokenData();
         this._refreshPromise = null;
         break;
       }
