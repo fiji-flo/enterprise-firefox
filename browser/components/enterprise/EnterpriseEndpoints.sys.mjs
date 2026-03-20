@@ -22,6 +22,15 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 // We are replacing some here. But we need to take a look at the missing ones to avoid breakage.
 
 export const RELATIVE_CONSOLE_ENDPOINT_PREFS = [
+  { pref: "identity.fxaccounts.remote.oauth.uri", path: "api/fxa/oauth/v1" },
+  {
+    pref: "identity.fxaccounts.remote.profile.uri",
+    path: "api/fxa/profile/v1",
+  },
+  {
+    pref: "identity.fxaccounts.auth.uri",
+    path: "api/fxa/api/v1",
+  },
   {
     pref: "security.certerrors.mitm.priming.endpoint",
     path: "api/misc/mitm/",

@@ -189,33 +189,6 @@ export const ConsoleClient = {
   },
 
   /**
-   * Get the FxAccounts OAuth endpoint of the console
-   *
-   * returns {string} URI of the endpoint
-   */
-  get fxAccountsOAuth() {
-    return this.constructURI(this._paths.FXACCOUNTS_OAUTH);
-  },
-
-  /**
-   * Get the FxAccounts Profile endpoint of the console
-   *
-   * returns {string} URI of the endpoint
-   */
-  get fxAccountsProfile() {
-    return this.constructURI(this._paths.FXACCOUNTS_PROFILE);
-  },
-
-  /**
-   * Get the FxAccounts Auth endpoint of the console
-   *
-   * returns {string} URI of the endpoint
-   */
-  get fxAccountsAuth() {
-    return this.constructURI(this._paths.FXACCOUNTS_AUTH);
-  },
-
-  /**
    * SSO callback uri that we match to create Felt actors on
    *
    * @returns {string}

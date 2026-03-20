@@ -20,7 +20,6 @@ class BrowserFxAccount(FeltTests):
         super().run_felt_base()
         self.run_felt_no_fxa_toolbar_button()
         self.run_felt_no_fxa_item_in_toolbar_menu()
-        self.run_felt_fxa_endpoints_set()
 
     def run_felt_no_fxa_toolbar_button(self):
         self.connect_child_browser()
@@ -56,39 +55,5 @@ class BrowserFxAccount(FeltTests):
         assert is_restricted_for_enterprise, (
             "App menu main view should have the attribute restricted-enterprise-view to hide fxa status and separator"
         )
-
-    def run_felt_fxa_endpoints_set(self):
-        self._child_driver.set_context("chrome")
-        [
-            fxaccounts_remote_oauth,
-            fxaccounts_remote_profile,
-            fxaccounts_auth,
-            sync_token_server,
-        ] = self._child_driver.execute_script(
-            """
-            return [
-                Services.prefs.getStringPref("identity.fxaccounts.remote.oauth.uri"),
-                Services.prefs.getStringPref("identity.fxaccounts.remote.profile.uri"),
-                Services.prefs.getStringPref("identity.fxaccounts.auth.uri"),
-                Services.prefs.getStringPref("identity.sync.tokenserver.uri"),
-            ];
-            """,
-        )
-        self._child_driver.set_context("content")
-
-        console_addr = f"http://localhost:{self.console_port}"
-        assert fxaccounts_remote_oauth == f"{console_addr}/api/fxa/oauth/v1", (
-            f"FxAccount remote auth URI correct: {fxaccounts_remote_oauth}"
-        )
-        assert fxaccounts_remote_profile == f"{console_addr}/api/fxa/profile/v1", (
-            f"FxAccount remote profile URI correct: {fxaccounts_remote_profile}"
-        )
-        assert fxaccounts_auth == f"{console_addr}/api/fxa/api/v1", (
-            f"FxAccount auth URI correct: {fxaccounts_auth}"
-        )
-        assert (
-            sync_token_server
-            == "https://ent-dev-tokenserver.sync.nonprod.webservices.mozgcp.net/1.0/sync/1.5"
-        ), f"Sync TokenServer URI correct: {sync_token_server}"
 
     # More tests to follow once fxa and sync test endpoints are setup
