@@ -733,6 +733,9 @@ void nsWindow::Destroy() {
   // just drop the reference here.
   mEGLWindow = nullptr;
 
+  // Emoji picker will be deleted with mContainer
+  mEmojiHidenSignal = 0;
+
   gtk_widget_destroy(mShell);
   mShell = nullptr;
   mContainer = nullptr;
@@ -9990,6 +9993,99 @@ void nsWindow::UnexportHandle() {
     if (auto* toplevel = GetToplevelGdkWindow()) {
       sGdkWaylandWindowUnexportHandle(toplevel);
     }
+  }
+}
+
+void nsWindow::SetTextInputArea(LayoutDeviceIntRect aCursorArea) {
+  mIMContextInputArea = ToDesktopPixels(aCursorArea);
+  LOG("nsWindow::SetTextInputArea() pos [%d, %d]", mIMContextInputArea.x,
+      mIMContextInputArea.y);
+}
+
+void nsWindow::InsertEmoji(RefPtr<nsWindow> aToplevelWindow) {
+  if (!StaticPrefs::widget_gtk_native_emoji_dialog()) {
+    return;
+  }
+
+  if (IsTopLevelWidget()) {
+    if (nsIWidget* popup =
+            nsXULPopupManager::GetInstance()->GetRollupWidget()) {
+      if (nsWindow* window = nsWindow::FromWidget(popup)) {
+        LOG("nsWindow::InsertEmoji() - redirect to child popup [%p]", window);
+        window->InsertEmoji(this);
+      }
+      return;
+    }
+  }
+
+  if (!aToplevelWindow) {
+    aToplevelWindow = this;
+  }
+  mozilla::widget::IMContextWrapper* IMContext =
+      aToplevelWindow->GetIMContext();
+
+  if (mIsDestroyed || !IMContext || !IMContext->IsEditable()) {
+    LOG("nsWindow::InsertEmoji() failed, mIMContext [%p] editable [%d]",
+        (void*)IMContext, IMContext ? IMContext->IsEditable() : 0);
+    return;
+  }
+
+  GtkWidget* entry = moz_container_get_entry(MOZ_CONTAINER(mContainer));
+  if (!entry) {
+    entry = moz_container_entry_set(MOZ_CONTAINER(mContainer), gtk_entry_new());
+    gtk_widget_show(entry);
+    g_signal_connect(entry, "insert_text",
+                     G_CALLBACK(+[](GtkWidget* entry, gchar* text, gint length,
+                                    gint* position, gpointer data) {
+                       nsWindow* window = static_cast<nsWindow*>(data);
+                       if (!window || window->IsDestroyed()) {
+                         return;
+                       }
+                       LOGW("[%p] nsWindow::Emoji() insert_text", window);
+                       WidgetContentCommandEvent insertTextEvent(
+                           true, eContentCommandInsertText, window);
+                       NS_ConvertUTF8toUTF16 str(text);
+                       insertTextEvent.mString.emplace(str);
+                       window->DispatchEvent(&insertTextEvent);
+                     }),
+                     aToplevelWindow);
+  }
+
+  DesktopIntRect input = aToplevelWindow->GetTextInputArea();
+  auto offset = IsTopLevelWidget()
+                    ? DesktopIntPoint()
+                    : WidgetToScreenOffsetUnscaled() -
+                          DesktopIntPoint(aToplevelWindow->mClientMargin.left,
+                                          aToplevelWindow->mClientMargin.top);
+
+  LOG("nsWindow::InsertEmoji() carret [%d, %d] offset [%d, %d] height %d",
+      int(input.x), int(input.y), int(offset.x), int(offset.y), input.height);
+  moz_container_entry_position(MOZ_CONTAINER(mContainer), input.x - offset.x,
+                               input.y - offset.y, input.height);
+  // We may hide cursor when text input is active but we don't want to do it
+  // for emoji picker.
+  mWidgetCursorLocked = true;
+
+  // Calls gtk_entry_insert_emoji() directly, creates emoji chooser widget
+  // as child of GtkEntry.
+  g_signal_emit_by_name(entry, "insert-emoji");
+
+  if (!mEmojiHidenSignal) {
+    GtkWidget* chooser =
+        GTK_WIDGET(g_object_get_data(G_OBJECT(entry), "gtk-emoji-chooser"));
+    if (!chooser) {
+      return;
+    }
+    mEmojiHidenSignal = g_signal_connect(
+        chooser, "hide", G_CALLBACK(+[](GtkWidget* emojiPicker, gpointer data) {
+          nsWindow* window = static_cast<nsWindow*>(data);
+          if (!window || window->IsDestroyed()) {
+            return;
+          }
+          LOGW("[%p] nsWindow::Emoji() emoji picker hide", window);
+          window->UnlockCursor();
+        }),
+        this);
   }
 }
 

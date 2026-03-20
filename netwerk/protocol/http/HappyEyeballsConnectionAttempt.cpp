@@ -1,4 +1,3 @@
-/* vim:set ts=4 sw=2 sts=2 et cin: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -23,6 +22,12 @@
 #define LOG_ENABLED() LOG5_ENABLED()
 
 namespace mozilla::net {
+
+using happy_eyeballs::happy_eyeballs_process_connection_result;
+using happy_eyeballs::happy_eyeballs_process_dns_response_a;
+using happy_eyeballs::happy_eyeballs_process_dns_response_aaaa;
+using happy_eyeballs::happy_eyeballs_process_dns_response_https;
+using happy_eyeballs::happy_eyeballs_process_output;
 
 NS_IMPL_ADDREF_INHERITED(HappyEyeballsConnectionAttempt, ConnectionAttempt)
 NS_IMPL_RELEASE_INHERITED(HappyEyeballsConnectionAttempt, ConnectionAttempt)
@@ -124,7 +129,7 @@ nsresult HappyEyeballsConnectionAttempt::ProcessConnectionResult(
        this, aAddr.ToString().get(), aId));
 
   nsresult rv =
-      happy_eyeballs::process_connection_result(mHappyEyeballs, aId, aStatus);
+      happy_eyeballs_process_connection_result(mHappyEyeballs, aId, aStatus);
   if (NS_FAILED(rv)) {
     LOG(("process_connection_result failed rv=%x", static_cast<uint32_t>(rv)));
   }
@@ -143,7 +148,7 @@ nsresult HappyEyeballsConnectionAttempt::ProcessHappyEyeballsOutput() {
   while (!mDone) {
     happy_eyeballs::Output event{};
     nsTArray<uint8_t> echConfig;
-    rv = happy_eyeballs::process_output(mHappyEyeballs, &event, &echConfig);
+    rv = happy_eyeballs_process_output(mHappyEyeballs, &event, &echConfig);
     if (NS_FAILED(rv)) {
       LOG(("process_output failed rv=%x", static_cast<uint32_t>(rv)));
       return rv;
@@ -783,8 +788,8 @@ nsresult HappyEyeballsConnectionAttempt::OnARecord(nsIDNSRecord* aRecord,
   nsresult rv;
   if (NS_FAILED(status) || !addrRecord) {
     nsTArray<NetAddr> emptyArray;
-    rv = happy_eyeballs::process_dns_response_a(mHappyEyeballs, aId,
-                                                &emptyArray);
+    rv =
+        happy_eyeballs_process_dns_response_a(mHappyEyeballs, aId, &emptyArray);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -803,8 +808,8 @@ nsresult HappyEyeballsConnectionAttempt::OnARecord(nsIDNSRecord* aRecord,
     }
   }
 
-  rv = happy_eyeballs::process_dns_response_a(mHappyEyeballs, aId,
-                                              &ipv4Addresses);
+  rv = happy_eyeballs_process_dns_response_a(mHappyEyeballs, aId,
+                                             &ipv4Addresses);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -828,8 +833,8 @@ nsresult HappyEyeballsConnectionAttempt::OnAAAARecord(nsIDNSRecord* aRecord,
   nsresult rv;
   if (NS_FAILED(status) || !addrRecord) {
     nsTArray<NetAddr> emptyArray;
-    rv = happy_eyeballs::process_dns_response_aaaa(mHappyEyeballs, aId,
-                                                   &emptyArray);
+    rv = happy_eyeballs_process_dns_response_aaaa(mHappyEyeballs, aId,
+                                                  &emptyArray);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -848,8 +853,8 @@ nsresult HappyEyeballsConnectionAttempt::OnAAAARecord(nsIDNSRecord* aRecord,
     }
   }
 
-  rv = happy_eyeballs::process_dns_response_aaaa(mHappyEyeballs, aId,
-                                                 &ipv6Addresses);
+  rv = happy_eyeballs_process_dns_response_aaaa(mHappyEyeballs, aId,
+                                                &ipv6Addresses);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -880,8 +885,8 @@ nsresult HappyEyeballsConnectionAttempt::OnHTTPSRecord(nsIDNSRecord* aRecord,
   nsCOMPtr<nsIDNSHTTPSSVCRecord> httpsRecord = do_QueryInterface(aRecord);
   if (!httpsRecord || NS_FAILED(status)) {
     nsTArray<happy_eyeballs::ServiceInfo> emptyArray;
-    (void)happy_eyeballs::process_dns_response_https(mHappyEyeballs, aId,
-                                                     &emptyArray);
+    (void)happy_eyeballs_process_dns_response_https(mHappyEyeballs, aId,
+                                                    &emptyArray);
     return ProcessHappyEyeballsOutput();
   }
 
@@ -890,8 +895,8 @@ nsresult HappyEyeballsConnectionAttempt::OnHTTPSRecord(nsIDNSRecord* aRecord,
   (void)httpsRecord->GetRecords(svcbRecords);
   if (svcbRecords.IsEmpty()) {
     nsTArray<happy_eyeballs::ServiceInfo> emptyArray;
-    (void)happy_eyeballs::process_dns_response_https(mHappyEyeballs, aId,
-                                                     &emptyArray);
+    (void)happy_eyeballs_process_dns_response_https(mHappyEyeballs, aId,
+                                                    &emptyArray);
     return ProcessHappyEyeballsOutput();
   }
 
@@ -968,8 +973,8 @@ nsresult HappyEyeballsConnectionAttempt::OnHTTPSRecord(nsIDNSRecord* aRecord,
     serviceInfos.AppendElement(std::move(svcInfo));
   }
 
-  (void)happy_eyeballs::process_dns_response_https(mHappyEyeballs, aId,
-                                                   &serviceInfos);
+  (void)happy_eyeballs_process_dns_response_https(mHappyEyeballs, aId,
+                                                  &serviceInfos);
   return ProcessHappyEyeballsOutput();
 }
 

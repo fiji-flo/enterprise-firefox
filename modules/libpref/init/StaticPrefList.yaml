@@ -10126,6 +10126,13 @@
   mirror: always
   rust: true
 
+# Whether to enable appearance: base for authors.
+- name: layout.css.appearance-base.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 # Whether to enable generalized CSS Attr Support. If this pref is set to false
 # we treat attr as a regular function with support only for the `content` css
 # property. If it is set to true, attr is parsed as a subtitution function.
@@ -19651,6 +19658,12 @@
 # Whether to use gtk high contrast themes to disable content styling like on
 # windows high contrast mode.
 - name: widget.content.gtk-high-contrast.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Whether use native GTK emoji selection dialog.
+- name: widget.gtk.native-emoji-dialog
   type: bool
   value: true
   mirror: always

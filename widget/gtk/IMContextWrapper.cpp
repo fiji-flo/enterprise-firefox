@@ -3041,8 +3041,9 @@ void IMContextWrapper::SetCursorPosition(GtkIMContext* aContext) {
   LayoutDeviceIntRect rect =
       queryCaretOrTextRectEvent.mReply->mRect + root - owner;
   rect.width = 0;
-  GdkRectangle area = rootWindow->DevicePixelsToGdkRectRoundOut(rect);
+  rootWindow->SetTextInputArea(rect);
 
+  GdkRectangle area = rootWindow->DevicePixelsToGdkRectRoundOut(rect);
   gtk_im_context_set_cursor_location(aContext, &area);
 }
 

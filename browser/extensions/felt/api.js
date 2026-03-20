@@ -44,6 +44,9 @@ this.felt = class extends ExtensionAPI {
     );
     const matches = [ConsoleClient.ssoCallbackUriMatchPattern];
     ChromeUtils.registerWindowActor(this.FELT_WINDOW_ACTOR, {
+      parent: {
+        esModuleURI: "chrome://felt/content/FeltWindowParent.sys.mjs",
+      },
       child: {
         esModuleURI: "chrome://felt/content/FeltWindowChild.sys.mjs",
         events: {
@@ -174,7 +177,14 @@ this.felt = class extends ExtensionAPI {
   updateObserver = {
     observe(aSubject, aTopic, _aData) {
       if (aTopic === "felt-update-ready") {
-        lazy.UpdateListener.showRestartNotification("", /* dismissed */ true);
+        // Directly call showUpdateNotification to bypass other instance update
+        // checking
+        lazy.UpdateListener.showUpdateNotification(
+          "restart",
+          () => lazy.UpdateListener.requestRestart(),
+          true,
+          { dismissed: true }
+        );
       }
     },
   };
@@ -182,6 +192,10 @@ this.felt = class extends ExtensionAPI {
   async onStartup() {
     if (Services.felt.isFeltUI()) {
       Services.prefs.setBoolPref("identity.fxaccounts.enabled", false);
+      // Disable QoS thread priority demotion: background content processes get
+      // their main thread demoted to low-priority QoS, which can starve the
+      // SSO callback's DOMContentLoaded event and prevent token extraction.
+      Services.prefs.setBoolPref("threads.use_low_power.enabled", false);
       this.registerChrome();
       this.registerActors();
       await lazy.FeltStorage.init();

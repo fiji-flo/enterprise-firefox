@@ -862,7 +862,7 @@ main section {
 }
 @media (min-width: 1122px) {
   .top-sites-list {
-    grid-template-columns: repeat(8, auto);
+    grid-template-columns: repeat(var(--top-sites-max-per-row, 8), auto);
   }
 }
 .top-sites-list a {
@@ -945,6 +945,14 @@ main section {
 }
 @media (min-width: 1122px) {
   .top-sites-list .hide-for-narrow {
+    display: inline-block;
+  }
+}
+.top-sites-list .hide-for-small {
+  display: none;
+}
+@media (min-width: 1390px) {
+  .top-sites-list .hide-for-small {
     display: inline-block;
   }
 }
@@ -8234,7 +8242,7 @@ hr {
 }
 
 /* stylelint-disable max-nesting-depth */
-.outer-wrapper .ds-top-sites .collapsible-section {
+.outer-wrapper .ds-top-sites .top-sites {
   margin-block-end: var(--space-large);
 }
 .outer-wrapper .ds-top-sites .top-sites .top-site-outer .top-site-inner > a:is(.active, :focus) .tile {

@@ -246,19 +246,14 @@ body:has(#notification-popup-box[open]) .felt:not(#notification-popup-box .felt)
 .felt-browser-error {
   position: absolute;
   /* stylelint-disable-next-line */
-  bottom: 32px;
+  top: 16px;
   /* stylelint-disable-next-line */
-  left: 8px;
-  font-size: medium;
-  color: var(--text-color-error);
-  font-weight: var(--font-weight-bold);
-}
-
-.felt-browser-error-details {
-  display: block;
-  font-weight: normal;
-  font-size: small;
-  margin-top: var(--space-xsmall);
+  right: 16px;
+  /* stylelint-disable-next-line */
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
 }
 
 .felt-updates-message {

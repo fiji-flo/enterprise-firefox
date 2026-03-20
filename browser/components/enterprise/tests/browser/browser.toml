@@ -1,0 +1,7 @@
+[DEFAULT]
+environment = ["MOZ_BYPASS_FELT=1"]
+prefs = [
+  "enterprise.console.address=https://console.example.com/",
+]
+
+["browser_enterprise_endpoints.js"]

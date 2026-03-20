@@ -397,7 +397,6 @@ export class TopSiteLink extends React.PureComponent {
             {...(link.isPinned && { ...addPinnedTitlel10n })}
             data-l10n-args={JSON.stringify({ title })}
           >
-            {link.isPinned && <div className="icon icon-pin-small" />}
             <div className="tile" aria-hidden={true}>
               <div
                 className={
@@ -418,6 +417,7 @@ export class TopSiteLink extends React.PureComponent {
                 )}
               </div>
             </div>
+            {link.isPinned && <div className="icon icon-pin-small" />}
             <div
               className={`title${link.isPinned ? " has-icon pinned" : ""}${
                 link.type === SPOC_TYPE || link.show_sponsored_label
@@ -433,7 +433,7 @@ export class TopSiteLink extends React.PureComponent {
                 {link.searchTopSite && (
                   <div className="top-site-icon search-topsite" />
                 )}
-                {title || <br />}
+                {title}
               </span>
               <span
                 className="sponsored-label"
@@ -851,7 +851,9 @@ export class _TopSiteList extends React.PureComponent {
   _getTopSites() {
     // Make a copy of the sites to truncate or extend to desired length
     let topSites = this.props.TopSites.rows.slice();
-    topSites.length = this.props.TopSitesRows * TOP_SITES_MAX_SITES_PER_ROW;
+    topSites.length =
+      this.props.TopSitesRows *
+      (this.props.topSitesMaxSitesPerRow ?? TOP_SITES_MAX_SITES_PER_ROW);
     // if topSites do not fill an entire row add 'Add shortcut' button to array of topSites
     // (there should only be one of these)
     const addButtonIndex = topSites.findIndex(site => site?.isAddButton);
@@ -997,7 +999,9 @@ export class _TopSiteList extends React.PureComponent {
 
     // On narrow viewports, we only show 6 sites per row. We'll mark the rest as
     // .hide-for-narrow to hide in CSS via @media query.
+    const novaEnabled = this.props.Prefs.values["nova.enabled"];
     const maxNarrowVisibleIndex = props.TopSitesRows * 6;
+    const maxSmallVisibleIndex = props.TopSitesRows * 8;
 
     for (let i = 0, l = topSites.length; i < l; i++) {
       const link =
@@ -1010,7 +1014,16 @@ export class _TopSiteList extends React.PureComponent {
         key: link ? link.url : holeIndex++,
         index: i,
       };
-      if (i >= maxNarrowVisibleIndex) {
+      // @nova-cleanup(remove-conditional): Remove classic path once Nova ships
+      if (novaEnabled) {
+        if (i >= maxSmallVisibleIndex) {
+          slotProps.className = "nova-hide-for-s";
+        } else if (i >= maxNarrowVisibleIndex) {
+          slotProps.className = "nova-hide-for-xs";
+        }
+      } else if (i >= maxSmallVisibleIndex) {
+        slotProps.className = "hide-for-small";
+      } else if (i >= maxNarrowVisibleIndex) {
         slotProps.className = "hide-for-narrow";
       }
 
@@ -1084,6 +1097,10 @@ export class _TopSiteList extends React.PureComponent {
           className={`top-sites-list${
             this.state.draggedSite ? " dnd-active" : ""
           }`}
+          style={{
+            "--top-sites-max-per-row":
+              this.props.topSitesMaxSitesPerRow ?? TOP_SITES_MAX_SITES_PER_ROW,
+          }}
         >
           {topSitesUI}
         </ul>

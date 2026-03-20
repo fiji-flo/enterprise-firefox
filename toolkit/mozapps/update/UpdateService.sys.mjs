@@ -3272,6 +3272,16 @@ export class UpdateService {
               "pending-elevate, but this is a silent startup, so the " +
               "elevation window has been suppressed."
           );
+        } else if (
+          Services.felt?.isFeltUI() ||
+          Services.felt?.isFeltBrowser()
+        ) {
+          LOG(
+            "UpdateService:#asyncInit - status is " +
+              "pending-elevate, but this is a Felt UI or browser, so the " +
+              "elevation window has been suppressed. Updates.sys.mjs should " +
+              "perform the elevationOptedIn() call."
+          );
         } else {
           LOG(
             "UpdateService:#asyncInit - status is " +

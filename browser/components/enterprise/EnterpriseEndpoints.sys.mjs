@@ -2,9 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const CONSOLE_ADDRESS_PREF = "enterprise.console.address";
+const lazy = {};
 
-const ENDPOINT_PREFS = [
+ChromeUtils.defineESModuleGetters(lazy, {
+  ConsoleClient: "resource:///modules/enterprise/ConsoleClient.sys.mjs",
+  EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+});
+
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  return console.createInstance({
+    prefix: "EnterpriseEndpoints",
+    maxLogLevelPref: lazy.EnterpriseCommon.ENTERPRISE_LOGLEVEL_PREF,
+  });
+});
+
+// Todo: Bug 2024702
+// We've nulled preferences that pointed to Mozilla servers and disabled respective features.
+// See https://github.com/mozilla/enterprise-firefox/commit/937f94b78c4c759f3b2a06c8ac52c5accb688c31
+// We are replacing some here. But we need to take a look at the missing ones to avoid breakage.
+
+export const RELATIVE_CONSOLE_ENDPOINT_PREFS = [
   {
     pref: "security.certerrors.mitm.priming.endpoint",
     path: "api/misc/mitm/",
@@ -23,27 +40,28 @@ const ENDPOINT_PREFS = [
   },
 ];
 
+export const BASE_CONSOLE_URI_PREFS = new Set([
+  "browser.ipProtection.guardian.endpoint",
+  "identity.fxaccounts.remote.root",
+]);
+
 export const EnterpriseEndpoints = {
   init() {
-    const consoleAddress = Services.prefs.getStringPref(
-      CONSOLE_ADDRESS_PREF,
-      ""
-    );
-    if (!consoleAddress) {
-      return;
-    }
+    lazy.log.info("Setting and locking enterprise endpoints");
 
-    let baseURL;
-    try {
-      baseURL = new URL(consoleAddress);
-    } catch {
-      return;
-    }
+    const consoleBaseURI = lazy.ConsoleClient.consoleBaseURI;
 
     const defaultBranch = Services.prefs.getDefaultBranch("");
-    for (const { pref, path } of ENDPOINT_PREFS) {
-      const url = new URL(path, baseURL).href;
+
+    for (const { pref, path } of RELATIVE_CONSOLE_ENDPOINT_PREFS) {
+      const url = new URL(path, consoleBaseURI).href;
       defaultBranch.setStringPref(pref, url);
+      Services.prefs.lockPref(pref);
+    }
+
+    for (const pref of BASE_CONSOLE_URI_PREFS) {
+      defaultBranch.setStringPref(pref, consoleBaseURI.href);
+      Services.prefs.lockPref(pref);
     }
   },
 };

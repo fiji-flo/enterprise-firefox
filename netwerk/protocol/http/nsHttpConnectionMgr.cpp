@@ -1,4 +1,3 @@
-/* vim:set ts=4 sw=2 sts=2 et cin: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1784,17 +1783,6 @@ nsresult nsHttpConnectionMgr::DispatchTransaction(ConnectionEntry* ent,
 
   TimeStamp now = TimeStamp::Now();
   TimeDuration elapsed = now - trans->GetPendingTime();
-  auto recordPendingTimeForHTTPSRR = [&](nsCString& aKey) {
-    uint32_t stage = trans->HTTPSSVCReceivedStage();
-    if (HTTPS_RR_IS_USED(stage)) {
-      glean::networking::transaction_wait_time_https_rr.AccumulateRawDuration(
-          elapsed);
-
-    } else {
-      glean::networking::transaction_wait_time.AccumulateRawDuration(elapsed);
-    }
-  };
-
   PerfStats::RecordMeasurement(PerfStats::Metric::HttpTransactionWaitTime,
                                elapsed);
 
@@ -1821,7 +1809,6 @@ nsresult nsHttpConnectionMgr::DispatchTransaction(ConnectionEntry* ent,
         glean::http::transaction_wait_time_http3.AccumulateRawDuration(
             now - trans->GetPendingTime());
       }
-      recordPendingTimeForHTTPSRR(httpVersionkey);
       trans->SetPendingTime(false);
     }
     return rv;
@@ -1835,7 +1822,6 @@ nsresult nsHttpConnectionMgr::DispatchTransaction(ConnectionEntry* ent,
   if (NS_SUCCEEDED(rv) && !trans->GetPendingTime().IsNull()) {
     glean::http::transaction_wait_time_http.AccumulateRawDuration(
         now - trans->GetPendingTime());
-    recordPendingTimeForHTTPSRR(httpVersionkey);
     trans->SetPendingTime(false);
   }
   return rv;

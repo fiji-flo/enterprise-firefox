@@ -33,6 +33,11 @@ const ErrorReport = {
         "chrome://global/locale/appstrings.properties"
       );
     });
+
+    this._wrapper.addEventListener("message-bar:user-dismissed", e => {
+      e.preventDefault();
+      e.target.classList.add("is-hidden");
+    });
   },
 
   reset() {
@@ -43,10 +48,9 @@ const ErrorReport = {
       return;
     }
     this._wrapper.classList.add("is-hidden");
-    const errors = this._wrapper.querySelectorAll(
-      ".felt-browser-error > div:not(.is-hidden)"
-    );
-    errors.forEach(e => e.classList.add("is-hidden"));
+    for (const bar of this._wrapper.querySelectorAll("moz-message-bar")) {
+      bar.classList.add("is-hidden");
+    }
   },
 
   async update(errorType, details = null, cause = null) {
@@ -93,14 +97,27 @@ const ErrorReport = {
 };
 
 async function connectToConsole(email) {
-  ErrorReport.reset();
-
   let posture;
   try {
     posture = await lazy.ConsoleClient.sendDevicePosture();
   } catch (err) {
     console.error(`FeltExtension: Failed to connect to console: ${err}`);
-    ErrorReport.update("felt-browser-error-connection", err.message, err.cause);
+
+    // Show simpler "No Network Connection" only for truly offline scenarios
+    // netOffline for offline mode, dnsNotFound2 for actual network disconnect
+    const NETWORK_ERRORS = new Set(["netOffline", "dnsNotFound2"]);
+    if (NETWORK_ERRORS.has(err.message)) {
+      ErrorReport.update(
+        "felt-browser-error-no-network",
+        "no-network-connection"
+      );
+    } else {
+      ErrorReport.update(
+        "felt-browser-error-connection",
+        err.message,
+        err.cause
+      );
+    }
     return;
   }
 
@@ -145,6 +162,134 @@ async function connectToConsole(email) {
     triggeringPrincipal: contentPrincipal,
   });
 
+  // Fallback for token extraction: a cross-process navigation during the SSO
+  // redirect chain can cause the FeltWindowChild JSWindowActor's
+  // DOMContentLoaded handler to never fire. Monitor the navigation from the
+  // parent process and explicitly trigger token extraction when the callback
+  // page finishes loading.
+  const SSO_TIMEOUT_MS = Services.prefs.getIntPref(
+    "enterprise.sso.timeout_ms",
+    60000
+  );
+  const callbackPattern = new MatchPattern(
+    lazy.ConsoleClient.ssoCallbackUriMatchPattern
+  );
+
+  let ssoCompleted = false;
+
+  function resetToLoginPage(errorType, details = null, cause = null) {
+    if (ssoCompleted) {
+      return;
+    }
+    ssoCompleted = true;
+    try {
+      browser.removeProgressListener(progressListener);
+    } catch (_) {}
+    document.querySelector(".felt-login__sso").classList.add("is-hidden");
+    document
+      .querySelector(".felt-login__email-pane")
+      .classList.remove("is-hidden");
+    ErrorReport.update(errorType, details, cause);
+  }
+
+  let ssoTimeout = setTimeout(() => {
+    console.error("FeltExtension: SSO login timed out");
+    resetToLoginPage("felt-browser-error-sso-timeout");
+  }, SSO_TIMEOUT_MS);
+
+  const progressListener = {
+    QueryInterface: ChromeUtils.generateQI([
+      "nsIWebProgressListener",
+      "nsISupportsWeakReference",
+    ]),
+
+    onStateChange(webProgress, _request, stateFlags, status) {
+      if (
+        !(stateFlags & Ci.nsIWebProgressListener.STATE_STOP) ||
+        !(stateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)
+      ) {
+        return;
+      }
+
+      const uri = webProgress.browsingContext?.currentWindowGlobal?.documentURI;
+      if (!uri || !callbackPattern.matches(uri.spec)) {
+        return;
+      }
+
+      clearTimeout(ssoTimeout);
+      browser.removeProgressListener(progressListener);
+      ssoCompleted = true;
+
+      if (!Components.isSuccessCode(status)) {
+        console.error(
+          `FeltExtension: SSO callback page failed to load: 0x${status.toString(16)}`
+        );
+        resetToLoginPage(
+          "felt-browser-error-connection",
+          lazy.ConsoleClient._getErrorNameForStatus(status),
+          { host: uri.host }
+        );
+        return;
+      }
+
+      const windowGlobal = browser.browsingContext?.currentWindowGlobal;
+      if (!windowGlobal) {
+        console.error("FeltExtension: No WindowGlobal for SSO callback page");
+        resetToLoginPage("felt-browser-error-connection");
+        return;
+      }
+
+      // getActor() forces actor instantiation, and sendQuery() delivers the
+      // message to the child process regardless of whether DOMContentLoaded
+      // triggered actor creation.
+      try {
+        windowGlobal
+          .getActor("FeltWindow")
+          .sendQuery("ExtractTokens")
+          .then(sent => {
+            if (!sent) {
+              console.error(
+                "FeltExtension: Fallback token extraction found no token data"
+              );
+              resetToLoginPage("felt-browser-error-connection");
+            }
+          })
+          .catch(err => {
+            console.error(
+              `FeltExtension: Fallback token extraction failed: ${err}`
+            );
+            resetToLoginPage("felt-browser-error-connection");
+          });
+      } catch (err) {
+        console.error(
+          `FeltExtension: Could not reach FeltWindow actor: ${err}`
+        );
+        resetToLoginPage("felt-browser-error-connection");
+      }
+    },
+
+    onLocationChange(_webProgress, _request, _location, flags) {
+      if (flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE) {
+        clearTimeout(ssoTimeout);
+        resetToLoginPage("felt-browser-error-connection");
+        return;
+      }
+      // Reset the timeout on each navigation so the limit applies per-page
+      // rather than to the entire SSO flow (which may involve slow networks,
+      // MFA prompts, etc.).
+      clearTimeout(ssoTimeout);
+      ssoTimeout = setTimeout(() => {
+        console.error("FeltExtension: SSO login timed out");
+        resetToLoginPage("felt-browser-error-sso-timeout");
+      }, SSO_TIMEOUT_MS);
+    },
+  };
+  browser.addProgressListener(
+    progressListener,
+    Ci.nsIWebProgress.NOTIFY_STATE_NETWORK | Ci.nsIWebProgress.NOTIFY_LOCATION
+  );
+
+  ErrorReport.reset();
   document.querySelector(".felt-login__email-pane").classList.add("is-hidden");
   document.querySelector(".felt-login__sso").classList.remove("is-hidden");
 

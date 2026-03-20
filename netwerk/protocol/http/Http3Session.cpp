@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=4 sw=2 et cindent: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1776,12 +1774,16 @@ void Http3Session::ResetOrStopSendingRecvd(uint64_t aStreamId, uint64_t aError,
     // DoNotRemoveAltSvc the alt-svc route will be removed.
     httpStream->Transaction()->DoNotRemoveAltSvc();
     CloseStream(stream, NS_ERROR_NET_RESET);
+  } else if (aError == HTTP3_APP_ERROR_REQUEST_CANCELLED) {
+    // The server cancelled this request; it may have had side effects, so
+    // do not retry.
+    CloseStream(stream, httpStream->RecvdData() ? NS_ERROR_NET_PARTIAL_TRANSFER
+                                                : NS_ERROR_NET_INTERRUPT);
   } else {
-    if (httpStream->RecvdData()) {
-      CloseStream(stream, NS_ERROR_NET_PARTIAL_TRANSFER);
-    } else {
-      CloseStream(stream, NS_ERROR_NET_INTERRUPT);
-    }
+    // Unrecognized application error code. Use NS_ERROR_NET_RESET so the
+    // transaction restart path retries via H2/H1.
+    CloseStream(stream, httpStream->RecvdData() ? NS_ERROR_NET_PARTIAL_TRANSFER
+                                                : NS_ERROR_NET_RESET);
   }
 }
 

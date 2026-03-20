@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=4 sw=2 sts=2 et cin: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -632,28 +630,6 @@ nsresult TRR::ReturnData(nsIChannel* aChannel) {
                                               mTRRSkippedReason, mTTL, mPB);
   }
 
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
-  if (httpChannel) {
-    nsAutoCString version;
-    if (NS_SUCCEEDED(httpChannel->GetProtocolVersion(version))) {
-      nsAutoCString key("h1"_ns);
-      if (version.Equals("h3"_ns)) {
-        key.Assign("h3"_ns);
-      } else if (version.Equals("h2"_ns)) {
-        key.Assign("h2"_ns);
-      }
-
-      if (trrFetchDuration) {
-        glean::networking::trr_fetch_duration.Get(key).AccumulateRawDuration(
-            *trrFetchDuration);
-      }
-      if (trrFetchDurationNetworkOnly) {
-        key.Append("_network_only"_ns);
-        glean::networking::trr_fetch_duration.Get(key).AccumulateRawDuration(
-            *trrFetchDurationNetworkOnly);
-      }
-    }
-  }
   return NS_OK;
 }
 

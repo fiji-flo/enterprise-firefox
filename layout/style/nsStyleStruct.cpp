@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2439,8 +2437,12 @@ static bool ScrollbarGenerationChanged(const nsStyleDisplay& aOld,
 static bool AppearanceValueAffectsFrames(StyleAppearance aAppearance,
                                          StyleAppearance aDefaultAppearance) {
   switch (aAppearance) {
+    case StyleAppearance::Base:
+      /* TODO: Other appearance: base cases */
+      return aDefaultAppearance == StyleAppearance::Checkbox ||
+             aDefaultAppearance == StyleAppearance::Radio;
     case StyleAppearance::None:
-      // Checkbox / radio with appearance none doesn't construct an
+      // Checkbox / radio with appearance: none don't construct an
       // nsCheckboxRadioFrame.
       return aDefaultAppearance == StyleAppearance::Checkbox ||
              aDefaultAppearance == StyleAppearance::Radio;
@@ -3330,7 +3332,7 @@ nsStyleUIReset::nsStyleUIReset()
       mViewTimelineAxisCount(1),
       mViewTimelineInsetCount(1),
       mFieldSizing(StyleFieldSizing::Fixed),
-      mViewTransitionName(StyleViewTransitionName::None()),
+      mViewTransitionName(StyleViewTransitionNameKeyword::None()),
       mTimelineScope(StyleScopedNameKeyword::None()) {
   MOZ_COUNT_CTOR(nsStyleUIReset);
 }
@@ -3412,7 +3414,7 @@ nsChangeHint nsStyleUIReset::CalcDifference(
     hint |= nsChangeHint_SchedulePaint;
   }
 
-  if (mViewTransitionName != aNewData.mViewTransitionName) {
+  if (mViewTransitionName.value != aNewData.mViewTransitionName.value) {
     if (HasViewTransitionName() != aNewData.HasViewTransitionName()) {
       hint |= nsChangeHint_RepaintFrame;
     } else {
@@ -3420,7 +3422,7 @@ nsChangeHint nsStyleUIReset::CalcDifference(
     }
   }
 
-  if (mViewTransitionClass != aNewData.mViewTransitionClass) {
+  if (mViewTransitionClass.value != aNewData.mViewTransitionClass.value) {
     hint |= nsChangeHint_NeutralChange;
   }
 

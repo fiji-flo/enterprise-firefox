@@ -180,18 +180,42 @@
           </span>
         </div>
         <div class="felt-browser-error is-hidden">
-          <div
+          <moz-message-bar
             class="felt-browser-error-multiple-crashes is-hidden"
-            data-l10n-id="felt-browser-error-multiple-crashes"
-          ></div>
-          <div class="felt-browser-error-connection is-hidden">
-            <span data-l10n-id="felt-browser-error-connection"></span>
-            <span class="felt-browser-error-details"></span>
-          </div>
-          <div class="felt-updates-error-messages is-hidden">
-            <span data-l10n-id="felt-updates-error-messages"></span>
-            <span class="felt-browser-error-details"></span>
-          </div>
+            data-l10n-id="felt-browser-error-multiple-crashes2"
+            type="error"
+            dismissable="true"
+          ></moz-message-bar>
+          <moz-message-bar
+            class="felt-browser-error-no-network is-hidden"
+            data-l10n-id="felt-browser-error-no-network"
+            type="error"
+            dismissable="true"
+          >
+            <span slot="message" class="felt-browser-error-details"></span>
+          </moz-message-bar>
+          <moz-message-bar
+            class="felt-browser-error-connection is-hidden"
+            data-l10n-id="felt-browser-error-connection2"
+            type="error"
+            dismissable="true"
+          >
+            <span slot="message" class="felt-browser-error-details"></span>
+          </moz-message-bar>
+          <moz-message-bar
+            class="felt-browser-error-sso-timeout is-hidden"
+            data-l10n-id="felt-browser-error-sso-timeout2"
+            type="error"
+            dismissable="true"
+          ></moz-message-bar>
+          <moz-message-bar
+            class="felt-updates-error-messages is-hidden"
+            data-l10n-id="felt-error-updates"
+            type="error"
+            dismissable="true"
+          >
+            <span slot="message" class="felt-browser-error-details"></span>
+          </moz-message-bar>
         </div>
         <span
           class="felt-powered-by text-deemphasized"

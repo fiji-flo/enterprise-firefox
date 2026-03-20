@@ -7,6 +7,8 @@
  * These include NS_ERROR_* codes and URL parameter error codes.
  */
 
+import { NET_ERROR_ILLUSTRATIONS } from "chrome://global/content/errors/net-error-illustrations.mjs";
+
 export const HTTPS_UPGRADES_MDN_DOCS =
   "https://developer.mozilla.org/docs/Web/Security/HTTPS-Only_Mode";
 export const COOP_MDN_DOCS =
@@ -73,7 +75,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nArgs: { hostname: null },
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "blockedByCOOP",
@@ -189,7 +191,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "neterror-http-empty-response",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "nssBadCert",
@@ -246,7 +248,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "fp-neterror-offline-what-can-you-do-body",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "netInterrupt",
@@ -267,7 +269,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "fp-neterror-offline-what-can-you-do-body",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "netTimeout",
@@ -288,7 +290,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "fp-neterror-offline-what-can-you-do-body",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "dnsNotFound",
@@ -312,7 +314,7 @@ export const NET_ERRORS = [
     },
     hasNoUserFix: false,
     checkTrrOnly: true,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "blockedByPolicy",
@@ -374,7 +376,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "neterror-load-error-try-again",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "serverError",
@@ -397,7 +399,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "neterror-load-error-try-again",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "invalidHeaderValue",
@@ -418,7 +420,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "neterror-load-error-try-again",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "deniedPortAccess",
@@ -762,7 +764,7 @@ export const NET_ERRORS = [
     customNetError: {
       titleL10nId: "fp-neterror-vpn-error-title",
     },
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
     hasNoUserFix: false,
   },
   {

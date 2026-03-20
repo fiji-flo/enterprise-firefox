@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -554,6 +552,7 @@ static uint32_t CollectAtRules(ServoCSSRuleList& aRuleList,
       case StyleCssRuleType::Scope:
       case StyleCssRuleType::StartingStyle:
       case StyleCssRuleType::NestedDeclarations:
+      case StyleCssRuleType::AppearanceBase:
         break;
     }
 
@@ -1396,6 +1395,18 @@ void InspectorUtils::GetAnchorFor(GlobalObject&, Element& aElement,
   auto& result = aResult.SetValue();
   result.mElement = *anchor->GetContent()->AsElement();
   result.mType = type;
+}
+
+/* static */
+void InspectorUtils::GetAnchorNamesFor(GlobalObject& aGlobalObject,
+                                       Element& aElement,
+                                       nsTArray<nsString>& aResult) {
+  auto* frame = aElement.GetPrimaryFrame(FlushType::Frames);
+  if (!frame || !frame->IsAbsolutelyPositioned()) {
+    return;
+  }
+
+  frame->PresShell()->CollectAnchorNames(frame, aResult);
 }
 
 }  // namespace mozilla::dom

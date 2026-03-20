@@ -79,6 +79,7 @@ export const Updates = {
     this._appUpdater.addListener(this._updaterCallback);
     Services.obs.addObserver(this, "update-staged");
     Services.obs.addObserver(this, "update-downloaded");
+    Services.obs.addObserver(this, "update-error");
   },
 
   forceUpdateCheck() {
@@ -95,6 +96,7 @@ export const Updates = {
 
   // Similar to browser/base/content/aboutDialog-appUpdater.js:_onAppUpdateStatus
   appUpdaterCallback(status, downloadedBytes, totalBytes) {
+    console.warn(`FeltUpdates: appUpdaterCallback: status:${status}`);
     switch (status) {
       case lazy.AppUpdater.STATUS.CHECKING:
         this.scheduleDelayedUpdateCheckUI();
@@ -259,9 +261,19 @@ export const Updates = {
   },
 
   automaticRestart() {
-    Services.startup.quit(
-      Ci.nsIAppStartup.eForceQuit | Ci.nsIAppStartup.eRestart
-    );
+    // Ensure the on-disk status is changed from "pending-elevate" to
+    // "pending" before restarting. Without this, ProcessUpdates sees
+    // ePendingElevate on the next startup and skips launching the
+    // updater, while the JS layer sees STATE_PENDING and triggers
+    // another restart, causing an infinite restart loop.
+    Cc["@mozilla.org/updates/update-manager;1"]
+      .getService(Ci.nsIUpdateManager)
+      .elevationOptedIn()
+      .finally(() => {
+        Services.startup.quit(
+          Ci.nsIAppStartup.eForceQuit | Ci.nsIAppStartup.eRestart
+        );
+      });
   },
 
   observe(subject, topic, state) {
@@ -269,27 +281,66 @@ export const Updates = {
     //   update = subject && subject.QueryInterface(Ci.nsIUpdate);
     // but it looks like any notifyObserver() that triggers this anyway
     // passes us a "state" directly?
+    console.warn(`FeltUpdates: observer: topic:${topic} state:${state}`);
     switch (topic) {
       case "xpcom-shutdown":
         Services.obs.removeObserver(this, "update-staged");
         Services.obs.removeObserver(this, "update-downloaded");
+        Services.obs.removeObserver(this, "update-error");
         Services.obs.removeObserver(this, "xpcom-shutdown");
         break;
       case "update-staged":
-      case "update-downloaded": {
+      case "update-downloaded":
         // states from toolkit/mozapps/update/nsIUpdateService.idl#189-191
         switch (state) {
+          case "pending-elevate":
+            void Cc["@mozilla.org/updates/update-manager;1"]
+              .getService(Ci.nsIUpdateManager)
+              .elevationOptedIn()
+              .then(
+                () => {
+                  Services.felt?.sendUpdateReady();
+                },
+                err => {
+                  console.error(
+                    `FeltUpdates: elevationOptedIn failed for pending-elevate`,
+                    err
+                  );
+                }
+              );
+            break;
           case "applied":
           case "applied-service":
           case "succeeded":
             Services.felt?.sendUpdateReady();
             break;
           default:
+            console.warn(`FeltUpdates: unhandled nsIUpdate state: ${state}`);
             break;
         }
         break;
-      }
+      // https://searchfox.org/enterprise-main/rev/a038f49228d707c6675ef20ce640034a64307d2e/toolkit/mozapps/update/UpdateListener.sys.mjs#366
+      case "update-error":
+        switch (state) {
+          case "elevation-attempt-failed":
+            Services.felt?.sendUpdateReady();
+            break;
+          case "download-attempt-failed": // this.showUpdateAvailableNotification(update, false);
+          case "check-attempts-exceeded":
+          case "unknown":
+          case "bad-perms":
+          case "download-attempts-exceeded":
+          case "elevation-attempts-exceeded": // this.showManualUpdateNotification(update, false);
+          default:
+            console.warn(
+              `FeltUpdates: unhandled nsIUpdateService error: ${state}`
+            );
+            break;
+        }
+        break;
+
       default:
+        console.warn(`FeltUpdates: unhandled update topic: ${topic}`);
         break;
     }
   },
