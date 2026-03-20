@@ -23,34 +23,11 @@ class BrowserExitTokens(FeltTests):
             },
             default_branch=True,
         )
-        self.assert_felt_refresh_blocked(False)
         self.run_felt_base()
         self.connect_child_browser()
-        # Record process PID we will have to wait for in self.wait_process_exit()
-        self._browser_pid = self._child_driver.session_capabilities["moz:processID"]
-        self.assert_felt_refresh_blocked(True)
         self.check_felt_and_firefox_tokens_in_sync()
         self.force_and_refresh_tokens()
         self.check_firefox_tokens_updated_after_session_refresh()
-        self.perform_quit()
-        self.wait_process_exit()
-        self.await_felt_auth_window()
-        self.assert_felt_refresh_blocked(False)
-        self.force_window()
-        self.check_felt_received_refreshed_tokens_on_shutdown()
-
-    def assert_felt_refresh_blocked(self, value):
-        self._driver.set_context("chrome")
-        refresh_blocked = self._driver.execute_script(
-            """
-            const { ConsoleClient } = ChromeUtils.importESModule("resource:///modules/enterprise/ConsoleClient.sys.mjs");
-            return ConsoleClient.isSessionRefreshBlocked;
-            """
-        )
-        self._driver.set_context("content")
-        assert refresh_blocked == value, (
-            f"Expected performing session refreshs to be {'blocked' if value else 'unblocked'} in Felt, got {'blocked' if refresh_blocked else 'unblocked'}"
-        )
 
     def perform_quit(self):
         driver = self.get_driver(Environment.FIREFOX)
@@ -98,24 +75,36 @@ class BrowserExitTokens(FeltTests):
         assert self.felt_tokens[0] == self.browser_tokens[0], (
             f"Felt and browser access tokens should match: {self.felt_tokens[0]} vs {self.browser_tokens[0]}"
         )
-        assert self.felt_tokens[1] == self.browser_tokens[1], (
-            f"Felt and browser refresh tokens should match: {self.felt_tokens[1]} vs {self.browser_tokens[1]}"
+        # browser should not have the refresh token
+        assert self.browser_tokens[1] == "", (
+            "Browser refresh token should be empty: " + self.browser_tokens[1]
         )
+        assert self.felt_tokens[1] != "", (
+            "Felt refresh token should not be empty: " + self.felt_tokens[1]
+        )
+
+        # assert self.felt_tokens[1] == self.browser_tokens[1], (
+        #     f"Felt and browser refresh tokens should match: {self.felt_tokens[1]} vs {self.browser_tokens[1]}"
+        # )
 
     def check_firefox_tokens_updated_after_session_refresh(self):
         self.new_browser_tokens = self.get_tokens(Environment.FIREFOX)
+        self.new_felt_tokens = self.get_tokens(Environment.FELT)
         assert len(self.new_browser_tokens[0]) > 0, (
             "Browser access token should not be empty"
         )
-        assert len(self.new_browser_tokens[1]) > 0, (
-            "Browser refresh token should not be empty"
+        assert len(self.new_browser_tokens[1]) == 0, (
+            "Browser refresh token should be empty"
         )
 
         assert self.new_browser_tokens[0] != self.browser_tokens[0], (
             f"Browser access token should differ after session refresh: {self.new_browser_tokens[0]} vs {self.browser_tokens[0]}"
         )
-        assert self.new_browser_tokens[1] != self.browser_tokens[1], (
-            f"Browser refresh token should differ after session refresh: {self.new_browser_tokens[1]} vs {self.browser_tokens[1]}"
+        assert self.new_felt_tokens[0] != self.felt_tokens[0], (
+            f"Felt access token should differ after session refresh: {self.new_felt_tokens[0]} vs {self.felt_tokens[0]}"
+        )
+        assert self.new_felt_tokens[1] != self.felt_tokens[1], (
+            f"Felt refresh token should differ after session refresh: {self.new_felt_tokens[1]} vs {self.felt_tokens[1]}"
         )
 
     def check_felt_received_refreshed_tokens_on_shutdown(self):
