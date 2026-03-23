@@ -235,7 +235,7 @@ export class FeltProcessParent extends JSProcessActorParent {
                 Services.felt.sendAccessToken();
               })
               .catch(error => {
-                console.error("FeltExtension: token refreshm failed", error);
+                console.error("FeltExtension: token refresh failed", error);
               });
             break;
           }

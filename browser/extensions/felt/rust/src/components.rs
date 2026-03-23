@@ -15,8 +15,9 @@ use xpcom::interfaces::{
 };
 use xpcom::RefPtr;
 
-use log::{error, trace};
+use log::{error, info, trace};
 
+use crate::is_felt_ui;
 use crate::message::{FeltMessage, FELT_IPC_VERSION};
 use crate::utils::{Tokens, CONSOLE_URL, TOKENS, TOKEN_EXPIRY_SKEW};
 
@@ -192,6 +193,8 @@ impl FeltXPCOM {
         )
     }
 
+    // This clears access and refresh tokens only in the current process, i.e. there is
+    // no propagation of the cleared tokens to other processes.
     fn ClearTokens(&self) -> nserror::nsresult {
         trace!("FeltXPCOM::ClearTokens(): clearing");
         self.set_tokens("".to_string(), "".to_string(), 0)

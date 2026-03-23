@@ -684,7 +684,7 @@ export const ConsoleClient = {
   },
 
   /**
-   * Clears persisted and in-memory token data.
+   * Clears persisted and in-memory token data in the browser and FELT.
    */
   clearTokenData() {
     Services.felt.clearTokens();
@@ -694,7 +694,9 @@ export const ConsoleClient = {
    * Perform signout against the console and share the information down to
    * XPCOM to make FELT aware.
    *
-   * This is expected to be executed from the browser side.
+   * This is only allowed to be executed from the browser side.
+   *
+   * @throws {Error} If called from a non-browser context
    */
   async signoutUser() {
     if (!Services.felt.isFeltBrowser()) {
@@ -704,6 +706,17 @@ export const ConsoleClient = {
     }
 
     // TODO: Assert or force-enable session restore?
+
+    // TODO: (AP) FELT should do this
+    // * signal FELT to execute the signout.
+    // * FELT sends the signout POST to the console and clears its local tokens
+    // * wait or dont wait for felt to do its thing
+    // * clear the local tokens
+    // * get the felt window to the foreground
+    // "performSignout" - FeltMessage::LogoutShutdown is sent to FELT ->
+    // FELT: crate::utils::notify_observers("felt-firefox-logout".to_string())
+    // FELT: gFeltProcessParentInstance.logoutFirefox();
+    // FELT another event: "FeltParent:FirefoxLogoutExit", that hides the main window(?) and actually shows the FElT window
 
     const res = await this._post(this._paths.SIGNOUT);
     // Server should maybe return better JSON?
@@ -715,6 +728,7 @@ export const ConsoleClient = {
       // over. Relevant at least for macOS dock icon. Not having this would
       // at least intermittently result in missing dock icon for FELT after
       // signout.
+
       Services.felt.makeBackgroundProcess(true);
 
       // Notify FELT that we are logging out so the shutdown is a normal one
