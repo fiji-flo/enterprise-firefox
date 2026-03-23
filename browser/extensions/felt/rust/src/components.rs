@@ -268,41 +268,6 @@ impl FeltXPCOM {
         }
     }
 
-    // Active the application on macOS (bring it to the foreground)
-    #[allow(unused_variables)]
-    fn ActivateApplication(&self) -> nserror::nsresult {
-        trace!("FeltXPCOM: ActivateApplication");
-        #[cfg(target_os = "macos")]
-        {
-            type Id = *mut std::ffi::c_void;
-            type Sel = *const std::ffi::c_void;
-
-            unsafe extern "C" {
-                fn objc_getClass(name: *const std::ffi::c_char) -> Id;
-                fn sel_registerName(name: *const std::ffi::c_char) -> Sel;
-                fn objc_msgSend();
-            }
-
-            unsafe {
-                let cls = objc_getClass(c"NSApplication".as_ptr());
-                let shared_app_sel = sel_registerName(c"sharedApplication".as_ptr());
-                let activate_sel = sel_registerName(c"activateIgnoringOtherApps:".as_ptr());
-                type MsgSendIdSel = unsafe extern "C" fn(Id, Sel) -> Id;
-                type MsgSendVoidBool = unsafe extern "C" fn(Id, Sel, bool);
-                let app = std::mem::transmute::<unsafe extern "C" fn(), MsgSendIdSel>(objc_msgSend)(
-                    cls,
-                    shared_app_sel,
-                );
-                std::mem::transmute::<unsafe extern "C" fn(), MsgSendVoidBool>(objc_msgSend)(
-                    app,
-                    activate_sel,
-                    true,
-                );
-            }
-        }
-        NS_OK
-    }
-
     fn PerformSignout(&self) -> nserror::nsresult {
         trace!("FeltXPCOM::PerformSignout");
         let guard = crate::FELT_CLIENT.lock().expect("Could not get lock");

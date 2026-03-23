@@ -88,7 +88,7 @@ impl FeltIpcClient {
     }
 
     pub fn notify_refresh_tokens(&self) {
-        info!("FeltIpcClient::notify_refresh_tokens()");
+        trace!("FeltIpcClient::notify_refresh_tokens()");
         let msg = FeltMessage::RefreshTokens;
         if let Some(tx) = &self.tx {
             match tx.send(msg) {

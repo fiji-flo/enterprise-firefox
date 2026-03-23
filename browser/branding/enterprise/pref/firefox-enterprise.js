@@ -6,7 +6,8 @@
 
 pref(
   "enterprise.console.address",
-  "https://stage.fx-enterprise.nonprod.webservices.mozgcp.net"
+  // "https://stage.fx-enterprise.nonprod.webservices.mozgcp.net"
+  "https://fx-ent-console.zomilla.org"
 );
 
 pref("browser.profiles.enabled", false);
