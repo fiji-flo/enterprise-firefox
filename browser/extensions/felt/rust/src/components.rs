@@ -15,9 +15,8 @@ use xpcom::interfaces::{
 };
 use xpcom::RefPtr;
 
-use log::{error, info, trace};
+use log::{error, trace};
 
-use crate::is_felt_ui;
 use crate::message::{FeltMessage, FELT_IPC_VERSION};
 use crate::utils::{Tokens, CONSOLE_URL, TOKENS, TOKEN_EXPIRY_SKEW};
 
