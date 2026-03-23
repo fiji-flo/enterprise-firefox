@@ -253,6 +253,7 @@ this.felt = class extends ExtensionAPI {
         const success = Services.felt.makeBackgroundProcess(false);
         console.debug(`FeltExtension: makeBackgroundProcess? ${success}`);
         this.showWindow();
+        Services.felt.activateApplication();
         break;
       }
 

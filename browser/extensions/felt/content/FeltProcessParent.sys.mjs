@@ -639,20 +639,28 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     console.debug(
-      `FeltExtension: Logout, waiting on ${gFeltProcessParentInstance.proc.pid}`
+      `FeltExtension: Logout, waiting on process #${gFeltProcessParentInstance.proc.pid}`
     );
     gFeltProcessParentInstance.logoutReported = true;
-    lazy.ConsoleClient.clearTokenData();
 
-    // Ensure that things are cleared
-    const ssoCollectedCookies = gFeltProcessParentInstance.getAllCookies();
-    if (ssoCollectedCookies.length) {
-      throw new Error("Too many cookies!!");
-    }
-
-    gFeltProcessParentInstance.proc.exitPromise.then(_ => {
-      Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {});
-    });
+    // Send the logout request to the server.
+    // Handle any errors that occur during signout gracefully,
+    // i.e. report, but ignore them and proceed with the signout.
+    lazy.ConsoleClient.performServerSignout()
+      .catch(err => {
+        console.error(`FeltExtension: Server signout failed: ${err}`);
+      })
+      .finally(() => {
+        // clear token data on the FELT side
+        lazy.ConsoleClient.clearTokenData();
+        const ssoCollectedCookies = gFeltProcessParentInstance.getAllCookies();
+        if (ssoCollectedCookies.length) {
+          throw new Error("Too many cookies!!");
+        }
+        gFeltProcessParentInstance.proc.exitPromise.then(_ => {
+          Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {});
+        });
+      });
   }
 
   async receiveMessage(message) {

@@ -707,37 +707,16 @@ export const ConsoleClient = {
 
     // TODO: Assert or force-enable session restore?
 
-    // TODO: (AP) FELT should do this
-    // * signal FELT to execute the signout.
-    // * FELT sends the signout POST to the console and clears its local tokens
-    // * wait or dont wait for felt to do its thing
-    // * clear the local tokens
-    // * get the felt window to the foreground
-    // "performSignout" - FeltMessage::LogoutShutdown is sent to FELT ->
-    // FELT: crate::utils::notify_observers("felt-firefox-logout".to_string())
-    // FELT: gFeltProcessParentInstance.logoutFirefox();
-    // FELT another event: "FeltParent:FirefoxLogoutExit", that hides the main window(?) and actually shows the FElT window
+    // Make the browser "invisible" on macos.
+    Services.felt.makeBackgroundProcess(true);
+    // Signal FELT to perform the server-side signout POST and clear its tokens.
+    Services.felt.performSignout();
+    // Clear the browser's token data.
+    this.clearTokenData();
+  },
 
-    const res = await this._post(this._paths.SIGNOUT);
-    // Server should maybe return better JSON?
-    if (res == null) {
-      // After successful server-side logout clear local state and notify FELT.
-      this.clearTokenData();
-
-      // Make sure we signal early enough to the system that FELT should take
-      // over. Relevant at least for macOS dock icon. Not having this would
-      // at least intermittently result in missing dock icon for FELT after
-      // signout.
-
-      Services.felt.makeBackgroundProcess(true);
-
-      // Notify FELT that we are logging out so the shutdown is a normal one
-      // that should not be followed by restarting the process.
-      Services.felt.performSignout();
-      return;
-    }
-
-    throw new Error(`Post failed: (${res})`);
+  async performServerSignout() {
+    return this._post(this._paths.SIGNOUT);
   },
 
   /**
