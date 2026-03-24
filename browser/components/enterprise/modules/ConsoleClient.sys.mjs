@@ -7,15 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "log", () => {
-  return console.createInstance({
-    prefix: "ConsoleClient",
-    maxLogLevelPref: lazy.EnterpriseCommon.ENTERPRISE_LOGLEVEL_PREF,
-  });
 });
 
 /**
@@ -491,11 +483,11 @@ export const ConsoleClient = {
    * @returns {Promise<{ access_token, refresh_token, expires_at }>}
    */
   async refreshTokens() {
+    // Assert we are in Felt UI context
     if (Services.felt.isFeltBrowser()) {
-      console.error(
-        `refreshTokens(): Called from Browser context, which is not allowed.`
+      throw new Error(
+        "refreshTokens(): Called from Browser context, which is not allowed."
       );
-      return;
     }
 
     // If a refresh is already underway, just return the promise.
@@ -576,12 +568,11 @@ export const ConsoleClient = {
    * @returns {Promise<void>}
    */
   async _refreshSession() {
-    // If we are not in the browser context, bail.
+    // Assert we are in the browser
     if (!Services.felt.isFeltBrowser) {
-      console.error(
+      throw new Error(
         "_refreshSession: called from non-Browser context, which is not allowed."
       );
-      return;
     }
 
     if (this._refreshPromise) {
