@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,6 +5,9 @@
 #include "ARIAMap.h"
 #include "CachedTableAccessible.h"
 #include "DocAccessibleParent.h"
+#ifdef MOZ_ENABLE_SKIA_PDF
+#  include "mozilla/a11y/PdfStructTreeBuilder.h"
+#endif
 #include "mozilla/a11y/Platform.h"
 #include "mozilla/Components.h"  // for mozilla::components
 #include "mozilla/dom/BrowserBridgeParent.h"
@@ -1405,6 +1406,15 @@ DocAccessibleParent::CollectReports(nsIHandleReportCallback* aHandleReport,
 }
 
 NS_IMPL_ISUPPORTS(DocAccessibleParent, nsIMemoryReporter);
+
+#ifdef MOZ_ENABLE_SKIA_PDF
+mozilla::ipc::IPCResult DocAccessibleParent::RecvPrinting() {
+  if (dom::CanonicalBrowsingContext* bc = GetBrowsingContext()) {
+    PdfStructTreeBuilder::Init(bc);
+  }
+  return IPC_OK();
+}
+#endif
 
 }  // namespace a11y
 }  // namespace mozilla

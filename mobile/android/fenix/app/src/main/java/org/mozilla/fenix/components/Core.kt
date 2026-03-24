@@ -53,6 +53,8 @@ import mozilla.components.feature.media.middleware.RecordingDevicesMiddleware
 import mozilla.components.feature.prompts.PromptMiddleware
 import mozilla.components.feature.prompts.file.FileUploadsDirCleaner
 import mozilla.components.feature.prompts.file.FileUploadsDirCleanerMiddleware
+import mozilla.components.feature.protection.dashboard.ProtectionsDashboardMiddleware
+import mozilla.components.feature.protection.dashboard.ProtectionsStorage
 import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.WebAppShortcutManager
 import mozilla.components.feature.readerview.ReaderViewMiddleware
@@ -73,6 +75,7 @@ import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.session.middleware.LastAccessMiddleware
 import mozilla.components.feature.session.middleware.undo.UndoMiddleware
 import mozilla.components.feature.sitepermissions.OnDiskSitePermissionsStorage
+import mozilla.components.feature.summarize.settings.SummarizationSettings
 import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.webcompat.WebCompatFeature
@@ -133,6 +136,7 @@ import org.mozilla.fenix.settings.downloads.DownloadLocationManager
 import org.mozilla.fenix.share.DefaultSentFromFirefoxManager
 import org.mozilla.fenix.share.DefaultSentFromStorage
 import org.mozilla.fenix.share.SaveToPDFMiddleware
+import org.mozilla.fenix.summarization.FenixSummarizationSettingsBinding
 import org.mozilla.fenix.summarization.eligibility.DefaultSummarizationEligibilityChecker
 import org.mozilla.fenix.summarization.eligibility.SummarizationEligibilityChecker
 import org.mozilla.fenix.summarization.onboarding.FenixSummarizationFeatureConfiguration
@@ -365,6 +369,7 @@ class Core(
                 AdsTelemetryMiddleware(adsTelemetry),
                 LastMediaAccessMiddleware(),
                 HistoryMetadataMiddleware(historyMetadataService),
+                ProtectionsDashboardMiddleware(protectionsStorage),
                 SessionPrioritizationMiddleware(),
                 SaveToPDFMiddleware(context),
                 FxSuggestFactsMiddleware(),
@@ -473,6 +478,13 @@ class Core(
      */
     val historyMetadataService: HistoryMetadataService by lazyMonitored {
         DefaultHistoryMetadataService(storage = historyStorage)
+    }
+
+    /**
+     * The [ProtectionsStorage] is used to store tracker blocking statistics.
+     */
+    val protectionsStorage: ProtectionsStorage by lazyMonitored {
+        ProtectionsStorage(context)
     }
 
     /**
@@ -664,12 +676,19 @@ class Core(
 
     val loginExceptionStorage by lazyMonitored { LoginExceptionStorage(context) }
 
+    val summarizationSettings: FenixSummarizationSettingsBinding by lazyMonitored {
+        FenixSummarizationSettingsBinding(SummarizationSettings.dataStore(context))
+    }
+
     /**
      * Fenix implementation of [SummarizationFeatureDiscoveryConfiguration]
      * backed by [org.mozilla.fenix.utils.Settings]
      */
     val summarizeFeatureSettings: FenixSummarizationFeatureConfiguration by lazyMonitored {
-        FenixSummarizationFeatureConfiguration(settings = context.components.settings)
+        FenixSummarizationFeatureConfiguration(
+            settings = context.components.settings,
+            summarizationSettingsBinding = summarizationSettings,
+        )
     }
 
     val tabGroupRepository by lazyMonitored { DefaultTabGroupRepository(context) }

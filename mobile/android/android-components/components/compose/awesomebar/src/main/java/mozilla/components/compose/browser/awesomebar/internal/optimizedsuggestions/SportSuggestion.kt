@@ -17,10 +17,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +40,11 @@ import mozilla.components.compose.base.theme.success
 import mozilla.components.compose.browser.awesomebar.R
 import mozilla.components.compose.browser.awesomebar.internal.utils.SportSuggestionDataProvider
 import mozilla.components.compose.browser.awesomebar.internal.utils.SportSuggestionPreviewModel
+import mozilla.components.compose.browser.awesomebar.internal.utils.stringResId
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionDate
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatus
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatusType
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionTeam
 
 @Composable
 internal fun SportSuggestion(
@@ -47,6 +57,12 @@ internal fun SportSuggestion(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val shouldDisplayScore by remember(homeTeam, awayTeam) {
+        derivedStateOf {
+            homeTeam.score != null && awayTeam.score != null
+        }
+    }
+    val teamContentDescription = getTeamContentDescription(shouldDisplayScore, awayTeam, homeTeam)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -64,8 +80,8 @@ internal fun SportSuggestion(
                 Text(
                     text = buildString {
                         append("$sport · ")
-                        if (status.stringResId != null) {
-                            append("${stringResource(status.stringResId)} · ")
+                        status.stringResId?.let {
+                            append("${stringResource(it)} · ")
                         }
                         append(getSportsDate(date))
                     },
@@ -91,10 +107,12 @@ internal fun SportSuggestion(
             Row(
                 modifier = Modifier
                     .padding(top = AcornTheme.layout.space.static150)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .clearAndSetSemantics {
+                        this.contentDescription = teamContentDescription
+                    },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val shouldDisplayScore = homeTeam.score != null && awayTeam.score != null
                 Team(
                     team = awayTeam,
                     shouldDisplayScore = shouldDisplayScore,
@@ -102,10 +120,7 @@ internal fun SportSuggestion(
                     modifier = Modifier.weight(1f),
                 )
 
-                ScoreText(
-                    text = ":",
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                ScoreText(text = ":", modifier = Modifier.padding(horizontal = 16.dp))
 
                 Team(
                     team = homeTeam,
@@ -130,6 +145,21 @@ private fun getSportsDate(sportSuggestionDate: SportSuggestionDate): String =
             sportSuggestionDate.time,
         )
     }
+
+@Composable
+private fun getTeamContentDescription(
+    shouldDisplayScore: Boolean,
+    awayTeam: SportSuggestionTeam,
+    homeTeam: SportSuggestionTeam,
+) = if (shouldDisplayScore) {
+    "${awayTeam.name}. ${awayTeam.score}. ${homeTeam.name}. ${homeTeam.score}"
+} else {
+    stringResource(
+        R.string.mozac_browser_awesomebar_sport_suggestion_talkback_team_description_no_score,
+        awayTeam.name,
+        homeTeam.name,
+    )
+}
 
 @Composable
 private fun LiveStatus(modifier: Modifier = Modifier) {

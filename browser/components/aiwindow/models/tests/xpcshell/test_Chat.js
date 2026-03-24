@@ -7,7 +7,7 @@ const { ChatConversation } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/ui/modules/ChatConversation.sys.mjs"
 );
 const { SYSTEM_PROMPT_TYPE, MESSAGE_ROLE } = ChromeUtils.importESModule(
-  "moz-src:///browser/components/aiwindow/ui/modules/ChatConstants.sys.mjs"
+  "moz-src:///browser/components/aiwindow/ui/modules/AIWindowConstants.sys.mjs"
 );
 const { Chat } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/models/Chat.sys.mjs"
@@ -45,6 +45,19 @@ function getLastAssistantResponse(conversation) {
     .filter(m => m.role == MESSAGE_ROLE.ASSISTANT)
     .filter(m => m.content.type === "text")
     .at(-1);
+}
+
+function makeConversation(messages = []) {
+  const conversation = new ChatConversation({
+    title: "test",
+    description: "test",
+    pageUrl: new URL("https://www.firefox.com"),
+    pageMeta: {},
+  });
+  for (const msg of messages) {
+    conversation.messages.push(msg);
+  }
+  return conversation;
 }
 
 add_task(async function test_Chat_real_tools_are_registered() {
@@ -465,8 +478,8 @@ add_task(
         "Empty arguments string should be converted to '{}'"
       );
       Assert.ok(
-        Chat.toolMap.get_open_tabs.calledOnce,
-        "Tool should be called once even with empty args"
+        Chat.toolMap.get_open_tabs.calledTwice,
+        "Tool should be called twice: once by _collectInitialAllowedUrls, once by the tool call"
       );
       Assert.equal(
         getLastAssistantResponse(conversation).content.body,
@@ -802,7 +815,7 @@ add_task(
         msg => msg.role === MESSAGE_ROLE.TOOL
       );
       const guardMessage = toolMessages.find(msg =>
-        String(msg.content?.body).includes("only one allowed per user message")
+        String(msg.content?.body).includes("ERROR: run_search tool call error:")
       );
       Assert.ok(guardMessage, "Guard tool result should be in conversation");
 
@@ -818,6 +831,243 @@ add_task(
       );
 
       origLazy.AIWindow.openSidebarAndContinue = origOpenSidebar;
+    } finally {
+      sb.restore();
+    }
+  }
+);
+
+add_task(
+  async function test_collectInitialAllowedUrls_adds_open_tabs_and_mentions() {
+    const sb = sinon.createSandbox();
+    try {
+      sb.stub(Chat.toolMap, "get_open_tabs").resolves([
+        { url: "https://example.com/page1", title: "Page 1" },
+        { url: "https://example.com/page2", title: "Page 2" },
+      ]);
+
+      const conversation = makeConversation([
+        {
+          role: "user",
+          content: {
+            body: "Check these",
+            contextMentions: [
+              { url: "https://mentioned.example.com/article" },
+              { url: "https://mentioned.example.com/docs" },
+            ],
+          },
+        },
+      ]);
+
+      const allowedUrls = new Set();
+      await Chat._collectInitialAllowedUrls(
+        conversation,
+        allowedUrls,
+        conversation.securityProperties
+      );
+
+      Assert.equal(allowedUrls.size, 4, "Should have 2 tab + 2 mention URLs");
+      Assert.ok(allowedUrls.has("https://example.com/page1"));
+      Assert.ok(allowedUrls.has("https://example.com/page2"));
+      Assert.ok(allowedUrls.has("https://mentioned.example.com/article"));
+      Assert.ok(allowedUrls.has("https://mentioned.example.com/docs"));
+    } finally {
+      sb.restore();
+    }
+  }
+);
+
+add_task(
+  async function test_collectInitialAllowedUrls_empty_when_no_tabs_or_mentions() {
+    const sb = sinon.createSandbox();
+    try {
+      sb.stub(Chat.toolMap, "get_open_tabs").resolves([]);
+
+      const conversation = makeConversation([
+        { role: "user", content: { body: "Hello" } },
+      ]);
+
+      const allowedUrls = new Set();
+      await Chat._collectInitialAllowedUrls(
+        conversation,
+        allowedUrls,
+        conversation.securityProperties
+      );
+
+      Assert.equal(allowedUrls.size, 0, "Should be empty");
+    } finally {
+      sb.restore();
+    }
+  }
+);
+
+add_task(async function test_collectAllowedUrlsFromToolCall_get_open_tabs() {
+  const allowedUrls = new Set();
+
+  Chat._collectAllowedUrlsFromToolCall(
+    "get_open_tabs",
+    [
+      { url: "https://tab1.example.com", title: "Tab 1" },
+      { url: "https://tab2.example.com", title: "Tab 2" },
+    ],
+    allowedUrls
+  );
+
+  Assert.equal(allowedUrls.size, 2);
+  Assert.ok(allowedUrls.has("https://tab1.example.com"));
+  Assert.ok(allowedUrls.has("https://tab2.example.com"));
+});
+
+add_task(
+  async function test_Chat_fetchWithHistory_get_user_memories_called_when_memories_enabled() {
+    const sb = sinon.createSandbox();
+    try {
+      let callCount = 0;
+      const fakeEngine = {
+        runWithGenerator(_options) {
+          callCount++;
+          async function* gen() {
+            if (callCount === 1) {
+              yield {
+                toolCalls: [
+                  {
+                    id: "call_get_user_memories_001",
+                    function: {
+                      name: "get_user_memories",
+                      arguments: JSON.stringify({}),
+                    },
+                  },
+                ],
+              };
+            } else {
+              yield { text: "Final answer." };
+            }
+          }
+          return gen();
+        },
+        getConfig() {
+          return {};
+        },
+      };
+
+      const getUserMemoriesStub = sb
+        .stub(Chat.toolMap, "get_user_memories")
+        .resolves("list of memories");
+      sb.stub(openAIEngine, "build").resolves(fakeEngine);
+      sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
+
+      const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
+
+      const conversation = new ChatConversation({
+        title: "memories are enabled",
+        description: "desc",
+        pageUrl: new URL("https://www.firefox.com"),
+        pageMeta: {},
+      });
+      conversation.addUserMessage(
+        "What memories have you saved about me?",
+        "https://www.firefox.com",
+        { memoriesEnabled: true }
+      );
+      conversation.addAssistantMessage("text", "");
+
+      await Chat.fetchWithHistory(conversation, engineInstance);
+
+      Assert.ok(
+        getUserMemoriesStub.calledOnce,
+        "get_user_memories should be called exactly once"
+      );
+
+      // Verify tool response is in the conversation
+      const toolMessages = conversation.messages.filter(
+        msg => msg.role === MESSAGE_ROLE.TOOL
+      );
+      const getUserMemoriesErrorMsg = toolMessages.find(msg =>
+        String(msg.content?.body).includes("list of memories")
+      );
+      Assert.ok(
+        getUserMemoriesErrorMsg,
+        "get_user_memories should return the correct string when memories are enabled"
+      );
+    } finally {
+      sb.restore();
+    }
+  }
+);
+
+add_task(
+  async function test_Chat_fetchWithHistory_get_user_memories_returns_error_when_memories_disabled() {
+    const sb = sinon.createSandbox();
+    try {
+      let callCount = 0;
+      const fakeEngine = {
+        runWithGenerator(_options) {
+          callCount++;
+          async function* gen() {
+            if (callCount === 1) {
+              yield {
+                toolCalls: [
+                  {
+                    id: "call_get_user_memories_001",
+                    function: {
+                      name: "get_user_memories",
+                      arguments: JSON.stringify({}),
+                    },
+                  },
+                ],
+              };
+            } else {
+              yield { text: "Final answer." };
+            }
+          }
+          return gen();
+        },
+        getConfig() {
+          return {};
+        },
+      };
+
+      const getUserMemoriesStub = sb
+        .stub(Chat.toolMap, "get_user_memories")
+        .resolves("list of memories");
+      sb.stub(openAIEngine, "build").resolves(fakeEngine);
+      sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
+
+      const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
+
+      const conversation = new ChatConversation({
+        title: "memories are enabled",
+        description: "desc",
+        pageUrl: new URL("https://www.firefox.com"),
+        pageMeta: {},
+      });
+      conversation.addUserMessage(
+        "What memories have you saved about me?",
+        "https://www.firefox.com",
+        { memoriesEnabled: false }
+      );
+      conversation.addAssistantMessage("text", "");
+
+      await Chat.fetchWithHistory(conversation, engineInstance);
+
+      Assert.ok(
+        !getUserMemoriesStub.calledOnce,
+        "get_user_memories should not be called when memories are disabled"
+      );
+
+      // Verify tool response is in conversation with correct text
+      const toolMessages = conversation.messages.filter(
+        msg => msg.role === MESSAGE_ROLE.TOOL
+      );
+      const getUserMemoriesErrorMsg = toolMessages.find(msg =>
+        String(msg.content?.body).includes(
+          "ERROR: get_user_memories tool call error:"
+        )
+      );
+      Assert.ok(
+        getUserMemoriesErrorMsg,
+        "get_user_memories error should be raised when memories are disabled"
+      );
     } finally {
       sb.restore();
     }

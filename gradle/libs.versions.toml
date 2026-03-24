@@ -5,7 +5,7 @@ android-lint = "31.13.2"
 
 # Kotlin
 coroutines = "1.10.2"
-kotlin = "2.3.10"
+kotlin = "2.3.20"
 serialization = "1.10.0"
 
 # AndroidX
@@ -73,14 +73,14 @@ kotlin-dsl = "6.5.2"
 protobuf-plugin = "0.9.6"
 python-envs-plugin = "0.0.31"
 semanticdb-javac = "0.11.1"
-semanticdb-kotlinc = "0.8.2"
+semanticdb-kotlinc = "0.9.0"
 tomlj = "1.1.1"
 
 # Linters
 detekt = "1.23.8"
 google-java-format = "1.28.0"
 ktlint = "1.8.0"
-spotless = "8.3.0"
+spotless = "8.4.0"
 
 # Mozilla
 glean = "67.1.0"
@@ -108,8 +108,8 @@ jetbrains-markdown = "0.7.3"
 jna = "5.18.1"
 json = "20251224"
 okhttp = "5.3.2"
-okio = "3.16.4"
-sentry = "8.34.1"
+okio = "3.17.0"
+sentry = "8.36.0"
 zxing = "3.5.4"
 
 [libraries]
@@ -120,6 +120,7 @@ android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref
 kotlin-annotations-jvm = { module = "org.jetbrains.kotlin:kotlin-annotations-jvm", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-serialization = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }

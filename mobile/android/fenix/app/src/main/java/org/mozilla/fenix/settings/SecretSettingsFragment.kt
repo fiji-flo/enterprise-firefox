@@ -6,6 +6,17 @@ package org.mozilla.fenix.settings
 
 import android.os.Build
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDirections
@@ -16,8 +27,10 @@ import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import mozilla.components.compose.base.button.FilledButton
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
@@ -28,6 +41,9 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.ext.showToolbarWithIconButton
+import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.utils.SecretSettingsPrefDefaults
+import mozilla.components.ui.icons.R as iconsR
 
 /**
  * Settings screen allowing users to configure options not intended for general release.
@@ -35,6 +51,55 @@ import org.mozilla.fenix.ext.showToolbarWithIconButton
 class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment {
 
     private val args by navArgs<SecretSettingsFragmentArgs>()
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        val context = inflater.context
+        val preferencesView = checkNotNull(super.onCreateView(inflater, container, savedInstanceState)) {
+            "PreferenceFragmentCompat returned null from onCreateView"
+        }
+
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+
+            // View for the list of preferences.
+            addView(
+                preferencesView,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f),
+            )
+
+            // View for the bottom aligned reset button.
+            addView(
+                ComposeView(context).apply {
+                    setViewCompositionStrategy(
+                        ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed,
+                    )
+                    setContent {
+                        FirefoxTheme {
+                            FilledButton(
+                                text = stringResource(R.string.preferences_debug_settings_reset_defaults),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                                onClick = ::showResetConfirmationDialog,
+                            )
+                        }
+                    }
+                },
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+    }
 
     override fun onResume() {
         super.onResume()
@@ -46,7 +111,7 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             showToolbarWithIconButton(
                 title = getString(R.string.preferences_debug_settings),
                 contentDescription = getString(R.string.settings_search_button_content_description),
-                iconResId = R.drawable.ic_search,
+                iconResId = iconsR.drawable.mozac_ic_search_24,
                 onClick = {
                     findNavController().navigate(
                         R.id.action_secretSettingsFragment_to_secretSettingsSearchFragment,
@@ -481,9 +546,20 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_private_mode_and_stories_entry_point).apply {
+            isChecked = context.settings().privateModeAndStoriesEntryPointEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_native_share_sheet).apply {
             isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().nativeShareSheetEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_longfox).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = context.settings().longfoxEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
     }
@@ -494,6 +570,20 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
         if (!handled) {
             super.onDisplayPreferenceDialog(preference)
         }
+    }
+
+    private fun showResetConfirmationDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.preferences_debug_settings_reset_defaults)
+            .setMessage(R.string.preferences_debug_settings_reset_defaults_message)
+            .setPositiveButton(R.string.preferences_debug_settings_reset_defaults_confirm) { _, _ ->
+                SecretSettingsPrefDefaults(requireContext()).resetAll(preferenceScreen)
+                reloadPreferenceFragment()
+            }
+            .setNegativeButton(R.string.preferences_debug_settings_reset_defaults_cancel) { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
     }
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
@@ -508,6 +598,11 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
         }
         navigateFromSecretSettings(directions)
         return true
+    }
+
+    private fun reloadPreferenceFragment() {
+        setPreferencesFromResource(R.xml.secret_settings_preferences, null)
+        onCreatePreferences(null, null)
     }
 
     private fun navigateFromSecretSettings(directions: NavDirections) {

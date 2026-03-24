@@ -664,7 +664,7 @@ NS_IMPL_ISUPPORTS(nsExternalHelperAppService, nsIExternalHelperAppService,
                   nsPIExternalAppLauncher, nsIExternalProtocolService,
                   nsIMIMEService, nsIObserver, nsISupportsWeakReference)
 
-nsExternalHelperAppService::nsExternalHelperAppService() {}
+nsExternalHelperAppService::nsExternalHelperAppService() = default;
 nsresult nsExternalHelperAppService::Init() {
   // Add an observer for profile change
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -675,7 +675,7 @@ nsresult nsExternalHelperAppService::Init() {
   return obs->AddObserver(this, "last-pb-context-exited", true);
 }
 
-nsExternalHelperAppService::~nsExternalHelperAppService() {}
+nsExternalHelperAppService::~nsExternalHelperAppService() = default;
 
 nsresult nsExternalHelperAppService::DoContentContentProcessHelper(
     const nsACString& aMimeContentType, nsIChannel* aChannel,
@@ -1030,7 +1030,7 @@ nsExternalHelperAppService::LoadURI(nsIURI* aURI,
 
     AutoTArray<nsString, 1> params = {NS_ConvertUTF8toUTF16(spec)};
     nsresult rv = nsContentUtils::FormatLocalizedString(
-        nsContentUtils::eSECURITY_PROPERTIES, "SandboxBlockedCustomProtocols",
+        PropertiesFile::SECURITY_PROPERTIES, "SandboxBlockedCustomProtocols",
         params, localizedMsg);
     NS_ENSURE_SUCCESS(rv, rv);
 

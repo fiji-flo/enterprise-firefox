@@ -142,6 +142,12 @@
     <string name="preferences_debug_settings_enable_search_optimization_sport" translatable="false">Show Search Optimization Sport cards</string>
     <string name="preferences_debug_settings_search_optimization_card_summary" translatable="false">This needs the Search Optimization Feature enabled</string>
 
+    <!-- Label for enabling Private Mode and Stories Entry Point -->
+    <string name="preferences_debug_settings_private_mode_and_stories_entry_point" translatable="false">Enable Private Mode and Stories Entry Point</string>
+
+    <!-- longfox secret setting -->
+    <string name="preferences_debug_settings_enable_longfox" translatable="false">Enable Longfox</string>
+
     <!-- Search suggestions title for Firefox Suggest Online -->
     <string name="firefox_suggest_online_header" tools:ignore="BrandUsage" translatable="false">Firefox Suggest Online</string>
 
@@ -169,6 +175,12 @@
     <!-- Label for enabling isolated content processes in secret settings. -->
     <string name="preferences_debug_settings_isolated_process" translatable="false">Enable Isolated Content Process (requires restart)</string>
     <string name="preferences_debug_settings_app_zygote" translatable="false">Enable Isolated Processes with Zygote Preloading (requires restart)</string>
+
+  <!-- Label for the defaults section and reset action in secret settings. -->
+  <string name="preferences_debug_settings_reset_defaults" translatable="false">Reset switches to defaults</string>
+  <string name="preferences_debug_settings_reset_defaults_message" translatable="false">This will reset all toggle switches to their defaults. Custom Glean Server and Remote Settings Server are not affected.</string>
+  <string name="preferences_debug_settings_reset_defaults_confirm" translatable="false">Reset</string>
+  <string name="preferences_debug_settings_reset_defaults_cancel" translatable="false">Cancel</string>
 
     <!-- A secret menu option in the tabs tray for making a tab inactive for testing. -->
     <string name="inactive_tabs_menu_item_2">Make tabs inactive</string>

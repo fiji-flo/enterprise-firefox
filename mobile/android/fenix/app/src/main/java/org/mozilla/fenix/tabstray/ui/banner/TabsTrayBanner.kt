@@ -453,7 +453,7 @@ private fun MultiSelectBanner(
                 enabled = buttonsEnabled,
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_bookmark_outline),
+                    painter = painterResource(id = iconsR.drawable.mozac_ic_bookmark_24),
                     contentDescription = stringResource(
                         id = R.string.tab_manager_multiselect_menu_item_bookmark_content_description,
                     ),
@@ -508,13 +508,13 @@ private fun generateMultiSelectBannerMenuItems(
     val menuItems = mutableListOf(
         MenuItem.IconItem(
             text = Text.Resource(R.string.tab_manager_multiselect_menu_item_share),
-            drawableRes = R.drawable.ic_share,
+            drawableRes = iconsR.drawable.mozac_ic_share_android_24,
             testTag = TabsTrayTestTag.SHARE_BUTTON,
             onClick = onShareSelectedTabs,
         ),
         MenuItem.IconItem(
             text = Text.Resource(R.string.tab_manager_multiselect_menu_item_add_to_collection),
-            drawableRes = R.drawable.ic_tab_collection,
+            drawableRes = iconsR.drawable.mozac_ic_collection_24,
             testTag = TabsTrayTestTag.COLLECTIONS_BUTTON,
             onClick = onSaveToCollectionsClick,
         ),

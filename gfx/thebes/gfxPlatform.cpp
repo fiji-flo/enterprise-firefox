@@ -1852,7 +1852,7 @@ bool gfxPlatform::UseGraphiteShaping() {
 
 bool gfxPlatform::IsFontFormatSupported(
     StyleFontFaceSourceFormatKeyword aFormatHint,
-    StyleFontFaceSourceTechFlags aTechFlags) {
+    const StyleFontFaceSourceTechFlags& aTechFlags) {
   // By default, font resources are assumed to be supported; but if the format
   // hint or technology flags explicitly indicate something we don't support,
   // then return false.
@@ -1906,19 +1906,18 @@ bool gfxPlatform::IsKnownIconFontFamily(const nsAtom* aFamilyName) const {
 
 gfxFontEntry* gfxPlatform::LookupLocalFont(
     FontVisibilityProvider* aFontVisibilityProvider,
-    const nsACString& aFontName, WeightRange aWeightForEntry,
-    StretchRange aStretchForEntry, SlantStyleRange aStyleForEntry) {
+    const nsACString& aFontName, const WeightRange& aWeightForEntry,
+    const StretchRange& aStretchForEntry,
+    const SlantStyleRange& aStyleForEntry) {
   return gfxPlatformFontList::PlatformFontList()->LookupLocalFont(
       aFontVisibilityProvider, aFontName, aWeightForEntry, aStretchForEntry,
       aStyleForEntry);
 }
 
-gfxFontEntry* gfxPlatform::MakePlatformFont(const nsACString& aFontName,
-                                            WeightRange aWeightForEntry,
-                                            StretchRange aStretchForEntry,
-                                            SlantStyleRange aStyleForEntry,
-                                            const uint8_t* aFontData,
-                                            uint32_t aLength) {
+gfxFontEntry* gfxPlatform::MakePlatformFont(
+    const nsACString& aFontName, const WeightRange& aWeightForEntry,
+    const StretchRange& aStretchForEntry, const SlantStyleRange& aStyleForEntry,
+    const uint8_t* aFontData, uint32_t aLength) {
   return gfxPlatformFontList::PlatformFontList()->MakePlatformFont(
       aFontName, aWeightForEntry, aStretchForEntry, aStyleForEntry, aFontData,
       aLength);
@@ -2113,6 +2112,8 @@ void gfxPlatform::InitializeCMS() {
   gCMSMode = GfxColorManagementMode();
 
   mCMSsRGBProfile = qcms_profile_sRGB();
+  NS_ASSERTION(!qcms_profile_is_bogus(mCMSsRGBProfile),
+               "Builtin sRGB profile tagged as bogus!!!");
 
   /* Determine if we're using the internal override to force sRGB as
      an output profile for reftests. See Bug 452125.
@@ -2131,16 +2132,25 @@ void gfxPlatform::InitializeCMS() {
     if (!outputProfileData.IsEmpty()) {
       mCMSOutputProfile = qcms_profile_from_memory_curves_only(
           outputProfileData.Elements(), outputProfileData.Length());
-    }
-  }
 
-  /* Determine if the profile looks bogus. If so, close the profile
-   * and use sRGB instead. See bug 460629, */
-  if (mCMSOutputProfile && qcms_profile_is_bogus(mCMSOutputProfile)) {
-    NS_ASSERTION(mCMSOutputProfile != mCMSsRGBProfile,
-                 "Builtin sRGB profile tagged as bogus!!!");
-    qcms_profile_release(mCMSOutputProfile);
-    mCMSOutputProfile = nullptr;
+      /* Determine if the profile looks bogus. If so, close the profile
+       * and use sRGB instead. See bug 460629, */
+      if (mCMSOutputProfile && qcms_profile_is_bogus(mCMSOutputProfile)) {
+        NS_WARNING("system ICC profile looks bogus, ignoring, using sRGB");
+        qcms_profile_release(mCMSOutputProfile);
+        mCMSOutputProfile = nullptr;
+        mCMSOutputProfileData.reset();
+      }
+
+      // mCMSOutputProfileData is outputProfileData in the content process. In
+      // the parent process it comes from the OS specific way of getting the
+      // profile data and hasn't been put into mCMSOutputProfileData yet, so
+      // store it so we have access to it later.
+      if (mCMSOutputProfile && (mCMSOutputProfileData.isNothing() ||
+                                mCMSOutputProfileData->IsEmpty())) {
+        mCMSOutputProfileData = Some(std::move(outputProfileData));
+      }
+    }
   }
 
   if (!mCMSOutputProfile) {
@@ -2291,6 +2301,11 @@ void gfxPlatform::FontsPrefsChanged(const char* aPref) {
   } else if (!strcmp(GFX_PREF_OPENTYPE_SVG, aPref)) {
     gfxFontCache::GetCache()->Flush();
     gfxFontCache::GetCache()->NotifyGlyphsChanged();
+  } else if (!strcmp("gfx.font_rendering.freetype.gamma", aPref) ||
+             !strcmp("gfx.font_rendering.freetype.enhanced_contrast", aPref)) {
+    FlushFontAndWordCaches();
+    ForceGlobalReflow(GlobalReflowFlags::FontsChanged |
+                      GlobalReflowFlags::BroadcastToChildren);
   }
 }
 

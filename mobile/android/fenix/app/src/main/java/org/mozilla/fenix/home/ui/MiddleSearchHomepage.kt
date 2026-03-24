@@ -184,8 +184,8 @@ private fun MiddleSearchHomepagePreview() {
                 showPocketStories = true,
                 showCollections = true,
                 showPrivacyReport = true,
-                headerState = HeaderState(
-                    showHeader = false,
+                trackersBlockedCount = 754,
+                headerState = HeaderState.Normal(
                     wordmarkTextColor = null,
                     privateBrowsingButtonColor = colorResource(
                         getAttr(

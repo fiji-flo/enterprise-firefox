@@ -300,6 +300,13 @@
 #endif
   mirror: always
 
+#ifdef MOZ_ENABLE_SKIA_PDF
+- name: accessibility.tagged_pdf_output.enabled
+  type: bool
+  value: false
+  mirror: always
+#endif
+
 # Whether to enable support for the UI Automation API on Windows. Values:
 # * 0: Never.
 # * 1: Always.
@@ -2544,7 +2551,6 @@
   mirror: always
 
 # If true, page with beforeunload event listeners can be bfcached.
-# This only works when sessionHistoryInParent is enabled.
 - name: docshell.shistory.bfcache.ship_allow_beforeunload_listeners
   type: bool
   value: true
@@ -4849,6 +4855,14 @@
   mirror: always
   rust: true
 
+# Whether to lift select parser restrictions per the updated HTML spec,
+# removing the "in select" insertion mode and handling <select> via
+# scope-based checks in "in body" mode.
+- name: dom.lift_select_parser_restrictions.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: dom.send_after_paint_to_content
   type: bool
   value: false
@@ -6321,19 +6335,6 @@
   value: true
   mirror: never
 
-# Disable storing the session history in the parent process, and accessing it
-# over IPC from the child processes.
-# WARNING: Until the test harness can understand ship-pref default values, this pref’s
-# default must be synchronized with the values set in testing/mochitest/runtests.py and in
-# testing/web-platform/tests/tools/wptrunner/wptrunner/browsers/firefox_android.py.
-# Changing the default here without updating the test harnesses will cause mismatches
-# in automation.
-- name: fission.disableSessionHistoryInParent
-  type: bool
-  value: false
-  mirror: once
-  do_not_use_directly: true
-
 # If session history is stored in the parent process, enable bfcache for it.
 - name: fission.bfcacheInParent
   type: bool
@@ -7473,6 +7474,31 @@
   value: false
   mirror: always
 
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_ANDROID)
+  # -1 = disabled (no preblend, original behavior)
+  #  0 = sRGB transfer
+  # >0 = value/100.0 exponent
+-   name: gfx.font_rendering.freetype.gamma
+    type: RelaxedAtomicInt32
+#ifdef MOZ_WIDGET_ANDROID
+    value: 140
+#else
+    # TODO(1910291): switch to gamma=0, enhanced_contrast=100 to fix subpixel bleed (major distros)
+    value: -1
+#endif
+    mirror: always
+
+  # value/100.0, only used when gamma >= 0
+-   name: gfx.font_rendering.freetype.enhanced_contrast
+    type: RelaxedAtomicInt32
+#ifdef MOZ_WIDGET_ANDROID
+    value: 0
+#else
+    value: 0
+#endif
+    mirror: always
+#endif
+
 #ifdef MOZ_WIDGET_GTK
 -   name: gfx.font_rendering.fontconfig.max_generic_substitutions
     type: RelaxedAtomicUint32
@@ -8049,7 +8075,7 @@
 
 - name: gfx.webrender.enable-item-cache
   type: bool
-  value: true
+  value: false
   mirror: once
 
 # Whether or not to fallback from WebRender to Software WebRender.
@@ -8731,6 +8757,14 @@
   type: RelaxedAtomicBool
   value: false
   mirror: always
+
+# Force the ICC color management path for JXL decoding even when the output
+# profile is sRGB. Intended for testing purposes only.
+- name: image.jxl.force_icc_slow_path
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
 #endif
 
 #---------------------------------------------------------------------------
@@ -9574,7 +9608,7 @@
 # Support for the Wide Arithmetic proposal (i64.add/sub128, i64.mul_wide_s/u)
 - name: javascript.options.wasm_wide_arithmetic
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
   set_spidermonkey_pref: always
 
@@ -10320,7 +10354,7 @@
 # Is multiple color items upported for color-mix()?
 - name: layout.css.color-mix-multi-color.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
@@ -13214,9 +13248,7 @@
 
 - name: media.webrtc.codec.video.av1.enabled
   type: RelaxedAtomicBool
-#if defined(MOZ_AV1)
   value: true
-#endif
   mirror: always
 
 # If true, then AV1 will be used as the preferred codec for WebRTC video.
@@ -15185,7 +15217,7 @@
 # Use GET (rather than POST)
 - name: network.trr.useGET
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Allow RFC1918 address in responses?
@@ -15733,6 +15765,15 @@
   mirror: always
   rust: true
 
+# The slow start algorithm with which to configure neqo.
+# 0 => Classic
+# 1 => HyStart++
+- name: network.http.http3.slow_start_algorithm
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+  rust: true
+
 # Whether to send an mlkem768x25519 key share in HTTP/3 TLS handshakes.
 # Has no effect unless security.tls.enable_kyber is true.
 - name: network.http.http3.enable_kyber
@@ -16202,6 +16243,30 @@
   value: true
   mirror: always
 
+# Maximum duration (seconds) that transmitted data may remain unacknowledged
+# before TCP forcibly closes the connection. 0 = disabled (kernel default).
+# Only effective on Linux/Android (TCP_USER_TIMEOUT, kernel 2.6.37+).
+- name: network.tcp.user_timeout
+  type: RelaxedAtomicInt32
+#ifdef NIGHTLY_BUILD
+  value: 30
+#else
+  value: 0
+#endif
+  mirror: always
+
+# Maximum unsent data (bytes) in the kernel send buffer before a TCP socket
+# stops reporting writable. Reduces local send bufferbloat for multiplexed
+# connections. 0 = disabled (kernel default). Effective on Linux 4.6+ and macOS.
+- name: network.tcp.notsent_lowat
+  type: RelaxedAtomicInt32
+#ifdef NIGHTLY_BUILD
+  value: 32768
+#else
+  value: 0
+#endif
+  mirror: always
+
 # Whether to redirect a failing request to an essential domain
 # to a fallback domain that hosts the same content.
 - name: network.essential_domains_fallback
@@ -16316,7 +16381,7 @@
 # Double-keyed permissions must include the ^ delimiter (e.g., "open-protocol-handler^")
 - name: permissions.expireUnusedTypes
   type: String
-  value: "autoplay-media,cookie,desktop-notification,camera,localhost,local-network,microphone,screen,speaker,popup,install,geo,open-protocol-handler^,xr,focus-tab-by-prompt,shortcuts,canvas,midi,midi-sysex,storage-access,3rdPartyStorage^,3rdPartyFrameStorage^"
+  value: "autoplay-media,cookie,camera,localhost,local-network,microphone,screen,speaker,popup,install,geo,open-protocol-handler^,xr,focus-tab-by-prompt,shortcuts,canvas,midi,midi-sysex,storage-access,3rdPartyStorage^,3rdPartyFrameStorage^"
   mirror: never
 
 #---------------------------------------------------------------------------
@@ -17314,6 +17379,12 @@
   value: 25
   mirror: always
 
+# Reduce page protection infobar
+- name: privacy.reducePageProtection.infobar.enabled.pbmode
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "prompts."
 #---------------------------------------------------------------------------
@@ -17834,7 +17905,6 @@
   value: true
   mirror: always
 
-#if defined(NIGHTLY_BUILD) && !defined(MOZ_NO_SMART_CARDS)
 # If true, load PKCS#11 third-party modules in a dedicated utility process
 # rather than the main process. (Well, that's the long-term goal for the code
 # paths behind this pref, but right now this is still work in progress!)
@@ -17842,7 +17912,6 @@
   type: bool
   value: false
   mirror: once
-#endif  // NIGHTLY_BUILD && !MOZ_NO_SMART_CARDS
 
 - name: security.pki.cert_short_lifetime_in_days
   type: RelaxedAtomicUint32

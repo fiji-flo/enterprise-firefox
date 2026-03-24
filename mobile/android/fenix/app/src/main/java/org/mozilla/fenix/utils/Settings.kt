@@ -202,7 +202,9 @@ class Settings(
     var showPocketRecommendationsFeature by lazyFeatureFlagBooleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
         featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
-        defaultValue = { homescreenSections[HomeScreenSection.POCKET] == true },
+        defaultValue = {
+            homescreenSections[HomeScreenSection.POCKET] == true && !privateModeAndStoriesEntryPointEnabled
+        },
     )
 
     /**
@@ -271,14 +273,6 @@ class Settings(
         get() = FxNimbus.features.firefoxJpGuideDefaultSite.value().enabled
 
     /**
-     * Indicates whether or not the homepage header should be shown.
-     */
-    var showHomepageHeader by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_enable_homepage_header),
-        default = { homescreenSections[HomeScreenSection.HEADER] == true },
-    )
-
-    /**
      * Indicates whether or not top sites should be shown on the home screen.
      */
     var showTopSitesFeature by booleanPreference(
@@ -324,6 +318,12 @@ class Settings(
      */
     val showHomepageRecentlyVisitedSectionToggle: Boolean
         get() = !enableHomepageSearchBar
+
+    /**
+     * Indicates whether or not the homepage should use edge to edge background
+     */
+    val enableHomepageEdgeToEdgeBackgroundFeature: Boolean
+        get() = FxNimbus.features.homescreenEdgeToEdgeBackground.value().enabled
 
     var numberOfAppLaunches by intPreference(
         appContext.getPreferenceKey(R.string.pref_key_times_app_opened),
@@ -453,7 +453,11 @@ class Settings(
 
     var currentWallpaperName by stringPreference(
         appContext.getPreferenceKey(R.string.pref_key_current_wallpaper),
-        default = Wallpaper.EdgeToEdge.name,
+        default = if (enableHomepageEdgeToEdgeBackgroundFeature) {
+            Wallpaper.EdgeToEdge.name
+        } else {
+            Wallpaper.Default.name
+        },
     )
 
     /**
@@ -1397,7 +1401,7 @@ class Settings(
 
     var shouldUseBottomToolbar by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_toolbar_bottom),
-        default = false,
+        default = { FxNimbus.features.defaultBottomToolbar.value().enabled },
         persistDefaultIfNotExists = true,
     )
 
@@ -2560,23 +2564,6 @@ class Settings(
     )
 
     /**
-     * User controlled pref that indicates if the user has the Shake to Summarize feature enabled (not to be confused with [shakeToSummarizeFeatureFlagEnabled]
-     * which controls the feature flag itself)
-     */
-    var shakeToSummarizeFeatureUserPreference by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_summarize_feature_enabled),
-        default = Config.channel.isNightlyOrDebug,
-    )
-
-    /**
-     * Indicates whether the shake gesture should be used to activate page summaries.
-     */
-    var shakeGestureEnabled by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_shake_gesture_enabled),
-        default = Config.channel.isNightlyOrDebug,
-    )
-
-    /**
      * Tracks how many times the summarize menu item has been shown.
      * Used to control highlight/badge visibility for feature discovery.
      */
@@ -2903,6 +2890,14 @@ class Settings(
     )
 
     /**
+     * Whether the private mode and stories entry point experiment is enabled.
+     */
+    var privateModeAndStoriesEntryPointEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_private_mode_and_stories_entry_point),
+        default = { FxNimbus.features.privateModeAndStoriesEntryPoint.value().enabled },
+    )
+
+    /**
      * Whether the Tab Groups feature is enabled.
      */
     var tabGroupsEnabled by booleanPreference(
@@ -2916,6 +2911,14 @@ class Settings(
     var nativeShareSheetEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_native_share_sheet),
         default = { FxNimbus.features.nativeShareSheet.value().enabled },
+    )
+
+    /**
+     * Whether Longfox is enabled.
+     */
+    var longfoxEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_longfox),
+        default = false,
     )
 
     /**

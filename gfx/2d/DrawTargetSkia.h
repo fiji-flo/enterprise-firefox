@@ -145,6 +145,8 @@ class DrawTargetSkia : public DrawTarget {
   bool Init(SkCanvas* aCanvas);
   bool Init(RefPtr<DataSourceSurface>&& aSurface);
 
+  static void UpdateSurfaceProps();
+
   // Skia assumes that texture sizes fit in 16-bit integers.
   static size_t GetMaxSurfaceSize() { return 65535; }
   // Skia assumes the surface area will fit in a 32-bit signed integer.
@@ -168,6 +170,8 @@ class DrawTargetSkia : public DrawTarget {
                      const DeviceColor& aColor,
                      const StrokeOptions* aStrokeOptions = nullptr,
                      const DrawOptions& aOptions = DrawOptions());
+
+  void AccessibleId(uint64_t aBrowsingContextId, uint64_t aAccId) final;
 
  private:
   friend class SourceSurfaceSkia;

@@ -340,9 +340,6 @@
 
     <string name="pref_key_encryption_key_generated" translatable="false">pref_key_encryption_key_generated</string>
 
-    <!-- Homepage -->
-    <string name="pref_key_enable_homepage_header" translatable="false">pref_key_enable_homepage_header</string>
-
     <!-- Top Sites -->
     <string name="default_top_sites_added" translatable="false">pref_key_pocket_top_site_added</string>
     <string name="pref_key_top_sites_size" translatable="false">pref_key_top_sites_size</string>
@@ -467,8 +464,6 @@
     <string name="pref_key_enable_shake_to_summarize" translatable="false">pref_key_enable_shake_to_summarize</string>
     <string name="pref_key_page_summaries" translatable="false">pref_key_page_summaries</string>
 
-    <!-- Summarize feature: preference key to track if the user has turned off the feature or not -->
-    <string name="pref_key_summarize_feature_enabled" translatable="false">pref_key_summarize_feature_enabled</string>
     <!-- Summarize feature: preference key to track if the user has turned off the shake gesture or not -->
     <string name="pref_key_shake_gesture_enabled" translatable="false">pref_key_shake_gesture_enabled</string>
 
@@ -565,11 +560,18 @@
     <!-- Tab Search -->
     <string name="pref_key_tab_search" translatable="false">pref_key_tab_search_feature</string>
 
+    <!-- Private Mode and Stories Entry Point -->
+    <string name="pref_key_private_mode_and_stories_entry_point" translatable="false">pref_key_private_mode_and_stories_entry_point</string>
+
     <!-- Tab Groups -->
     <string name="pref_key_tab_groups" translatable="false">pref_key_tab_groups_feature</string>
 
     <!-- Native Share Sheet -->
     <string name="pref_key_native_share_sheet" translatable="false">pref_key_native_share_sheet</string>
+
+    <!-- Longfox -->
+    <string name="pref_key_enable_longfox" translatable="false">pref_key_enable_longfox</string>
+
     <!--  Search Optimization Cards  -->
     <string name="pref_key_search_optimization" translatable="false">pref_key_search_optimization</string>
     <string name="pref_key_search_optimization_feature" translatable="false">pref_key_search_optimization_feature</string>

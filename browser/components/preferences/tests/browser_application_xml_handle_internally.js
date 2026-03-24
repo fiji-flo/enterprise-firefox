@@ -9,6 +9,9 @@ const MIMEService = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
 
 // This test checks that application/xml has the handle internally option.
 add_task(async function applicationXmlHandleInternally() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.settings-redesign.enabled", true]],
+  });
   const mimeInfo = MIMEService.getFromTypeAndExtension(
     "application/xml",
     "xml"
@@ -26,7 +29,7 @@ add_task(async function applicationXmlHandleInternally() {
 
   let win = gBrowser.selectedBrowser.contentWindow;
 
-  let container = win.document.getElementById("handlersView");
+  let container = win.document.getElementById("applicationsHandlersView");
 
   // First, find the application/xml item.
   let xmlItem = container.querySelector("moz-box-item[type='application/xml']");

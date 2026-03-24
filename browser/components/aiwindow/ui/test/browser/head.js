@@ -13,11 +13,17 @@ ChromeUtils.defineESModuleGetters(this, {
   Chat: "moz-src:///browser/components/aiwindow/models/Chat.sys.mjs",
   ChatConversation:
     "moz-src:///browser/components/aiwindow/ui/modules/ChatConversation.sys.mjs",
+  IntentClassifier:
+    "moz-src:///browser/components/aiwindow/models/IntentClassifier.sys.mjs",
   openAIEngine: "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
+  SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+  SessionWindowUI: "resource:///modules/sessionstore/SessionWindowUI.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 const AIWINDOW_URL = "chrome://browser/content/aiwindow/aiWindow.html";
+
+let gIntentEngineStub;
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
@@ -28,6 +34,20 @@ add_setup(async function () {
       ["browser.smartwindow.chat.interactionCount", 0],
     ],
   });
+
+  // Stub intent engine so it doesn't attempt network requests
+  const fakeIntentEngine = {
+    run() {
+      return [
+        { label: "chat", score: 0.95 },
+        { label: "search", score: 0.05 },
+      ];
+    },
+  };
+  gIntentEngineStub = sinon
+    .stub(IntentClassifier, "_createEngine")
+    .resolves(fakeIntentEngine);
+  registerCleanupFunction(() => gIntentEngineStub.restore());
 });
 
 /**
@@ -120,6 +140,23 @@ function skipSignIn() {
     .stub(AIWindowAccountAuth, "ensureAIWindowAccess")
     .resolves(true);
   return () => stub.restore();
+}
+
+/**
+ * Submits the current smartbar input by pressing Enter.
+ *
+ * @param {MozBrowser} browser - The browser element
+ */
+async function submitSmartbar(browser) {
+  await SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = aiWindowElement.shadowRoot.querySelector(
+      "#ai-window-smartbar"
+    );
+    const inputField = smartbar.inputField;
+    inputField.focus();
+    EventUtils.synthesizeKey("KEY_Enter", {}, content);
+  });
 }
 
 /**
@@ -233,6 +270,126 @@ async function assertSmartbarSuggestionsVisible(
     expectedPosition,
     `Suggestions position should be: ${expectedPosition}`
   );
+}
+
+/**
+ * Wait for panel list to be visible.
+ *
+ * @param {MozBrowser} browser - The browser element
+ * @returns {Promise<boolean>} True if panel is visible
+ */
+async function waitForPanelOpen(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = await ContentTaskUtils.waitForCondition(
+      () => aiWindowElement.shadowRoot?.querySelector("#ai-window-smartbar"),
+      "Wait for Smartbar to be rendered"
+    );
+    const panelList = smartbar.querySelector("smartwindow-panel-list");
+    const panel = panelList.shadowRoot.querySelector("panel-list");
+
+    await ContentTaskUtils.waitForMutationCondition(
+      panel,
+      { attributes: true, attributeFilter: ["open"] },
+      () => panel.hasAttribute("open")
+    );
+
+    return panel.hasAttribute("open");
+  });
+}
+
+/**
+ * Wait for a mention to be inserted.
+ *
+ * @param {MozBrowser} browser - The browser element
+ * @returns {Promise<boolean>} True if the mention exists
+ */
+async function waitForMentionInserted(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = await ContentTaskUtils.waitForCondition(
+      () => aiWindowElement.shadowRoot?.querySelector("#ai-window-smartbar"),
+      "Wait for Smartbar to be rendered"
+    );
+    const editor = smartbar.querySelector("moz-multiline-editor");
+
+    await ContentTaskUtils.waitForMutationCondition(
+      editor.shadowRoot,
+      { childList: true, subtree: true },
+      () => editor.shadowRoot.querySelector("ai-website-chip") !== null
+    );
+
+    return !!editor.shadowRoot.querySelector("ai-website-chip");
+  });
+}
+
+/**
+ * Click the first non-header item in the smartbar mention suggestions panel.
+ *
+ * @param {MozBrowser} browser - The browser element
+ */
+async function selectFirstMentionPanelItem(browser) {
+  await SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = aiWindowElement.shadowRoot.querySelector(
+      "#ai-window-smartbar"
+    );
+    const panelList = smartbar.querySelector("smartwindow-panel-list");
+    const panel = panelList.shadowRoot.querySelector("panel-list");
+    const firstItem = panel.querySelector(
+      "panel-item:not(.panel-section-header)"
+    );
+    firstItem.click();
+  });
+}
+
+/**
+ * Type "@", wait for the mention panel, click the first suggestion, and wait
+ * for the mention chip to appear in the editor.
+ *
+ * @param {MozBrowser} browser - The browser element
+ */
+async function insertInlineMention(browser) {
+  await typeInSmartbar(browser, "@");
+  await waitForPanelOpen(browser);
+  await selectFirstMentionPanelItem(browser);
+  await waitForMentionInserted(browser);
+}
+
+/**
+ * Return inline @mention data from the editor's mentions plugin.
+ *
+ * @param {MozBrowser} browser - The browser element
+ * @returns {Promise<Array<{type: string, id: string, label: string}>>}
+ */
+async function getEditorInlineMentions(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = aiWindowElement.shadowRoot.querySelector(
+      "#ai-window-smartbar"
+    );
+    const editor = smartbar.querySelector("moz-multiline-editor");
+    return editor.getAllMentions();
+  });
+}
+
+/**
+ * Get the context chips from the smartbar header.
+ *
+ * @param {MozBrowser} browser - The browser element
+ * @returns {Promise<Array<{url: string, label: string}>>} The context chip data
+ */
+async function getSmartbarContextChips(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = aiWindowElement.shadowRoot.querySelector(
+      "#ai-window-smartbar"
+    );
+    const chipContainer = smartbar.querySelector(
+      ".smartbar-context-chips-header"
+    );
+    return chipContainer.websites.map(w => ({ url: w.url, label: w.label }));
+  });
 }
 
 /**

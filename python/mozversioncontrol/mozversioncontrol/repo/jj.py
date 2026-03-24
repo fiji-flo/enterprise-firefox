@@ -336,7 +336,12 @@ class JujutsuRepository(Repository):
             cmd.extend(paths)
         self._run(*cmd, **run_kwargs)
 
-    def push(self, remote: Optional[str] = None, ref: Optional[str] = None):
+    def push(
+        self,
+        remote: Optional[str] = None,
+        ref: Optional[str] = None,
+        force: bool = False,
+    ):
         if ref and not remote:
             raise ValueError("Cannot specify ref without specifying remote")
 
@@ -530,13 +535,14 @@ class JujutsuRepository(Repository):
 
     def get_last_modified_time_for_file(self, path: Path) -> datetime:
         """Return last modified in VCS time for the specified file."""
-        date = self._run_read_only(
+        escaped_path = str(path).replace("\\", "\\\\")
+        date = self._run(
             "log",
             "--no-graph",
             "-n1",
             "-T",
             "committer.timestamp()",
-            '"%s"' % str(path).replace("\\", "\\\\"),
+            f'"{escaped_path}"',
         ).rstrip()
         return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f %z")
 
@@ -652,6 +658,8 @@ class JujutsuRepository(Repository):
             self._set_default_if_missing(
                 immutable_heads_key, immutable_heads_default_value
             )
+
+            self._set_default_if_missing("snapshot.auto-update-stale", True)
 
             # This enables `jj fix` which does `./mach lint --fix` on every commit in parallel
             fix_cmd = [f"{topsrcdir.as_posix()}/tools/lint/pipelint", "$path"]

@@ -8,6 +8,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs",
   getSecurityOrchestrator:
     "chrome://global/content/ml/security/SecurityOrchestrator.sys.mjs",
+  SmartWindowTelemetry:
+    "moz-src:///browser/components/aiwindow/ui/modules/SmartWindowTelemetry.sys.mjs",
+  AIWindowUI:
+    "moz-src:///browser/components/aiwindow/ui/modules/AIWindowUI.sys.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
 });
 
 /**
@@ -144,7 +150,7 @@ export class AIChatContentParent extends JSWindowActorParent {
 
   #notifyContentReady() {
     const aiWindow = this.#getAIWindowElement();
-    aiWindow.onContentReady();
+    aiWindow?.onContentReady();
 
     // If the ledger is already bound (setConversation completed before child
     // was ready), push trusted URLs now that the child can receive messages.
@@ -172,6 +178,9 @@ export class AIChatContentParent extends JSWindowActorParent {
   }
 
   #handleOpenLink(data) {
+    const aiWindow = this.#getAIWindowElement();
+    aiWindow?.onOpenLink();
+
     try {
       const { url } = data;
       if (!url) {
@@ -184,15 +193,44 @@ export class AIChatContentParent extends JSWindowActorParent {
       }
 
       const window = this.browsingContext.topChromeWindow;
-      if (window) {
-        const tabFound = window.switchToTabHavingURI(url, false, {});
-        if (!tabFound) {
-          window.gBrowser.selectedTab = window.gBrowser.addTab(url, {
-            triggeringPrincipal:
-              Services.scriptSecurityManager.createNullPrincipal({}),
-          });
+
+      if (!window) {
+        return;
+      }
+
+      lazy.SmartWindowTelemetry.recordUriLoad();
+      const currentPageURL = window.gBrowser.selectedBrowser.currentURI.spec;
+
+      // Only treat it as "same link" if the URL is identical.
+      // If anything differs (hash/query/path), let normal navigation proceed.
+      if (url === currentPageURL) {
+        lazy.AIWindowUI.handleSameLinkClick(window);
+        return;
+      }
+
+      const { userContextId } =
+        window.gBrowser.selectedBrowser.browsingContext.originAttributes;
+      const triggeringPrincipal =
+        Services.scriptSecurityManager.createNullPrincipal({ userContextId });
+      const where = lazy.BrowserUtils.whereToOpenLink(data);
+
+      if (where === "current") {
+        const tabFound = lazy.URILoadingHelper.switchToTabHavingURI(
+          window,
+          url,
+          false,
+          {}
+        );
+        if (tabFound) {
+          return;
         }
       }
+
+      lazy.URILoadingHelper.openWebLinkIn(window, url, where, {
+        triggeringPrincipal,
+        userContextId,
+        forceForeground: false,
+      });
     } catch (e) {
       console.warn("Could not open link from AI Window chat", e);
     }

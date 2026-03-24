@@ -51,6 +51,7 @@ exclude = [
   "dom/base/rust",
   "dom/origin-trials/ffi",
   "ipc/rust/ipdl_utils",
+  "tools/update-verify/marannon",
 
   # Excluded because we don't want to vendor their dependencies.
   "intl/l10n/rust/l10nregistry-tests",
@@ -192,6 +193,9 @@ goblin = { path = "build/rust/goblin" }
 
 # Implement getrandom 0.2 in terms of 0.3
 getrandom = { path = "build/rust/getrandom" }
+
+# Patch mio to 1.1.1 with windows-sys 0.52 backport
+mio = { git = "https://github.com/kinetiknz/mio", rev = "5e8b202db39facecc343170f50a07916640a607c" }
 
 # Patch rustc-hash 1.1.0 to 2.1.1
 rustc-hash = { path = "build/rust/rustc-hash" }

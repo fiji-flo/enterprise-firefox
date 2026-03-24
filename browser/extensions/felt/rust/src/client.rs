@@ -391,13 +391,14 @@ impl FeltClientThread {
                                         trace!("FeltClientThread::felt_client::ipc_loop(): ERROR setting access token");
                                     }
                                 }
-                                Ok(FeltMessage::OpenURL((url, disposition))) => {
+                                Ok(FeltMessage::OpenURL((url, disposition, focus_hint))) => {
                                     trace!(
-                                        "FeltClientThread::felt_client::ipc_loop(): OpenURL({}, {})",
+                                        "FeltClientThread::felt_client::ipc_loop(): OpenURL({}, {}, {:?})",
                                         url,
-                                        disposition
+                                        disposition,
+                                        focus_hint
                                     );
-                                    utils::open_url_in_firefox(url, disposition);
+                                    utils::open_url_in_firefox(url, disposition, focus_hint);
                                 },
                                 Ok(msg) => {
                                     trace!("FeltClientThread::felt_client::ipc_loop(): UNEXPECTED MSG {:?}", msg);

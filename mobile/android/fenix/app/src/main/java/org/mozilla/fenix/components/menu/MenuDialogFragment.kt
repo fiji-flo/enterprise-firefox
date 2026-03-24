@@ -321,6 +321,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 addonManager = components.addonManager,
                                 settings = settings,
                                 summarizeMenuSettings = components.core.summarizeFeatureSettings,
+                                evaluateEligibilityForSummarization = {
+                                    selectedTab?.engineState?.engineSession?.let { session ->
+                                        requireComponents.core.summarizationEligibilityChecker
+                                            .checkLanguage(session)
+                                            .getOrNull()
+                                    } ?: false
+                                },
                                 bookmarksStorage = components.core.bookmarksStorage,
                                 pinnedSiteStorage = components.core.pinnedSiteStorage,
                                 appLinksUseCases = appLinksUseCases,

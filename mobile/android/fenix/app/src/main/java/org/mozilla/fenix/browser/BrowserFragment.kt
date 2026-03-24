@@ -181,12 +181,9 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler, SystemIns
     }
 
     private fun setupShakeDetection() {
-        if (
-            !(
-                requireComponents.core.summarizeFeatureSettings.canShowFeature &&
-                requireComponents.core.summarizeFeatureSettings.shakeToSummarizeEnabled
-            )
-        ) {
+        val shouldSetupShake = requireComponents.core.summarizeFeatureSettings.canShowFeature &&
+                requireComponents.core.summarizationSettings.isGestureEnabled.value
+        if (!shouldSetupShake) {
             return
         }
 
@@ -201,32 +198,59 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler, SystemIns
                             summarizeToolbarCfrBinding.get()?.maybeDismissCfr()
                         }
                         .collect {
-                        findNavController().apply {
-                            // We don't want to navigate to the summarization fragment if the current
-                            // tab is private.
-                            val isPrivate = getSafeCurrentTab()?.content?.private == true
-
-                            // We don't want to navigate to the summarization fragment if the current
-                            // tab is loading.
-                            val isPageLoading = getSafeCurrentTab()?.content?.loading == true
-
-                            // Since the summarization fragment is in a dialog, it's possible that we
-                            // can still detect shakes in the background. Don't try to navigate twice.
-                            val currentDestinationIsNotTheBrowser = currentDestination?.id != R.id.browserFragment
-
-                            if (isPrivate || isPageLoading || currentDestinationIsNotTheBrowser) {
-                                return@collect
-                            }
-
-                            navigate(
-                                BrowserFragmentDirections.actionBrowserFragmentToSummarizationFragment(
-                                    true,
-                                ),
-                            )
+                            navigateToSummarizationIfEligible()
                         }
-                    }
                 }
             }
+        }
+    }
+
+    private suspend fun navigateToSummarizationIfEligible() {
+        findNavController().apply {
+            // If the shake gesture was disabled in the bottom sheet hosted settings but the fragment
+            // has not been recreated yet, we need to check if it's still active before proceeding.
+            val shakeEnabled = requireComponents.core.summarizationSettings.isGestureEnabled.value
+
+            if (!shakeEnabled) {
+                return
+            }
+
+            // We don't want to navigate to the summarization fragment if the current
+            // tab is private.
+            val isPrivate = getSafeCurrentTab()?.content?.private == true
+
+            // We don't want to navigate to the summarization fragment if the current
+            // tab is loading.
+            val isPageLoading = getSafeCurrentTab()?.content?.loading == true
+
+            // Since the summarization fragment is in a dialog, it's possible that we
+            // can still detect shakes in the background. Don't try to navigate twice.
+            val currentDestinationIsNotTheBrowser = currentDestination?.id != R.id.browserFragment
+
+            // evaluate this lazy, to try and avoid querying the engine unless necessary
+            val isEnglishContent: suspend () -> Boolean = {
+                getSafeCurrentTab()?.engineState?.engineSession?.let { session ->
+                    requireComponents.core.summarizationEligibilityChecker
+                        .checkLanguage(session)
+                        .getOrNull()
+                } ?: false
+            }
+
+            // this can be removed when we get rid of language gating
+            @Suppress("ComplexCondition")
+            if (isPrivate ||
+                isPageLoading ||
+                currentDestinationIsNotTheBrowser ||
+                !isEnglishContent()
+            ) {
+                return
+            }
+
+            navigate(
+                BrowserFragmentDirections.actionBrowserFragmentToSummarizationFragment(
+                    true,
+                ),
+            )
         }
     }
 

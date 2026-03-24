@@ -1622,8 +1622,8 @@ class ActivePS {
     }
     JSContext* jsContext = mainThread->mJSContext;
 
-    // Always gather source metadata (filename), but only gather actual source
-    // text if the JS sources feature is enabled.
+    // Always gather source metadata (filename, sourceMapURL), but only gather
+    // actual source text if the JS sources feature is enabled.
     js::ProfilerJSSources threadSources = js::GetProfilerScriptSources(
         JS_GetRuntime(jsContext), gatherSourceText);
 
@@ -4465,6 +4465,9 @@ class SamplerThread {
         std::move(mPostSamplingCallbackList), std::move(aCallback));
   }
 
+  SamplerThread(const SamplerThread&) = delete;
+  void operator=(const SamplerThread&) = delete;
+
  private:
   void SpyOnUnregisteredThreads();
 
@@ -4587,9 +4590,6 @@ class SamplerThread {
   // Unregistered threads that have been found, and are being spied on.
   using SpiedThreads = AutoTArray<SpiedThread, 128>;
   SpiedThreads mSpiedThreads;
-
-  SamplerThread(const SamplerThread&) = delete;
-  void operator=(const SamplerThread&) = delete;
 };
 
 namespace geckoprofiler::markers {

@@ -1013,21 +1013,13 @@ bool FissionAutostart() {
 
 namespace mozilla {
 
-bool SessionHistoryInParent() {
-  return FissionAutostart() ||
-         !StaticPrefs::
-             fission_disableSessionHistoryInParent_AtStartup_DoNotUseDirectly();
-}
-
 bool SessionStorePlatformCollection() {
-  return SessionHistoryInParent() &&
-         !StaticPrefs::
-             browser_sessionstore_disable_platform_collection_AtStartup_DoNotUseDirectly();
+  return !StaticPrefs::
+      browser_sessionstore_disable_platform_collection_AtStartup_DoNotUseDirectly();
 }
 
 bool BFCacheInParent() {
-  return SessionHistoryInParent() &&
-         StaticPrefs::fission_bfcacheInParent_DoNotUseDirectly();
+  return StaticPrefs::fission_bfcacheInParent_DoNotUseDirectly();
 }
 
 }  // namespace mozilla
@@ -1411,12 +1403,6 @@ nsXULAppInfo::GetFissionDecisionStatusString(nsACString& aResult) {
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected enum value");
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::GetSessionHistoryInParent(bool* aResult) {
-  *aResult = SessionHistoryInParent();
   return NS_OK;
 }
 
@@ -3175,6 +3161,17 @@ static nsresult SelectProfile(nsToolkitProfileService* aProfileSvc,
   if (gDoProfileReset && !*aProfile) {
     NS_WARNING("Profile reset is only supported for named profiles.");
     return NS_ERROR_ABORT;
+  }
+
+  // Block reset without migration for selectable profiles.
+  // Bug 2020801: Update this to allow resetting without migration
+  if (gDoProfileReset && !gDoMigration && *aProfile) {
+    nsCString storeID;
+    (*aProfile)->GetStoreID(storeID);
+    if (!storeID.IsVoid()) {
+      NS_WARNING("Selectable profiles cannot be reset without migration.");
+      return NS_ERROR_ABORT;
+    }
   }
 
   // No profile could be found. This generally shouldn't happen, a new profile
@@ -5715,18 +5712,38 @@ nsresult XREMain::XRE_mainRun() {
             do_CreateInstance(NS_PROFILEMIGRATOR_CONTRACTID));
         if (pm) {
           nsAutoCString aKey;
-          nsAutoCString aName;
+          nsAutoCString aProfilePath;
           if (gDoProfileReset) {
             // Automatically migrate from the current application if we just
             // reset the profile.
-            aKey = MOZ_APP_NAME;
-            gResetOldProfile->GetName(aName);
+            nsCOMPtr<nsIFile> rootDir = gResetOldProfile->GetRootDir();
+            nsAutoString path;
+            rootDir->GetPath(path);
+            CopyUTF16toUTF8(path, aProfilePath);
+
+            nsCString storeID;
+            gResetOldProfile->GetStoreID(storeID);
+            if (!storeID.IsVoid()) {
+              aKey = "firefox-selectable-profile";
+              // In the case that Firefox is launched with --reset-profile,
+              // the storeID and path env variables won't be set, so we set
+              // them here if we are in a profile with a storeID.
+              nsAutoCString envStoreID("SELECTABLE_PROFILE_RESET_STORE_ID=");
+              envStoreID.Append(storeID);
+              SaveToEnv(envStoreID.get());
+
+              nsAutoCString envProfilePath("SELECTABLE_PROFILE_RESET_PATH=");
+              envProfilePath.Append(aProfilePath);
+              SaveToEnv(envProfilePath.get());
+            } else {
+              aKey = MOZ_APP_NAME;
+            }
           }
 #ifdef XP_MACOSX
           // Necessary for migration wizard to be accessible.
           InitializeMacApp();
 #endif
-          pm->Migrate(&mDirProvider, aKey, aName);
+          pm->Migrate(&mDirProvider, aKey, aProfilePath);
         }
       }
 

@@ -10,6 +10,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
+  WindowsVersionInfo:
+    "resource://gre/modules/components-utils/WindowsVersionInfo.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -38,6 +40,13 @@ XPCOMUtils.defineLazyServiceGetter(
   "iniParserFactory",
   "@mozilla.org/xpcom/ini-parser-factory;1",
   Ci.nsIINIParserFactory
+);
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "secondaryTileService",
+  "@mozilla.org/browser/secondary-tile-service;1",
+  Ci.nsISecondaryTileService
 );
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -414,13 +423,55 @@ let ShellServiceInternal = {
     Glean.browser.setDefaultError[setAsDefaultError ? "true" : "false"].add();
   },
 
-  setAsDefaultPDFHandler(onlyIfKnownBrowser = false) {
+  _isWindows11() {
+    return (
+      lazy.WindowsVersionInfo.get({ throwOnError: false }).buildNumber >= 22000
+    );
+  },
+
+  async setAsDefaultPDFHandler(onlyIfKnownBrowser = false) {
+    if (AppConstants.platform != "win") {
+      throw new Error("Windows-only");
+    }
+
     if (onlyIfKnownBrowser && !this.getDefaultPDFHandler().knownBrowser) {
       return;
     }
 
-    if (AppConstants.platform == "win") {
-      this.setAsDefaultPDFHandlerUserChoice();
+    try {
+      await this.setAsDefaultPDFHandlerUserChoice();
+      return;
+    } catch (e) {
+      lazy.log.debug(
+        "Setting default by user-choice failed, falling through to open with launcher",
+        e
+      );
+    }
+
+    const winShell = this.shellService.QueryInterface(
+      Ci.nsIWindowsShellService
+    );
+
+    try {
+      winShell.launchOpenWithDefaultPickerForFileType(".pdf");
+      return;
+    } catch (e) {
+      lazy.log.debug(
+        "Setting default by open with launcher failed, possibly falling through to modern settings",
+        e
+      );
+    }
+
+    // PDF default app settings are only available in Windows 11 (build 22000+).
+    if (this._isWindows11()) {
+      try {
+        winShell.launchModernSettingsDialogDefaultApps();
+      } catch (e) {
+        lazy.log.debug(
+          "Last attempt to set as default PDF failed through modern settings",
+          e
+        );
+      }
     }
   },
 
@@ -741,6 +792,45 @@ let ShellServiceInternal = {
     }
 
     return PathUtils.join(dataHome, "applications", `${appId}.desktop`);
+  },
+
+  async requestCreateAndPinSecondaryTile(tileId, name, iconPath, args) {
+    let resolver = Promise.withResolvers();
+
+    lazy.secondaryTileService.requestCreateAndPin(
+      tileId,
+      name,
+      iconPath,
+      args,
+      this._secondaryTileListener("Secondary tile pinning failed", resolver)
+    );
+
+    return resolver.promise;
+  },
+
+  async requestDeleteSecondaryTile(tileId) {
+    let resolver = Promise.withResolvers();
+
+    lazy.secondaryTileService.requestDelete(
+      tileId,
+      this._secondaryTileListener("Secondary tile unpinning failed", resolver)
+    );
+
+    return resolver.promise;
+  },
+
+  _secondaryTileListener(errorMessage, resolver) {
+    return {
+      QueryInterface: ChromeUtils.generateQI([Ci.nsISecondaryTileListener]),
+      succeeded(outcome) {
+        resolver.resolve(outcome);
+      },
+      failed(hresult) {
+        let formatted = hresult.toString(16).padStart(8, "0");
+        let error = new Error(`${errorMessage} (HRESULT ${formatted})`);
+        resolver.reject(error);
+      },
+    };
   },
 };
 

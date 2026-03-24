@@ -430,7 +430,7 @@ function getNestedBrandColor(token) {
  * or `undefined` if the token is not a shadow or cannot be parsed.
  */
 function attemptShadowDestructuring(token, originalVal) {
-  if (!token.path.includes("shadow") || typeof originalVal !== "string") {
+  if (!token.path.includes("box-shadow") || typeof originalVal !== "string") {
     return undefined;
   }
 
@@ -762,7 +762,8 @@ const overrideFilter = (token, overrideIdentifier) => {
   // discard override tokens from the base set
   if (
     !overrideIdentifier &&
-    OVERRIDE_IDENTIFIERS.some(({ name }) => token.name.includes(`.${name}`))
+    (token.override ||
+      OVERRIDE_IDENTIFIERS.some(({ name }) => token.name.includes(`.${name}`)))
   ) {
     return false;
   }

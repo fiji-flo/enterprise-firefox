@@ -43,7 +43,6 @@ features:
         type: Map<HomeScreenSection, Boolean>
         default:
           {
-            "header": true,
             "top-sites": true,
             "jump-back-in": true,
             "bookmarks": true,
@@ -58,7 +57,6 @@ features:
       - channel: nightly
         value: {
           "sections-enabled": {
-            "header": true,
             "top-sites": true,
             "jump-back-in": true,
             "bookmarks": true,
@@ -401,6 +399,15 @@ features:
         type: Boolean
         default: false
 
+  default-bottom-toolbar:
+    description: Default toolbar position for new users.
+    variables:
+      enabled:
+        description: >
+          Whether to default the toolbar position to bottom.
+        type: Boolean
+        default: false
+
   homescreen-edge-to-edge-background:
     description: >
       Feature that sets an edge to edge background on the Home Screen if the user hasn't selected
@@ -417,6 +424,9 @@ features:
       - channel: nightly
         value:
           enabled: true
+      - channel: beta
+        value:
+          enabled: true
 
   remote-tab-management:
     description: >
@@ -429,16 +439,6 @@ features:
           this device will allow other devices to close tabs that are open on this device, and
           show a "close" button for tabs that are currently open on other supported devices
           in the synced tabs tray.
-        type: Boolean
-        default: true
-
-  ship:
-    description: The feature that controls Session History in Parent (SHIP) in Gecko.
-    variables:
-      disabled:
-        description: >
-          Whether or not to disable SHIP. SHIP is enabled when set to false. SHIP is disabled when
-          set to true.
         type: Boolean
         default: true
 
@@ -1016,6 +1016,14 @@ features:
         value:
           enabled: true
 
+  private-mode-and-stories-entry-point:
+    description: Feature to enable the Private Mode and Stories Entry Point Experiment.
+    variables:
+      enabled:
+        description: If true, Private Mode and Stories Entry Point Experiment is enabled.
+        type: Boolean
+        default: false
+
   search-optimization-option:
     description: Feature to enable the Search Optimization cards for users on Firefox on Android.
     variables:
@@ -1080,8 +1088,6 @@ types:
     HomeScreenSection:
       description: The identifiers for the sections of the homescreen.
       variants:
-        header:
-          description: The header of the homescreen.
         top-sites:
           description: The frecency and pinned sites.
         bookmarks:

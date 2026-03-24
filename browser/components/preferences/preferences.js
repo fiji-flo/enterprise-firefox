@@ -201,12 +201,6 @@ const CONFIG_PANES = Object.freeze({
     visible: () =>
       Services.prefs.getBoolPref("browser.preferences.aiControls", false),
   },
-  customHomepage: {
-    parent: "home",
-    l10nId: "home-custom-homepage-subpage",
-    groupIds: ["customHomepage"],
-    module: "chrome://browser/content/preferences/config/home-startup.mjs",
-  },
   dnsOverHttps: {
     parent: "privacy",
     l10nId: "preferences-doh-header2",
@@ -261,7 +255,8 @@ const CONFIG_PANES = Object.freeze({
   personalizeSmartWindow: {
     parent: "ai",
     l10nId: "ai-window-personalize-header",
-    iconSrc: "chrome://devtools/skin/images/globe.svg",
+    iconSrc: "chrome://browser/skin/smart-window-mono.svg",
+    badge: "beta",
     groupIds: ["assistantModelGroup", "memoriesGroup"],
     module: "chrome://browser/content/preferences/config/aiFeatures.mjs",
   },
@@ -336,6 +331,17 @@ function init_all() {
       continue;
     }
     SettingPaneManager.registerPane(id, config);
+  }
+
+  // customHomepage is registered separately because its groups are set up by
+  // AboutPreferences.observe(), which only fires in the redesign path.
+  if (redesignEnabled) {
+    SettingPaneManager.registerPane("customHomepage", {
+      parent: "home",
+      l10nId: "home-custom-homepage-subpage",
+      groupIds: ["customHomepage"],
+      module: "chrome://browser/content/preferences/config/home-startup.mjs",
+    });
   }
 
   if (ExperimentAPI.labsEnabled) {

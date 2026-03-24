@@ -108,6 +108,7 @@ pub fn prepare_quad(
         scene_properties: frame_context.scene_properties,
         spatial_tree: frame_context.spatial_tree,
         fb_config: frame_context.fb_config,
+        prim_origin: local_rect.min,
     };
 
     let pattern = pattern_builder.build(
@@ -189,6 +190,7 @@ pub fn prepare_repeatable_quad(
         scene_properties: frame_context.scene_properties,
         spatial_tree: frame_context.spatial_tree,
         fb_config: frame_context.fb_config,
+        prim_origin: local_rect.min,
     };
 
     let pattern = pattern_builder.build(
@@ -261,21 +263,20 @@ pub fn prepare_repeatable_quad(
     let mut indirect_transform = ScaleOffset::from_scale(scales.into()).then_scale(device_pixel_scale.0);
     let mut surface_rect: DeviceRect = indirect_transform.map_rect(&pattern_rect);
 
-    // TODO: If the source pattern is an image, we can repeat it directly using the
-    // repeat shader, without an extra render task. The image primitive has not been
-    // ported to the quad infrastructure yet.
-    let src_task_id: Option<RenderTaskId> = None;
+    // If the source pattern is an image, we can repeat it directly using the repeat
+    // shader, without an extra render task.
+    let src_task_id = pattern.as_render_task();
 
-    // If the number of repetitions is high, we are better off using a shader, but we
-    // want to avoid the extra render task if it is large.
+    // If the number of repetitions is high, we are better off using the repeat shader,
+    // but we want to avoid the extra render task if it is large.
     let num_repetitions = local_rect.area() / stretch_size.area();
     let repeat_using_a_shader = src_task_id.is_some()
         || (num_repetitions > 16.0 && surface_rect.width() < 1024.0 && surface_rect.height() < 1024.0)
         || (num_repetitions > 64.0 && surface_rect.area() < 1024.0 * 1024.0);
 
     if repeat_using_a_shader {
-        let (src_task_id, opaque) = match src_task_id {
-            Some(_) => unimplemented!(),
+        let src_task_id = match src_task_id {
+            Some(task) => task,
             None => {
                 // The source is not an image. Make it one by rendering
                 // the pattern in a render task.
@@ -308,7 +309,7 @@ pub fn prepare_repeatable_quad(
                     return;
                 };
 
-                (task_id, pattern.is_opaque)
+                task_id
             }
         };
 
@@ -316,7 +317,7 @@ pub fn prepare_repeatable_quad(
             stretch_size,
             spacing: tile_spacing,
             src_task_id,
-            src_is_opaque: opaque,
+            src_is_opaque: pattern.is_opaque,
         };
 
         let repeat_pattern = repetitions.build(
@@ -427,6 +428,7 @@ pub fn prepare_border_image_nine_patch(
         scene_properties: frame_context.scene_properties,
         spatial_tree: frame_context.spatial_tree,
         fb_config: frame_context.fb_config,
+        prim_origin: local_rect.min,
     };
 
     let pattern = pattern_builder.build(
@@ -2063,6 +2065,20 @@ pub fn add_to_batch<F>(
         All = 5,
     }
 
+    let texture = match src_task_id {
+        RenderTaskId::INVALID => TextureSource::Invalid,
+        _ =>  match render_tasks.resolve_texture(src_task_id) {
+            Some(texture) => texture,
+            None => {
+                // If a valid render task does not yield a texture source, render
+                // nothing. This can happen, for example when a stacking context
+                // could not be snapshotted.
+                return;
+            },
+        }
+    };
+
+
     // See QuadHeader in ps_quad.glsl
     let mut writer = gpu_buffer_builder.i32.write_blocks(QuadHeader::NUM_BLOCKS);
     writer.push(&QuadHeader {
@@ -2071,17 +2087,6 @@ pub fn add_to_batch<F>(
         pattern_input,
     });
     let prim_address_i = writer.finish();
-
-    let texture = match src_task_id {
-        RenderTaskId::INVALID => TextureSource::Invalid,
-        _ => {
-            let texture = render_tasks
-                .resolve_texture(src_task_id)
-                .expect("bug: valid task id must be resolvable");
-
-            texture
-        }
-    };
 
     let textures = BatchTextures::prim_textured(
         texture,

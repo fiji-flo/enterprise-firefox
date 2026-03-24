@@ -18,7 +18,7 @@ import {
   CONVERSATION_STATUS,
   MESSAGE_ROLE,
   SYSTEM_PROMPT_TYPE,
-} from "./ChatConstants.sys.mjs";
+} from "./AIWindowConstants.sys.mjs";
 import {
   AssistantRoleOpts,
   ChatMessage,
@@ -42,6 +42,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/aiwindow/models/memories/MemoriesManager.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(lazy, "console", function () {
+  return console.createInstance({
+    prefix: "ChatConversation",
+  });
+});
+
 const CHAT_ROLES = [MESSAGE_ROLE.USER, MESSAGE_ROLE.ASSISTANT];
 
 /**
@@ -57,6 +63,7 @@ export class ChatConversation extends EventEmitter {
   updatedDate;
   status;
   securityProperties;
+  /** @type {ChatMessage[]} */
   #messages;
   #minNextOrdinal = 0;
   activeBranchTipMessageId;
@@ -133,8 +140,10 @@ export class ChatConversation extends EventEmitter {
 
     let pendingToolCalls = null;
     let fullResponseText = "";
+    let usage = null;
 
     for await (const chunk of stream) {
+      usage = chunk?.usage;
       if (chunk.text) {
         fullResponseText += chunk.text;
         this.handleChunk(chunk.text, currentMessage, parserState);
@@ -163,8 +172,9 @@ export class ChatConversation extends EventEmitter {
     }
 
     await lazy.ChatStore.updateConversation(this);
+    this.emit("chat-conversation:message-complete", currentMessage);
 
-    return { pendingToolCalls, fullResponseText };
+    return { pendingToolCalls, fullResponseText, usage };
   }
 
   #getCurrentAssistantResponse() {
@@ -260,6 +270,26 @@ export class ChatConversation extends EventEmitter {
     const newMessage = new ChatMessage(messageData);
 
     this.messages.push(newMessage);
+  }
+
+  /**
+   * Gets any URL mentioned in the conversation. These URLs have heightened security
+   * permissions as they have been explicitly added to the conversation by the user.
+   *
+   * @returns {Set<string>}
+   */
+  getAllMentionURLs() {
+    /** @type {Set<string>} */
+    const mentionUrls = new Set();
+    for (const message of this.#messages) {
+      const { contextMentions } = message.content;
+      if (contextMentions) {
+        for (const { url } of contextMentions) {
+          mentionUrls.add(url);
+        }
+      }
+    }
+    return mentionUrls;
   }
 
   /**
@@ -373,8 +403,17 @@ export class ChatConversation extends EventEmitter {
    * @param {URL} pageUrl - The URL of the page when prompt was submitted
    * @param {openAIEngine} engineInstance
    * @param {UserRoleOpts} [userOpts]
+   * @param {boolean} [skipUserDispatch=false] - If true, do not emit the
+   *   message-update event after adding the user message (used for retries
+   *   to avoid duplicate user messages in the child process).
    */
-  async generatePrompt(prompt, pageUrl, engineInstance, userOpts = undefined) {
+  async generatePrompt(
+    prompt,
+    pageUrl,
+    engineInstance,
+    userOpts = undefined,
+    skipUserDispatch = false
+  ) {
     // Remove stale ephemeral messages before adding new user message
     this.removeSystemTimeMemoriesMessages();
 
@@ -383,7 +422,17 @@ export class ChatConversation extends EventEmitter {
       this.addSystemMessage(SYSTEM_PROMPT_TYPE.TEXT, systemPrompt);
     }
 
+    // userContext starts empty so the user message can be added and dispatched
+    // immediately for better perceived performance. The realTimeContext and
+    // memoriesContext properties are set on it by reference below before this
+    // method returns, so the full context is available to getMessagesInOpenAiFormat()
+    // when the LLM call is made.
     let userContext = {};
+    this.addUserMessage(prompt, pageUrl, userOpts, userContext);
+    if (!skipUserDispatch) {
+      this.emit("chat-conversation:message-update", this.messages.at(-1));
+    }
+
     const realTimeContext = await this.getRealTimeInfo(engineInstance, {
       contextMentions: userOpts?.contextMentions,
     });
@@ -392,15 +441,20 @@ export class ChatConversation extends EventEmitter {
     }
 
     if (userOpts?.memoriesEnabled) {
-      const memoriesContext = await this.getMemoriesContext(
-        prompt,
-        engineInstance
-      );
-      if (memoriesContext) {
-        userContext.memoriesContext = memoriesContext;
+      try {
+        const memoriesContext = await this.getMemoriesContext(
+          prompt,
+          engineInstance
+        );
+        if (memoriesContext) {
+          userContext.memoriesContext = memoriesContext;
+        }
+      } catch (memoriesContextError) {
+        lazy.console.error(
+          `Failed to generate memories context message: ${memoriesContextError}`
+        );
       }
     }
-    this.addUserMessage(prompt, pageUrl, userOpts, userContext);
 
     return this;
   }
@@ -672,5 +726,9 @@ export class ChatConversation extends EventEmitter {
 
   get messages() {
     return this.#messages;
+  }
+
+  get messageCount() {
+    return this.#messages.filter(m => CHAT_ROLES.includes(m.role)).length;
   }
 }

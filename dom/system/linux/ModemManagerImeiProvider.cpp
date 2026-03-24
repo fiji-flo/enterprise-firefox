@@ -126,9 +126,8 @@ void ModemManagerImeiProvider::OnIntrospectFinish(RefPtr<Promise> aPromise,
   }
 
   if (!nodeInfos->nodes) {
-    MMI_LOG(Error, "nodeInfos->nodes failed! %s", error->message);
+    MMI_LOG(Error, "nodeInfos->nodes failed! %s", error ? error->message : "(noerror)");
     aPromise->MaybeReject(NS_ERROR_FAILURE);
-    g_dbus_node_info_unref(nodeInfos);
     return;
   }
 
@@ -139,13 +138,11 @@ void ModemManagerImeiProvider::OnIntrospectFinish(RefPtr<Promise> aPromise,
       mRealModemPath =
           nsPrintfCString("%s/%s", kModemRootPath, nodeInfos->nodes[n]->path);
       QueryModemImei(aPromise);
-      g_dbus_node_info_unref(nodeInfos);
       return;
     }
   }
 
   aPromise->MaybeReject(NS_ERROR_NOT_IMPLEMENTED);
-  g_dbus_node_info_unref(nodeInfos);
   return;
 }
 

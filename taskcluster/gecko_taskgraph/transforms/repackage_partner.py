@@ -262,6 +262,7 @@ def make_job_description(config, jobs):
             task["priority"] = job["priority"]
 
         task.setdefault("fetches", {}).setdefault("toolchain", []).extend([
+            "linux64-7zz",
             "linux64-mar-tools",
             "linux64-zucchini-bin",
             "linux64-upx",

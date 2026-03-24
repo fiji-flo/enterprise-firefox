@@ -8,12 +8,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -86,13 +93,22 @@ private fun SummarizationScreen(
     store: SummarizationStore,
     settingsStore: SummarizeSettingsStore? = null,
 ) {
+    val haptic = LocalHapticFeedback.current
+
     val state by store.stateFlow.collectAsStateWithLifecycle()
+
+    LaunchedEffect(state) {
+        if (state is SummarizationState.Summarized) {
+            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+        }
+    }
 
     SummarizationScreenScaffold(
         modifier = modifier
             .thenConditional(Modifier.summaryLoadingGradient()) {
                 state is SummarizationState.Summarizing
             }
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
             .nestedScroll(rememberNestedScrollInteropConnection()),
         color = if (state is SummarizationState.Summarizing) {
             Color.Transparent
@@ -231,8 +247,8 @@ private fun SummarizationScreenPreview(
             ),
             settingsStore = SummarizeSettingsStore(
                 initialState = SummarizeSettingsState(
-                    summarizePagesEnabled = true,
-                    shakeToSummarizeEnabled = true,
+                    isFeatureEnabled = true,
+                    isGestureEnabled = true,
                 ),
                 reducer = ::summarizeSettingsReducer,
                 middleware = listOf(),

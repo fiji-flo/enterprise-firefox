@@ -235,9 +235,7 @@ EndpointsList ReportingHeader::ProcessReportingEndpointsListFromResponse(
     return {};
   }
 
-  // No other browsers seem to do this, even though it's defined in
-  // specification
-  if (NS_WARN_IF(!IsSecureURI(uri))) {
+  if (!IsSecureURI(uri)) {
     return {};
   }
 
@@ -616,7 +614,7 @@ void ReportingHeader::LogToConsoleInternal(nsIHttpChannel* aChannel,
 
   nsAutoString localizedMsg;
   rv = nsContentUtils::FormatLocalizedString(
-      nsContentUtils::eSECURITY_PROPERTIES, aMsg, aParams, localizedMsg);
+      PropertiesFile::SECURITY_PROPERTIES, aMsg, aParams, localizedMsg);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

@@ -73,6 +73,10 @@ function scrubMailtoHandlers(handlerInfo) {
 }
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.settings-redesign.enabled", true]],
+  });
+
   // Create our dummy handlers
   let handler1 = Cc["@mozilla.org/uriloader/web-handler-app;1"].createInstance(
     Ci.nsIWebHandlerApp
@@ -244,7 +248,7 @@ add_task(async function checkDropdownBehavior() {
 
   let win = gBrowser.selectedBrowser.contentWindow;
 
-  let container = win.document.getElementById("handlersView");
+  let container = win.document.getElementById("applicationsHandlersView");
 
   // First check a protocol handler item.
   let mailItem = container.querySelector("moz-box-item[type='mailto']");

@@ -10,6 +10,8 @@
 
 namespace mozilla::dom {
 
+static const size_t kWebAuthnMaxAllowedCredentials = 20;
+
 class WindowGlobalParent;
 
 bool IsValidAppId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
@@ -27,6 +29,9 @@ nsresult DefaultRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
 
 bool IsValidRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
                  const nsACString& aRpId);
+
+nsresult GetWebAuthnClientDataOrigin(nsIPrincipal* aPrincipal,
+                                     /* out */ nsACString& aOrigin);
 
 nsresult HashCString(const nsACString& aIn, /* out */ nsTArray<uint8_t>& aOut);
 

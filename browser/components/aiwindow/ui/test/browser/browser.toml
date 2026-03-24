@@ -31,6 +31,8 @@ support-files = [
 
 ["browser_aichat_open_link.js"]
 
+["browser_aichat_same_link_click.js"]
+
 ["browser_aiwindow_account_auth.js"]
 
 ["browser_aiwindow_applied_memories_button.js"]
@@ -49,11 +51,15 @@ support-files = [
 
 ["browser_aiwindow_memories.js"]
 
+["browser_aiwindow_memories_toggle_prefs.js"]
+
 ["browser_aiwindow_new_chat_button.js"]
 
 ["browser_aiwindow_newtab_preload.js"]
 
 ["browser_aiwindow_search_button.js"]
+
+["browser_aiwindow_session_restore.js"]
 
 ["browser_aiwindow_smartbar.js"]
 
@@ -111,11 +117,19 @@ support-files = [
 
 ["browser_smartwindow_prompts.js"]
 
+["browser_smartwindow_recentchats.js"]
+
+["browser_smartwindow_request_response_telemetry.js"]
+
 ["browser_smartwindow_run_search.js"]
+
+["browser_smartwindow_sanitize.js"]
 
 ["browser_smartwindow_shortcut.js"]
 
 ["browser_smartwindow_smartbar_tab_state.js"]
+
+["browser_smartwindow_switcher_telemetry.js"]
 
 ["browser_smartwindow_tab_move.js"]
 

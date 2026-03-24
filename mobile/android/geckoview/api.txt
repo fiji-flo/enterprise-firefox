@@ -1050,7 +1050,7 @@ package org.mozilla.geckoview {
     method @Nullable public Class<? extends android.app.Service> getCrashHandler();
     method @NonNull public String getCrliteChannel();
     method @Nullable public String getDefaultRecursiveResolverUri();
-    method @Nullable public Boolean getDisableShip();
+    method @Deprecated @DeprecationSchedule(id="disable-ship-removal",version=153) @Nullable public Boolean getDisableShip();
     method @Nullable public Float getDisplayDensityOverride();
     method @Nullable public Integer getDisplayDpiOverride();
     method public boolean getDohAutoselectEnabled();
@@ -1192,7 +1192,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings.Builder crashPullNeverShowAgain(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder debugLogging(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder defaultRecursiveResolverUri(@NonNull String);
-    method @NonNull public GeckoRuntimeSettings.Builder disableShip(boolean);
+    method @Deprecated @DeprecationSchedule(id="disable-ship-removal",version=153) @NonNull public GeckoRuntimeSettings.Builder disableShip(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder displayDensityOverride(float);
     method @NonNull public GeckoRuntimeSettings.Builder displayDpiOverride(int);
     method @NonNull public GeckoRuntimeSettings.Builder doubleTapZoomingEnabled(boolean);
@@ -2337,9 +2337,17 @@ package org.mozilla.geckoview {
     field @NonNull public final String errorType;
   }
 
+  public static class PageExtractionController.PageMetadata {
+    ctor public PageMetadata(@NonNull String[], int, @NonNull String);
+    field @NonNull public final String language;
+    field @NonNull public final String[] structuredDataTypes;
+    field public final int wordCount;
+  }
+
   public static class PageExtractionController.SessionPageExtractor {
     ctor public SessionPageExtractor(GeckoSession);
     method @HandlerThread @NonNull public GeckoResult<String> getPageContent();
+    method @HandlerThread @NonNull public GeckoResult<PageExtractionController.PageMetadata> getPageMetadata();
   }
 
   @UiThread public class PanZoomController {

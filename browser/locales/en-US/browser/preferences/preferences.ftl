@@ -585,6 +585,10 @@ download-private-browsing-delete =
     .label = Delete files downloaded in private browsing when all private windows are closed
     .accesskey = D
 
+applications-header = Applications
+
+applications-description = Choose how { -brand-short-name } handles the files you download from the web or the applications you use while browsing.
+
 applications-setting =
     .label = Applications
     .description = Choose how { -brand-short-name } handles the files you download from the web or the applications you use while browsing.
@@ -676,6 +680,8 @@ applications-use-os-default-label =
     .value = { applications-use-os-default.label }
 
 ##
+
+applications-handle-new-file-types-description = What should { -brand-short-name } do with other files?
 
 applications-setting-new-file-types =
      .label = What should { -brand-short-name } do with other files?
@@ -2008,10 +2014,11 @@ permissions-block-popups2 =
 
 # "popup" is a misspelling that is more popular than the correct spelling of
 # "pop-up" so it's included as a search keyword, not displayed in the UI.
-permissions-block-popups-exceptions-button3 =
-    .label = Manage redirects
+permissions-block-popups-exceptions-button4 =
+    .label = Manage exceptions
+    .description = Add websites that can open pop-ups and use third-party redirects.
     .accesskey = E
-    .searchkeywords = popups,pop-ups
+    .searchkeywords = popups
 
 permissions-addon-install-warning3 =
     .label = Show warning when websites try to install extensions

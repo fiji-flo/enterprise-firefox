@@ -36,6 +36,8 @@ import {
   MESSAGES_BY_DATE,
   MESSAGES_BY_DATE_AND_ROLE,
   DELETE_CONVERSATION_BY_ID,
+  DELETE_CONVERSATIONS_BY_DATE,
+  DELETE_ALL_CONVERSATIONS,
   CONVERSATIONS_OLDEST,
   CONVERSATION_HISTORY,
   ESCAPE_CHAR,
@@ -54,7 +56,7 @@ export {
   CONVERSATION_STATUS,
   MESSAGE_ROLE,
   MEMORIES_FLAG_SOURCE,
-} from "./ChatConstants.sys.mjs";
+} from "./AIWindowConstants.sys.mjs";
 
 import {
   CURRENT_SCHEMA_VERSION,
@@ -62,7 +64,7 @@ import {
   DB_FILE_NAME,
   PREF_BRANCH,
   CONVERSATION_STATUS,
-} from "./ChatConstants.sys.mjs";
+} from "./AIWindowConstants.sys.mjs";
 
 import {
   parseConversationRow,
@@ -749,6 +751,45 @@ class ChatStore {
     await this.#conn.execute(DELETE_CONVERSATION_BY_ID, {
       conv_id: id,
     });
+  }
+
+  /**
+   * Deletes all conversations created within the given date range.
+   * Messages are cascade-deleted via foreign key constraints.
+   *
+   * @param {Date} startDate - The start date, inclusive
+   * @param {Date} endDate - The end date, inclusive
+   */
+  async deleteConversationsByDateRange(startDate, endDate) {
+    await this.#ensureDatabase().catch(e => {
+      lazy.log.error(
+        "Could not ensure a database connection.",
+        e.message,
+        e.stack
+      );
+      throw e;
+    });
+
+    await this.#conn.execute(DELETE_CONVERSATIONS_BY_DATE, {
+      start_date: startDate.getTime(),
+      end_date: endDate.getTime(),
+    });
+  }
+
+  /**
+   * Deletes all conversations and their messages.
+   */
+  async deleteAllConversations() {
+    await this.#ensureDatabase().catch(e => {
+      lazy.log.error(
+        "Could not ensure a database connection.",
+        e.message,
+        e.stack
+      );
+      throw e;
+    });
+
+    await this.#conn.execute(DELETE_ALL_CONVERSATIONS);
   }
 
   /**
