@@ -487,13 +487,12 @@ export const ConsoleClient = {
    * Serializes concurrent refreshes via an internal promise.
    * This should only be called from the Felt UI context.
    *
-   * @throws {InvalidAuthError} If unable to refresh session
+   * @throws {InvalidAuthError | ReauthRequiredError} If unable to refresh session
    * @returns {Promise<{ access_token, refresh_token, expires_at }>}
    */
   async refreshTokens() {
-    // Process only if we are in the Felt UI context.
     if (Services.felt.isFeltBrowser()) {
-      console.debug(
+      console.error(
         `refreshTokens(): Called from Browser context, which is not allowed.`
       );
       return;
@@ -501,15 +500,12 @@ export const ConsoleClient = {
 
     // If a refresh is already underway, just return the promise.
     if (this._feltRefreshPromise) {
-      console.debug(
-        `refreshTokens(): _feltRefreshPromise exists, returning existing promise.`
-      );
       return this._feltRefreshPromise;
     }
 
-    // At this point, we are in the Felt UI context and no _feltRefreshPromise exists, let's go.
-    console.debug("refreshTokens(): starting token refresh");
-    this._feltRefreshPromise = new Promise((resolve, reject) => {
+    // At this point, we are in the Felt UI context and no
+    // _feltRefreshPromise exists, so do the actual refresh.
+    this._feltRefreshPromise = (async () => {
       const refreshToken = Services.felt.getRefreshToken();
       if (!refreshToken) {
         const e = new ReauthRequiredError(
@@ -517,71 +513,55 @@ export const ConsoleClient = {
           "MISSING_REFRESH_TOKEN"
         );
         console.error(e);
-        this.promptForReauthentication();
-        resolve();
-        return;
+        throw e;
       }
 
       const url = this.constructURI(this._paths.TOKEN);
-      this._xhrFetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          grant_type: "refresh_token",
-          refresh_token: refreshToken,
-        }),
-      }).then(
-        res => {
-          if (res.status === 401 || res.status === 403) {
-            const e = new ReauthRequiredError(
-              "Invalid refresh token",
-              "INVALID_REFRESH_TOKEN",
-              { status: res.status }
-            );
-            console.error(e);
-            this.promptForReauthentication();
-            resolve();
-            return;
-          }
+      let res;
+      try {
+        res = await this._xhrFetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+          }),
+        });
+      } catch (cause) {
+        const e = new InvalidAuthError(
+          `Token refresh request failed: ${cause.message}`,
+          "TOKEN_REFRESH_FAILED",
+          { cause }
+        );
+        console.error(e);
+        throw e;
+      }
 
-          // TODO: Handle network issues, offline support, etc.
+      if (res.status === 401 || res.status === 403) {
+        const e = new ReauthRequiredError(
+          "Invalid refresh token",
+          "INVALID_REFRESH_TOKEN",
+          { status: res.status }
+        );
+        console.error(e);
+        throw e;
+      }
 
-          if (!res.ok) {
-            res
-              .text()
-              .catch(() => "")
-              .then(text => {
-                reject(
-                  new InvalidAuthError(
-                    `Token refresh failed (${res.status}): ${text}`,
-                    "TOKEN_REFRESH_FAILED"
-                  )
-                );
-              });
-            return;
-          }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new InvalidAuthError(
+          `Token refresh failed (${res.status}): ${text}`,
+          "TOKEN_REFRESH_FAILED"
+        );
+      }
 
-          res.json().then(({ access_token, refresh_token, expires_in }) => {
-            const expires_at =
-              Math.floor(Date.now() / 1000) + Number(expires_in);
-            console.debug("refreshTokens() got new tokens!");
-            resolve({ access_token, refresh_token, expires_at });
-          }, reject);
-        },
-        cause => {
-          reject(
-            new InvalidAuthError(
-              `Token refresh request failed: ${cause.message}`,
-              "TOKEN_REFRESH_FAILED",
-              { cause }
-            )
-          );
-        }
-      );
-    }).finally(() => {
+      const { access_token, refresh_token, expires_in } = await res.json();
+      const expires_at = Math.floor(Date.now() / 1000) + Number(expires_in);
+      return { access_token, refresh_token, expires_at };
+    })().finally(() => {
       this._feltRefreshPromise = null;
     });
     return this._feltRefreshPromise;
@@ -605,9 +585,6 @@ export const ConsoleClient = {
     }
 
     if (this._refreshPromise) {
-      console.debug(
-        `_refreshSession(): _refreshPromise already exists, returning existing promise.`
-      );
       return this._refreshPromise;
     }
 
@@ -711,8 +688,6 @@ export const ConsoleClient = {
     Services.felt.makeBackgroundProcess(true);
     // Signal FELT to perform the server-side signout POST and clear its tokens.
     Services.felt.performSignout();
-    // Clear the browser's token data.
-    this.clearTokenData();
   },
 
   async performServerSignout() {
@@ -735,17 +710,15 @@ export const ConsoleClient = {
   observe(_, topic) {
     switch (topic) {
       case "xpcom-shutdown": {
-        console.debug("ConsoleClient: xpcom-shutdown observed, cleaning up");
         Services.obs.removeObserver(this, "xpcom-shutdown");
         this.clearTokenData();
         this._refreshPromise = null;
+        this._refreshResolve = null;
+        this._refreshReject = null;
         break;
       }
       case "felt-firefox-access-token-refreshed": {
-        console.debug(
-          `ConsoleClient: felt-firefox-access-token-refreshed observed, ${this._refreshPromise ? "resolving refresh promise" : "no refresh promise to resolve"}`
-        );
-        // resolve the promise, if any
+        // Resolve the promise, if any
         this._refreshResolve?.();
         // Reset the promise since we're done.
         this._refreshPromise = null;

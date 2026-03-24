@@ -122,7 +122,8 @@ impl FeltXPCOM {
     }
 
     /**
-     * Sends the current tokens to the browser. Sending from the Browser to FELT is not supported.
+     * Sends the current access token to the browser.
+     * Sending from the Browser to FELT is not supported.
      */
     fn SendAccessToken(&self) -> nserror::nsresult {
         trace!("FeltXPCOM::SendAccessToken(): sending tokens");
@@ -459,7 +460,6 @@ impl FeltXPCOM {
                     transform_state: ProcessApplicationTransformState,
                 ) -> u32;
             }
-
             let psn = ProcessSerialNumber {
                 highLongOfPSN: 0,
                 lowLongOfPSN: kCurrentProcess,
