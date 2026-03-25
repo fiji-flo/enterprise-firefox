@@ -251,8 +251,7 @@ this.felt = class extends ExtensionAPI {
       }
 
       case "FeltParent:FirefoxLogoutExit": {
-        const success = Services.felt.makeBackgroundProcess(false);
-        console.debug(`FeltExtension: makeBackgroundProcess? ${success}`);
+        Services.felt.makeBackgroundProcess(false);
         this.showWindow();
         break;
       }
@@ -299,8 +298,6 @@ this.felt = class extends ExtensionAPI {
   }
 
   showWindow(errorMessage = "") {
-    console.debug(`FeltExtension: showWindow: this._win=${this._win}`);
-
     // Height and width are for now set to fit the sso.mozilla.com without the need to resize the window
     let flags =
       "chrome,private,centerscreen,titlebar,resizable,width=727,height=744";

@@ -564,7 +564,6 @@ export const ConsoleClient = {
    * Serializes concurrent refresh calls via an internal promise.
    * This should only be called from the browser context.
    *
-   * @throws {InvalidAuthError} If unable to refresh session
    * @returns {Promise<void>}
    */
   async _refreshSession() {
@@ -675,8 +674,6 @@ export const ConsoleClient = {
 
     // TODO: Assert or force-enable session restore?
 
-    // Make the browser "invisible" on macos.
-    Services.felt.makeBackgroundProcess(true);
     // Signal FELT to perform the server-side signout POST and clear its tokens.
     Services.felt.performSignout();
   },
@@ -693,6 +690,7 @@ export const ConsoleClient = {
 
     if (Services.felt.isFeltBrowser()) {
       Services.obs.addObserver(this, "felt-firefox-access-token-refreshed");
+      Services.obs.addObserver(this, "felt-firefox-shutdown-for-reauth");
     }
 
     return this;
@@ -706,6 +704,10 @@ export const ConsoleClient = {
         this._refreshPromise = null;
         this._refreshResolve = null;
         this._refreshReject = null;
+        break;
+      }
+      case "felt-firefox-shutdown-for-reauth": {
+        Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
         break;
       }
       case "felt-firefox-access-token-refreshed": {

@@ -206,9 +206,6 @@ export class FeltProcessParent extends JSProcessActorParent {
             break;
 
           case "felt-firefox-tokens": {
-            console.debug(
-              `FeltExtension: ParentProcess: Update tokens from browser to FELT`
-            );
             const data = JSON.parse(aData);
             Services.felt.setTokens(
               data.access_token,
@@ -235,8 +232,19 @@ export class FeltProcessParent extends JSProcessActorParent {
                 Services.felt.sendAccessToken();
               })
               .catch(error => {
-                console.error("FeltExtension: token refresh failed", error);
-                // TODO: (AP) we have to show the signin UI at this point
+                console.error(
+                  "FeltExtension: token refresh failed, reauthenticate",
+                  error
+                );
+                lazy.ConsoleClient.clearTokenData();
+                gFeltProcessParentInstance.logoutReported = true;
+                gFeltProcessParentInstance.proc.exitPromise.then(_ => {
+                  Services.cpmm.sendAsyncMessage(
+                    "FeltParent:FirefoxLogoutExit",
+                    {}
+                  );
+                });
+                Services.felt.shutdownFirefoxForReauth();
               });
             break;
           }

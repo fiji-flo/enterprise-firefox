@@ -63,6 +63,7 @@ pub enum FeltMessage {
     LogoutShutdown,
     Exiting,
     UpdateReady,
+    ShutdownForReauth,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

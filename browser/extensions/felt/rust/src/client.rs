@@ -10,7 +10,7 @@ use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc, Mutex};
 use xpcom::interfaces::{nsIObserver, nsIObserverService, nsISupports};
 use xpcom::RefPtr;
 
-use log::{info, trace};
+use log::trace;
 
 use crate::message::{nsICookieWrapper, FeltMessage, FELT_IPC_VERSION};
 use crate::utils::{self, Tokens, TOKENS};
@@ -391,6 +391,10 @@ impl FeltClientThread {
                                         trace!("FeltClientThread::felt_client::ipc_loop(): ERROR setting access token");
                                     }
                                 }
+                                Ok(FeltMessage::ShutdownForReauth) => {
+                                    trace!("FeltClientThread::felt_client::ipc_loop(): ShutdownForReauth");
+                                    utils::notify_observers("felt-firefox-shutdown-for-reauth".to_string());
+                                },
                                 Ok(FeltMessage::OpenURL((url, disposition, focus_hint))) => {
                                     trace!(
                                         "FeltClientThread::felt_client::ipc_loop(): OpenURL({}, {}, {:?})",

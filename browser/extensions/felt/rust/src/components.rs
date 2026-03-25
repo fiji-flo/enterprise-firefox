@@ -259,7 +259,12 @@ impl FeltXPCOM {
         let focus_hint = utils::get_focus_hint();
         #[cfg(not(target_os = "linux"))]
         let focus_hint = None;
-        trace!("FeltXPCOM::OpenURL: {} {} {:?}", url_s, disposition, focus_hint);
+        trace!(
+            "FeltXPCOM::OpenURL: {} {} {:?}",
+            url_s,
+            disposition,
+            focus_hint
+        );
         self.send(FeltMessage::OpenURL((url_s, disposition, focus_hint)))
     }
 
@@ -275,12 +280,16 @@ impl FeltXPCOM {
         }
     }
 
+    fn ShutdownFirefoxForReauth(&self) -> nserror::nsresult {
+        trace!("FeltXPCOM::ShutdownFirefoxForReauth");
+        self.send(FeltMessage::ShutdownForReauth)
+    }
+
     fn PerformSignout(&self) -> nserror::nsresult {
         trace!("FeltXPCOM::PerformSignout");
         let guard = crate::FELT_CLIENT.lock().expect("Could not get lock");
         match &*guard {
             Some(client) => {
-                trace!("performSignout(): sending notify_signout message");
                 client.notify_signout();
             }
             None => {
