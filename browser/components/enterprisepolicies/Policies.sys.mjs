@@ -47,7 +47,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
     prefix: "Policies",
     // tip: set maxLogLevel to "debug" and use log.debug() to create detailed
     // messages during development. See LOG_LEVELS in Console.sys.mjs for details.
-    maxLogLevel: "error",
+    maxLogLevel: "warn",
     maxLogLevelPref: PREF_LOGLEVEL,
   });
 });
@@ -113,6 +113,139 @@ export var Policies = {
   "3rdparty": {
     onBeforeAddons(manager, param) {
       manager.setExtensionPolicies(param.Extensions);
+    },
+  },
+
+  AccessConnector: {
+    onBeforeAddons(manager, param) {
+      const locked = param.Locked ?? true;
+      PoliciesUtils.setDefaultPref(
+        "browser.ipProtection.features.autoStart",
+        true,
+        locked
+      );
+      PoliciesUtils.setDefaultPref(
+        "browser.ipProtection.autoStartEnabled",
+        true,
+        locked
+      );
+      PoliciesUtils.setDefaultPref(
+        "browser.ipProtection.mode",
+        3 /* MODE_INCLUSION */,
+        locked
+      );
+
+      const serverList = [
+        {
+          code: "US",
+          cities: [
+            {
+              servers: [
+                {
+                  host: param.Host,
+                  port: String(param.Port),
+                  protocols: [
+                    {
+                      name: "connect",
+                      port: String(param.Port),
+                      host: param.Host,
+                      scheme: "https",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ];
+      PoliciesUtils.setDefaultPref(
+        "browser.ipProtection.override.serverlist",
+        JSON.stringify(serverList),
+        locked
+      );
+
+      if ("MatchPatterns" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.ipProtection.inclusion.match_patterns",
+          JSON.stringify(param.MatchPatterns),
+          locked
+        );
+      }
+
+      // Set enabled last so that all other prefs are in place when
+      // the pref observer triggers IPProtectionService.init().
+      PoliciesUtils.setDefaultPref(
+        "browser.ipProtection.enabled",
+        true,
+        locked
+      );
+    },
+    onRemove(manager, oldParams) {
+      unsetAndUnlockPref("browser.ipProtection.enabled");
+      unsetAndUnlockPref("browser.ipProtection.features.autoStart");
+      unsetAndUnlockPref("browser.ipProtection.autoStartEnabled");
+      unsetAndUnlockPref("browser.ipProtection.mode");
+      unsetAndUnlockPref("browser.ipProtection.override.serverlist");
+      if ("MatchPatterns" in oldParams) {
+        unsetAndUnlockPref("browser.ipProtection.inclusion.match_patterns");
+      }
+    },
+  },
+
+  AIControls: {
+    onBeforeAddons(manager, param) {
+      const features = [
+        [
+          "SidebarChatbot",
+          ["browser.ml.chat.enabled", "browser.ml.chat.page"],
+          "browser.ai.control.sidebarChatbot",
+        ],
+        [
+          "Translations",
+          ["browser.translations.enable"],
+          "browser.ai.control.translations",
+        ],
+        [
+          "PDFAltText",
+          ["pdfjs.enableAltText"],
+          "browser.ai.control.pdfjsAltText",
+        ],
+        [
+          "LinkPreviewKeyPoints",
+          ["browser.ml.linkPreview.enabled"],
+          "browser.ai.control.linkPreviewKeyPoints",
+        ],
+        [
+          "SmartTabGroups",
+          ["browser.tabs.groups.smart.userEnabled"],
+          "browser.ai.control.smartTabGroups",
+        ],
+        ["SmartWindow", [], "browser.ai.control.smartWindow"],
+      ];
+
+      const defaultItem = param.Default;
+      const defaultLocked = defaultItem?.Locked ?? false;
+
+      for (const [key, prefs, aiControlPref] of features) {
+        let item = param[key] ?? defaultItem;
+        if (!item) {
+          continue;
+        }
+        let value = item.Value;
+        let locked = item.Locked ?? defaultLocked;
+        PoliciesUtils.setDefaultPref(aiControlPref, value, locked);
+        for (const pref of prefs) {
+          PoliciesUtils.setDefaultPref(pref, value === "available", locked);
+        }
+      }
+
+      if (defaultItem) {
+        PoliciesUtils.setDefaultPref(
+          "browser.ai.control.default",
+          defaultItem.Value,
+          defaultLocked
+        );
+      }
     },
   },
 
@@ -1901,6 +2034,12 @@ export var Policies = {
 
   GenerativeAI: {
     onBeforeAddons(manager, param) {
+      let policies = Services.policies.getActivePolicies();
+      if (policies.AIControls) {
+        lazy.log.warn("Ignoring GenerativeAI policy in favor of AIControls");
+        return;
+      }
+
       const defaultValue = "Enabled" in param ? param.Enabled : undefined;
 
       const features = [
@@ -2737,6 +2876,39 @@ export var Policies = {
     },
   },
 
+  RelaunchRequired: {
+    onBeforeUIStartup(_manager, param) {
+      let notificationPeriodHours = 24;
+      let restartTimeOfDay = { Hour: 12, Minute: 0 };
+      if (
+        typeof param.NotificationPeriodHours === "number" &&
+        param.NotificationPeriodHours >= 0
+      ) {
+        notificationPeriodHours = param.NotificationPeriodHours;
+      }
+      if (typeof param.RestartTimeOfDay === "object") {
+        try {
+          const timeOfDay = Temporal.PlainTime.from({
+            hour: param.RestartTimeOfDay.Hour,
+            minute: param.RestartTimeOfDay.Minute,
+          });
+          // Looks like it's a valid time.
+          restartTimeOfDay.Hour = timeOfDay.hour;
+          restartTimeOfDay.Minute = timeOfDay.minute;
+        } catch (ex) {
+          lazy.log.error("Incorrect format for RestartTimeOfDay");
+        }
+      }
+      setAndLockPref(
+        "app.update.compulsory_restart",
+        JSON.stringify({
+          NotificationPeriodHours: notificationPeriodHours,
+          RestartTimeOfDay: restartTimeOfDay,
+        })
+      );
+    },
+  },
+
   RequestedLocales: {
     onBeforeAddons(manager, param) {
       let requestedLocales;
@@ -3324,6 +3496,13 @@ export var Policies = {
 
   TranslateEnabled: {
     onBeforeAddons(manager, param) {
+      let policies = Services.policies.getActivePolicies();
+      if (policies.AIControls?.Translations || policies.AIControls?.Default) {
+        lazy.log.warn(
+          "Ignoring TranslateEnabled policy in favor of AIControls"
+        );
+        return;
+      }
       setAndLockPref("browser.translations.enable", param);
       setAndLockPref(
         "browser.ai.control.translations",

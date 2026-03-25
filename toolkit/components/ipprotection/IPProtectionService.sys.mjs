@@ -230,4 +230,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
   }
 );
 
+// Default-branch pref changes (from enterprise policies) don't fire pref
+// observers. Re-check after policies are activated so that IPProtection
+// starts when the AccessConnector policy enables it.
+Services.obs.addObserver(
+  {
+    observe() {
+      if (Services.prefs.getBoolPref(ENABLED_PREF, false)) {
+        IPProtectionService.init();
+      } else {
+        IPProtectionService.uninit();
+      }
+    },
+  },
+  "EnterprisePolicies:Activate"
+);
+
 export { IPProtectionService };

@@ -431,10 +431,7 @@ puppeteer-build:
         script: puppeteer-build.sh
         sparse-profile: null
         resources:
-            - 'remote/test/puppeteer/package.json'
-            - 'remote/test/puppeteer/package-lock.json'
-            - 'remote/test/puppeteer/test/package.json'
-            - 'remote/test/puppeteer/test/TestExpectations.json'
+            - 'remote/test/puppeteer/**'
         toolchain-artifact: public/build/puppeteer-build.tar.zst
     fetches:
         toolchain:

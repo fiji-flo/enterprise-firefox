@@ -19,7 +19,7 @@ const DEFAULT_LAUNCHER_VISIBLE = false;
  *
  * @typedef {object} SidebarStateProps
  *
- * @property {boolean} command
+ * @property {string} command
  *   The id of the current sidebar panel. The panel may be closed and still have a command value.
  *   Re-opening the sidebar panel will then load the current command id.
  * @property {boolean} panelOpen

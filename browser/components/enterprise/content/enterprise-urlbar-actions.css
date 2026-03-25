@@ -1,0 +1,23 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#lockdown-mode-button .urlbar-icon {
+  list-style-image: url("chrome://browser/content/enterprise/lockdown-mode.svg");
+}
+
+/* use theme colors for HCM */
+@media not (forced-colors) {
+  #lockdown-mode-button .urlbar-icon {
+    -moz-context-properties: fill;
+    fill: var(--icon-color-information);
+  }
+}
+
+.lockdown-mode-subview {
+  max-width: var(--size-layout-large);
+
+  & .panel-subview-body {
+    padding: var(--space-small) var(--space-medium) var(--space-medium);
+  }
+}

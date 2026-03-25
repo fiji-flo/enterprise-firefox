@@ -367,8 +367,12 @@ export const NET_ERRORS = [
     category: "net",
     bodyTitleL10nId: "problem-with-this-site-title",
     introContent: {
-      dataL10nId: "fp-neterror-offline-intro",
-      dataL10nArgs: { hostname: null },
+      dataL10nId: "fp-neterror-http-error-intro",
+      dataL10nArgs: {
+        hostname: null,
+        responsestatus: null,
+        responsestatustext: null,
+      },
     },
     descriptionParts: [{ tag: "li", dataL10nId: "neterror-http-error-page" }],
     buttons: {
@@ -377,7 +381,10 @@ export const NET_ERRORS = [
     },
     customNetError: {
       titleL10nId: "problem-with-this-site-title",
-      whatCanYouDoL10nId: "neterror-load-error-try-again",
+      whatCanYouDoItems: [
+        "neterror-http-error-page",
+        "neterror-load-error-try-again",
+      ],
     },
     hasNoUserFix: false,
     image: NET_ERROR_ILLUSTRATIONS.noConnection,
@@ -388,8 +395,12 @@ export const NET_ERRORS = [
     category: "net",
     bodyTitleL10nId: "problem-with-this-site-title",
     introContent: {
-      dataL10nId: "fp-neterror-offline-intro",
-      dataL10nArgs: { hostname: null },
+      dataL10nId: "fp-neterror-http-error-intro",
+      dataL10nArgs: {
+        hostname: null,
+        responsestatus: null,
+        responsestatustext: null,
+      },
     },
     descriptionParts: [
       { tag: "li", dataL10nId: "neterror-load-error-try-again" },
@@ -400,7 +411,10 @@ export const NET_ERRORS = [
     },
     customNetError: {
       titleL10nId: "problem-with-this-site-title",
-      whatCanYouDoL10nId: "neterror-load-error-try-again",
+      whatCanYouDoItems: [
+        "neterror-http-error-page",
+        "neterror-load-error-try-again",
+      ],
     },
     hasNoUserFix: false,
     image: NET_ERROR_ILLUSTRATIONS.noConnection,

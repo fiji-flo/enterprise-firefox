@@ -499,8 +499,9 @@ msix:
                         "asan" in task["test-platform"]
                         || "ccov" in task["test-platform"]
                         || "devedition" in task["test-platform"]
+                        || "enterprise" in task["test-platform"]
                     )
-                '
+                '  # Bug 2026135 - re-enable msix tests when msix installer exists
     replace:
         mozharness:
             extra-options:

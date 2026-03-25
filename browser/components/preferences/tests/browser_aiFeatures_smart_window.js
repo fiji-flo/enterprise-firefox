@@ -37,7 +37,7 @@ describe("settings AI Controls - Smart Window", () => {
         BrowserTestUtils.isVisible(badge),
         "moz-badge is visible on Smart Window fieldset"
       );
-      Assert.equal(badge.getAttribute("type"), "new", "badge has type new");
+      Assert.equal(badge.getAttribute("type"), "beta", "badge has type beta");
 
       // Hidden when browser.smartwindow.enabled is false
       await SpecialPowers.pushPrefEnv({

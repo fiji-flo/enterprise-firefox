@@ -5,3 +5,5 @@ prefs = [
 ]
 
 ["browser_enterprise_endpoints.js"]
+
+["browser_lockdown_mode_page_action.js"]

@@ -1192,6 +1192,7 @@ class TestResolver(MozbuildObject):
         self._reset_state()
 
         wpt_path = os.path.join(self.topsrcdir, "testing", "web-platform")
+        old_path = sys.path[:]
         sys.path = [wpt_path] + sys.path
 
         import logging
@@ -1210,6 +1211,9 @@ class TestResolver(MozbuildObject):
             update=True,
             logger=logger,
         )
+
+        sys.path = old_path
+
         if not manifests:
             print("Loading wpt manifest failed")
             return

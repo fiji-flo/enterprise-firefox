@@ -81,6 +81,7 @@ import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.app.links.AppLinksFeature
+import mozilla.components.feature.app.links.RedirectDialogData
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
@@ -236,6 +237,7 @@ import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.pbmlock.NavigationOrigin
 import org.mozilla.fenix.pbmlock.observePrivateModeLock
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
@@ -469,19 +471,7 @@ abstract class BaseBrowserFragment :
                 store = requireComponents.core.store,
                 fragmentManager = parentFragmentManager,
                 sessionId = customTabSessionId,
-                dialog = { data ->
-                    AppLinksPromptFragment.create(
-                        appName = requireContext().appName,
-                        title = data.title,
-                        message = data.message,
-                        showCheckbox = data.showCheckbox,
-                        sourceUrl = data.sourceUrl,
-                        destinationUrl = data.destinationUrl,
-                        firefoxUrl = data.firefoxUrl,
-                        uniqueIdentifier = data.uniqueIdentifier,
-                        packageName = data.packageName,
-                    )
-                },
+                dialog = appLinksPromptDialog(),
                 launchInApp = { requireContext().settings().shouldOpenLinksInApp(customTabSessionId != null) },
                 loadUrlUseCase = requireComponents.useCases.sessionUseCases.loadUrl,
                 shouldPrompt = { requireContext().settings().shouldPromptOpenLinksInApp() },
@@ -494,7 +484,6 @@ abstract class BaseBrowserFragment :
                         val appLinksUseCases = requireComponents.useCases.appLinksUseCases
                         val getRedirect = appLinksUseCases.appLinkRedirect
                         val redirect = getRedirect.invoke(fallbackUrl)
-                        redirect.appIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         appLinksUseCases.openAppLink.invoke(redirect.appIntent)
                     }
                 },
@@ -2800,6 +2789,26 @@ abstract class BaseBrowserFragment :
             else -> {
                 // no-op
             }
+        }
+    }
+
+    private fun appLinksPromptDialog(): ((RedirectDialogData) -> AppLinksPromptFragment)? {
+        if (!FxNimbus.features.appLinks.value().showNewPrompt) {
+            return null
+        }
+
+        return { redirectDialogData ->
+            AppLinksPromptFragment.create(
+                appName = requireContext().appName,
+                title = redirectDialogData.title,
+                message = redirectDialogData.message,
+                showCheckbox = redirectDialogData.showCheckbox,
+                sourceUrl = redirectDialogData.sourceUrl,
+                destinationUrl = redirectDialogData.destinationUrl,
+                firefoxUrl = redirectDialogData.firefoxUrl,
+                uniqueIdentifier = redirectDialogData.uniqueIdentifier,
+                packageName = redirectDialogData.packageName,
+            )
         }
     }
 

@@ -196,6 +196,7 @@ linux-tests:
 linux-tests-enterprise:
     - marionette-integration
     - marionette-enterprise
+    - mochitest-browser-chrome
     - mochitest-plain
     - xpcshell
 
@@ -351,6 +352,7 @@ windows11-24h2-tests:
 windows11-24h2-tests-enterprise:
     - marionette-integration
     - marionette-enterprise
+    - mochitest-browser-chrome
     - mochitest-plain
     - xpcshell
 
@@ -464,6 +466,7 @@ macosx1500-64-tests:
 macosx1500-64-tests-enterprise:
     - marionette-integration
     - marionette-enterprise
+    - mochitest-browser-chrome
     - mochitest-plain
     - xpcshell
 

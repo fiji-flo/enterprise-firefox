@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 150.0 (In Development)
+# 151.0 (In Development)
+
+# 150.0
 * **browser-engine-gecko**
   * 🆕 The content blocking log will now inform also of blocked cross-site cookies. [Bug 2020898](https://bugzilla.mozilla.org/show_bug.cgi?id=2020898)
 * **support-utils**

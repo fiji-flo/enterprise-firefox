@@ -486,7 +486,7 @@ function CardSection({
       <div
         className={following ? "section-follow following" : "section-follow"}
       >
-        {followable &&
+        {followable !== false &&
           !anySectionsFollowed &&
           sectionPosition === 0 &&
           shouldShowOMCHighlight(
@@ -503,7 +503,7 @@ function CardSection({
               />
             </MessageWrapper>
           )}
-        {followable &&
+        {followable !== false &&
           !anySectionsFollowed &&
           sectionPosition === 0 &&
           shouldShowOMCHighlight(
@@ -519,7 +519,7 @@ function CardSection({
               />
             </MessageWrapper>
           )}
-        {followable && (
+        {followable !== false && (
           <moz-button
             onClick={following ? onUnfollowClick : onFollowClick}
             type="default"

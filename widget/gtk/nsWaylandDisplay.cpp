@@ -507,6 +507,8 @@ void nsWaylandDisplay::SetAppMenuManager(
   mAppMenuManager = aAppMenuManager;
 }
 
+void nsWaylandDisplay::SetFixes(wl_fixes* aFixes) { mFixes = aFixes; }
+
 void nsWaylandDisplay::SetCMSupportedFeature(uint32_t aFeature) {
   LOG("nsWaylandDisplay::SetCMSupportedFeature() [%d]", aFeature);
   switch (aFeature) {
@@ -846,6 +848,10 @@ static void global_registry_handler(void* data, wl_registry* registry,
     auto* output =
         WaylandRegistryBind<wl_output>(registry, id, &wl_output_interface, 2);
     display->AddWlOutput(output, id);
+  } else if (iface.EqualsLiteral("wl_fixes")) {
+    auto* fixes = WaylandRegistryBind<wl_fixes>(
+        registry, id, &wl_fixes_interface, MIN(version, 2));
+    display->SetFixes(fixes);
   }
 }
 
@@ -855,10 +861,17 @@ static void global_registry_remover(void* data, wl_registry* registry,
   if (!display) {
     return;
   }
-  if (display->RemoveMonitorConfig(id)) {
-    return;
+
+  if (!display->RemoveMonitorConfig(id)) {
+    display->RemoveSeat(id);
   }
-  display->RemoveSeat(id);
+
+  if (wl_fixes* fixes = display->GetFixes()) {
+    if (wl_fixes_get_version(fixes) >=
+        WL_FIXES_ACK_GLOBAL_REMOVE_SINCE_VERSION) {
+      wl_fixes_ack_global_remove(fixes, registry, id);
+    }
+  }
 }
 
 static const struct wl_registry_listener registry_listener = {

@@ -358,12 +358,6 @@ interface MultiAction {
 }
 ```
 
-### `CLICK_ELEMENT`
-
-* args: `string` A CSS selector for the HTML element to be clicked
-
-Selects an element in the current Window's document and triggers a click action
-
 
 ### `RELOAD_BROWSER`
 
@@ -491,5 +485,11 @@ Open a panel associated with a given widget.
 ### `CREATE_TASKBAR_TAB`
 
 Creates a taskbar tab from the current URL and asks to pin it to the taskbar. Windows only.
+
+- args: (none)
+
+### `RESTART_APP`
+
+Restart the application.
 
 - args: (none)

@@ -225,7 +225,7 @@ typescript:
     # adding them to the exclusion list avoids the reported error,
     # so dont make it surfaced on GitHub Checks
     attributes:
-        required_checks: false
+        code-review: false
     treeherder:
         symbol: js(TSC)
         tier: 3
@@ -707,7 +707,7 @@ perfdocs-verify:
     # perfdocs will always warn because we are not scheduling the builds it
     # likes, so dont make it surfaced on GitHub Checks
     attributes:
-        required_checks: false
+        code-review: false
     treeherder:
         symbol: text(perfdocs)
     run:

@@ -487,6 +487,39 @@ describe("<CardSections />", () => {
     assert.equal(wrapper.find(".section-follow moz-button").length, 0);
   });
 
+  it("should render follow button when section.followable is undefined", () => {
+    const state = {
+      ...INITIAL_STATE,
+      Prefs: {
+        ...INITIAL_STATE.Prefs,
+        values: {
+          ...INITIAL_STATE.Prefs.values,
+          [PREF_SECTIONS_PERSONALIZATION_ENABLED]: true,
+        },
+      },
+    };
+
+    wrapper = mount(
+      <WrapWithProvider state={state}>
+        <CardSections
+          dispatch={dispatch}
+          {...DEFAULT_PROPS}
+          data={{
+            ...DEFAULT_PROPS.data,
+            sections: [
+              {
+                ...DEFAULT_PROPS.data.sections[0],
+                followable: undefined,
+              },
+            ],
+          }}
+        />
+      </WrapWithProvider>
+    );
+
+    assert.equal(wrapper.find(".section-follow moz-button").length, 1);
+  });
+
   it("should render follow button when section.followable is true", () => {
     const state = {
       ...INITIAL_STATE,

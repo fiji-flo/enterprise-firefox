@@ -589,7 +589,9 @@ void nsWindow::DispatchResized() {
     return;
   }
 
-  auto clientSize = gUseStableRounding
+  // Wayland popups are painted at 0,0 but we use mClientArea.x/y as popup
+  // position so we can't use it for rounding of size coordinates.
+  auto clientSize = gUseStableRounding && !IsWaylandPopup()
                         ? GetClientSize()
                         : LayoutDeviceIntSize::Round(mClientArea.Size() *
                                                      GetDesktopToDeviceScale());
@@ -4428,14 +4430,6 @@ Maybe<GdkWindowEdge> nsWindow::CheckResizerEdge(
 
 template <typename Event>
 static LayoutDeviceIntPoint GetRefPoint(nsWindow* aWindow, Event* aEvent) {
-  if (aEvent->window == aWindow->GetGdkWindow()) {
-    // we are the window that the event happened on so no need for expensive
-    // WidgetToScreenOffset
-    return aWindow->GdkEventCoordsToDevicePixels(aEvent->x, aEvent->y);
-  }
-  // XXX we're never quite sure which GdkWindow the event came from due to our
-  // custom bubbling in scroll_event_cb(), so use ScreenToWidget to translate
-  // the screen root coordinates into coordinates relative to the inner widget.
   return aWindow->GdkEventCoordsToDevicePixels(aEvent->x_root, aEvent->y_root) -
          aWindow->WidgetToScreenOffset();
 }
@@ -7536,11 +7530,8 @@ MOZ_CAN_RUN_SCRIPT static void WaylandDragWorkaround(nsWindow* aWindow,
   }
   nsCOMPtr<nsIDragSession> currentDragSession =
       dragService->GetCurrentSession(aWindow);
-
-  RefPtr<nsDragSession> session =
-      currentDragSession ? static_cast<nsDragSession*>(currentDragSession.get())
-                         : nullptr;
-  if (!session || session->IsActive()) {
+  if (!currentDragSession ||
+      static_cast<nsDragSession*>(currentDragSession.get())->IsActive()) {
     return;
   }
 
@@ -7548,12 +7539,7 @@ MOZ_CAN_RUN_SCRIPT static void WaylandDragWorkaround(nsWindow* aWindow,
   NS_WARNING(
       "Quit unfinished Wayland Drag and Drop operation. Buggy Wayland "
       "compositor?");
-
-  nsDragSession::AutoEventLoop loop(session);
-  session->SetCanDrop(false);
-  session->SetDragAction(nsIDragService::DRAGDROP_ACTION_NONE);
-  session->ScheduleDropEvent(aWindow, session->GetSourceDragContext().get(),
-                             LayoutDeviceIntPoint(), 0);
+  currentDragSession->EndDragSession(true, 0);
 }
 
 static nsWindow* get_window_for_gtk_widget(GtkWidget* widget) {

@@ -33,6 +33,20 @@ extension-firefox-enterprise-light-description = A soft pastel theme with a touc
 extension-firefox-enterprise-dark-name = Firefox Enterprise Dark
 extension-firefox-enterprise-dark-description = A deep midnight theme with dark petrol blues and subtle, lighter blue gradients.
 
+lockdown-mode-button =
+    .aria-label = Viewing with restrictions
+    .tooltiptext = Viewing with restrictions
+lockdown-mode-popup-header = Viewing with restrictions applied
+lockdown-mode-popup-message = You’re viewing this page with extra security protections applied by your organization. Some features may be limited to help reduce security risks.
+
 blocked-by-policy-title-enterprise = Access to this site is restricted
 neterror-blocked-by-policy-page-title-enterprise = Access to this site is restricted
 neterror-blocked-by-policy-contact-admin = If you believe this is an error or need access for work purposes, please contact your IT administrator.
+
+enterprise-access-connector-heading = Access Connector
+enterprise-access-connector-info-active = This site is being accessed through a secure company connection.
+enterprise-access-connector-button =
+  .label = ""
+  .tooltiptext = Access Connector
+enterprise-access-connector-status-label-active = active
+enterprise-access-connector-status-label-inactive = inactive

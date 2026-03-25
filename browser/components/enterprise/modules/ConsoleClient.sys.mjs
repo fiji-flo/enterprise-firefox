@@ -8,6 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
+  composeOSNames: "resource:///modules/enterprise/EnterpriseOSInfo.sys.mjs",
 });
 
 /**
@@ -627,8 +628,17 @@ export const ConsoleClient = {
       .getService()
       .QueryInterface(Ci.nsINetworkLinkService).networkInterfaces;
 
+    const baseOs = lazy.TelemetryEnvironment.currentEnvironment.system.os;
+    const { long: os_long_name, short: os_short_name } =
+      await lazy.composeOSNames(baseOs);
+    const os = {
+      ...baseOs,
+      ...(os_long_name != null && { os_long_name }),
+      ...(os_short_name != null && { os_short_name }),
+    };
+
     const devicePosturePayload = {
-      os: lazy.TelemetryEnvironment.currentEnvironment.system.os,
+      os,
       security: lazy.TelemetryEnvironment.currentEnvironment.system.sec,
       build: lazy.TelemetryEnvironment.currentEnvironment.build,
       network: {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -65,6 +66,9 @@ export class GuardianClient {
    *  - False: The user is not linked to the Guardian service, they cannot be a proxy user.
    */
   async isLinkedToGuardian(onlyCached = false) {
+    if (AppConstants.MOZ_ENTERPRISE) {
+      return true;
+    }
     const guardian_clientId = CLIENT_ID_MAP[this.#successURL.origin];
     if (!guardian_clientId) {
       // If we end up using an unknown successURL, we are definitely not linked to Guardian.
@@ -251,6 +255,14 @@ export class GuardianClient {
    * - 401: The FxA token was rejected, probably guardian and fxa mismatch. (i.e guardian-stage and fxa-prod)
    */
   async fetchUserInfo(abortSignal = null) {
+    if (AppConstants.MOZ_ENTERPRISE) {
+      const entitlement = new Entitlement({
+        subscribed: true,
+        uid: 1,
+        maxBytes: "1000000",
+      });
+      return { status: 200, entitlement };
+    }
     using tokenHandle = await this.getToken(abortSignal);
     const response = await fetch(this.#statusURL, {
       method: "GET",
@@ -286,6 +298,15 @@ export class GuardianClient {
    * @returns {ProxyUsage | null}
    */
   async fetchProxyUsage(abortSignal) {
+    if (AppConstants.MOZ_ENTERPRISE) {
+      return new ProxyUsage(
+        "1000000",
+        "1000000",
+        Temporal.Now.zonedDateTimeISO()
+          .add(Temporal.Duration.from({ days: 30 }))
+          .toString()
+      );
+    }
     using tokenHandle = await this.getToken(abortSignal);
     const response = await fetch(this.#tokenURL, {
       method: "HEAD",
@@ -717,6 +738,12 @@ let gConfig = {
    * @returns {Promise<{token:string} & Disposable>} - A disposable, that will auto revoke the token after use.
    */
   getToken: async (abortSignal = null) => {
+    if (AppConstants.MOZ_ENTERPRISE) {
+      return {
+        token: Services.felt.getAccessTokenIfValid(),
+        [Symbol.dispose]: () => {},
+      };
+    }
     let tasks = [
       lazy.fxAccounts.getOAuthToken({
         scope: ["profile", "https://identity.mozilla.com/apps/vpn"],

@@ -605,8 +605,3 @@ dxc-crash-symbols
 =================
 
 Indicates that the job produces crash symbols for `dxcompiler.dll`.
-
-required_checks
-===============
-
-Indicates that a task should report on GitHub Checks

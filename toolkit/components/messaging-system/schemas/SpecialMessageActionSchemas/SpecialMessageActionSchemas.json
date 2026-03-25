@@ -342,6 +342,18 @@
           "properties": {
             "type": {
               "type": "string",
+              "enum": ["RESTART_APP"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Restart the application"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "enum": ["ACCEPT_DOH"]
             }
           },
@@ -604,24 +616,6 @@
           "required": ["data", "type"],
           "additionalProperties": false,
           "description": "Runs multiple actions"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "data": {
-              "selector": {
-                "type": "string",
-                "description": "A CSS selector for the HTML element to be clicked"
-              }
-            },
-            "type": {
-              "type": "string",
-              "enum": ["CLICK_ELEMENT"]
-            }
-          },
-          "required": ["data", "type"],
-          "additionalProperties": false,
-          "description": "Selects an element in the current Window's document and triggers a click action"
         },
         {
           "type": "object",

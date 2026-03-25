@@ -458,13 +458,23 @@ abstract class BasePage(
             SelectorStrategy.ESPRESSO_BY_CONTENT_DESC -> onView(withContentDescription(selector.value))
 
             SelectorStrategy.UIAUTOMATOR2_BY_CLASS -> {
-                val obj = mDevice.findObject(UiSelector().className(selector.value))
-                if (!obj.exists()) null else obj
+                val obj = mDevice.findObject(By.clazz(selector.value))
+                if (obj == null) {
+                    Log.i("mozGetElement", "UIObject2 not found for res: ${selector.value}")
+                    null
+                } else {
+                    obj
+                }
             }
 
             SelectorStrategy.UIAUTOMATOR2_BY_TEXT -> {
-                val obj = mDevice.findObject(UiSelector().text(selector.value))
-                if (!obj.exists()) null else obj
+                val obj = mDevice.findObject(By.text(selector.value))
+                if (obj == null) {
+                    Log.i("mozGetElement", "UIObject2 not found for res: ${selector.value}")
+                    null
+                } else {
+                    obj
+                }
             }
 
             SelectorStrategy.UIAUTOMATOR2_BY_RES -> {

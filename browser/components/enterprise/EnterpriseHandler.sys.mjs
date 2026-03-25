@@ -55,6 +55,7 @@ export const EnterpriseHandler = {
     }
     this.updateBadge(window);
     this.restrictEnterpriseView(window);
+    this._initLockdownModeButton(window);
   },
 
   async initUser() {
@@ -69,6 +70,29 @@ export const EnterpriseHandler = {
         e
       );
     }
+  },
+
+  _initLockdownModeButton(window) {
+    const button = window.document.getElementById("lockdown-mode-button");
+
+    button.addEventListener("click", event => {
+      window.PanelUI.showSubView("panelUI-lockdown-mode", button, event);
+    });
+
+    window.gBrowser.addTabsProgressListener({
+      onLocationChange(browser, _webProgress, _request, location) {
+        if (browser !== window.gBrowser.selectedBrowser) {
+          return;
+        }
+        let isLockedDown = false;
+        try {
+          isLockedDown = !Services.policies.isAllowedForURI("jit", location);
+        } catch (e) {
+          lazy.log.warn("Failed to check lockdown state for URI: ", e);
+        }
+        button.hidden = !isLockedDown;
+      },
+    });
   },
 
   /**
