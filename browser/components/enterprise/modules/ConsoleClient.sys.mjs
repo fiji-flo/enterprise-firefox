@@ -461,7 +461,7 @@ export const ConsoleClient = {
    */
   async getAccessToken() {
     let accessToken = Services.felt.getAccessTokenIfValid();
-    if (!accessToken) {
+    if (!accessToken && Services.felt.isFeltBrowser()) {
       await this._refreshSession();
       accessToken = Services.felt.getAccessTokenIfValid();
     }
@@ -569,7 +569,7 @@ export const ConsoleClient = {
    */
   async _refreshSession() {
     // Assert we are in the browser
-    if (!Services.felt.isFeltBrowser) {
+    if (!Services.felt.isFeltBrowser()) {
       throw new Error(
         "_refreshSession: called from non-Browser context, which is not allowed."
       );
