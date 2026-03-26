@@ -205,6 +205,9 @@ impl ReportCrashUI {
             close_window,
         } = state.borrow();
 
+        #[cfg(feature = "enterprise")]
+        let policy_auto_submit = config.policy_auto_submit;
+
         send_report.on_change(cc! { (logic) move |v| {
             let v = *v;
             logic.push(move |s| s.settings.borrow_mut().submit_report = v);
@@ -218,13 +221,36 @@ impl ReportCrashUI {
             logic.push(move |s| s.settings.borrow_mut().test_hardware = v);
         }});
 
-        let input_enabled = submit_state.mapped(|s| s == &SubmitState::Initial);
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "enterprise")] {
+                let input_enabled = if policy_auto_submit {
+                    data::Synchronized::new(false)
+                } else {
+                    submit_state.mapped(|s| s == &SubmitState::Initial)
+                };
+            } else {
+                let input_enabled = submit_state.mapped(|s| s == &SubmitState::Initial);
+            }
+        }
         let send_report_and_input_enabled =
             data::Synchronized::join(send_report, &input_enabled, |s, e| *s && *e);
+        #[cfg(feature = "enterprise")]
+        let close_enabled = if policy_auto_submit {
+            data::Synchronized::new(true)
+        } else {
+            submit_state.mapped(|s| s == &SubmitState::Initial)
+        };
 
         let submit_status_text = submit_state.mapped(cc! { (config) move |s| {
             config.string(match s {
+                #[cfg(not(feature = "enterprise"))]
                 SubmitState::Initial => "crashreporter-submit-status",
+                #[cfg(feature = "enterprise")]
+                SubmitState::Initial => if policy_auto_submit {
+                    "crashreporter-submit-status-policy"
+                } else {
+                    "crashreporter-submit-status-enterprise"
+                },
                 SubmitState::WaitingHardwareTests => "crashreporter-submit-waiting-hardware-tests",
                 SubmitState::InProgress => "crashreporter-submit-in-progress",
                 SubmitState::Success => "crashreporter-submit-success",
@@ -259,6 +285,9 @@ impl ReportCrashUI {
                 VBox margin(10) spacing(10) halign(Alignment::Fill) valign(Alignment::Fill) {
                     Label text(config.string("crashreporter-apology")) bold(true),
                     Label text(config.string("crashreporter-crashed-and-restore")),
+                    #[cfg(feature = "enterprise")]
+                    Label text(config.string(if policy_auto_submit {"crashreporter-policy-explanation"} else {"crashreporter-plea"})),
+                    #[cfg(not(feature = "enterprise"))]
                     Label text(config.string("crashreporter-plea")),
                     Checkbox["test-hardware"] checked(test_hardware)
                         label(config.string("crashreporter-checkbox-test-hardware"))
@@ -291,17 +320,31 @@ impl ReportCrashUI {
                     },
                     HBox valign(Alignment::End) halign(Alignment::End) spacing(10) affirmative_order(true)
                     {
+                        #[cfg(not(feature = "enterprise"))]
                         Button["restart"] visible(config.restart_command.is_some())
                             on_click(cc! { (logic) move || logic.push(|s| s.restart()) })
                             enabled(&input_enabled) hsize(160)
                         {
                             Label text(config.string("crashreporter-button-restart"))
                         },
+                        #[cfg(not(feature = "enterprise"))]
                         Button["quit"] on_click(cc! { (logic) move || logic.push(|s| s.quit()) })
                             enabled(&input_enabled) hsize(160)
                         {
                             Label text(config.string("crashreporter-button-quit"))
-                        }
+                        },
+                        #[cfg(feature = "enterprise")]
+                        Button["quit"] on_click(cc! { (logic) move || {
+                                if policy_auto_submit {
+                                    logic.push(|s| s.just_quit());
+                                } else {
+                                    logic.push(|s| s.quit());
+                                }
+                            } })
+                            enabled(&close_enabled) hsize(160)
+                        {
+                            Label text(config.string("crashreporter-button-ok"))
+                        },
                     }
                 }
             }

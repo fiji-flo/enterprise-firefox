@@ -90,6 +90,9 @@ const DEFAULT_PRODUCT: &str = "Firefox";
 pub struct Config {
     /// Whether reports should be automatically submitted.
     pub auto_submit: bool,
+    #[cfg(feature = "enterprise")]
+    /// Whether reports should be automatically and immediately submitted by policy.
+    pub policy_auto_submit: bool,
     /// Whether all threads of the process should be dumped (versus just the crashing thread).
     pub dump_all_threads: bool,
     /// Whether to delete the dump files after submission.
@@ -144,6 +147,10 @@ impl Config {
     #[cfg_attr(mock, allow(unused))]
     pub fn read_from_environment(&mut self) {
         self.auto_submit = env_bool(ekey!("AUTO_SUBMIT"));
+        #[cfg(feature = "enterprise")]
+        {
+            self.policy_auto_submit = env_bool(ekey!("POLICY_AUTO_SUBMIT"));
+        }
         self.dump_all_threads = env_bool(ekey!("DUMP_ALL_THREADS"));
         self.delete_dump = !env_bool(ekey!("NO_DELETE_DUMP"));
         self.run_memtest = env_bool(ekey!("RUN_MEMTEST"));

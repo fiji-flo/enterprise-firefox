@@ -38,3 +38,10 @@ pub fn read_archive_file_as_string(archive: &mut Archive, path: &str) -> anyhow:
         .with_context(|| format!("failed to read {path} from archive"))?;
     Ok(data)
 }
+
+/// Read files from a given zip archive as a string, with each file separated by a newline
+pub fn read_archive_files_as_string(archive: &mut Archive, paths: &[String]) -> anyhow::Result<String> {
+    Ok(paths.into_iter().map(|p| read_archive_file_as_string(archive, p.as_ref()))
+        .collect::<Result<Vec<_>, _>>()?
+        .join("\n"))
+}

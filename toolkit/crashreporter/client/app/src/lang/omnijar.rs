@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::language_info::LanguageInfo;
-use super::zip::{read_archive_file_as_string, read_zip};
+use super::zip::{read_archive_file_as_string, read_archive_files_as_string, read_zip};
 use crate::config::installation_resource_path;
 use crate::std::io::{BufRead, BufReader};
 use anyhow::Context;
@@ -30,9 +30,13 @@ pub fn read() -> anyhow::Result<Vec<LanguageInfo>> {
     let loaded: Vec<_> = locales
         .clone()
         .filter_map(|locale| {
-            match read_archive_file_as_string(
+            let mut paths = Vec::new();
+            paths.push(format!("localization/{locale}/crashreporter/crashreporter.ftl"));
+            #[cfg(feature = "enterprise")]
+            paths.push(format!("localization/{locale}/crashreporter/crashreporter-enterprise.ftl"));
+            match read_archive_files_as_string(
                 &mut zip,
-                &format!("localization/{locale}/crashreporter/crashreporter.ftl"),
+                &paths,
             ) {
                 Ok(v) => Some((locale.to_owned(), v)),
                 Err(e) => {

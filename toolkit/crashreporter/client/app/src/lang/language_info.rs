@@ -7,9 +7,22 @@ use anyhow::Context;
 use fluent::{bundle::FluentBundle, FluentResource};
 use unic_langid::LanguageIdentifier;
 
-const FALLBACK_FTL_FILE: &str = include_str!(mozbuild::srcdir_path!(
-    "/toolkit/locales/en-US/crashreporter/crashreporter.ftl"
-));
+cfg_if::cfg_if! {
+    if #[cfg(feature = "enterprise")] {
+        const FALLBACK_FTL_FILE: &str = concat!(
+            include_str!(mozbuild::srcdir_path!(
+                "/toolkit/locales/en-US/crashreporter/crashreporter.ftl"
+            )),
+            include_str!(mozbuild::srcdir_path!(
+                "/toolkit/locales/en-US/crashreporter/crashreporter-enterprise.ftl"
+            ))
+        );
+    } else {
+        const FALLBACK_FTL_FILE: &str = include_str!(mozbuild::srcdir_path!(
+            "/toolkit/locales/en-US/crashreporter/crashreporter.ftl"
+        ));
+    }
+}
 const FALLBACK_BRANDING_FILE: &str = include_str!(mozbuild::srcdir_path!(
     "/browser/branding/official/locales/en-US/brand.ftl"
 ));

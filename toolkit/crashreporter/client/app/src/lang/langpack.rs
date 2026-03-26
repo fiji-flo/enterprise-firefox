@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use super::language_info::LanguageInfo;
-use super::zip::{read_archive_file_as_string, read_zip, Archive};
+use super::zip::{read_archive_file_as_string, read_archive_files_as_string, read_zip, Archive};
 use crate::config::installation_resource_path;
 use crate::std::path::{Path, PathBuf};
 use anyhow::Context;
@@ -163,8 +163,11 @@ fn read_archive_ftl_definitions(
     langpack: &mut Archive,
     language_identifier: &str,
 ) -> anyhow::Result<String> {
-    let path = format!("localization/{language_identifier}/crashreporter/crashreporter.ftl");
-    read_archive_file_as_string(langpack, &path)
+    let mut paths = Vec::new();
+    paths.push(format!("localization/{language_identifier}/crashreporter/crashreporter.ftl"));
+    #[cfg(feature = "enterprise")]
+    paths.push(format!("localization/{language_identifier}/crashreporter/crashreporter-enterprise.ftl"));
+    read_archive_files_as_string(langpack, &paths)
 }
 
 fn read_archive_ftl_branding(
