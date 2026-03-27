@@ -11,6 +11,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   composeOSNames: "resource:///modules/enterprise/EnterpriseOSInfo.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  return console.createInstance({
+    prefix: "ConsoleClient",
+    maxLogLevelPref: lazy.EnterpriseCommon.ENTERPRISE_LOGLEVEL_PREF,
+  });
+});
+
 /**
  * Preferences used to integrate the a remote enterprise console
  */
@@ -109,7 +116,7 @@ export const ConsoleClient = {
     try {
       consoleURI = Services.prefs.getStringPref(PREFS.CONSOLE_ADDRESS);
     } catch (e) {
-      console.error("Critial misconfiguration: Missing console URI.");
+      lazy.log.error("Critial misconfiguration: Missing console URI.");
       throw e;
     }
     return new URL(consoleURI);
@@ -458,15 +465,20 @@ export const ConsoleClient = {
    * Ensures a non-expired access token is available, refreshing if it's expiring soon.
    *
    * @returns {Promise<string>}
+   * @throws {InvalidAuthError}
    */
   async getAccessToken() {
     let accessToken = Services.felt.getAccessTokenIfValid();
-    if (!accessToken && Services.felt.isFeltBrowser()) {
+    if (Services.felt.isFeltBrowser() && !accessToken) {
       await this._refreshSession();
       accessToken = Services.felt.getAccessTokenIfValid();
     }
     if (!accessToken) {
-      // We're not handling reauthentication just yet.
+      // If we are in Firefox at this point, Felt failed to shut us down
+      // correctly after an unsuccessful token refresh.
+      // If we are in Felt at this point, the authentication flow has
+      // completed, but we do not have a valid token.
+      // Either case should not happen normally, so throw an error.
       throw new InvalidAuthError(
         "Unhandled reauthentication",
         "UNHANDLED_REAUTHENTICATION"
@@ -505,7 +517,7 @@ export const ConsoleClient = {
           "No refresh token available",
           "MISSING_REFRESH_TOKEN"
         );
-        console.error(e);
+        lazy.log.error(e);
         throw e;
       }
 
@@ -529,7 +541,7 @@ export const ConsoleClient = {
           "TOKEN_REFRESH_FAILED",
           { cause }
         );
-        console.error(e);
+        lazy.log.error(e);
         throw e;
       }
 
@@ -539,7 +551,7 @@ export const ConsoleClient = {
           "INVALID_REFRESH_TOKEN",
           { status: res.status }
         );
-        console.error(e);
+        lazy.log.error(e);
         throw e;
       }
 
@@ -582,11 +594,10 @@ export const ConsoleClient = {
     // If we are in the Browser, notify FELT via IPC to refresh the token
     // create an internal promise that will resolve when FELT signals a refreshed token
     // Note that only FELT holds the needed refresh token.
-    const that = this;
     this._refreshPromise = new Promise((resolve, reject) => {
       // remember our resolve/reject functions
-      that._refreshResolve = resolve;
-      that._refreshReject = reject;
+      this._refreshResolve = resolve;
+      this._refreshReject = reject;
       // notify FELT to refresh the token
       Services.felt.refreshTokens();
     });
@@ -652,22 +663,6 @@ export const ConsoleClient = {
   },
 
   /**
-   * If unable to refresh the session, prompt for user reauthentication
-   * to obtain a valid set of access and refresh token.
-   */
-  promptForReauthentication() {
-    this.clearTokenData();
-    // TODO: Handle Re-authentication
-  },
-
-  /**
-   * Clears persisted and in-memory token data in the browser and FELT.
-   */
-  clearTokenData() {
-    Services.felt.clearTokens();
-  },
-
-  /**
    * Perform signout against the console and share the information down to
    * XPCOM to make FELT aware.
    *
@@ -688,6 +683,12 @@ export const ConsoleClient = {
     Services.felt.performSignout();
   },
 
+  /**
+   * Performs a server-side signout POST request.
+   * This is to be called only from the Felt side.
+   *
+   * @returns Promise<any>
+   */
   async performServerSignout() {
     return this._post(this._paths.SIGNOUT);
   },
@@ -710,7 +711,7 @@ export const ConsoleClient = {
     switch (topic) {
       case "xpcom-shutdown": {
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        this.clearTokenData();
+        Services.felt.clearTokens();
         this._refreshPromise = null;
         this._refreshResolve = null;
         this._refreshReject = null;

@@ -26,8 +26,8 @@ felt-browser-error-sso-timeout2 =
     .heading = Sign-in timed out
     .message = Please try again, or contact your administrator if the problem persists.
 felt-browser-error-token-refresh-failed =
-    .heading = Authentication failed
-    .message = Please sign in again, or contact your administrator if the problem persists.
+    .heading = You've been signed out
+    .message = Please sign in again, or contact your administrator if you have any questions.
 felt-browser-error-multiple-crashes2 =
     .heading = { -brand-short-name } crashed multiple times
 

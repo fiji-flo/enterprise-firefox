@@ -83,10 +83,6 @@ class BrowserExitTokens(FeltTests):
             "Felt refresh token should not be empty: " + self.felt_tokens[1]
         )
 
-        # assert self.felt_tokens[1] == self.browser_tokens[1], (
-        #     f"Felt and browser refresh tokens should match: {self.felt_tokens[1]} vs {self.browser_tokens[1]}"
-        # )
-
     def check_firefox_tokens_updated_after_session_refresh(self):
         self.new_browser_tokens = self.get_tokens(Environment.FIREFOX)
         self.new_felt_tokens = self.get_tokens(Environment.FELT)
@@ -96,7 +92,6 @@ class BrowserExitTokens(FeltTests):
         assert len(self.new_browser_tokens[1]) == 0, (
             "Browser refresh token should be empty"
         )
-
         assert self.new_browser_tokens[0] != self.browser_tokens[0], (
             f"Browser access token should differ after session refresh: {self.new_browser_tokens[0]} vs {self.browser_tokens[0]}"
         )
@@ -115,7 +110,6 @@ class BrowserExitTokens(FeltTests):
         assert len(felt_tokens_after_exit[1]) > 0, (
             "FELT refresh token should not be empty"
         )
-
         assert felt_tokens_after_exit[0] == self.new_browser_tokens[0], (
             f"FELT access token should match browser tokens after browser exit: {felt_tokens_after_exit[0]} vs {self.new_browser_tokens[0]}"
         )

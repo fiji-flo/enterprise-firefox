@@ -252,7 +252,19 @@ this.felt = class extends ExtensionAPI {
 
       case "FeltParent:FirefoxLogoutExit": {
         Services.felt.makeBackgroundProcess(false);
-        this.showWindow();
+        switch (message.data?.reason) {
+          case "token_refresh_failed":
+            // TODO: this is not 100% in line with the figma document
+            // We do not currently distinguish between normal session termination
+            // because of a timeout or a forced signoput triggered from the admin
+            // console.
+            this.showWindow("felt-browser-error-token-refresh-failed");
+            break;
+          case "logout":
+          default:
+            this.showWindow();
+            break;
+        }
         break;
       }
 

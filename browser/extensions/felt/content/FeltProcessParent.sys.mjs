@@ -236,12 +236,14 @@ export class FeltProcessParent extends JSProcessActorParent {
                   "FeltExtension: token refresh failed, reauthenticate",
                   error
                 );
-                lazy.ConsoleClient.clearTokenData();
+                Services.felt.clearTokens();
                 gFeltProcessParentInstance.logoutReported = true;
                 gFeltProcessParentInstance.proc.exitPromise.then(_ => {
                   Services.cpmm.sendAsyncMessage(
                     "FeltParent:FirefoxLogoutExit",
-                    {}
+                    {
+                      reason: "token_refresh_failed",
+                    }
                   );
                 });
                 Services.felt.shutdownFirefoxForReauth();
@@ -651,9 +653,11 @@ export class FeltProcessParent extends JSProcessActorParent {
       })
       .finally(() => {
         // clear token data on the FELT side
-        lazy.ConsoleClient.clearTokenData();
+        Services.felt.clearTokens();
         gFeltProcessParentInstance.proc.exitPromise.then(_ => {
-          Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {});
+          Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {
+            reason: "logout",
+          });
         });
       });
   }
