@@ -286,13 +286,7 @@ static bool PACResolveToString(const nsACString& aHostName,
   NetAddr netAddr;
   if (!PACResolve(aHostName, &netAddr, aTimeout)) return false;
 
-  char dottedDecimal[128];
-  if (!netAddr.ToStringBuffer(dottedDecimal, sizeof(dottedDecimal))) {
-    return false;
-  }
-
-  aDottedDecimal.Assign(dottedDecimal);
-  return true;
+  return netAddr.ToString(aDottedDecimal);
 }
 
 // dnsResolve(host) javascript implementation

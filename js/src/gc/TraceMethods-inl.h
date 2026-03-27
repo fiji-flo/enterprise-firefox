@@ -37,20 +37,6 @@
 #include "vm/StringType-inl.h"
 
 inline void js::BaseScript::traceChildren(JSTracer* trc) {
-  traceChildrenCommon(trc);
-  warmUpData_.trace(trc);
-}
-inline void js::BaseScript::traceChildrenConcurrently(JSTracer* trc,
-                                                      bool* skippedJitScript) {
-  traceChildrenCommon(trc);
-
-  ScriptWarmUpData warmUpData = warmUpData_;
-  if (!warmUpData.isJitScript()) {
-    warmUpData.trace(trc);
-  }
-  *skippedJitScript = warmUpData.isJitScript();
-}
-inline void js::BaseScript::traceChildrenCommon(JSTracer* trc) {
   TraceNullableEdge(trc, &function_, "function");
   TraceEdge(trc, &sourceObject_, "sourceObject");
 
@@ -58,6 +44,8 @@ inline void js::BaseScript::traceChildrenCommon(JSTracer* trc) {
     TraceBufferEdge(trc, this, &data_, "PrivateScriptData");
     data_->trace(trc);
   }
+
+  warmUpData_.trace(trc);
 }
 
 inline void js::Shape::traceChildren(JSTracer* trc) {

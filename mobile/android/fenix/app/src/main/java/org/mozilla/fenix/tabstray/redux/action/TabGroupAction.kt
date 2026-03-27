@@ -12,6 +12,21 @@ import org.mozilla.fenix.tabstray.data.TabsTrayItem
 sealed interface TabGroupAction : TabsTrayAction {
 
     /**
+     * Fired when the user clicks on edit Tab Group.
+     */
+    data object CreateTabGroupClicked : TabGroupAction
+
+    /**
+     * Fired when the user clicks on adding tab(s) to a tab group.
+     */
+    data object AddToTabGroup : TabGroupAction
+
+    /**
+     * Fired when the user clicks on adding tab(s) to a new tab group.
+     */
+    data object AddToNewTabGroup : TabGroupAction
+
+    /**
      * Fired when the user changes the tab group name.
      *
      * @property name The name of the tab group the user has typed in.

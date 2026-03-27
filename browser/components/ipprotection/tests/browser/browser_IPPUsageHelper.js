@@ -65,7 +65,7 @@ add_task(async function test_bandwidth_warning_set_in_new_window() {
 
   let newWindow = await BrowserTestUtils.openNewBrowserWindow();
 
-  let content = await openPanel(null, newWindow);
+  let content = await openPanel({ unauthenticated: false }, newWindow);
 
   Assert.ok(
     content.state.bandwidthWarning,
@@ -112,7 +112,7 @@ add_task(async function test_bandwidth_warning_set_in_new_private_window() {
     private: true,
   });
 
-  let content = await openPanel(null, privateWindow);
+  let content = await openPanel({ unauthenticated: false }, privateWindow);
 
   Assert.ok(
     content.state.bandwidthWarning,

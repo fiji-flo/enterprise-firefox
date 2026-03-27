@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.setFragmentResultListener
@@ -78,6 +79,8 @@ import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 import org.mozilla.fenix.settings.biometric.ext.isAuthenticatorAvailable
 import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
 import org.mozilla.fenix.share.ShareFragment
+import org.mozilla.fenix.tabgroups.AddToTabGroup
+import org.mozilla.fenix.tabgroups.EditTabGroup
 import org.mozilla.fenix.tabgroups.ExpandedTabGroup
 import org.mozilla.fenix.tabstray.InactiveTabsBinding
 import org.mozilla.fenix.tabstray.PbmLockStatusBinding
@@ -406,6 +409,32 @@ class TabManagementFragment : DialogFragment() {
                                     onTabClose = {
                                         tabManagerInteractor.onTabClosed(tab = it, source = TAB_MANAGER_FEATURE_NAME)
                                     },
+                                )
+                            }
+
+                            entry<TabManagerNavDestination.CreateTabGroup>(
+                                metadata = BottomSheetSceneStrategy.bottomSheet(
+                                    handleContentDescription = stringResource(
+                                        id = R.string.edit_tab_group_bottom_sheet_close_content_description,
+                                    ),
+                                ),
+                            ) {
+                                EditTabGroup(tabsTrayStore = tabsTrayStore)
+                            }
+
+                            entry<TabManagerNavDestination.AddToTabGroup>(
+                                metadata = BottomSheetSceneStrategy.bottomSheet(
+                                    handleContentDescription = stringResource(
+                                        id = R.string.add_to_tab_group_bottom_sheet_close_content_description,
+                                    ),
+                                ),
+                            ) {
+                                AddToTabGroup(
+                                    tabGroups = tabsTrayStore.state.tabGroups,
+                                    onAddToNewTabGroup = {
+                                        tabsTrayStore.dispatch(TabGroupAction.AddToNewTabGroup)
+                                    },
+                                    onAddToExistingTabGroup = {},
                                 )
                             }
                         },

@@ -70,6 +70,7 @@
 #include "mozilla/dom/AudioTrackList.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/ContentMediaController.h"
+#include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
@@ -5351,14 +5352,9 @@ void HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       if (aValue) {
         nsCOMPtr<nsIURI> uri;
         NewURIFromString(srcVal.String(), getter_AddRefs(uri));
-        if (uri && IsMediaSourceURI(uri)) {
-          nsresult rv = NS_GetSourceForMediaSourceURI(
-              uri, getter_AddRefs(mSrcMediaSource));
-          if (NS_FAILED(rv)) {
-            nsAutoString spec;
-            GetCurrentSrc(spec);
-            AutoTArray<nsString, 1> params = {spec};
-            ReportLoadError("MediaLoadInvalidURI", params);
+        if (uri && uri->SchemeIs(BLOBURI_SCHEME)) {
+          if (DocGroup* docGroup = OwnerDoc()->GetDocGroup()) {
+            mSrcMediaSource = docGroup->LookupMediaSourceURL(uri);
           }
         }
       }
@@ -5559,7 +5555,7 @@ template <typename DecoderType, typename... LoadArgs>
 nsresult HTMLMediaElement::SetupDecoder(DecoderType* aDecoder,
                                         LoadArgs&&... aArgs) {
   LOG(LogLevel::Debug, ("%p Created decoder %p for type %s", this, aDecoder,
-                        aDecoder->ContainerType().OriginalString().Data()));
+                        aDecoder->ContainerType().OriginalString().get()));
 
   nsresult rv = aDecoder->Load(std::forward<LoadArgs>(aArgs)...);
   if (NS_FAILED(rv)) {

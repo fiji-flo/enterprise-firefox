@@ -18,6 +18,7 @@
 #include "gc/GCMarker.h"
 #include "gc/GCParallelTask.h"
 #include "gc/IteratorUtils.h"
+#include "gc/LightLock.h"
 #include "gc/Memory.h"
 #include "gc/Nursery.h"
 #include "gc/Scheduling.h"
@@ -1055,6 +1056,8 @@ class GCRuntime {
 
   MainThreadData<JS::GCContext> mainThreadContext;
 
+  LightLockRuntime lightLockRuntime;
+
  private:
   // For parent runtimes, a zone containing atoms that is shared by child
   // runtimes.
@@ -1122,7 +1125,7 @@ class GCRuntime {
 #ifdef MOZ_TSAN
   // TSAN doesn't understand use of atomic_thread_fence to synchronize relaxed
   // atomics so use reads/writes to this atomic instead.
-  mozilla::Atomic<int, mozilla::SequentiallyConsistent> tsanMemoryBarrier;
+  mozilla::Atomic<int, mozilla::ReleaseAcquire> tsanFenceAtomic;
 #endif
 
  private:

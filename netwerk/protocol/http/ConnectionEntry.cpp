@@ -996,9 +996,7 @@ bool ConnectionEntry::MaybeProcessCoalescingKeys(nsIDNSAddrRecord* dnsRecord,
     }
     newKey.Truncate();
     newKey.SetCapacity(kIPv6CStrBufSize + suffix.Length() + 21);
-    newKey.SetLength(kIPv6CStrBufSize);
-    mAddresses[i].ToStringBuffer(newKey.BeginWriting(), kIPv6CStrBufSize);
-    newKey.SetLength(strlen(newKey.BeginReading()));
+    mAddresses[i].ToString(newKey);
     newKey.Append(anonFlag);
     newKey.Append(fallbackFlag);
     newKey.AppendInt(port);

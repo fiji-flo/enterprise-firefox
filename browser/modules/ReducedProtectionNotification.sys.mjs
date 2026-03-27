@@ -163,11 +163,20 @@ export const ReducedProtectionNotification = {
           callback: () => {
             const scopedPrefs = aBrowser.browsingContext.scopedPrefs;
             if (scopedPrefs) {
-              scopedPrefs.setBoolPrefScoped(
+              const bc = aBrowser.browsingContext;
+              for (const pref of [
                 Ci.nsIScopedPrefs.PRIVACY_TRACKINGPROTECTION_ENABLED,
-                aBrowser.browsingContext,
-                false
-              );
+                Ci.nsIScopedPrefs
+                  .PRIVACY_TRACKINGPROTECTION_CRYPTOMINING_ENABLED,
+                Ci.nsIScopedPrefs
+                  .PRIVACY_TRACKINGPROTECTION_FINGERPRINTING_ENABLED,
+                Ci.nsIScopedPrefs
+                  .PRIVACY_TRACKINGPROTECTION_SOCIALTRACKING_ENABLED,
+                Ci.nsIScopedPrefs
+                  .PRIVACY_TRACKINGPROTECTION_EMAILTRACKING_ENABLED,
+              ]) {
+                scopedPrefs.setBoolPrefScoped(pref, bc, false);
+              }
             }
             aBrowser.reload();
           },

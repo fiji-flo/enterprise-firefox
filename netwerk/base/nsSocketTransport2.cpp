@@ -866,9 +866,7 @@ nsresult nsSocketTransport::InitWithConnectedSocket(PRFileDesc* fd,
                                                     const NetAddr* addr) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  char buf[kNetAddrMaxCStrBufSize];
-  addr->ToStringBuffer(buf, sizeof(buf));
-  mHost.Assign(buf);
+  addr->ToString(mHost);
 
   uint16_t port;
   if (addr->raw.family == AF_INET) {
@@ -1334,20 +1332,12 @@ nsresult nsSocketTransport::InitiateSocket() {
   // connected - Bug 853423.
   if (mConnectionFlags & nsISocketTransport::DISABLE_RFC1918 &&
       mNetAddr.IsIPAddrLocal()) {
-    if (SOCKET_LOG_ENABLED()) {
-      nsAutoCString netAddrCString;
-      netAddrCString.SetLength(kIPv6CStrBufSize);
-      if (!mNetAddr.ToStringBuffer(netAddrCString.BeginWriting(),
-                                   kIPv6CStrBufSize)) {
-        netAddrCString = "<IP-to-string failed>"_ns;
-      }
-      SOCKET_LOG(
-          ("nsSocketTransport::InitiateSocket skipping "
-           "speculative connection for host [%s:%d] proxy "
-           "[%s:%d] with Local IP address [%s]",
-           mHost.get(), mPort, mProxyHost.get(), mProxyPort,
-           netAddrCString.get()));
-    }
+    SOCKET_LOG(
+        ("nsSocketTransport::InitiateSocket skipping "
+         "speculative connection for host [%s:%d] proxy "
+         "[%s:%d] with Local IP address [%s]",
+         mHost.get(), mPort, mProxyHost.get(), mProxyPort,
+         mNetAddr.ToString().get()));
     mCondition = NS_ERROR_CONNECTION_REFUSED;
     OnSocketDetached(nullptr);
     return mCondition;
@@ -1546,11 +1536,7 @@ nsresult nsSocketTransport::InitiateSocket() {
   mState = STATE_CONNECTING;
   SendStatus(NS_NET_STATUS_CONNECTING_TO);
 
-  if (SOCKET_LOG_ENABLED()) {
-    char buf[kNetAddrMaxCStrBufSize];
-    mNetAddr.ToStringBuffer(buf, sizeof(buf));
-    SOCKET_LOG(("  trying address: %s\n", buf));
-  }
+  SOCKET_LOG(("  trying address: %s\n", mNetAddr.ToString().get()));
 
   //
   // Initiate the connect() to the host...
@@ -3201,11 +3187,11 @@ static void LogNSPRError(const char* aPrefix, const void* aObjPtr) {
     errStr.SetLength(errLen);
     PR_GetErrorText(errStr.BeginWriting());
   }
-  NS_WARNING(
-      nsPrintfCString("%s [%p] NSPR error[0x%x] %s.",
-                      aPrefix ? aPrefix : "nsSocketTransport", aObjPtr, errCode,
-                      errLen > 0 ? errStr.BeginReading() : "<no error text>")
-          .get());
+  NS_WARNING(nsPrintfCString("%s [%p] NSPR error[0x%x] %s.",
+                             aPrefix ? aPrefix : "nsSocketTransport", aObjPtr,
+                             errCode,
+                             errLen > 0 ? errStr.get() : "<no error text>")
+                 .get());
 #endif
 }
 

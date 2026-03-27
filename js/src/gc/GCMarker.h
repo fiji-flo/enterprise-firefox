@@ -487,7 +487,7 @@ class GCMarker {
 
 #ifdef JS_GC_CONCURRENT_MARKING
 
-  using MainThreadBuffer = js::Vector<JS::GCCellPtr, 0, SystemAllocPolicy>;
+  using MainThreadBuffer = js::Vector<JSObject*, 0, SystemAllocPolicy>;
 
   bool processMainThreadBuffers(JS::SliceBudget& budget);
   bool processMainThreadBuffer(MainThreadBuffer& buffer,
@@ -498,7 +498,7 @@ class GCMarker {
            grayMainThreadBuffer_.ref().empty();
   }
 
-  bool addToMainThreadBuffer(JS::GCCellPtr cell, JS::SliceBudget& budget);
+  bool addToMainThreadBuffer(JSObject* object, JS::SliceBudget& budget);
 
 #endif  // JS_GC_CONCURRENT_MARKING
 
@@ -742,14 +742,24 @@ class MOZ_RAII AutoSetMarkColor {
   ~AutoSetMarkColor() { marker_.setMarkColor(initialColor_); }
 };
 
+inline AutoMarkingLock::AutoMarkingLock(JSTracer* trc,
+                                        MarkingLock& markingLock) {
+#ifdef JS_GC_CONCURRENT_MARKING
+  if (IsConcurrentMarkingTracer(trc)) {
+    lock = &markingLock;
+    runtime = trc->runtime();
+    lock->lock(runtime);
+  }
+#endif
+}
+
 MOZ_ALWAYS_INLINE void MemoryAcquireFence(JSTracer* trc) {
 #ifdef JS_GC_CONCURRENT_MARKING
   if (trc->isMarkingTracer() &&
       GCMarker::fromTracer(trc)->isConcurrentMarking()) {
-#  ifdef MOZ_TSAN
-    FullMemoryFence(trc->runtime());
-#  else
     std::atomic_thread_fence(std::memory_order_acquire);
+#  ifdef MOZ_TSAN
+    TSANMemoryAcquireFence(trc->runtime());
 #  endif
   }
 #endif
@@ -759,10 +769,9 @@ template <uint32_t markingOptions>
 MOZ_ALWAYS_INLINE void MemoryAcquireFence(JSRuntime* runtime) {
 #ifdef JS_GC_CONCURRENT_MARKING
   if (bool(markingOptions & MarkingOptions::ConcurrentMarking)) {
-#  ifdef MOZ_TSAN
-    FullMemoryFence(runtime);
-#  else
     std::atomic_thread_fence(std::memory_order_acquire);
+#  ifdef MOZ_TSAN
+    TSANMemoryAcquireFence(runtime);
 #  endif
   }
 #endif

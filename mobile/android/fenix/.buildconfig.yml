@@ -92,6 +92,7 @@ projects:
     - components:support-base
     - components:support-images
     - components:support-ktx
+    - components:support-license
     - components:support-locale
     - components:support-remotesettings
     - components:support-test

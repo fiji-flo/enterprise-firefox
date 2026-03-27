@@ -55,7 +55,6 @@ export default class IPProtectionContentElement extends MozLitElement {
 
     this.state = {};
 
-    this.keyListener = this.#keyListener.bind(this);
     this.messageBarListener = this.#messageBarListener.bind(this);
     this.statusCardListener = this.#statusCardListener.bind(this);
     this._showMessageBar = false;
@@ -65,7 +64,6 @@ export default class IPProtectionContentElement extends MozLitElement {
   connectedCallback() {
     super.connectedCallback();
     this.dispatchEvent(new CustomEvent("IPProtection:Init", { bubbles: true }));
-    this.addEventListener("keydown", this.keyListener, { capture: true });
     this.addEventListener(
       "ipprotection-status-card:user-toggled-on",
       this.#statusCardListener
@@ -83,7 +81,6 @@ export default class IPProtectionContentElement extends MozLitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
 
-    this.removeEventListener("keydown", this.keyListener, { capture: true });
     this.removeEventListener(
       "ipprotection-status-card:user-toggled-on",
       this.#statusCardListener
@@ -138,32 +135,6 @@ export default class IPProtectionContentElement extends MozLitElement {
       this.unauthenticatedEl?.focus();
     } else {
       this.statusCardEl?.focus();
-    }
-  }
-
-  #keyListener(event) {
-    let keyCode = event.code;
-    switch (keyCode) {
-      case "Tab":
-      case "ArrowUp":
-      // Intentional fall-through
-      case "ArrowDown": {
-        event.stopPropagation();
-        event.preventDefault();
-
-        let isForward =
-          (keyCode == "Tab" && !event.shiftKey) || keyCode == "ArrowDown";
-        let direction = isForward
-          ? Services.focus.MOVEFOCUS_FORWARD
-          : Services.focus.MOVEFOCUS_BACKWARD;
-        Services.focus.moveFocus(
-          window,
-          null,
-          direction,
-          Services.focus.FLAG_BYKEY
-        );
-        break;
-      }
     }
   }
 
@@ -245,7 +216,7 @@ export default class IPProtectionContentElement extends MozLitElement {
     let messageLinkL10nArgs;
     let messageType = "info";
 
-    if (this.state.bandwidthWarning) {
+    if (this.state.bandwidthWarning && this.state.bandwidthUsage) {
       messageId = "ipprotection-message-bandwidth-warning";
       messageType = "warning";
       const bandwidthRemaining =
@@ -468,7 +439,8 @@ export default class IPProtectionContentElement extends MozLitElement {
     } else {
       if (
         (this.state.onboardingMessage || this.state.bandwidthWarning) &&
-        !this._messageDismissed
+        !this._messageDismissed &&
+        !this.state.unauthenticated
       ) {
         this._showMessageBar = true;
       } else if (

@@ -73,6 +73,8 @@ support-files = [
 
 ["browser_aiwindow_smartbar_mentions.js"]
 
+["browser_aiwindow_smartbar_telemetry.js"]
+
 ["browser_aiwindow_switcher.js"]
 
 ["browser_aiwindow_theme.js"]

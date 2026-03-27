@@ -1207,8 +1207,12 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     return IPC_OK();
   }
   const auto stride = maybeStride.value();
-
   const auto& size = data->mDesc.size();
+
+  if (size.width > INT16_MAX || size.height > INT16_MAX || stride > INT16_MAX) {
+    return IPC_OK();
+  }
+
   const auto len = CheckedInt<size_t>(size.height) * stride;
   if (!len.isValid()) {
     return IPC_OK();
@@ -1418,6 +1422,11 @@ void WebGPUParent::SwapChainPresent(
     }
     std::shared_ptr<SharedTexture> sharedTexture = it->second;
     mSharedTextures.erase(it);
+
+    if (!sharedTexture->IsSubmitted()) {
+      gfxCriticalNoteOnce << "Texture is not submitted";
+      return;
+    }
 
     MOZ_ASSERT(sharedTexture->GetOwnerId() == aOwnerId);
 

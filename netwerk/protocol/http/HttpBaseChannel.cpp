@@ -3814,9 +3814,7 @@ NS_IMETHODIMP
 HttpBaseChannel::GetLocalAddress(nsACString& addr) {
   if (mSelfAddr.raw.family == PR_AF_UNSPEC) return NS_ERROR_NOT_AVAILABLE;
 
-  addr.SetLength(kIPv6CStrBufSize);
-  mSelfAddr.ToStringBuffer(addr.BeginWriting(), kIPv6CStrBufSize);
-  addr.SetLength(strlen(addr.BeginReading()));
+  mSelfAddr.ToString(addr);
 
   return NS_OK;
 }
@@ -3910,9 +3908,7 @@ NS_IMETHODIMP
 HttpBaseChannel::GetRemoteAddress(nsACString& addr) {
   if (mPeerAddr.raw.family == PR_AF_UNSPEC) return NS_ERROR_NOT_AVAILABLE;
 
-  addr.SetLength(kIPv6CStrBufSize);
-  mPeerAddr.ToStringBuffer(addr.BeginWriting(), kIPv6CStrBufSize);
-  addr.SetLength(strlen(addr.BeginReading()));
+  mPeerAddr.ToString(addr);
 
   return NS_OK;
 }

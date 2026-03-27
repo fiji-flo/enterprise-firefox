@@ -6,12 +6,21 @@ package org.mozilla.fenix.ui.efficiency.helpers
 
 import android.util.Log
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.test.espresso.IdlingResourceTimeoutException
+import androidx.test.espresso.NoMatchingViewException
+import androidx.test.uiautomator.UiObjectNotFoundException
+import leakcanary.NoLeakAssertionFailedError
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
+import org.junit.rules.TestRule
+import org.junit.runners.model.Statement
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixTestRule
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
-import org.mozilla.fenix.helpers.RetryTestRule
+import org.mozilla.fenix.helpers.IdlingResourceHelper.unregisterAllIdlingResources
+import org.mozilla.fenix.helpers.TestHelper.appContext
+import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.ui.efficiency.logging.LoggingBridge
 import org.mozilla.fenix.ui.efficiency.logging.TestLogging
 
@@ -43,20 +52,51 @@ abstract class BaseTest(
     @get:Rule(order = 0)
     val fenixTestRule: FenixTestRule = FenixTestRule()
 
-    @get:Rule
-    val composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *> =
-        AndroidComposeTestRule(
-            HomeActivityIntentTestRule(
-                skipOnboarding = skipOnboarding,
-                isMenuRedesignCFREnabled = isMenuRedesignCFREnabled,
-                isPageLoadTranslationsPromptEnabled = isPageLoadTranslationsPromptEnabled,
-            ),
-        ) { it.activity }
+    // Backing property so composeRule can be re-created fresh on each retry attempt.
+    // AndroidComposeTestRule holds a TestScope that can only be entered once — re-creating
+    // the rule per attempt ensures a clean TestScope every time.
+    private var _composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>? = null
+    val composeRule get() = _composeRule!!
 
-    protected val on: PageContext = PageContext(composeRule)
+    // Combines retry and compose rule creation into a single rule. We cannot reuse
+    // RetryTestRule here because the retry logic must own the creation of composeRule —
+    // a separate RetryTestRule has no way to replace an already-constructed @get:Rule.
+    // Re-creates composeRule on each attempt so its internal TestScope is never re-entered,
+    // which would otherwise throw:
+    // "Only a single call to `runTest` can be performed during one test."
+    @get:Rule(order = 1)
+    val retryWithCompose: TestRule = TestRule { base, description ->
+        object : Statement() {
+            override fun evaluate() {
+                repeat(3) { attempt ->
+                    _composeRule = AndroidComposeTestRule(
+                        HomeActivityIntentTestRule(
+                            skipOnboarding = skipOnboarding,
+                            isMenuRedesignCFREnabled = isMenuRedesignCFREnabled,
+                            isPageLoadTranslationsPromptEnabled = isPageLoadTranslationsPromptEnabled,
+                        ),
+                    ) { it.activity }
+                    try {
+                        Log.i("BaseTest", "RetryTestRule: Started try #${attempt + 1}.")
+                        _composeRule!!.apply(base, description).evaluate()
+                        return // success, exit early
+                    } catch (t: NoLeakAssertionFailedError) {
+                        Log.i("BaseTest", "RetryTestRule: NoLeakAssertionFailedError caught, not retrying.")
+                        cleanup(removeTabs = true)
+                        throw t
+                    } catch (t: Throwable) {
+                        if (!t.isRetryable() || attempt == 2) throw t
+                        Log.i("BaseTest", "RetryTestRule: ${t::class.simpleName} caught, retrying.")
+                        cleanup()
+                    }
+                }
+            }
+        }
+    }
 
-    @get:Rule
-    val retryTestRule = RetryTestRule(3)
+    // get() ensures this always delegates to the current composeRule instance,
+    // not a stale one captured at class construction time.
+    protected val on: PageContext get() = PageContext(composeRule)
 
     /**
      * Reporter lifecycle:
@@ -99,4 +139,24 @@ abstract class BaseTest(
             // Logging must never fail a test.
         }
     }
+}
+
+private fun cleanup(removeTabs: Boolean = false) {
+    unregisterAllIdlingResources()
+    if (removeTabs) {
+        appContext.components.useCases.tabsUseCases.removeAllTabs()
+    }
+    exitMenu()
+}
+
+private fun Throwable.isRetryable(): Boolean = when (this) {
+    is AssertionError,
+    is junit.framework.AssertionFailedError,
+    is UiObjectNotFoundException,
+    is NoMatchingViewException,
+    is IdlingResourceTimeoutException,
+    is RuntimeException,
+    is NullPointerException,
+    -> true
+    else -> false
 }

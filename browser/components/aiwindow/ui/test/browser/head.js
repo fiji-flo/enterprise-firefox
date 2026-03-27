@@ -299,6 +299,32 @@ async function waitForPanelOpen(browser) {
 }
 
 /**
+ * Wait for the mentions panel list to be visible.
+ *
+ * @param {MozBrowser} browser - The browser element
+ * @returns {Promise<boolean>} True if mentions are open
+ */
+async function waitForMentionsOpen(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    const aiWindowElement = content.document.querySelector("ai-window");
+    const smartbar = await ContentTaskUtils.waitForCondition(
+      () => aiWindowElement.shadowRoot?.querySelector("#ai-window-smartbar"),
+      "Wait for Smartbar to be rendered"
+    );
+    const panelList = smartbar.querySelector("smartwindow-panel-list");
+    const panel = panelList.shadowRoot.querySelector("panel-list");
+
+    await ContentTaskUtils.waitForMutationCondition(
+      panel,
+      { attributes: true, attributeFilter: ["open"] },
+      () => panel.hasAttribute("open")
+    );
+
+    return panel.hasAttribute("open");
+  });
+}
+
+/**
  * Wait for a mention to be inserted.
  *
  * @param {MozBrowser} browser - The browser element
@@ -307,9 +333,8 @@ async function waitForPanelOpen(browser) {
 async function waitForMentionInserted(browser) {
   return SpecialPowers.spawn(browser, [], async () => {
     const aiWindowElement = content.document.querySelector("ai-window");
-    const smartbar = await ContentTaskUtils.waitForCondition(
-      () => aiWindowElement.shadowRoot?.querySelector("#ai-window-smartbar"),
-      "Wait for Smartbar to be rendered"
+    const smartbar = aiWindowElement.shadowRoot.querySelector(
+      "#ai-window-smartbar"
     );
     const editor = smartbar.querySelector("moz-multiline-editor");
 

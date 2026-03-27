@@ -18,6 +18,7 @@
 
 #include "gc/Barrier.h"
 #include "jit/CacheIR.h"
+#include "jit/JitScript.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
@@ -153,8 +154,7 @@ enum class TrialInliningDecision {
 
 class MOZ_RAII TrialInliner {
  public:
-  TrialInliner(JSContext* cx, HandleScript script, ICScript* icScript)
-      : cx_(cx), script_(script), icScript_(icScript) {}
+  TrialInliner(JSContext* cx, HandleScript script, ICScript* icScript);
 
   JSContext* cx() { return cx_; }
 
@@ -190,6 +190,9 @@ class MOZ_RAII TrialInliner {
   JSContext* cx_;
   HandleScript script_;
   ICScript* icScript_;
+
+  // Take a lock during concurrent marking.
+  gc::AutoMarkingLock lock_;
 };
 
 bool DoTrialInlining(JSContext* cx, BaselineFrame* frame);

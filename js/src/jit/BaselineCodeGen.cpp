@@ -679,7 +679,8 @@ void BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 // stubs created when running in the interpreter. This happens on transition to
 // baseline.
 static bool CreateAllocSitesForCacheIRStub(JSScript* script, uint32_t pcOffset,
-                                           ICCacheIRStub* stub) {
+                                           ICCacheIRStub* stub,
+                                           const gc::AutoMarkingLock& lock) {
   const CacheIRStubInfo* stubInfo = stub->stubInfo();
   uint8_t* stubData = stub->stubDataStart();
 
@@ -698,7 +699,7 @@ static bool CreateAllocSitesForCacheIRStub(JSScript* script, uint32_t pcOffset,
           stubInfo->getPtrStubField<ICCacheIRStub, gc::AllocSite>(stub, offset);
       if (site->kind() == gc::AllocSite::Kind::Unknown) {
         gc::AllocSite* newSite =
-            icScript->getOrCreateAllocSite(script, pcOffset);
+            icScript->getOrCreateAllocSite(script, pcOffset, lock);
         if (!newSite) {
           return false;
         }
@@ -715,14 +716,15 @@ static bool CreateAllocSitesForCacheIRStub(JSScript* script, uint32_t pcOffset,
   return true;
 }
 
-static void CreateAllocSitesForICChain(JSScript* script, uint32_t entryIndex) {
+static void CreateAllocSitesForICChain(JSScript* script, uint32_t entryIndex,
+                                       const gc::AutoMarkingLock& lock) {
   JitScript* jitScript = script->jitScript();
   ICStub* stub = jitScript->icEntry(entryIndex).firstStub();
   uint32_t pcOffset = jitScript->fallbackStub(entryIndex)->pcOffset();
 
   while (!stub->isFallback()) {
-    if (!CreateAllocSitesForCacheIRStub(script, pcOffset,
-                                        stub->toCacheIRStub())) {
+    if (!CreateAllocSitesForCacheIRStub(script, pcOffset, stub->toCacheIRStub(),
+                                        lock)) {
       // This is an optimization and safe to skip if we hit OOM or per-zone
       // limit.
       return;
@@ -732,12 +734,15 @@ static void CreateAllocSitesForICChain(JSScript* script, uint32_t entryIndex) {
 }
 
 void BaselineCompilerHandler::createAllocSites() {
+  ICScript* icScript = script()->jitScript()->icScript();
+  gc::AutoMarkingLock lock(script()->zone(), icScript->markingLock());
+
   for (uint32_t allocSiteIndex : allocSiteIndices_) {
-    CreateAllocSitesForICChain(script(), allocSiteIndex);
+    CreateAllocSitesForICChain(script(), allocSiteIndex, lock);
   }
 
   if (needsEnvAllocSite_) {
-    script()->jitScript()->icScript()->ensureEnvAllocSite(script());
+    icScript->ensureEnvAllocSite(script(), lock);
   }
 }
 
@@ -1888,6 +1893,11 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
     // a prebarrier here because we will always be overwriting a nullptr,
     // and we don't need a postbarrier because the script is always tenured.
 #ifdef DEBUG
+    Label queueIsNotFull;
+    masm.branch32(Assembler::Below, countReg,
+                  Imm32(JitOptions.baselineQueueCapacity), &queueIsNotFull);
+    masm.assumeUnreachable("Compile queue should be drained when full");
+    masm.bind(&queueIsNotFull);
     Label queueSlotIsEmpty;
     masm.branchPtr(Assembler::Equal, queueSlot, ImmWord(0), &queueSlotIsEmpty);
     masm.assumeUnreachable(

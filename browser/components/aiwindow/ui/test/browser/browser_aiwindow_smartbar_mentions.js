@@ -66,30 +66,6 @@ add_setup(async function () {
   });
 });
 
-/**
- * Wait for mentions to be open.
- *
- * @param {MozBrowser} browser - The browser element
- * @returns {Promise<boolean>} True if mentions are open
- */
-async function waitForMentionsOpen(browser) {
-  return SpecialPowers.spawn(browser, [], async () => {
-    const aiWindowElement = content.document.querySelector("ai-window");
-    const smartbar = await ContentTaskUtils.waitForCondition(
-      () => aiWindowElement.shadowRoot?.querySelector("#ai-window-smartbar"),
-      "Wait for Smartbar to be rendered"
-    );
-    const editor = smartbar.querySelector("moz-multiline-editor");
-
-    await ContentTaskUtils.waitForCondition(
-      () => editor.isHandlingMentions,
-      "Wait for mentions to open"
-    );
-
-    return editor.isHandlingMentions;
-  });
-}
-
 add_task(async function test_mentions_trigger_zero_prefix() {
   const win = await openAIWindow();
   const browser = win.gBrowser.selectedBrowser;
@@ -126,7 +102,7 @@ add_task(async function test_mentions_suggestions_panel_shows() {
   const win = await openAIWindow();
   const browser = win.gBrowser.selectedBrowser;
 
-  const panelVisible = waitForPanelOpen(browser);
+  const panelVisible = waitForMentionsOpen(browser);
   await typeInSmartbar(browser, "@");
   await panelVisible;
 
@@ -249,7 +225,7 @@ add_task(async function test_panel_shows_unified_group() {
   const browser = win.gBrowser.selectedBrowser;
 
   await typeInSmartbar(browser, "@");
-  await waitForPanelOpen(browser);
+  await waitForMentionsOpen(browser);
 
   const groupInfo = await SpecialPowers.spawn(browser, [], async () => {
     const aiWindowElement = content.document.querySelector("ai-window");
@@ -318,7 +294,7 @@ add_task(async function test_deduplication_by_url() {
   const browser = win.gBrowser.selectedBrowser;
 
   await typeInSmartbar(browser, "@");
-  await waitForPanelOpen(browser);
+  await waitForMentionsOpen(browser);
 
   const itemInfo = await SpecialPowers.spawn(browser, [], async () => {
     const aiWindowElement = content.document.querySelector("ai-window");
@@ -387,7 +363,7 @@ add_task(async function test_maxResults_total_limit() {
   const browser = win.gBrowser.selectedBrowser;
 
   await typeInSmartbar(browser, "@");
-  await waitForPanelOpen(browser);
+  await waitForMentionsOpen(browser);
 
   const itemInfo = await SpecialPowers.spawn(browser, [], async () => {
     const aiWindowElement = content.document.querySelector("ai-window");
@@ -678,7 +654,7 @@ add_task(async function test_suggestions_hidden_when_inline_mentions_exists() {
   const browser = win.gBrowser.selectedBrowser;
 
   await typeInSmartbar(browser, "@");
-  await waitForPanelOpen(browser);
+  await waitForMentionsOpen(browser);
 
   await SpecialPowers.spawn(browser, [], async () => {
     const aiWindowElement = content.document.querySelector("ai-window");

@@ -101,10 +101,12 @@ void WMFCDMProxy::Init(PromiseId aPromiseId, const nsAString& aOrigin,
   mCDM->Init(params)->Then(
       mMainThread, __func__,
       [self = RefPtr{this}, this, aPromiseId](const bool) {
+        RETURN_IF_SHUTDOWN();
         MOZ_ASSERT(mCDM->Id() > 0);
         mKeys->OnCDMCreated(aPromiseId, mCDM->Id());
       },
       [self = RefPtr{this}, this, aPromiseId](const nsresult rv) {
+        RETURN_IF_SHUTDOWN();
         RejectPromiseWithStateError(
             aPromiseId,
             nsLiteralCString("WMFCDMProxy::Init: WMFCDM init error"));
@@ -313,6 +315,7 @@ void WMFCDMProxy::Shutdown() {
     mProxyCallback = nullptr;
   }
   mIsShutdown = true;
+  mKeys.Clear();
 }
 
 void WMFCDMProxy::Terminated() {

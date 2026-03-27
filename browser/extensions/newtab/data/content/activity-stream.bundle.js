@@ -14860,6 +14860,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
   }
   render() {
     const prefs = this.props.Prefs.values;
+    // @nova-cleanup(remove-conditional): Remove novaEnabled once Nova ships
+    const novaEnabled = prefs["nova.enabled"];
     const {
       wallpaperList,
       categories
@@ -14937,173 +14939,181 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       htmlFor: "solid-color-picker",
       "data-l10n-id": "newtab-wallpaper-custom-color"
     })) : "";
-    return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("div", {
-      className: "category-header"
-    }, /*#__PURE__*/external_React_default().createElement("h2", {
-      "data-l10n-id": "newtab-wallpaper-title"
-    }), /*#__PURE__*/external_React_default().createElement("button", {
-      className: "wallpapers-reset",
-      onClick: this.handleReset,
-      "data-l10n-id": "newtab-wallpaper-reset"
-    })), /*#__PURE__*/external_React_default().createElement("div", {
-      role: "grid",
-      "aria-label": "Wallpaper category selection. Use arrow keys to navigate."
-    }, /*#__PURE__*/external_React_default().createElement("fieldset", {
-      className: "category-list"
-    }, categories.map((category, index) => {
-      const filteredList = wallpaperList.filter(wallpaper => wallpaper.category === category);
-      const sortedList = this.sortWallpapersByOrder(filteredList);
-      const activeWallpaperObj = activeWallpaper && sortedList.find(wp => wp.title === activeWallpaper);
-      // Detect custom solid color
-      const isCustomSolidColor = category === "solid-colors" && activeWallpaper.startsWith("solid-color-picker");
-      const thumbnail = activeWallpaperObj || sortedList[0];
-      let fluent_id;
-      switch (category) {
-        case "abstracts":
-          fluent_id = "newtab-wallpaper-category-title-abstract";
-          break;
-        case "celestial":
-          fluent_id = "newtab-wallpaper-category-title-celestial";
-          break;
-        case "custom-wallpaper":
-          fluent_id = "newtab-wallpaper-upload-image";
-          break;
-        case "photographs":
-          fluent_id = "newtab-wallpaper-category-title-photographs";
-          break;
-        case "solid-colors":
-          fluent_id = "newtab-wallpaper-category-title-colors";
-          break;
-        case "firefox":
-          fluent_id = "newtab-wallpaper-category-title-firefox";
-          break;
-      }
-      let style = {};
-      if (thumbnail?.wallpaperUrl) {
-        style.backgroundImage = `url(${thumbnail?.thumbnail || thumbnail?.wallpaperUrl})`;
-        style.backgroundPosition = thumbnail.background_position || "center";
-      } else {
-        style.backgroundColor = thumbnail?.solid_color || "";
-      }
-      // If custom solid color is active, override the thumbnail to the chosen hex
-      if (isCustomSolidColor) {
-        const hex = activeWallpaper.split("solid-color-picker-")[1] || "";
-        style.backgroundColor = hex;
-      }
-      const isCategorySelected = activeWallpaperObj || isCustomSolidColor;
-      return /*#__PURE__*/external_React_default().createElement("div", {
-        key: category
-      }, /*#__PURE__*/external_React_default().createElement("button", WallpaperCategories_extends({
-        ref: el => {
-          if (el) {
-            this.categoryRef[index] = el;
-          }
-        },
-        id: category,
-        style: style,
-        onKeyDown: e => this.handleCategoryKeyDown(e, category)
-        // Add overrides for custom wallpaper upload UI
-        ,
-        onClick: event => {
-          this.setState({
-            focusedCategoryIndex: index
-          });
-          if (category !== "custom-wallpaper") {
-            this.handleCategory(event);
-          } else {
-            this.handleUpload();
-          }
-        },
-        className: `wallpaper-input
+    return (
+      /*#__PURE__*/
+      // @nova-cleanup(remove-conditional): Remove nova-enabled class from root div
+      external_React_default().createElement("div", {
+        className: novaEnabled ? "nova-enabled" : undefined
+      }, /*#__PURE__*/external_React_default().createElement("div", {
+        className: "category-header"
+      },
+      // @nova-cleanup(remove-conditional): Remove h2 once Nova ships — title moves to the wallpaper toggle
+      !novaEnabled && /*#__PURE__*/external_React_default().createElement("h2", {
+        "data-l10n-id": "newtab-wallpaper-title"
+      }), /*#__PURE__*/external_React_default().createElement("button", {
+        className: "wallpapers-reset",
+        onClick: this.handleReset,
+        "data-l10n-id": "newtab-wallpaper-reset"
+      })), /*#__PURE__*/external_React_default().createElement("div", {
+        role: "grid",
+        "aria-label": "Wallpaper category selection. Use arrow keys to navigate."
+      }, /*#__PURE__*/external_React_default().createElement("fieldset", {
+        className: "category-list"
+      }, categories.map((category, index) => {
+        const filteredList = wallpaperList.filter(wallpaper => wallpaper.category === category);
+        const sortedList = this.sortWallpapersByOrder(filteredList);
+        const activeWallpaperObj = activeWallpaper && sortedList.find(wp => wp.title === activeWallpaper);
+        // Detect custom solid color
+        const isCustomSolidColor = category === "solid-colors" && activeWallpaper.startsWith("solid-color-picker");
+        const thumbnail = activeWallpaperObj || sortedList[0];
+        let fluent_id;
+        switch (category) {
+          case "abstracts":
+            fluent_id = "newtab-wallpaper-category-title-abstract";
+            break;
+          case "celestial":
+            fluent_id = "newtab-wallpaper-category-title-celestial";
+            break;
+          case "custom-wallpaper":
+            fluent_id = "newtab-wallpaper-upload-image";
+            break;
+          case "photographs":
+            fluent_id = "newtab-wallpaper-category-title-photographs";
+            break;
+          case "solid-colors":
+            fluent_id = "newtab-wallpaper-category-title-colors";
+            break;
+          case "firefox":
+            fluent_id = "newtab-wallpaper-category-title-firefox";
+            break;
+        }
+        let style = {};
+        if (thumbnail?.wallpaperUrl) {
+          style.backgroundImage = `url(${thumbnail?.thumbnail || thumbnail?.wallpaperUrl})`;
+          style.backgroundPosition = thumbnail.background_position || "center";
+        } else {
+          style.backgroundColor = thumbnail?.solid_color || "";
+        }
+        // If custom solid color is active, override the thumbnail to the chosen hex
+        if (isCustomSolidColor) {
+          const hex = activeWallpaper.split("solid-color-picker-")[1] || "";
+          style.backgroundColor = hex;
+        }
+        const isCategorySelected = activeWallpaperObj || isCustomSolidColor;
+        return /*#__PURE__*/external_React_default().createElement("div", {
+          key: category
+        }, /*#__PURE__*/external_React_default().createElement("button", WallpaperCategories_extends({
+          ref: el => {
+            if (el) {
+              this.categoryRef[index] = el;
+            }
+          },
+          id: category,
+          style: style,
+          onKeyDown: e => this.handleCategoryKeyDown(e, category)
+          // Add overrides for custom wallpaper upload UI
+          ,
+          onClick: event => {
+            this.setState({
+              focusedCategoryIndex: index
+            });
+            if (category !== "custom-wallpaper") {
+              this.handleCategory(event);
+            } else {
+              this.handleUpload();
+            }
+          },
+          className: `wallpaper-input
                       ${category === "custom-wallpaper" ? "theme-custom-wallpaper" : ""}
                       ${isCategorySelected ? "selected" : ""}`,
-        tabIndex: this.state.focusedCategoryIndex === index ? 0 : -1
-      }, category === "custom-wallpaper" ? {
-        "aria-errormessage": "customWallpaperError"
-      } : {})), /*#__PURE__*/external_React_default().createElement("label", {
-        htmlFor: category,
-        "data-l10n-id": fluent_id
-      }, fluent_id));
-    })), this.state.customWallpaperErrorType && /*#__PURE__*/external_React_default().createElement("div", {
-      className: "custom-wallpaper-error",
-      id: "customWallpaperError"
-    }, /*#__PURE__*/external_React_default().createElement("span", {
-      className: "icon icon-info"
-    }), (() => {
-      switch (this.state.customWallpaperErrorType) {
-        case "fileSize":
-          return /*#__PURE__*/external_React_default().createElement("span", {
-            "data-l10n-id": "newtab-wallpaper-error-max-file-size",
-            "data-l10n-args": `{"file_size": ${wallpaperUploadMaxFileSize}}`
-          });
-        case "fileType":
-          return /*#__PURE__*/external_React_default().createElement("span", {
-            "data-l10n-id": "newtab-wallpaper-error-upload-file-type"
-          });
-        default:
-          return null;
-      }
-    })())), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
-      nodeRef: this.wallpaperListRef,
-      in: !!activeCategory,
-      timeout: 300,
-      classNames: "wallpaper-list",
-      unmountOnExit: true,
-      onEntered: this.handleWallpaperListEntered
-    }, /*#__PURE__*/external_React_default().createElement("section", {
-      ref: this.wallpaperListRef,
-      className: "category wallpaper-list ignore-color-mode"
-    }, /*#__PURE__*/external_React_default().createElement("button", {
-      ref: this.arrowButtonRef,
-      className: "arrow-button",
-      "data-l10n-id": activeCategoryFluentID,
-      onClick: this.handleBack
-    }), /*#__PURE__*/external_React_default().createElement("div", {
-      role: "grid",
-      "aria-label": "Wallpaper selection. Use arrow keys to navigate."
-    }, /*#__PURE__*/external_React_default().createElement("fieldset", null, this.sortWallpapersByOrder(filteredWallpapers).map(({
-      background_position,
-      fluent_id,
-      solid_color,
-      theme,
-      title,
-      thumbnail,
-      wallpaperUrl
-    }, index) => {
-      let style = {};
-      if (wallpaperUrl) {
-        style.backgroundImage = `url(${thumbnail || wallpaperUrl})`;
-        style.backgroundPosition = background_position || "center";
-      } else {
-        style.backgroundColor = solid_color || "";
-      }
-      return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, {
-        key: title
-      }, /*#__PURE__*/external_React_default().createElement("input", {
-        ref: el => {
-          if (el) {
-            this.wallpaperRef[index] = el;
-          }
-        },
-        onChange: this.handleChange,
-        onKeyDown: e => this.handleWallpaperKeyDown(e, title),
-        style: style,
-        type: "radio",
-        name: `wallpaper-${title}`,
-        id: title,
-        value: title,
-        checked: title === activeWallpaper,
-        "aria-checked": title === activeWallpaper,
-        className: `wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`,
-        onClick: () => this.setActiveId(title) //
-        ,
-        tabIndex: index === 0 ? 0 : -1 //the first wallpaper in the array will have a tabindex of 0 so we can tab into it. The rest will have a tabindex of -1
-      }), /*#__PURE__*/external_React_default().createElement("label", {
-        htmlFor: title,
-        className: "sr-only",
-        "data-l10n-id": fluent_id
-      }, fluent_id));
-    }), colorPickerInput)))));
+          tabIndex: this.state.focusedCategoryIndex === index ? 0 : -1
+        }, category === "custom-wallpaper" ? {
+          "aria-errormessage": "customWallpaperError"
+        } : {})), /*#__PURE__*/external_React_default().createElement("label", {
+          htmlFor: category,
+          "data-l10n-id": fluent_id
+        }, fluent_id));
+      })), this.state.customWallpaperErrorType && /*#__PURE__*/external_React_default().createElement("div", {
+        className: "custom-wallpaper-error",
+        id: "customWallpaperError"
+      }, /*#__PURE__*/external_React_default().createElement("span", {
+        className: "icon icon-info"
+      }), (() => {
+        switch (this.state.customWallpaperErrorType) {
+          case "fileSize":
+            return /*#__PURE__*/external_React_default().createElement("span", {
+              "data-l10n-id": "newtab-wallpaper-error-max-file-size",
+              "data-l10n-args": `{"file_size": ${wallpaperUploadMaxFileSize}}`
+            });
+          case "fileType":
+            return /*#__PURE__*/external_React_default().createElement("span", {
+              "data-l10n-id": "newtab-wallpaper-error-upload-file-type"
+            });
+          default:
+            return null;
+        }
+      })())), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
+        nodeRef: this.wallpaperListRef,
+        in: !!activeCategory,
+        timeout: 300,
+        classNames: "wallpaper-list",
+        unmountOnExit: true,
+        onEntered: this.handleWallpaperListEntered
+      }, /*#__PURE__*/external_React_default().createElement("section", {
+        ref: this.wallpaperListRef,
+        className: "category wallpaper-list ignore-color-mode"
+      }, /*#__PURE__*/external_React_default().createElement("button", {
+        ref: this.arrowButtonRef,
+        className: "arrow-button",
+        "data-l10n-id": activeCategoryFluentID,
+        onClick: this.handleBack
+      }), /*#__PURE__*/external_React_default().createElement("div", {
+        role: "grid",
+        "aria-label": "Wallpaper selection. Use arrow keys to navigate."
+      }, /*#__PURE__*/external_React_default().createElement("fieldset", null, this.sortWallpapersByOrder(filteredWallpapers).map(({
+        background_position,
+        fluent_id,
+        solid_color,
+        theme,
+        title,
+        thumbnail,
+        wallpaperUrl
+      }, index) => {
+        let style = {};
+        if (wallpaperUrl) {
+          style.backgroundImage = `url(${thumbnail || wallpaperUrl})`;
+          style.backgroundPosition = background_position || "center";
+        } else {
+          style.backgroundColor = solid_color || "";
+        }
+        return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, {
+          key: title
+        }, /*#__PURE__*/external_React_default().createElement("input", {
+          ref: el => {
+            if (el) {
+              this.wallpaperRef[index] = el;
+            }
+          },
+          onChange: this.handleChange,
+          onKeyDown: e => this.handleWallpaperKeyDown(e, title),
+          style: style,
+          type: "radio",
+          name: `wallpaper-${title}`,
+          id: title,
+          value: title,
+          checked: title === activeWallpaper,
+          "aria-checked": title === activeWallpaper,
+          className: `wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`,
+          onClick: () => this.setActiveId(title) //
+          ,
+          tabIndex: index === 0 ? 0 : -1 //the first wallpaper in the array will have a tabindex of 0 so we can tab into it. The rest will have a tabindex of -1
+        }), /*#__PURE__*/external_React_default().createElement("label", {
+          htmlFor: title,
+          className: "sr-only",
+          "data-l10n-id": fluent_id
+        }, fluent_id));
+      }), colorPickerInput)))))
+    );
   }
 }
 const WallpaperCategories = (0,external_ReactRedux_namespaceObject.connect)(state => {
@@ -15112,6 +15122,171 @@ const WallpaperCategories = (0,external_ReactRedux_namespaceObject.connect)(stat
     Prefs: state.Prefs
   };
 })(_WallpaperCategories);
+;// CONCATENATED MODULE: ./content-src/components/Nova/CustomizeMenu/WidgetsManagementPanel/WidgetsManagementPanel.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// @nova-cleanup(move-directory): Move to components/CustomizeMenu/WidgetsManagementPanel/ after Nova ships
+
+
+
+
+// eslint-disable-next-line no-shadow
+
+function WidgetsManagementPanel({
+  exitEventFired,
+  onSubpanelToggle,
+  togglePanel,
+  showPanel,
+  enabledSections,
+  enabledWidgets,
+  mayHaveWeather,
+  mayHaveTimerWidget,
+  mayHaveListsWidget,
+  mayHaveWeatherForecast,
+  weatherDisplay,
+  setPref
+}) {
+  const arrowButtonRef = (0,external_React_namespaceObject.useRef)(null);
+  const panelRef = (0,external_React_namespaceObject.useRef)(null);
+  const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
+
+  // Close widget subpanel when parent menu is closed
+  (0,external_React_namespaceObject.useEffect)(() => {
+    if (exitEventFired && showPanel) {
+      togglePanel();
+    }
+  }, [exitEventFired, showPanel, togglePanel]);
+
+  // Notify parent menu when subpanel opens/closes
+  (0,external_React_namespaceObject.useEffect)(() => {
+    if (onSubpanelToggle) {
+      onSubpanelToggle(showPanel);
+    }
+  }, [showPanel, onSubpanelToggle]);
+  const handlePanelEntered = () => {
+    arrowButtonRef.current?.focus();
+  };
+  const onToggleWidget = e => {
+    const {
+      preference,
+      eventSource
+    } = e.target.dataset;
+    const value = e.target.pressed;
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.UserEvent({
+        event: "PREF_CHANGED",
+        source: eventSource,
+        value: {
+          status: value,
+          menu_source: "CUSTOMIZE_MENU"
+        }
+      }));
+      let widgetName;
+      switch (eventSource) {
+        case "WEATHER":
+          widgetName = "weather";
+          break;
+        case "WIDGET_LISTS":
+          widgetName = "lists";
+          break;
+        case "WIDGET_TIMER":
+          widgetName = "focus_timer";
+          break;
+      }
+      if (widgetName) {
+        const {
+          widgetsMaximized,
+          widgetsMayBeMaximized
+        } = enabledWidgets;
+        let widgetSize;
+        if (widgetName === "weather") {
+          if (mayHaveWeatherForecast && weatherDisplay === "detailed") {
+            widgetSize = widgetsMayBeMaximized && !widgetsMaximized ? "small" : "medium";
+          } else {
+            widgetSize = "mini";
+          }
+        } else {
+          widgetSize = widgetsMayBeMaximized && !widgetsMaximized ? "small" : "medium";
+        }
+        dispatch(actionCreators.OnlyToMain({
+          type: actionTypes.WIDGETS_ENABLED,
+          data: {
+            widget_name: widgetName,
+            widget_source: "customize_panel",
+            enabled: value,
+            widget_size: widgetSize
+          }
+        }));
+      }
+      setPref(preference, value);
+    });
+  };
+  const {
+    weatherEnabled
+  } = enabledSections;
+  const {
+    timerEnabled,
+    listsEnabled
+  } = enabledWidgets;
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    id: "widgets-management-panel",
+    className: "widgets-mgmt-panel-container"
+  }, /*#__PURE__*/external_React_default().createElement("moz-box-button", {
+    onClick: togglePanel,
+    "data-l10n-id": "newtab-widget-manage-widget-button"
+  }), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
+    nodeRef: panelRef,
+    in: showPanel,
+    timeout: 300,
+    classNames: "widgets-mgmt-panel",
+    unmountOnExit: true,
+    onEntered: handlePanelEntered
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    ref: panelRef,
+    className: "widgets-mgmt-panel"
+  }, /*#__PURE__*/external_React_default().createElement("button", {
+    ref: arrowButtonRef,
+    className: "arrow-button",
+    onClick: togglePanel
+  }, /*#__PURE__*/external_React_default().createElement("h1", {
+    "data-l10n-id": "newtab-widget-manage-title"
+  })), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "settings-widgets"
+  }, mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
+    id: "weather-section",
+    className: "section"
+  }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+    id: "weather-toggle",
+    pressed: weatherEnabled || null,
+    ontoggle: onToggleWidget,
+    "data-preference": "showWeather",
+    "data-event-source": "WEATHER",
+    "data-l10n-id": "newtab-custom-widget-weather-toggle"
+  })), mayHaveTimerWidget && /*#__PURE__*/external_React_default().createElement("div", {
+    id: "timer-widget-section",
+    className: "section"
+  }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+    id: "timer-toggle",
+    pressed: timerEnabled || null,
+    ontoggle: onToggleWidget,
+    "data-preference": "widgets.focusTimer.enabled",
+    "data-event-source": "WIDGET_TIMER",
+    "data-l10n-id": "newtab-custom-widget-timer-toggle"
+  })), mayHaveListsWidget && /*#__PURE__*/external_React_default().createElement("div", {
+    id: "lists-widget-section",
+    className: "section"
+  }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+    id: "lists-toggle",
+    pressed: listsEnabled || null,
+    ontoggle: onToggleWidget,
+    "data-preference": "widgets.lists.enabled",
+    "data-event-source": "WIDGET_LISTS",
+    "data-l10n-id": "newtab-custom-widget-lists-toggle"
+  }))))));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/CustomizeMenu/ContentSection/ContentSection.jsx
 function ContentSection_extends() { return ContentSection_extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, ContentSection_extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -15122,6 +15297,8 @@ function ContentSection_extends() { return ContentSection_extends = Object.assig
 
 
 
+
+// @nova-cleanup(move-directory): Update import path after WidgetsManagementPanel moves to components/CustomizeMenu/
 
 class ContentSection extends (external_React_default()).PureComponent {
   constructor(props) {
@@ -15187,13 +15364,13 @@ class ContentSection extends (external_React_default()).PureComponent {
     });
   }
   onPreferenceSelect(e) {
-    // eventSource: WEATHER | TOP_SITES | TOP_STORIES | WIDGET_LISTS | WIDGET_TIMER
+    // eventSource: WALLPAPERS | WEATHER | TOP_SITES | TOP_STORIES | WIDGET_LISTS | WIDGET_TIMER
     const {
       preference,
       eventSource
     } = e.target.dataset;
     let value;
-    if (e.target.nodeName === "SELECT") {
+    if (e.target.nodeName === "MOZ-SELECT") {
       value = parseInt(e.target.value, 10);
     } else if (e.target.nodeName === "INPUT") {
       value = e.target.checked;
@@ -15248,15 +15425,21 @@ class ContentSection extends (external_React_default()).PureComponent {
       mayHaveWidgets,
       mayHaveTimerWidget,
       mayHaveListsWidget,
+      mayHaveWeatherForecast,
       openPreferences,
       wallpapersEnabled,
       activeWallpaper,
       setPref,
       mayHaveTopicSections,
+      weatherDisplay,
       exitEventFired,
       onSubpanelToggle,
       toggleSectionsMgmtPanel,
-      showSectionsMgmtPanel
+      showSectionsMgmtPanel,
+      // @nova-cleanup(remove-conditional): Remove novaEnabled
+      novaEnabled,
+      toggleWidgetsManagementPanel,
+      showWidgetsManagementPanel
     } = this.props;
     const {
       topSitesEnabled,
@@ -15269,19 +15452,25 @@ class ContentSection extends (external_React_default()).PureComponent {
       timerEnabled,
       listsEnabled
     } = enabledWidgets;
+
+    // @nova-cleanup(remove-conditional): This conditional adds the toggle for wallpaper visibility.
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: "home-section"
-    }, wallpapersEnabled && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
+    }, (wallpapersEnabled || novaEnabled) && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
       className: "wallpapers-section"
-    }, /*#__PURE__*/external_React_default().createElement(WallpaperCategories, {
+    }, novaEnabled && /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "wallpapers-toggle",
+      pressed: wallpapersEnabled || null,
+      ontoggle: this.onPreferenceSelect,
+      "data-preference": "newtabWallpapers.enabled",
+      "data-event-source": "WALLPAPERS",
+      "data-l10n-id": "newtab-wallpaper-toggle-title"
+    }), wallpapersEnabled && /*#__PURE__*/external_React_default().createElement(WallpaperCategories, {
       setPref: setPref,
       activeWallpaper: activeWallpaper,
       exitEventFired: exitEventFired,
       onSubpanelToggle: onSubpanelToggle
-    })), !mayHaveWidgets && /*#__PURE__*/external_React_default().createElement("span", {
-      className: "divider",
-      role: "separator"
-    })), mayHaveWidgets && /*#__PURE__*/external_React_default().createElement("div", {
+    }))), mayHaveWidgets && !novaEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "widgets-section"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "category-header"
@@ -15319,10 +15508,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "widgets.focusTimer.enabled",
       "data-event-source": "WIDGET_TIMER",
       "data-l10n-id": "newtab-custom-widget-timer-toggle"
-    })), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "divider",
-      role: "separator"
-    }))), /*#__PURE__*/external_React_default().createElement("div", {
+    })))), /*#__PURE__*/external_React_default().createElement("div", {
       className: "settings-toggles"
     }, !mayHaveWidgets && mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
       id: "weather-section",
@@ -15334,7 +15520,10 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "showWeather",
       "data-event-source": "WEATHER",
       "data-l10n-id": "newtab-custom-weather-toggle"
-    })), /*#__PURE__*/external_React_default().createElement("div", {
+    })), /*#__PURE__*/external_React_default().createElement("span", {
+      className: "divider",
+      role: "separator"
+    }), /*#__PURE__*/external_React_default().createElement("div", {
       id: "shortcuts-section",
       className: "section"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
@@ -15343,7 +15532,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       ontoggle: this.onPreferenceSelect,
       "data-preference": "feeds.topsites",
       "data-event-source": "TOP_SITES",
-      "data-l10n-id": "newtab-custom-shortcuts-toggle"
+      "data-l10n-id": novaEnabled ? "newtab-custom-shortcuts-toggle-rows" : "newtab-custom-shortcuts-toggle"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       slot: "nested"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -15351,32 +15540,52 @@ class ContentSection extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-information",
       ref: this.topSitesDrawerRef
-    }, /*#__PURE__*/external_React_default().createElement("select", {
+    }, /*#__PURE__*/external_React_default().createElement("moz-select", {
       id: "row-selector",
       className: "selector",
       name: "row-count",
       "data-preference": "topSitesRows",
       value: topSitesRowsCount,
-      onChange: this.onPreferenceSelect,
-      disabled: !topSitesEnabled,
-      "aria-labelledby": "custom-shortcuts-title"
-    }, /*#__PURE__*/external_React_default().createElement("option", {
-      value: "1",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 1}"
-    }), /*#__PURE__*/external_React_default().createElement("option", {
-      value: "2",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 2}"
-    }), /*#__PURE__*/external_React_default().createElement("option", {
-      value: "3",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 3}"
-    }), /*#__PURE__*/external_React_default().createElement("option", {
-      value: "4",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 4}"
-    }))))))), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
+      "aria-labelledby": "custom-shortcuts-title",
+      onChange: this.onPreferenceSelect
+    }, [1, 2, 3, 4].map(num =>
+    // @nova-cleanup(remove-conditional): Remove the conditional and "else" block after Nova lands
+    novaEnabled ? /*#__PURE__*/external_React_default().createElement("moz-option", {
+      key: num,
+      value: String(num),
+      label: String(num)
+    }) : /*#__PURE__*/external_React_default().createElement("moz-option", {
+      key: num,
+      value: String(num),
+      "data-l10n-id": "newtab-custom-row-selector2",
+      "data-l10n-args": `{"num": ${num}}`
+    })))))))),
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep divider
+    novaEnabled && mayHaveWidgets && /*#__PURE__*/external_React_default().createElement("span", {
+      className: "divider",
+      role: "separator"
+    }),
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep WidgetsManagementPanel
+    novaEnabled && mayHaveWidgets && /*#__PURE__*/external_React_default().createElement(WidgetsManagementPanel, {
+      enabledSections: enabledSections,
+      enabledWidgets: enabledWidgets,
+      mayHaveWeather: mayHaveWeather,
+      mayHaveTimerWidget: mayHaveTimerWidget,
+      mayHaveListsWidget: mayHaveListsWidget,
+      mayHaveWeatherForecast: mayHaveWeatherForecast,
+      weatherDisplay: weatherDisplay,
+      setPref: setPref,
+      exitEventFired: exitEventFired,
+      onSubpanelToggle: onSubpanelToggle,
+      togglePanel: toggleWidgetsManagementPanel,
+      showPanel: showWidgetsManagementPanel
+    }),
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep divider
+    // The pocketRegion check makes sure there is only one divider present if it's false
+    novaEnabled && pocketRegion && /*#__PURE__*/external_React_default().createElement("span", {
+      className: "divider",
+      role: "separator"
+    }), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
       id: "pocket-section",
       className: "section"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", ContentSection_extends({
@@ -15438,6 +15647,7 @@ class ContentSection extends (external_React_default()).PureComponent {
 
 
 
+const CustomizeMenu_PREF_NOVA_ENABLED = "nova.enabled";
 // eslint-disable-next-line no-shadow
 
 class _CustomizeMenu extends (external_React_default()).PureComponent {
@@ -15478,6 +15688,8 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
   render() {
     const activationWindowVariant = this.props.Prefs.values["activationWindow.variant"];
     const activationWindowClass = activationWindowVariant ? `activation-window-variant-${activationWindowVariant}` : "";
+    // @nova-cleanup(remove-pref): remove nova pref
+    const novaEnabled = this.props.Prefs.values[CustomizeMenu_PREF_NOVA_ENABLED];
     return /*#__PURE__*/external_React_default().createElement("span", null, /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
       nodeRef: this.personalizeButtonRef,
       timeout: 300,
@@ -15512,7 +15724,8 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       ref: this.customizeMenuRef,
       className: "customize-menu-animate-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
-      className: `customize-menu ${this.state.subpanelOpen ? "subpanel-open" : ""}`,
+      // @nova-cleanup(remove-conditional): Remove nova-enabled class
+      className: `customize-menu ${this.state.subpanelOpen ? "subpanel-open" : ""} ${novaEnabled ? "nova-enabled" : ""}`,
       role: "dialog",
       "data-l10n-id": "newtab-settings-dialog-label"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -15544,7 +15757,10 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       exitEventFired: this.state.exitEventFired,
       onSubpanelToggle: this.onSubpanelToggle,
       toggleSectionsMgmtPanel: this.props.toggleSectionsMgmtPanel,
-      showSectionsMgmtPanel: this.props.showSectionsMgmtPanel
+      showSectionsMgmtPanel: this.props.showSectionsMgmtPanel,
+      novaEnabled: novaEnabled,
+      toggleWidgetsManagementPanel: this.props.toggleWidgetsManagementPanel,
+      showWidgetsManagementPanel: this.props.showWidgetsManagementPanel
     })))));
   }
 }
@@ -17080,6 +17296,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.handleDismissDownloadHighlight = this.handleDismissDownloadHighlight.bind(this);
     this.applyBodyClasses = this.applyBodyClasses.bind(this);
     this.toggleSectionsMgmtPanel = this.toggleSectionsMgmtPanel.bind(this);
+    this.toggleWidgetsManagementPanel = this.toggleWidgetsManagementPanel.bind(this);
     this.state = {
       fixedSearch: false,
       firstVisibleTimestamp: null,
@@ -17088,7 +17305,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       wallpaperTheme: "",
       showDownloadHighlightOverride: null,
       visible: false,
-      showSectionsMgmtPanel: false
+      showSectionsMgmtPanel: false,
+      showWidgetsManagementPanel: false
     };
     this.spocPlaceholderStartTime = null;
   }
@@ -17554,6 +17772,11 @@ class BaseContent extends (external_React_default()).PureComponent {
       showSectionsMgmtPanel: !prevState.showSectionsMgmtPanel
     }));
   }
+  toggleWidgetsManagementPanel() {
+    this.setState(prevState => ({
+      showWidgetsManagementPanel: !prevState.showWidgetsManagementPanel
+    }));
+  }
   shouldDisplayTopicSelectionModal() {
     const prefs = this.props.Prefs.values;
     const pocketEnabled = prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"];
@@ -17717,7 +17940,8 @@ class BaseContent extends (external_React_default()).PureComponent {
         showing: customizeMenuVisible,
         toggleSectionsMgmtPanel: this.toggleSectionsMgmtPanel,
         showSectionsMgmtPanel: this.state.showSectionsMgmtPanel,
-        showWidgetMgmtPanel: this.state.showWidgetMgmtPanel
+        showWidgetsManagementPanel: this.state.showWidgetsManagementPanel,
+        toggleWidgetsManagementPanel: this.toggleWidgetsManagementPanel
       })));
     }
 

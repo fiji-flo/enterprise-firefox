@@ -332,6 +332,16 @@ internal class ReleaseMetricController(
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.SEARCH_TERM_SUGGESTION_CLICKED -> {
             Awesomebar.searchTermSuggestionClicked.record(NoExtras())
         }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.OPTIMIZED_SUGGESTION_CARD_DISPLAYED -> {
+            Awesomebar.optimizedSuggestionCardDisplayed.record(
+                Awesomebar.OptimizedSuggestionCardDisplayedExtra(cardType = value),
+            )
+        }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.OPTIMIZED_SUGGESTION_CARD_CLICKED -> {
+            Awesomebar.optimizedSuggestionCardClicked.record(
+                Awesomebar.OptimizedSuggestionCardClickedExtra(cardType = value),
+            )
+        }
         Component.FEATURE_CONTEXTMENU to ContextMenuFacts.Items.TEXT_SELECTION_OPTION -> {
             when (metadata?.get("textSelectionOption")?.toString()) {
                 CONTEXT_MENU_COPY -> ContextualMenu.copyTapped.record(NoExtras())
@@ -467,14 +477,14 @@ internal class ReleaseMetricController(
 
         Component.FEATURE_SEARCH to AdsTelemetry.SERP_ADD_CLICKED -> {
             BrowserSearch.adClicks[value!!].add()
-            track(Event.GrowthData.SerpAdClicked)
+            track(Event.GrowthData.ConversionEvent5)
         }
         Component.FEATURE_SEARCH to AdsTelemetry.SERP_SHOWN_WITH_ADDS -> {
             BrowserSearch.withAds[value!!].add()
         }
         Component.FEATURE_SEARCH to InContentTelemetry.IN_CONTENT_SEARCH -> {
             BrowserSearch.inContent[value!!].add()
-            track(Event.GrowthData.UserActivated(fromSearch = true))
+            track(Event.GrowthData.ConversionEvent7(fromSearch = true))
         }
         Component.SUPPORT_WEBEXTENSIONS to WebExtensionFacts.Items.WEB_EXTENSIONS_INITIALIZED -> {
             metadata?.get("installed")?.let { installedAddons ->

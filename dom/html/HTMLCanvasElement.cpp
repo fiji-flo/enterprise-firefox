@@ -1125,7 +1125,8 @@ OffscreenCanvas* HTMLCanvasElement::TransferControlToOffscreen(
   mOffscreenDisplay =
       MakeRefPtr<OffscreenCanvasDisplayHelper>(this, sz.width, sz.height);
   mOffscreenCanvas = new OffscreenCanvas(win->AsGlobal(), sz.width, sz.height,
-                                         backend, do_AddRef(mOffscreenDisplay));
+                                         backend, do_AddRef(mOffscreenDisplay),
+                                         FragmentOrElement::GetLang());
   if (mWriteOnly) {
     mOffscreenCanvas->SetWriteOnly(mExpandedReader);
   }

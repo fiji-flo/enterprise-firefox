@@ -203,15 +203,20 @@ class alignas(uintptr_t) ICScript final : public TrailingArray<ICScript> {
   void setActive() { active_ = true; }
   void resetActive() { active_ = false; }
 
-  gc::AllocSite* getOrCreateAllocSite(JSScript* outerScript, uint32_t pcOffset);
+  gc::AllocSite* getOrCreateAllocSite(JSScript* outerScript, uint32_t pcOffset,
+                                      const gc::AutoMarkingLock& lock);
 
-  void ensureEnvAllocSite(JSScript* outerScript);
+  void ensureEnvAllocSite(JSScript* outerScript,
+                          const gc::AutoMarkingLock& lock);
+
   gc::AllocSite* maybeEnvAllocSite() const { return envAllocSite_; }
 
   void prepareForDestruction(Zone* zone);
 
   void trace(JSTracer* trc);
   bool traceWeak(JSTracer* trc);
+
+  gc::MarkingLock& markingLock() { return markingLock_; }
 
 #ifdef DEBUG
   mozilla::HashNumber hash(JSContext* cx);
@@ -258,6 +263,9 @@ class alignas(uintptr_t) ICScript final : public TrailingArray<ICScript> {
 
   // Bytecode size of the JSScript corresponding to this ICScript.
   uint32_t bytecodeSize_;
+
+  // Lock used to synchronise mutation during concurrent marking.
+  gc::MarkingLock markingLock_;
 
   // Flag set when discarding JIT code to indicate this script is on the stack
   // and should not be discarded.

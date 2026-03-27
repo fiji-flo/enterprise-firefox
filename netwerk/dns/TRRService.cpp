@@ -144,6 +144,7 @@ void TRRService::AddObserver(nsIObserver* aObserver,
     observerService->AddObserver(aObserver, NS_DNS_SUFFIX_LIST_UPDATED_TOPIC,
                                  true);
     observerService->AddObserver(aObserver, "xpcom-shutdown-threads", true);
+    observerService->AddObserver(aObserver, "application-foreground", true);
   }
 }
 
@@ -660,6 +661,8 @@ TRRService::Observe(nsISupports* aSubject, const char* aTopic,
         mConfirmation.HandleEvent(ConfirmationEvent::NetworkUp);
       }
     }
+  } else if (!strcmp(aTopic, "application-foreground")) {
+    MaybeSpeculativeConnectToTRR();
   } else if (!strcmp(aTopic, "xpcom-shutdown-threads")) {
     mShutdown = true;
     // If a confirmation is still in progress we record the event.
@@ -692,6 +695,19 @@ void TRRService::RebuildSuffixList(nsTArray<nsCString>&& aSuffixList) {
     LOG(("TRRService adding %s to suffix list", item.get()));
     mDNSSuffixDomains.Insert(item);
   }
+}
+
+void TRRService::MaybeSpeculativeConnectToTRR() {
+  if (!StaticPrefs::network_trr_preconnect_on_foreground() || !Enabled()) {
+    return;
+  }
+
+  RefPtr<nsHttpConnectionInfo> ci = TRRConnectionInfo();
+  if (!ci) {
+    return;
+  }
+
+  (void)gHttpHandler->SpeculativeConnect(ci, nullptr, 0, nullptr);
 }
 
 void TRRService::ConfirmationContext::SetState(
@@ -995,7 +1011,8 @@ bool TRRService::IsTemporarilyBlocked(const nsACString& aHost,
     return false;  // might as well try
   }
 
-  LOG(("Checking if host [%s] is blocklisted", aHost.BeginReading()));
+  LOG(("Checking if host [%s] is blocklisted",
+       nsPromiseFlatCString(aHost).get()));
 
   int32_t dot = aHost.FindChar('.');
   if ((dot == kNotFound) && aParentsToo) {
@@ -1041,19 +1058,22 @@ bool TRRService::IsExcludedFromTRR_unlocked(const nsACString& aHost) {
 
     if (mExcludedDomains.Contains(subdomain)) {
       LOG(("Subdomain [%s] of host [%s] Is Excluded From TRR via pref\n",
-           subdomain.BeginReading(), aHost.BeginReading()));
+           nsPromiseFlatCString(subdomain).get(),
+           nsPromiseFlatCString(aHost).get()));
       return true;
     }
     if (mDNSSuffixDomains.Contains(subdomain)) {
       LOG(
           ("Subdomain [%s] of host [%s] Is Excluded From TRR via DNSSuffix "
            "domains\n",
-           subdomain.BeginReading(), aHost.BeginReading()));
+           nsPromiseFlatCString(subdomain).get(),
+           nsPromiseFlatCString(aHost).get()));
       return true;
     }
     if (mEtcHostsDomains.Contains(subdomain)) {
       LOG(("Subdomain [%s] of host [%s] Is Excluded From TRR by /etc/hosts\n",
-           subdomain.BeginReading(), aHost.BeginReading()));
+           nsPromiseFlatCString(subdomain).get(),
+           nsPromiseFlatCString(aHost).get()));
       return true;
     }
 

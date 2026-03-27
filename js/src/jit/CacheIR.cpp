@@ -297,8 +297,10 @@ gc::AllocSite* IRGenerator::maybeCreateAllocSite() {
     return outerScript->zone()->unknownAllocSite(JS::TraceKind::Object);
   }
 
+  ICScript* icScript = frame->icScript();
+  gc::AutoMarkingLock lock(outerScript->zone(), icScript->markingLock());
   uint32_t pcOffset = frame->script()->pcToOffset(pc_);
-  return frame->icScript()->getOrCreateAllocSite(outerScript, pcOffset);
+  return icScript->getOrCreateAllocSite(outerScript, pcOffset, lock);
 }
 
 GetPropIRGenerator::GetPropIRGenerator(JSContext* cx, HandleScript script,

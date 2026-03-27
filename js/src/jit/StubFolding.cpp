@@ -25,7 +25,8 @@ using namespace js;
 using namespace js::jit;
 
 static bool TryFoldingGuardShapes(JSContext* cx, ICFallbackStub* fallback,
-                                  JSScript* script, ICScript* icScript) {
+                                  JSScript* script, ICScript* icScript,
+                                  gc::AutoMarkingLock& lock) {
   // Try folding similar stubs with GuardShapes
   // into GuardMultipleShapes or GuardMultipleShapesToOffset
 
@@ -408,8 +409,8 @@ static bool TryFoldingGuardShapes(JSContext* cx, ICFallbackStub* fallback,
   // Replace the existing stubs with the new folded stub.
   fallback->discardStubs(cx->zone(), icEntry);
 
-  ICAttachResult result = AttachBaselineCacheIRStub(
-      cx, writer, cacheKind, script, icScript, fallback, "StubFold");
+  ICAttachResult result = AttachBaselineCacheIRStubLocked(
+      cx, writer, cacheKind, script, icScript, fallback, "StubFold", lock);
   if (result == ICAttachResult::OOM) {
     ReportOutOfMemory(cx);
     return false;
@@ -443,6 +444,13 @@ static bool TryFoldingGuardShapes(JSContext* cx, ICFallbackStub* fallback,
 
 bool js::jit::TryFoldingStubs(JSContext* cx, ICFallbackStub* fallback,
                               JSScript* script, ICScript* icScript) {
+  gc::AutoMarkingLock lock(cx->zone(), icScript->markingLock());
+  return TryFoldingStubsLocked(cx, fallback, script, icScript, lock);
+}
+
+bool js::jit::TryFoldingStubsLocked(JSContext* cx, ICFallbackStub* fallback,
+                                    JSScript* script, ICScript* icScript,
+                                    gc::AutoMarkingLock& lock) {
   ICEntry* icEntry = icScript->icEntryForStub(fallback);
   ICStub* entryStub = icEntry->firstStub();
 
@@ -460,7 +468,9 @@ bool js::jit::TryFoldingStubs(JSContext* cx, ICFallbackStub* fallback,
     return true;
   }
 
-  if (!TryFoldingGuardShapes(cx, fallback, script, icScript)) return false;
+  if (!TryFoldingGuardShapes(cx, fallback, script, icScript, lock)) {
+    return false;
+  }
 
   return true;
 }

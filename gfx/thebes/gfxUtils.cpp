@@ -228,8 +228,7 @@ already_AddRefed<DataSourceSurface> gfxUtils::CreatePremultipliedDataSurface(
   DataSourceSurface::MappedSurface destMap;
   if (!MapSrcAndCreateMappedDest(srcSurf, &destSurf, &srcMap, &destMap)) {
     MOZ_ASSERT(false, "MapSrcAndCreateMappedDest failed.");
-    RefPtr<DataSourceSurface> surface(srcSurf);
-    return surface.forget();
+    return nullptr;
   }
 
   PremultiplyData(srcMap.mData, srcMap.mStride, srcSurf->GetFormat(),
@@ -247,8 +246,7 @@ already_AddRefed<DataSourceSurface> gfxUtils::CreateUnpremultipliedDataSurface(
   DataSourceSurface::MappedSurface destMap;
   if (!MapSrcAndCreateMappedDest(srcSurf, &destSurf, &srcMap, &destMap)) {
     MOZ_ASSERT(false, "MapSrcAndCreateMappedDest failed.");
-    RefPtr<DataSourceSurface> surface(srcSurf);
-    return surface.forget();
+    return nullptr;
   }
 
   UnpremultiplyData(srcMap.mData, srcMap.mStride, srcSurf->GetFormat(),
@@ -1178,10 +1176,11 @@ nsresult gfxUtils::EncodeSourceSurface(SourceSurface* aSurface,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aFile) {
+    nsPromiseFlatCString flatURI(dataURI);
 #ifdef ANDROID
     if (aFile == stdout || aFile == stderr) {
       // ADB logcat cuts off long strings so we will break it down
-      const char* cStr = dataURI.BeginReading();
+      const char* cStr = flatURI.get();
       size_t len = strlen(cStr);
       while (true) {
         printf_stderr("IMG: %.140s\n", cStr);
@@ -1191,7 +1190,7 @@ nsresult gfxUtils::EncodeSourceSurface(SourceSurface* aSurface,
       }
     }
 #endif
-    fprintf(aFile, "%s", dataURI.BeginReading());
+    fprintf(aFile, "%s", flatURI.get());
   } else if (!aStrOut) {
     nsCOMPtr<nsIClipboardHelper> clipboard(
         do_GetService("@mozilla.org/widget/clipboardhelper;1", &rv));

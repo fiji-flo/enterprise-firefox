@@ -46,6 +46,7 @@ import androidx.navigation.fragment.navArgs
 import com.google.android.material.appbar.AppBarLayout
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -68,6 +69,7 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.ktx.android.view.toScope
 import mozilla.components.support.utils.BuildManufacturerChecker
 import mozilla.components.support.utils.DateTimeProvider
 import mozilla.components.support.utils.DefaultDateTimeProvider
@@ -356,7 +358,11 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
 
         lifecycleScope.launch(IO) {
             val settings = requireContext().settings()
-            val showStories = settings.showPocketRecommendationsFeature
+
+            val showStories =
+                settings.showPocketRecommendationsFeature ||
+                    settings.privateModeAndStoriesEntryPointEnabled
+
             val showSponsoredStories = showStories && settings.showPocketSponsoredStories
 
             if (showStories) {
@@ -718,9 +724,11 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                     directToSearchConfig = DirectToSearchConfig(
                         startSearch = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) ||
                                 FxNimbus.features.oneClickSearch.value().enabled,
+                        startVoiceSearch = bundleArgs.getBoolean(START_VOICE_SEARCH),
                         sessionId = args.sessionToStartSearchFor,
                         source = args.searchAccessPoint,
                     ),
+                    coroutineScope = binding.homeLayout.toScope(),
                     tabStripContent = { TabStrip(toolbarStore) },
                     searchSuggestionsContent = { modifier ->
                         (awesomeBarComposable ?: initializeAwesomeBarComposable(toolbarStore, modifier))
@@ -1486,6 +1494,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
     companion object {
         // Navigation arguments passed to HomeFragment
         const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
+        const val START_VOICE_SEARCH = "startVoiceSearch"
         private const val SESSION_TO_DELETE = "sessionToDelete"
 
         // Elevation for undo toasts

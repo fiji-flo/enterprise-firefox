@@ -13,6 +13,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryService.h"
+#include "nsIDUtils.h"
 #include "nsIFileStreams.h"
 #include "nsNetUtil.h"
 #include "nsString.h"
@@ -1375,6 +1376,11 @@ static void WriteAnnotationsForMainProcessCrash(PlatformWriter& pw,
 
   WriteSynthesizedAnnotations(writer);
   writer.Write(Annotation::CrashTime, uint64_t(crashTime));
+  // Add a unique identifier for this crash event.
+  {
+    NSID_TrimBracketsASCII uuidString(nsID::GenerateUUID());
+    writer.Write(Annotation::CrashID, uuidString.Data(), uuidString.Length());
+  }
 
   if (inactiveStateStart) {
     writer.Write(Annotation::LastInteractionDuration,
@@ -2088,19 +2094,19 @@ nsresult SetMinidumpPath(const nsAString& aPath) {
 
   // Set the path for the in-process exception handler
 #ifdef XP_WIN
-  gExceptionHandler->set_dump_path(std::wstring(path.get()));
+  gExceptionHandler->set_dump_path(std::wstring(path.getW()));
 #elif defined(XP_LINUX)
-  gExceptionHandler->set_minidump_descriptor(
-      MinidumpDescriptor(path.BeginReading()));
+  gExceptionHandler->set_minidump_descriptor(MinidumpDescriptor(path.get()));
 #else
-  gExceptionHandler->set_dump_path(path.BeginReading());
+  gExceptionHandler->set_dump_path(path.get());
 #endif
 
   // Set the path used by the crash helper for out-of-process crash generation
   StaticMutexAutoLock lock(gCrashHelperClientMutex);
   if (gCrashHelperClient) {
-    set_crash_report_path(gCrashHelperClient,
-                          (const BreakpadChar*)path.BeginReading());
+    set_crash_report_path(
+        gCrashHelperClient,
+        mozilla::BitwiseCast<const BreakpadChar*>(path.get()));
   }
 
   return NS_OK;
@@ -3266,8 +3272,7 @@ static void OOPInit() {
   // the appropriate type of minidump in the crash helper.
   crashHelperClient = crash_helper_launch(
       (const BreakpadChar*)crashHelperPath.c_str(),
-      (const BreakpadChar*)NS_ConvertUTF8toUTF16(childCrashNotifyPipe)
-          .BeginReading(),
+      (const BreakpadChar*)NS_ConvertUTF8toUTF16(childCrashNotifyPipe).getW(),
       (const BreakpadChar*)gExceptionHandler->dump_path().c_str());
 #elif defined(XP_LINUX)
   const std::string dumpPath =
@@ -3416,7 +3421,7 @@ bool SetRemoteExceptionHandler(int& aArgc, char** aArgv) {
       nullptr,  // no callback
       nullptr,  // no callback context
       google_breakpad::ExceptionHandler::HANDLER_ALL, GetMinidumpType(),
-      (const wchar_t*)NS_ConvertUTF8toUTF16(*crash_pipe).BeginReading(),
+      (const wchar_t*)NS_ConvertUTF8toUTF16(*crash_pipe).get(),
       nullptr  // no custom info
   );
   gExceptionHandler->set_handle_debug_exceptions(true);

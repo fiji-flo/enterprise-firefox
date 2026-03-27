@@ -2,13 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 """
-Transform the repackage signing task into an actual task description.
+Transform the openh264 signing task into an actual task description.
 """
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.dependencies import get_primary_dependency
 from taskgraph.util.schema import LegacySchema
-from taskgraph.util.treeherder import inherit_treeherder_from_dep
+from taskgraph.util.treeherder import inherit_treeherder_from_dep, join_symbol
 from voluptuous import Optional
 
 from gecko_taskgraph.transforms.task import task_description_schema
@@ -57,7 +57,6 @@ def make_signing_description(config, jobs):
             )
         )
 
-        # we have a genuine repackage job as our parent
         dependencies = {"openh264": dep_job.label}
 
         my_attributes = copy_attributes_from_dependent_job(dep_job)
@@ -69,7 +68,6 @@ def make_signing_description(config, jobs):
             "implementation": "scriptworker-signing",
             "signing-type": signing_type,
         }
-        rev = attributes["openh264_rev"]
         upstream_artifact = {
             "taskId": {"task-reference": "<openh264>"},
             "taskType": "build",
@@ -86,16 +84,21 @@ def make_signing_description(config, jobs):
         else:
             upstream_artifact["formats"] = ["gcp_prod_autograph_gpg"]
 
+        version = attributes.get("openh264_version")
+        if not version:
+            raise Exception(f"openh264_version attribute missing from {dep_job.label}")
         upstream_artifact["paths"] = [
-            f"private/openh264/openh264-{build_platform}-{rev}.zip",
+            f"private/openh264/openh264-v{version}-{build_platform}.zip",
         ]
         worker["upstream-artifacts"] = [upstream_artifact]
 
+        dep_th = dep_job.task.get("extra", {}).get("treeherder", {})
         treeherder = inherit_treeherder_from_dep(job, dep_job)
         treeherder.setdefault(
             "symbol",
-            _generate_treeherder_symbol(
-                dep_job.task.get("extra", {}).get("treeherder", {}).get("symbol")
+            join_symbol(
+                dep_th.get("groupSymbol", "?"),
+                _generate_treeherder_symbol(dep_th.get("symbol")),
             ),
         )
 

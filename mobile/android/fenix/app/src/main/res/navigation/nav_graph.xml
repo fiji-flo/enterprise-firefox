@@ -264,6 +264,10 @@
             android:name="focusOnAddressBar"
             android:defaultValue="false"
             app:argType="boolean" />
+        <argument
+            android:name="startVoiceSearch"
+            android:defaultValue="false"
+            app:argType="boolean" />
         <action
             android:id="@+id/action_homeFragment_to_loginsListFragment"
             app:destination="@id/savedLogins"

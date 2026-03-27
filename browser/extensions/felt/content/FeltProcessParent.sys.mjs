@@ -148,48 +148,86 @@ export class FeltProcessParent extends JSProcessActorParent {
               "enterprise.disable_restart",
               false
             );
-            console.debug(
-              `FeltExtension: ParentProcess: restart notification, restartDisabled=${restartDisabled}`
+
+            const UM = Cc["@mozilla.org/updates/update-manager;1"].getService(
+              Ci.nsIUpdateManager
             );
-            // Kill Firefox directly instead of broadcasting to receiveMessage()
-            // since gFeltProcessParentInstance is accessible here
-            if (gFeltProcessParentInstance?.proc) {
-              gFeltProcessParentInstance.restartReported = true;
-              gFeltProcessParentInstance.firefox = null;
-              console.debug(
-                `FeltExtension: ParentProcess: Killing Firefox PID=${gFeltProcessParentInstance.proc.pid}`
-              );
-              gFeltProcessParentInstance.proc
-                .kill()
-                .then(() => {
+            UM.getReadyUpdate()
+              .then(readyUpdate => {
+                let pendingUpdate = false;
+                if (readyUpdate) {
+                  // Updates states when restarting will finish the update
+                  const readyStates = [
+                    "pending",
+                    "pending-service",
+                    "pending-elevate",
+                    "applied",
+                    "applied-service",
+                  ];
+                  pendingUpdate = readyStates.includes(readyUpdate.state);
+                }
+                return pendingUpdate;
+              })
+              .catch(err => {
+                console.debug(
+                  `FeltExtension: ParentProcess: getReadyUpdate failed: ${err}`
+                );
+              })
+              .then(pendingUpdate => {
+                console.debug(
+                  `FeltExtension: ParentProcess: restart notification, restartDisabled=${restartDisabled}`
+                );
+                // Kill Firefox directly instead of broadcasting to receiveMessage()
+                // since gFeltProcessParentInstance is accessible here
+                if (gFeltProcessParentInstance?.proc) {
+                  gFeltProcessParentInstance.restartReported = true;
+                  gFeltProcessParentInstance.firefox = null;
                   console.debug(
-                    `FeltExtension: ParentProcess: Killed Firefox, restartDisabled=${restartDisabled}`
+                    `FeltExtension: ParentProcess: Killing Firefox PID=${gFeltProcessParentInstance.proc.pid}`
                   );
-                  if (!restartDisabled) {
-                    console.debug(
-                      `FeltExtension: ParentProcess: Starting new Firefox`
-                    );
-                    gFeltProcessParentInstance.startFirefox(
-                      PROCESS_START_REASON.RESTART
-                    );
-                  } else {
-                    console.debug(
-                      `FeltExtension: ParentProcess: Restart disabled, sending normal exit to restore FELT UI`
-                    );
-                    Services.cpmm.sendAsyncMessage(
-                      "FeltParent:FirefoxNormalExit",
-                      {}
-                    );
-                  }
-                })
-                .catch(err => {
+                  gFeltProcessParentInstance.proc
+                    .kill()
+                    .then(() => {
+                      console.debug(
+                        `FeltExtension: ParentProcess: Killed Firefox, restartDisabled=${restartDisabled}`
+                      );
+
+                      if (!restartDisabled && !pendingUpdate) {
+                        console.debug(
+                          `FeltExtension: ParentProcess: Starting new Firefox`
+                        );
+                        gFeltProcessParentInstance.startFirefox(
+                          PROCESS_START_REASON.RESTART
+                        );
+                      } else if (pendingUpdate) {
+                        console.debug(
+                          `FeltExtension: ParentProcess: Restart requested and pending update, restarting FELT UI`
+                        );
+                        Services.cpmm.sendAsyncMessage(
+                          "FeltParent:FirefoxRestartUpdateExit",
+                          {}
+                        );
+                      } else {
+                        console.debug(
+                          `FeltExtension: ParentProcess: Restart disabled, sending normal exit to restore FELT UI`
+                        );
+                        Services.cpmm.sendAsyncMessage(
+                          "FeltParent:FirefoxNormalExit",
+                          {}
+                        );
+                      }
+                    })
+                    .catch(err => {
+                      console.debug(
+                        `FeltExtension: ParentProcess: Kill failed: ${err}`
+                      );
+                    });
+                } else {
                   console.debug(
-                    `FeltExtension: ParentProcess: Kill failed: ${err}`
+                    `FeltExtension: ParentProcess: No proc to kill!`
                   );
-                });
-            } else {
-              console.debug(`FeltExtension: ParentProcess: No proc to kill!`);
-            }
+                }
+              });
             break;
           }
           case "felt-extension-ready": {

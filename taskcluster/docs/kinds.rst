@@ -757,6 +757,10 @@ openh264-signing
 ----------------
 Signing for the openh264 plugin.
 
+openh264-symbol-upload
+-----------------------
+Upload crash symbols for the openh264 plugin to the symbol server.
+
 webrender
 ---------
 Tasks used to do testing of WebRender standalone (without gecko). The

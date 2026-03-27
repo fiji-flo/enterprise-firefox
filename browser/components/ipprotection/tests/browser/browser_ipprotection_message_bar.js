@@ -27,7 +27,7 @@ add_task(async function test_warning_message() {
 
   // Start with no bandwidth warning (values in bytes)
   let content = await openPanel({
-    isSignedOut: false,
+    unauthenticated: false,
     error: "",
     bandwidthWarning: false,
     bandwidthUsage: mockBandwidthUsage,
@@ -125,7 +125,7 @@ add_task(async function test_warning_message() {
 
   // Reopen panel - the second threshold warning should stay dismissed
   content = await openPanel({
-    isSignedOut: false,
+    unauthenticated: false,
     error: "",
   });
 
@@ -262,7 +262,7 @@ add_task(async function test_warning_dismissed_when_bandwidth_resets() {
   const maxBytes = BANDWIDTH.MAX_IN_GB * BANDWIDTH.BYTES_IN_GB;
 
   let content = await openPanel({
-    isSignedOut: false,
+    unauthenticated: false,
     error: "",
     bandwidthWarning: false,
   });
@@ -334,7 +334,7 @@ add_task(async function test_warning_message_decimal_precision() {
   const maxBytes = BANDWIDTH.MAX_IN_GB * BANDWIDTH.BYTES_IN_GB;
   const remainingBytes = maxBytes * BANDWIDTH.SECOND_THRESHOLD;
 
-  let content = await openPanel({});
+  let content = await openPanel({ unauthenticated: false });
 
   let messageBarLoadedPromise = BrowserTestUtils.waitForMutationCondition(
     content.shadowRoot,
@@ -409,7 +409,7 @@ add_task(async function test_warning_message_l10n_args_at_80_percent_used() {
   const maxBytes = BANDWIDTH.MAX_IN_GB * BANDWIDTH.BYTES_IN_GB;
   const remaining = Math.floor(maxBytes * 0.2);
 
-  let content = await openPanel({});
+  let content = await openPanel({ unauthenticated: false });
 
   let messageBarLoadedPromise = BrowserTestUtils.waitForMutationCondition(
     content.shadowRoot,
@@ -482,7 +482,7 @@ add_task(async function test_warning_message_l10n_args_mb_below_1gb() {
   const maxBytes = BANDWIDTH.MAX_IN_GB * BANDWIDTH.BYTES_IN_GB;
   const remaining = Math.floor(0.9 * BANDWIDTH.BYTES_IN_GB);
 
-  let content = await openPanel({});
+  let content = await openPanel({ unauthenticated: false });
 
   let messageBarLoadedPromise = BrowserTestUtils.waitForMutationCondition(
     content.shadowRoot,
@@ -555,7 +555,7 @@ add_task(async function test_dismiss() {
   const maxBytes = BANDWIDTH.MAX_IN_GB * BANDWIDTH.BYTES_IN_GB;
 
   let content = await openPanel({
-    isSignedOut: false,
+    unauthenticated: false,
     error: "",
   });
 
@@ -718,4 +718,32 @@ add_task(async function test_remove_warning_after_sign_out() {
     })
   );
   await resetPromise;
+});
+
+/**
+ * Tests that no message bar is shown when the panel is opened while signed out
+ * with a stale bandwidth warning in state (bandwidthUsage is null).
+ */
+add_task(async function test_no_message_bar_when_signed_out_with_warning() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ipProtection.bandwidth.enabled", true]],
+  });
+
+  let content = await openPanel({
+    unauthenticated: true,
+    bandwidthWarning: true,
+    bandwidthUsage: null,
+    error: "",
+  });
+
+  await content.updateComplete;
+
+  Assert.ok(
+    !content.shadowRoot.querySelector("ipprotection-message-bar"),
+    "Message bar should not be shown when signed out with a stale bandwidth warning"
+  );
+
+  await closePanel();
+  await SpecialPowers.popPrefEnv();
+  Services.prefs.clearUserPref("browser.ipProtection.bandwidthThreshold");
 });

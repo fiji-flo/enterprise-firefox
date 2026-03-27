@@ -72,17 +72,22 @@ export class PreferencesBackupResource extends BackupResource {
     const backupPrefs = Services.prefs.getChildList("browser.backup.");
     kIgnoredPrefs = kIgnoredPrefs.concat(backupPrefs);
 
-    // Prefs with this prefix are always overriden.
-    const kNimbusMetadataPrefPrefix = "nimbus.";
-
     for (const pref of kIgnoredPrefs) {
       if (Services.prefs.getPrefType(pref) !== Services.prefs.PREF_INVALID) {
         prefsOverrideMap.addEntry(pref, null);
       }
     }
 
+    // Prefs with this prefix are always overriden.
+    const kNimbusMetadataPrefPrefix = "nimbus.";
+    const kNimbusPrefExceptionList = ["nimbus.rollouts.enabled"];
+
     const nimbusPrefs = Services.prefs.getChildList(kNimbusMetadataPrefPrefix);
     for (const pref of nimbusPrefs) {
+      if (kNimbusPrefExceptionList.includes(pref)) {
+        continue;
+      }
+
       prefsOverrideMap.addEntry(pref, null);
     }
 

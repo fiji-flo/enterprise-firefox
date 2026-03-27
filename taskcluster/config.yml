@@ -79,6 +79,7 @@ treeherder:
         'MSIXs': 'Signing of Repack into MSIX package'
         'nt-trainhop': 'Desktop newtab trainhop tests'
         'nt-trainhop-cf': 'Desktop newtab trainhop tests for confirm failure'
+        'OpenH264': 'OpenH264 plugin'
         'Pup': "Puppeteer tests"
         'R': 'Reftests'
         'R-ioi': 'Reftests with incremental origin initialization enabled'

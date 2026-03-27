@@ -188,10 +188,6 @@ void JSScript::releaseJitScriptOnFinalize(JS::GCContext* gcx) {
 }
 
 void JitScript::trace(JSTracer* trc) {
-  // This is not safe to call concurrently with the mutator.
-  MOZ_ASSERT_IF(trc->isMarkingTracer(),
-                !GCMarker::fromTracer(trc)->isConcurrentMarking());
-
   TraceEdge(trc, &owningScript_, "JitScript::owningScript_");
 
   icScript_.trace(trc);
@@ -230,6 +226,8 @@ void JitScript::traceWeak(JSTracer* trc) {
 }
 
 void ICScript::trace(JSTracer* trc) {
+  gc::AutoMarkingLock lock(trc, markingLock_);
+
   // Mark all IC stub codes hanging off the IC stub entries.
   for (size_t i = 0; i < numICEntries(); i++) {
     ICEntry& ent = icEntry(i);
@@ -848,7 +846,8 @@ InliningRoot* JitScript::getOrCreateInliningRoot(JSContext* cx,
 }
 
 gc::AllocSite* ICScript::getOrCreateAllocSite(JSScript* outerScript,
-                                              uint32_t pcOffset) {
+                                              uint32_t pcOffset,
+                                              const gc::AutoMarkingLock& lock) {
   // The script must be the outer script.
   MOZ_ASSERT(outerScript->jitScript()->icScript() == this ||
              (inliningRoot() && inliningRoot()->owningScript() == outerScript));
@@ -866,19 +865,20 @@ gc::AllocSite* ICScript::getOrCreateAllocSite(JSScript* outerScript,
     }
   }
 
+  Zone* zone = outerScript->zone();
   Nursery& nursery = outerScript->runtimeFromMainThread()->gc.nursery();
   if (!nursery.canCreateAllocSite()) {
     // Don't block attaching an optimized stub, but don't process allocations
     // for this site.
-    return outerScript->zone()->unknownAllocSite(JS::TraceKind::Object);
+    return zone->unknownAllocSite(JS::TraceKind::Object);
   }
 
   if (!allocSites_.reserve(allocSites_.length() + 1)) {
     return nullptr;
   }
 
-  auto* site = allocSitesSpace_.new_<gc::AllocSite>(
-      outerScript->zone(), outerScript, pcOffset, JS::TraceKind::Object);
+  auto* site = allocSitesSpace_.new_<gc::AllocSite>(zone, outerScript, pcOffset,
+                                                    JS::TraceKind::Object);
   if (!site) {
     return nullptr;
   }
@@ -890,14 +890,15 @@ gc::AllocSite* ICScript::getOrCreateAllocSite(JSScript* outerScript,
   return site;
 }
 
-void ICScript::ensureEnvAllocSite(JSScript* outerScript) {
+void ICScript::ensureEnvAllocSite(JSScript* outerScript,
+                                  const gc::AutoMarkingLock& lock) {
   if (envAllocSite_) {
     return;
   }
 
   // Use a dummy offset for this site.
   uint32_t pcoffset = gc::AllocSite::EnvSitePCOffset;
-  gc::AllocSite* site = getOrCreateAllocSite(outerScript, pcoffset);
+  gc::AllocSite* site = getOrCreateAllocSite(outerScript, pcoffset, lock);
   if (!site) {
     // Use the unknown site on failure.
     site = outerScript->zone()->unknownAllocSite(JS::TraceKind::Object);

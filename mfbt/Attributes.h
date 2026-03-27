@@ -743,6 +743,11 @@
  *
  *   Use of this annotation is discouraged when a strong reference or one of
  *   the above two annotations can be used instead.
+ * MOZ_NON_TERMINATED_STRING: Applies to function declarations.  Indicates that
+ *   the return value is a character pointer that is not null-terminated.
+ *   Makes it a compile time error to pass the return value of such a function
+ *   as an argument to a printf-like function (one annotated with
+ *   MOZ_FORMAT_PRINTF), since printf %s expects null-terminated input.
  * MOZ_NO_ADDREF_RELEASE_ON_RETURN: Applies to function declarations.  Makes it
  *   a compile time error to call AddRef or Release on the return value of a
  *   function.  This is intended to be used with operator->() of our smart
@@ -871,6 +876,8 @@
 #    define MOZ_OWNING_REF __attribute__((annotate("moz_owning_ref")))
 #    define MOZ_NON_OWNING_REF __attribute__((annotate("moz_non_owning_ref")))
 #    define MOZ_UNSAFE_REF(reason) __attribute__((annotate("moz_unsafe_ref")))
+#    define MOZ_NON_TERMINATED_STRING \
+      __attribute__((annotate("moz_non_terminated_string")))
 #    define MOZ_NO_ADDREF_RELEASE_ON_RETURN \
       __attribute__((annotate("moz_no_addref_release_on_return")))
 #    define MOZ_NEEDS_NO_VTABLE_TYPE \
@@ -968,6 +975,7 @@
 #    define MOZ_OWNING_REF                                  /* nothing */
 #    define MOZ_NON_OWNING_REF                              /* nothing */
 #    define MOZ_UNSAFE_REF(reason)                          /* nothing */
+#    define MOZ_NON_TERMINATED_STRING                       /* nothing */
 #    define MOZ_NO_ADDREF_RELEASE_ON_RETURN                 /* nothing */
 #    define MOZ_NEEDS_NO_VTABLE_TYPE                        /* nothing */
 #    define MOZ_NON_MEMMOVABLE                              /* nothing */

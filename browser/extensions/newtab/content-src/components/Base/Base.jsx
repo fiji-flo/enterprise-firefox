@@ -116,6 +116,8 @@ export class BaseContent extends React.PureComponent {
       this.handleDismissDownloadHighlight.bind(this);
     this.applyBodyClasses = this.applyBodyClasses.bind(this);
     this.toggleSectionsMgmtPanel = this.toggleSectionsMgmtPanel.bind(this);
+    this.toggleWidgetsManagementPanel =
+      this.toggleWidgetsManagementPanel.bind(this);
     this.state = {
       fixedSearch: false,
       firstVisibleTimestamp: null,
@@ -125,6 +127,7 @@ export class BaseContent extends React.PureComponent {
       showDownloadHighlightOverride: null,
       visible: false,
       showSectionsMgmtPanel: false,
+      showWidgetsManagementPanel: false,
     };
     this.spocPlaceholderStartTime = null;
   }
@@ -665,6 +668,12 @@ export class BaseContent extends React.PureComponent {
     }));
   }
 
+  toggleWidgetsManagementPanel() {
+    this.setState(prevState => ({
+      showWidgetsManagementPanel: !prevState.showWidgetsManagementPanel,
+    }));
+  }
+
   shouldDisplayTopicSelectionModal() {
     const prefs = this.props.Prefs.values;
     const pocketEnabled =
@@ -945,7 +954,8 @@ export class BaseContent extends React.PureComponent {
               showing={customizeMenuVisible}
               toggleSectionsMgmtPanel={this.toggleSectionsMgmtPanel}
               showSectionsMgmtPanel={this.state.showSectionsMgmtPanel}
-              showWidgetMgmtPanel={this.state.showWidgetMgmtPanel}
+              showWidgetsManagementPanel={this.state.showWidgetsManagementPanel}
+              toggleWidgetsManagementPanel={this.toggleWidgetsManagementPanel}
             />
           </menu>
         </div>

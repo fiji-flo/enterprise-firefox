@@ -1218,6 +1218,11 @@ class FlowGraphSummary {
     // or Entry::Column_HasMultipleEdge.
 
     uint32_t prevLineno = script->lineno();
+    if (prevLineno == Entry::Line_HasNoEdge) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_BAD_LINE_NUMBER);
+      return false;
+    }
     uint32_t prevColumn = 1;
     JSOp prevOp = JSOp::Nop;
     for (BytecodeRangeWithPosition r(cx, script, SkipPrologueOps::Yes);
@@ -1243,6 +1248,15 @@ class FlowGraphSummary {
       if (r.frontIsEntryPoint()) {
         lineno = r.frontLineNumber();
         column = r.frontColumnNumber().oneOriginValue();
+        if (lineno == Entry::Line_HasNoEdge) {
+          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                    JSMSG_BAD_LINE_NUMBER);
+          return false;
+        }
+        // NOTE: The column data types cannot represent Column_HasMultipleEdge,
+        //       and also the column number is limited in the frontend.
+        //       See GeneralTokenStreamChars::computeColumn.
+        MOZ_ASSERT(column != Entry::Column_HasMultipleEdge);
       }
 
       if (IsJumpOpcode(op)) {

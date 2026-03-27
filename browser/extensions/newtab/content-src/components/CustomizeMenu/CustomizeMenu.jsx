@@ -5,6 +5,8 @@
 import { ContentSection } from "content-src/components/CustomizeMenu/ContentSection/ContentSection";
 import { connect } from "react-redux";
 import React from "react";
+
+const PREF_NOVA_ENABLED = "nova.enabled";
 // eslint-disable-next-line no-shadow
 import { CSSTransition } from "react-transition-group";
 
@@ -48,6 +50,8 @@ export class _CustomizeMenu extends React.PureComponent {
     const activationWindowClass = activationWindowVariant
       ? `activation-window-variant-${activationWindowVariant}`
       : "";
+    // @nova-cleanup(remove-pref): remove nova pref
+    const novaEnabled = this.props.Prefs.values[PREF_NOVA_ENABLED];
 
     return (
       <span>
@@ -93,9 +97,10 @@ export class _CustomizeMenu extends React.PureComponent {
             className="customize-menu-animate-wrapper"
           >
             <div
+              // @nova-cleanup(remove-conditional): Remove nova-enabled class
               className={`customize-menu ${
                 this.state.subpanelOpen ? "subpanel-open" : ""
-              }`}
+              } ${novaEnabled ? "nova-enabled" : ""}`}
               role="dialog"
               data-l10n-id="newtab-settings-dialog-label"
             >
@@ -132,6 +137,13 @@ export class _CustomizeMenu extends React.PureComponent {
                 onSubpanelToggle={this.onSubpanelToggle}
                 toggleSectionsMgmtPanel={this.props.toggleSectionsMgmtPanel}
                 showSectionsMgmtPanel={this.props.showSectionsMgmtPanel}
+                novaEnabled={novaEnabled}
+                toggleWidgetsManagementPanel={
+                  this.props.toggleWidgetsManagementPanel
+                }
+                showWidgetsManagementPanel={
+                  this.props.showWidgetsManagementPanel
+                }
               />
             </div>
           </div>

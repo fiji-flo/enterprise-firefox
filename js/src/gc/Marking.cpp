@@ -22,7 +22,6 @@
 #include "gc/ParallelMarking.h"
 #include "gc/TraceKind.h"
 #include "jit/JitCode.h"
-#include "jit/JitScript.h"
 #include "js/GCTypeMacros.h"  // JS_FOR_EACH_PUBLIC_{,TAGGED_}GC_POINTER_TYPE
 #include "js/SliceBudget.h"
 #include "util/Poison.h"
@@ -1423,11 +1422,11 @@ bool GCMarker::markOneObjectForTest(JSObject* obj) {
 // concurrent marking and interrupt the main thread to do this work.
 static constexpr size_t MainThreadBufferThreshold = 16384;
 
-inline bool GCMarker::addToMainThreadBuffer(JS::GCCellPtr ptr,
+inline bool GCMarker::addToMainThreadBuffer(JSObject* object,
                                             SliceBudget& budget) {
   auto& buffer = markColor() == MarkColor::Black ? blackMainThreadBuffer_.ref()
                                                  : grayMainThreadBuffer_.ref();
-  if (!buffer.append(ptr)) {
+  if (!buffer.append(object)) {
     return false;
   }
 
@@ -1469,29 +1468,20 @@ bool GCMarker::processMainThreadBuffers(SliceBudget& budget) {
 bool GCMarker::processMainThreadBuffer(MainThreadBuffer& buffer,
                                        SliceBudget& budget) {
   while (!buffer.empty()) {
-    JS::GCCellPtr cell = buffer.popCopy();
+    JSObject* obj = buffer.popCopy();
 
-    MOZ_ASSERT(cell.asCell()->isMarkedAtLeast(markColor()));
-    if (markColor() == MarkColor::Gray && cell.asCell()->isMarkedBlack()) {
+    MOZ_ASSERT(obj->isMarkedAtLeast(markColor()));
+    if (markColor() == MarkColor::Gray && obj->isMarkedBlack()) {
       // We subsequently marked this black so we can skip marking it gray.
       continue;
     }
 
-    if (cell.is<JSObject>()) {
-      JSObject* obj = &cell.as<JSObject>();
-      const JSClass* clasp = obj->getClass();
-      // It's possible for the mutator to swap a native object with a proxy
-      // after it go put into the buffer so we need to recheck for a trace hook
-      // here.
-      if (clasp->hasTrace()) {
-        AutoSetTracingSource asts(tracer(), obj);
-        clasp->doTrace(tracer(), obj);
-      }
-    } else {
-      BaseScript* script = &cell.as<BaseScript>();
-      if (script->hasJitScript()) {
-        script->jitScript()->trace(tracer());
-      }
+    const JSClass* clasp = obj->getClass();
+    // It's possible for the mutator to swap a native object with a proxy after
+    // it got put into the buffer so we need to recheck for a trace hook here.
+    if (clasp->hasTrace()) {
+      AutoSetTracingSource asts(tracer(), obj);
+      clasp->doTrace(tracer(), obj);
     }
 
     budget.step();
@@ -1689,21 +1679,6 @@ inline bool GCMarker::processMarkStackTop(SliceBudget& budget) {
           markImplicitEdges(script);
         }
         AutoSetTracingSource asts(tracer(), script);
-
-#ifdef JS_GC_CONCURRENT_MARKING
-        // It's not safe to trace JitScript concurrently. Trace everything else
-        // and add the script to the main thread trace buffer.
-        if constexpr (bool(opts & MarkingOptions::ConcurrentMarking)) {
-          bool skippedJitScript = false;
-          script->traceChildrenConcurrently(tracer(), &skippedJitScript);
-          if (skippedJitScript && MOZ_UNLIKELY(!addToMainThreadBuffer(
-                                      JS::GCCellPtr(script), budget))) {
-            delayMarkingChildrenOnOOM(script);
-          }
-          return true;
-        }
-#endif
-
         script->traceChildren(tracer());
         return true;
       }
@@ -1857,7 +1832,7 @@ bool GCMarker::callOrDelayTraceHook(JSObject* obj, const JSClass* clasp,
   if constexpr (bool(opts & MarkingOptions::ConcurrentMarking)) {
     // TODO: Add a class flag to allow us to call the trace hook concurrently
     // for classes that support it.
-    if (MOZ_UNLIKELY(!addToMainThreadBuffer(JS::GCCellPtr(obj), budget))) {
+    if (MOZ_UNLIKELY(!addToMainThreadBuffer(obj, budget))) {
       delayMarkingChildrenOnOOM(obj);
       return false;
     }

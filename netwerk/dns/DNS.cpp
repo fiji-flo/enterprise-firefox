@@ -132,27 +132,46 @@ bool NetAddr::ToStringBuffer(char* buf, uint32_t bufSize) const {
   return false;
 }
 
+bool NetAddr::ToString(nsACString& aOutput) const {
+  size_t bufferSize = 0;
+  if (raw.family == AF_INET) {
+    bufferSize = INET_ADDRSTRLEN;
+  } else if (raw.family == AF_INET6) {
+    bufferSize = INET6_ADDRSTRLEN;
+  }
+#if defined(XP_UNIX)
+  else if (raw.family == AF_LOCAL) {
+    bufferSize = sizeof(local.path);
+  }
+#endif
+
+  auto handleOrErr = aOutput.BulkWrite(bufferSize, /* aPrefixToPreserve */ 0,
+                                       /* aAllowShrinking */ false);
+  if (handleOrErr.isErr()) {
+    NS_ABORT_OOM(bufferSize);
+    return false;
+  }
+  auto handle = handleOrErr.unwrap();
+
+  if (!ToStringBuffer(handle.Elements(), bufferSize)) {
+    handle.Finish(0, /* aAllowShrinking */ false);
+    return false;
+  }
+  handle.Finish(strlen(handle.Elements()), /* aAllowShrinking */ false);
+  return true;
+}
+
 nsCString NetAddr::ToString() const {
   nsCString out;
-  out.SetLength(kNetAddrMaxCStrBufSize);
-  if (ToStringBuffer(out.BeginWriting(), kNetAddrMaxCStrBufSize)) {
-    out.SetLength(strlen(out.BeginWriting()));
-    return out;
-  }
-  return ""_ns;
+  ToString(out);
+  return out;
 }
 
 void NetAddr::ToAddrPortString(nsACString& aOutput) const {
+  ToString(aOutput);
   uint16_t port = 0;
   GetPort(&port);
-  aOutput.SetLength(kNetAddrMaxCStrBufSize);
-  if (ToStringBuffer(aOutput.BeginWriting(), kNetAddrMaxCStrBufSize)) {
-    aOutput.SetLength(strlen(aOutput.BeginReading()));
-  } else {
-    aOutput.Truncate();
-  }
-  aOutput.Append(':');
-  aOutput.AppendInt(port);
+  aOutput.AppendPrintf(":%d", port);
 }
 
 bool NetAddr::IsLoopbackAddr() const {

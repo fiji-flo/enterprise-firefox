@@ -4,8 +4,10 @@
 
 package org.mozilla.fenix.tabstray.redux.reducer
 
+import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination
 import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination.ExpandedTabGroup
 import org.mozilla.fenix.tabstray.redux.action.TabGroupAction
+import org.mozilla.fenix.tabstray.redux.state.TabGroupFormState
 import org.mozilla.fenix.tabstray.redux.state.TabsTrayState
 
 /**
@@ -24,6 +26,35 @@ object TabGroupActionReducer {
         action: TabGroupAction,
     ): TabsTrayState {
         return when (action) {
+            is TabGroupAction.CreateTabGroupClicked -> {
+                state.copy(
+                    tabGroupFormState = TabGroupFormState(
+                        tabGroupId = null,
+                        name = "",
+                        nextTabGroupNumber = state.tabGroups.size + 1,
+                        edited = false,
+                    ),
+                    backStack = state.backStack + TabManagerNavDestination.CreateTabGroup,
+                )
+            }
+
+            is TabGroupAction.AddToTabGroup -> state.copy(
+                // Bug 2017777 will add logic to navigate to CreateTabGroup if no tab groups exist
+                backStack = state.backStack + TabManagerNavDestination.AddToTabGroup,
+            )
+
+            is TabGroupAction.AddToNewTabGroup -> {
+                state.copy(
+                    tabGroupFormState = TabGroupFormState(
+                        tabGroupId = null,
+                        name = "",
+                        nextTabGroupNumber = state.tabGroups.size + 1,
+                        edited = false,
+                    ),
+                    backStack = state.backStack + TabManagerNavDestination.CreateTabGroup,
+                )
+            }
+
             is TabGroupAction.NameChanged -> {
                 val form = requireNotNull(state.tabGroupFormState) {
                     "NameChanged dispatched with no TabGroupFormState"
@@ -36,7 +67,10 @@ object TabGroupActionReducer {
                 )
             }
 
-            TabGroupAction.FormDismissed,
+            TabGroupAction.FormDismissed -> state.copy(
+                tabGroupFormState = null,
+            )
+
             TabGroupAction.SaveClicked,
                  -> state.copy(tabGroupFormState = null)
 

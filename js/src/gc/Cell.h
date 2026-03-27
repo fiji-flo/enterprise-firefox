@@ -13,6 +13,7 @@
 
 #include "gc/GCContext.h"
 #include "gc/Heap.h"
+#include "gc/LightLock.h"
 #include "gc/TraceKind.h"
 #include "js/GCAnnotations.h"
 #include "js/shadow/Zone.h"  // JS::shadow::Zone
@@ -42,7 +43,8 @@ extern void TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc,
                                                      const char* name);
 
 #ifdef MOZ_TSAN
-extern void FullMemoryFence(JSRuntime* runtime);
+extern void TSANMemoryAcquireFence(JSRuntime* runtime);
+extern void TSANMemoryReleaseFence(JSRuntime* runtime);
 #endif
 
 namespace gc {
@@ -593,10 +595,10 @@ MOZ_ALWAYS_INLINE void MemoryReleaseFence(JS::Zone* zone) {
 
   if (JS::shadow::Zone::from(zone)->needsMarkingBarrier(
           JS::shadow::Zone::Concurrent)) {
-#  ifdef MOZ_TSAN
-    FullMemoryFence(JS::shadow::Zone::from(zone)->runtimeFromMainThread());
-#  else
     std::atomic_thread_fence(std::memory_order_release);
+#  ifdef MOZ_TSAN
+    JSRuntime* runtime = JS::shadow::Zone::from(zone)->runtimeFromMainThread();
+    TSANMemoryReleaseFence(runtime);
 #  endif
   }
 #endif
@@ -936,6 +938,52 @@ template <>
 inline bool TenuredThingIsMarkedAny<Cell>(Cell* thing) {
   return thing->asTenured().isMarkedAny();
 }
+
+using MarkingLock = LightLock;
+
+// A lock used to synchronize access to some data structures during concurrent
+// marking. This is only intended for use where lock-free approaches are
+// infeasible.
+//
+// Currently this is used for ICScript only. The lock must be taken when
+// mutating data structures owned by ICScript on the main thread. Reading is
+// safe and doesn't require the lock.
+//
+// This is a no op outside concurrent marking builds.
+class MOZ_RAII AutoMarkingLock {
+#ifdef JS_GC_CONCURRENT_MARKING
+  MarkingLock* lock = nullptr;
+  JSRuntime* runtime = nullptr;
+#endif
+
+  AutoMarkingLock(const AutoMarkingLock& other) = delete;
+  AutoMarkingLock& operator=(const AutoMarkingLock& other) = delete;
+
+ public:
+  // Take the lock if concurrent marking is currently happening in zone |zone|.
+  AutoMarkingLock(JS::Zone* zone, MarkingLock& markingLock) {
+#ifdef JS_GC_CONCURRENT_MARKING
+    auto* shadowZone = JS::shadow::Zone::from(zone);
+    if (shadowZone->needsMarkingBarrier(JS::shadow::Zone::Concurrent)) {
+      lock = &markingLock;
+      runtime = shadowZone->runtimeFromAnyThread();
+      lock->lock(runtime);
+    }
+#endif
+  }
+
+  // Take the lock if |trc| is a concurrent marking tracer.
+  inline AutoMarkingLock(JSTracer* trc, MarkingLock& markingLock);
+
+  ~AutoMarkingLock() {
+#ifdef JS_GC_CONCURRENT_MARKING
+    if (lock) {
+      MOZ_ASSERT(runtime);
+      lock->unlock(runtime);
+    }
+#endif
+  }
+};
 
 } /* namespace gc */
 } /* namespace js */

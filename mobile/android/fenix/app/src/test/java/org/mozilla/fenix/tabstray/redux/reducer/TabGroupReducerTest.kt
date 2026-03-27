@@ -8,6 +8,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mozilla.fenix.tabstray.data.createTabGroup
+import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination.AddToTabGroup
+import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination.CreateTabGroup
 import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination.ExpandedTabGroup
 import org.mozilla.fenix.tabstray.redux.action.TabGroupAction
 import org.mozilla.fenix.tabstray.redux.state.TabGroupFormState
@@ -95,6 +97,41 @@ class TabGroupReducerTest {
             action = TabGroupAction.TabGroupClicked(group = expectedTabGroup),
         )
 
+        assertEquals(expectedBackStack, resultState.backStack)
+    }
+
+    @Test
+    fun `WHEN add to tab group is clicked THEN navigate to add to tab group destination`() {
+        val initialState = TabsTrayState()
+
+        val expectedBackStack = initialState.backStack + AddToTabGroup
+
+        val resultState = TabGroupActionReducer.reduce(
+            state = initialState,
+            action = TabGroupAction.AddToTabGroup,
+        )
+
+        assertEquals(expectedBackStack, resultState.backStack)
+    }
+
+    @Test
+    fun `WHEN add to new tab group is clicked THEN navigate to create tab group destination`() {
+        val initialState = TabsTrayState()
+
+        val expectedFormState = TabGroupFormState(
+            tabGroupId = null,
+            name = "",
+            nextTabGroupNumber = initialState.tabGroups.size + 1,
+            edited = false,
+        )
+        val expectedBackStack = initialState.backStack + CreateTabGroup
+
+        val resultState = TabGroupActionReducer.reduce(
+            state = initialState,
+            action = TabGroupAction.AddToNewTabGroup,
+        )
+
+        assertEquals(expectedFormState, resultState.tabGroupFormState)
         assertEquals(expectedBackStack, resultState.backStack)
     }
 }

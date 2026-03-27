@@ -14,7 +14,6 @@
 #import "MOXSearchInfo.h"
 #import "MOXTextMarkerDelegate.h"
 #import "MOXWebAreaAccessible.h"
-#import "mozRootAccessible.h"
 #import "mozTextAccessible.h"
 
 #include "LocalAccessible-inl.h"
@@ -73,15 +72,30 @@ using namespace mozilla::a11y;
 #pragma mark - mozAccessible widget
 
 - (BOOL)hasRepresentedView {
-  return NO;
+  return [self representedView] != nil;
 }
 
 - (id)representedView {
-  return nil;
+  if (!mGeckoAccessible || !mGeckoAccessible->IsLocal()) {
+    // We only support representedView on local accessibles that
+    // might have associated native widgets.
+    return nil;
+  }
+
+  id view = static_cast<AccessibleWrap*>(mGeckoAccessible->AsLocal())
+                ->GetNativeWidget();
+
+  if (![view hasMozAccessible]) {
+    // The NSView does not have a reciprocal relationship.
+    return nil;
+  }
+
+  return view;
 }
 
 - (BOOL)isRoot {
-  return NO;
+  return mGeckoAccessible && mGeckoAccessible->IsLocal() &&
+         mGeckoAccessible->IsRoot();
 }
 
 #pragma mark -
@@ -163,6 +177,12 @@ using namespace mozilla::a11y;
     NSString* brailleRoleDescription =
         utils::GetAccAttr(self, nsGkAtoms::aria_brailleroledescription);
     return [brailleRoleDescription length] == 0;
+  }
+
+  if (selector == @selector(moxARIABrailleLabel)) {
+    NSString* brailleLabel =
+        utils::GetAccAttr(self, nsGkAtoms::aria_braillelabel);
+    return [brailleLabel length] == 0;
   }
 
   if (selector == @selector(moxExpanded)) {
@@ -750,6 +770,10 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
   return utils::GetAccAttr(self, nsGkAtoms::aria_brailleroledescription);
 }
 
+- (NSString*)moxARIABrailleLabel {
+  return utils::GetAccAttr(self, nsGkAtoms::aria_braillelabel);
+}
+
 - (NSString*)moxARIARelevant {
   if (NSString* relevant =
           utils::GetAccAttr(self, nsGkAtoms::containerRelevant)) {
@@ -1029,8 +1053,7 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
   // a random acc with the same ID) by checking:
   //  - The gecko acc is local, our a11y-announcement lives in browser.xhtml
   //  - The ID of the gecko acc is "a11y-announcement"
-  //  - The native acc is a direct descendent of the chrome window (ChildView in
-  //  a non-headless context, mozRootAccessible in a headless context).
+  //  - The native acc is a direct descendent of the chrome window.
   DocAccessible* maybeRoot = mGeckoAccessible->IsLocal()
                                  ? mGeckoAccessible->AsLocal()->Document()
                                  : nullptr;

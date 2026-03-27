@@ -12,7 +12,7 @@ package org.mozilla.fenix.tabstray.redux.state
  * @property nextTabGroupNumber Number used to derive a default tab group name.
  * Example: if a user has zero tab groups, the default name will have "1" appended to it.
  * If a user has 5 tab groups, the default tab group name will have "6" appended to it.
- * @property edited Whether or not the user has modified the form fields.
+ * @property edited Whether the user has modified the form fields.
  */
 data class TabGroupFormState(
     val tabGroupId: String?,
@@ -29,7 +29,7 @@ data class TabGroupFormState(
      * Returns the text that should be shown initially in the name field.
      *
      * If the user has edited the field or the current name is not blank,
-     * display the current name. Otherwise, display the the defaultName.
+     * display the current name. Otherwise, display the defaultName.
      */
     fun getInitialName(defaultName: String?): String =
         if (edited || name.isNotBlank()) name else (defaultName ?: "")

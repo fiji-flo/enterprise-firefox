@@ -5296,9 +5296,15 @@
   value: 30000
   mirror: always
 
+# TCPSocket API
+- name: dom.tcpsocket_in_child.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # UDPSocket API
 - name: dom.udpsocket.enabled
-  type: bool
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 
@@ -10383,7 +10389,7 @@
 # Is support for GeometryUtils.convert*FromNode enabled?
 - name: layout.css.convertFromNode.enabled
   type: bool
-  value: @IS_NOT_RELEASE_OR_BETA@
+  value: false
   mirror: always
 
 - name: layout.css.cross-fade.enabled
@@ -10462,7 +10468,7 @@
 # Is support for GeometryUtils.getBoxQuads enabled?
 - name: layout.css.getBoxQuads.enabled
   type: bool
-  value: @IS_NOT_RELEASE_OR_BETA@
+  value: false
   mirror: always
 
 # Is support for (linear|radial|conic)-gradient color interpolation methods enabled?
@@ -15377,6 +15383,15 @@
 # When true, the TRR transaction gets marked and runnables
 # dispatched for it get increased priority.
 - name: network.trr.high_priority_events
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Speculatively pre-connect to the TRR server when the app returns to the
+# foreground (application-foreground), so the connection is ready before the
+# first DNS query arrives. Effective on Android; application-foreground is not
+# fired on desktop.
+- name: network.trr.preconnect_on_foreground
   type: RelaxedAtomicBool
   value: true
   mirror: always

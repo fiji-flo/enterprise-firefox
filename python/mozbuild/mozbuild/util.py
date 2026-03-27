@@ -1431,3 +1431,8 @@ def find_task_from_index(index_paths):
             pass
 
     return None
+
+
+def set_taskcluster_root_url():
+    if "TASKCLUSTER_ROOT_URL" not in os.environ:
+        os.environ["TASKCLUSTER_ROOT_URL"] = TASKCLUSTER_ROOT_URL

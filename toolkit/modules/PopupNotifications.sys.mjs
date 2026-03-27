@@ -890,6 +890,20 @@ PopupNotifications.prototype = {
 
   _ignoreDismissal: null,
   _currentAnchorElement: null,
+  _popupshownListener: null,
+  _popupshownListenerTarget: null,
+
+  _clearPopupshownListener() {
+    if (this._popupshownListener) {
+      this._popupshownListenerTarget.removeEventListener(
+        "popupshown",
+        this._popupshownListener,
+        true
+      );
+      this._popupshownListener = null;
+      this._popupshownListenerTarget = null;
+    }
+  },
 
   /**
    * Gets notifications for the currently selected browser.
@@ -1361,31 +1375,17 @@ PopupNotifications.prototype = {
         this._extendSecurityDelay(notificationsToShow);
       }
 
-      let target = this.panel;
-      if (target.parentNode) {
-        // NOTIFICATION_EVENT_SHOWN should be fired for the panel before
-        // anyone listening for popupshown on the panel gets run. Otherwise,
-        // the panel will not be initialized when the popupshown event
-        // listeners run.
-        // By targeting the panel's parent and using a capturing listener, we
-        // can have our listener called before others waiting for the panel to
-        // be shown (which probably expect the panel to be fully initialized)
-        target = target.parentNode;
-      }
-      if (this._popupshownListener) {
-        target.removeEventListener(
-          "popupshown",
-          this._popupshownListener,
-          true
-        );
-      }
+      this._clearPopupshownListener();
+      // NOTIFICATION_EVENT_SHOWN should be fired for the panel before
+      // anyone listening for popupshown on the panel gets run. Otherwise,
+      // the panel will not be initialized when the popupshown event
+      // listeners run.
+      // By targeting the panel's parent and using a capturing listener, we
+      // can have our listener called before others waiting for the panel to
+      // be shown (which probably expect the panel to be fully initialized)
+      let target = this.panel.parentNode || this.panel;
       this._popupshownListener = function () {
-        target.removeEventListener(
-          "popupshown",
-          this._popupshownListener,
-          true
-        );
-        this._popupshownListener = null;
+        this._clearPopupshownListener();
 
         notificationsToShow.forEach(function (n) {
           // The panel has been opened, remember the time the notification was
@@ -1402,6 +1402,7 @@ PopupNotifications.prototype = {
         this.panel.dispatchEvent(event);
       };
       this._popupshownListener = this._popupshownListener.bind(this);
+      this._popupshownListenerTarget = target;
       target.addEventListener("popupshown", this._popupshownListener, true);
 
       let popupOptions = notificationsToShow.findLast(
@@ -1784,6 +1785,11 @@ PopupNotifications.prototype = {
     if (event.target != this.panel) {
       return;
     }
+
+    // If the panel was hidden before popupshown fired, clean up the listener
+    // so it doesn't leak references to notifications and their associated
+    // windows.
+    this._clearPopupshownListener();
 
     // It's possible that a popupnotification set `aria-describedby` on the
     // panel element in its eventCallback function. If so, we'll clear that out

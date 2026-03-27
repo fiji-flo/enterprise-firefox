@@ -45,7 +45,7 @@ You can find the review identifier by inspecting the commit log with:
 
 ## Workflow
 - You can run tests by using `./mach test --auto`. Once you are satisfied with the tests you run locally, use `mach try auto` to run tests in CI
-- When running slow commands like `./mach test`, `./mach mochitest`, etc., NEVER pipe their output through `tail`, `grep`, `head`, or other filters. Instead, redirect output to a temporary file (e.g. `./mach test ... > /tmp/test_output.txt 2>&1`) and then read/search that file separately. This avoids having to re-run slow commands multiple times to extract different pieces of information.
+- When running slow commands like `./mach test`, `./mach mochitest`, etc., NEVER pipe their output through `tail`, `grep`, `head`, or other filters. `./mach` automatically saves its output and you can get it with `./mach show-log` and then read/search it separately. For other commands redirect output to a temporary file. This avoids having to re-run slow commands multiple times to extract different pieces of information.
 - Do not run `./mach build faster` when only front-end test files (JS, HTML, etc.) were modified — they don't need compilation.
 - Ask if you should run a test. If you do, you probably want to run the test with `--headless`
 - Do not perform commits yourself, ever

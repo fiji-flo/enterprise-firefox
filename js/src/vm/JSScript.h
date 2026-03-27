@@ -1745,7 +1745,6 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   static const JS::TraceKind TraceKind = JS::TraceKind::Script;
 
   void traceChildren(JSTracer* trc);
-  void traceChildrenConcurrently(JSTracer* trc, bool* skippedJitScript);
   void finalize(JS::GCContext* gcx);
 
   size_t sizeOfExcludingThis();
@@ -1775,9 +1774,6 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
 #if defined(DEBUG) || defined(JS_JITSPEW)
   void dumpStringContent(js::GenericPrinter& out) const;
 #endif
-
- private:
-  void traceChildrenCommon(JSTracer* trc);
 };
 
 extern void SweepScriptData(JSRuntime* rt);

@@ -223,13 +223,13 @@ void AddrHostRecord::ReportUnusable(const NetAddr* aAddress) {
        "used trr=%d\n",
        host.get(), this, mTRRSuccess));
 
-  char buf[kIPv6CStrBufSize];
-  if (aAddress->ToStringBuffer(buf, sizeof(buf))) {
+  nsCString item;
+  if (aAddress->ToString(item)) {
     LOG(
         ("Successfully adding address [%s] to blocklist for host "
          "[%s].\n",
-         buf, host.get()));
-    mUnusableItems.AppendElement(nsCString(buf));
+         item.get(), host.get()));
+    mUnusableItems.AppendElement(item);
   }
 }
 

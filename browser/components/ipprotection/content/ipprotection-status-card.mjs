@@ -36,22 +36,6 @@ export default class IPProtectionStatusCard extends MozLitElement {
     isActivating: { type: Boolean },
   };
 
-  constructor() {
-    super();
-
-    this.keyListener = this.#keyListener.bind(this);
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    this.addEventListener("keydown", this.keyListener, { capture: true });
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeEventListener("keydown", this.keyListener, { capture: true });
-  }
-
   handleButtonClick() {
     const type =
       this.isActivating || this.protectionEnabled
@@ -68,30 +52,6 @@ export default class IPProtectionStatusCard extends MozLitElement {
   focus() {
     const button = this.shadowRoot.querySelector(`moz-button[slot="action"]`);
     button?.focus();
-  }
-
-  #keyListener(event) {
-    let keyCode = event.code;
-    switch (keyCode) {
-      case "ArrowUp":
-      // Intentional fall-through
-      case "ArrowDown": {
-        event.stopPropagation();
-        event.preventDefault();
-
-        let direction =
-          keyCode == "ArrowDown"
-            ? Services.focus.MOVEFOCUS_FORWARD
-            : Services.focus.MOVEFOCUS_BACKWARD;
-        Services.focus.moveFocus(
-          window,
-          null,
-          direction,
-          Services.focus.FLAG_BYKEY
-        );
-        break;
-      }
-    }
   }
 
   bandwidthUsageTemplate() {

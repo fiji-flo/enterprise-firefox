@@ -22,6 +22,8 @@
 #include "wayland-proxy.h"
 #include "ScreenHelperGTK.h"
 
+#include <dlfcn.h>
+
 #undef LOG
 #undef LOG_VERBOSE
 #ifdef MOZ_LOGGING
@@ -849,9 +851,15 @@ static void global_registry_handler(void* data, wl_registry* registry,
         WaylandRegistryBind<wl_output>(registry, id, &wl_output_interface, 2);
     display->AddWlOutput(output, id);
   } else if (iface.EqualsLiteral("wl_fixes")) {
-    auto* fixes = WaylandRegistryBind<wl_fixes>(
-        registry, id, &wl_fixes_interface, MIN(version, 2));
-    display->SetFixes(fixes);
+    // wl_fixes_interface was introduced in libwayland-client 1.24, but
+    // Ubuntu 22.04 still ships 1.20.
+    static auto* sWlFixesInterface =
+        (wl_interface*)dlsym(RTLD_DEFAULT, "wl_fixes_interface");
+    if (sWlFixesInterface) {
+      auto* fixes = WaylandRegistryBind<wl_fixes>(
+          registry, id, sWlFixesInterface, MIN(version, 2));
+      display->SetFixes(fixes);
+    }
   }
 }
 

@@ -291,9 +291,7 @@ nsDNSRecord::GetNextAddrAsString(nsACString& result) {
     return rv;
   }
 
-  char buf[kIPv6CStrBufSize];
-  if (addr.ToStringBuffer(buf, sizeof(buf))) {
-    result.Assign(buf);
+  if (addr.ToString(result)) {
     return NS_OK;
   }
   NS_ERROR("NetAddrToString failed unexpectedly");

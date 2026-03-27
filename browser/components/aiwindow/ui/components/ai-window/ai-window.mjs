@@ -76,6 +76,10 @@ ChromeUtils.defineLazyGetter(lazy, "log", function () {
  * }} TabStateEvent
  */
 
+/**
+ * @typedef {"button" | "enter" | "follow-up" | "starter" | "suggestion"} ChatSubmitType
+ */
+
 const MODE = {
   FULLPAGE: "fullpage",
   SIDEBAR: "sidebar",
@@ -393,6 +397,10 @@ export class AIWindow extends MozLitElement {
 
   get conversationId() {
     return this.#conversation?.id;
+  }
+
+  get conversationMessageCount() {
+    return this.#conversation.messageCount;
   }
 
   #registerSwapDocShellsListener(win) {
@@ -880,8 +888,6 @@ export class AIWindow extends MozLitElement {
    * @private
    */
   #handleSmartbarCommit = event => {
-    Glean.smartWindow.chatSubmit.record({ chat_id: this.conversationId });
-
     lazy.log.debug(
       "chatId[%s]: %s",
       this.#handleSmartbarCommit.name,
@@ -893,9 +899,10 @@ export class AIWindow extends MozLitElement {
       action,
       contextMentions = [],
       contextPageUrl,
+      event: triggeringEvent,
     } = event.detail;
     if (action === ACTION.CHAT) {
-      const { mergedMentions, allUrls } =
+      const { mergedMentions, allUrls, inlineMentions } =
         this.#calculateCurrentMentions(contextMentions);
 
       if (allUrls.size) {
@@ -906,8 +913,13 @@ export class AIWindow extends MozLitElement {
           }
         }
       }
-
-      this.submitChatMessage(value, mergedMentions, contextPageUrl);
+      this.submitChatMessage({
+        text: value,
+        contextMentions: mergedMentions,
+        contextPageUrl,
+        submitType: triggeringEvent?.type === "click" ? "button" : "enter",
+        inlineMentionsCount: inlineMentions.length,
+      });
     } else if (
       this.mode === MODE.SIDEBAR &&
       (action === ACTION.NAVIGATE || action === ACTION.SEARCH)
@@ -924,7 +936,7 @@ export class AIWindow extends MozLitElement {
    * by URL, and returns the combined list plus the full set of URLs.
    *
    * @param {ContextWebsite[]} contextMentions - Chip mentions from the smartbar
-   * @returns {{mergedMentions: ContextWebsite[], allUrls: Set<string>}}
+   * @returns {{mergedMentions: ContextWebsite[], allUrls: Set<string>, inlineMentions: Array}}
    */
   #calculateCurrentMentions(contextMentions) {
     const contextUrls = new Set();
@@ -949,7 +961,7 @@ export class AIWindow extends MozLitElement {
 
     const mergedMentions = [...contextMentions, ...atMentions];
 
-    return { mergedMentions, allUrls: contextUrls };
+    return { mergedMentions, allUrls: contextUrls, inlineMentions };
   }
 
   /**
@@ -966,17 +978,37 @@ export class AIWindow extends MozLitElement {
   }
 
   /**
-   * @param {string} text
-   * @param {ContextWebsite[]} [contextMentions]
-   * @param {string|null} [contextPageUrl] - Page URL string from the smartbar
-   * commit event. null means the user removed page context; undefined means
-   * fall back to the current tab URL.
+   * @param {object} options
+   * @param {string} options.text
+   * @param {ChatSubmitType} options.submitType - How the request was submitted
+   * @param {ContextWebsite[]} [options.contextMentions]
+   * @param {string|null} [options.contextPageUrl] - Page URL string from the
+   *   smartbar commit event. null means the user removed page context;
+   *   undefined means fall back to the current tab URL.
+   * @param {number} [options.inlineMentionsCount] - Number of inline mentions
    */
-  submitChatMessage(text, contextMentions, contextPageUrl) {
+  submitChatMessage({
+    text,
+    submitType,
+    contextMentions = [],
+    contextPageUrl,
+    inlineMentionsCount = 0,
+  }) {
     const trimmed = String(text ?? "").trim();
     if (!trimmed) {
       return;
     }
+
+    Glean.smartWindow.chatSubmit.record({
+      chat_id: this.conversationId,
+      detected_intent: this.#smartbar.smartbarAction,
+      location: this.mode,
+      mentions: inlineMentionsCount,
+      message_seq: this.conversationMessageCount,
+      model: this.modelName,
+      submit_type: submitType,
+      tabs: contextMentions.length,
+    });
 
     let pageUrl;
     if (contextPageUrl === undefined) {
@@ -1062,7 +1094,10 @@ export class AIWindow extends MozLitElement {
       message_seq: this.#conversation?.messageCount ?? 0,
       starter,
     });
-    this.submitChatMessage(text);
+    this.submitChatMessage({
+      text,
+      submitType: starter ? "starter" : "suggestion",
+    });
   }
 
   onOpenLink() {
@@ -1282,7 +1317,7 @@ export class AIWindow extends MozLitElement {
     return { duration, latency };
   }
 
-  #getModelName() {
+  get modelName() {
     const modelChoice = Services.prefs.getStringPref(
       "browser.smartwindow.firstrun.modelChoice",
       ""
@@ -1321,7 +1356,7 @@ export class AIWindow extends MozLitElement {
       latency,
       duration,
       error: error ?? "",
-      model: this.#getModelName(),
+      model: this.modelName,
     });
   }
 

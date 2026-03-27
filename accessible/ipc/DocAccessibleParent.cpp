@@ -112,7 +112,11 @@ mozilla::ipc::IPCResult DocAccessibleParent::ProcessShowEvent(
     // required show events.
     if (!parent) {
       NS_ERROR("adding child to unknown accessible");
+#ifdef DEBUG
       return IPC_FAIL(this, "unknown parent accessible");
+#else
+      return IPC_OK();
+#endif
     }
     lastParent = parent;
     lastParentID = accData.ParentID();
@@ -120,7 +124,11 @@ mozilla::ipc::IPCResult DocAccessibleParent::ProcessShowEvent(
     uint32_t childIdx = accData.IndexInParent();
     if (childIdx > parent->ChildCount()) {
       NS_ERROR("invalid index to add child at");
+#ifdef DEBUG
       return IPC_FAIL(this, "invalid index");
+#else
+      return IPC_OK();
+#endif
     }
 
     RemoteAccessible* child = CreateAcc(accData);

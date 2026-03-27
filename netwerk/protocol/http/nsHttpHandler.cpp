@@ -2579,6 +2579,22 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
                                             EchConfigEnabled());
 }
 
+nsresult nsHttpHandler::SpeculativeConnect(nsHttpConnectionInfo* ci,
+                                           nsIInterfaceRequestor* callbacks,
+                                           uint32_t caps,
+                                           SpeculativeTransaction* aTrans) {
+  if (mDebugObservations) {
+    nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+    if (obsService) {
+      nsPrintfCString debugHashKey("%s", ci->HashKey().get());
+      obsService->NotifyObservers(nullptr, "speculative-connect-request",
+                                  NS_ConvertUTF8toUTF16(debugHashKey).get());
+    }
+  }
+  RefPtr<nsHttpConnectionInfo> clone = ci->Clone();
+  return mConnMgr->SpeculativeConnect(clone, callbacks, caps, aTrans);
+}
+
 NS_IMETHODIMP
 nsHttpHandler::SpeculativeConnect(nsIURI* aURI, nsIPrincipal* aPrincipal,
                                   nsIInterfaceRequestor* aCallbacks,

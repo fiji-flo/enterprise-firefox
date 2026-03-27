@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.tabstray.navigation
 
+import org.mozilla.fenix.tabgroups.EditTabGroup
 import org.mozilla.fenix.tabstray.data.TabsTrayItem
 import org.mozilla.fenix.tabstray.ui.tabsearch.TabSearchScreen
 import org.mozilla.fenix.tabstray.ui.tabstray.TabsTray
@@ -24,6 +25,16 @@ sealed interface TabManagerNavDestination {
      * [TabManagerNavDestination] representing the [TabSearchScreen].
      */
     data object TabSearch : TabManagerNavDestination
+
+    /**
+     * [TabManagerNavDestination] representing the [EditTabGroup].
+     */
+    data object CreateTabGroup : TabManagerNavDestination
+
+    /**
+     * [TabManagerNavDestination] representing the [AddToTabGroup].
+     */
+    data object AddToTabGroup : TabManagerNavDestination
 
     /**
      * [TabManagerNavDestination] representing the [ExpandedTabGroupScreen].

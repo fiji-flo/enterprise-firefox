@@ -2172,6 +2172,15 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
     JSContext* cx, const CacheIRWriter& writer, CacheKind kind,
     JSScript* outerScript, ICScript* icScript, ICFallbackStub* stub,
     const char* name) {
+  gc::AutoMarkingLock lock(cx->zone(), icScript->markingLock());
+  return AttachBaselineCacheIRStubLocked(cx, writer, kind, outerScript,
+                                         icScript, stub, name, lock);
+}
+
+ICAttachResult js::jit::AttachBaselineCacheIRStubLocked(
+    JSContext* cx, const CacheIRWriter& writer, CacheKind kind,
+    JSScript* outerScript, ICScript* icScript, ICFallbackStub* stub,
+    const char* name, const gc::AutoMarkingLock& lock) {
   // We shouldn't GC or report OOM (or any other exception) here.
   AutoAssertNoPendingException aanpe(cx);
   JS::AutoCheckCannotGC nogc;
@@ -2303,6 +2312,8 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
       break;
     case TrialInliningState::Inlined:
       stub->setTrialInliningState(TrialInliningState::Failure);
+      // Ensure we stop using the callee's trial inlining ICScript.
+      stub->discardStubs(cx->zone(), icEntry);
       icScript->removeInlinedChild(stub->pcOffset());
       break;
     case TrialInliningState::Failure:

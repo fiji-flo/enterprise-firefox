@@ -531,6 +531,18 @@ export var TabCrashHandler = {
    *        The browser that has recently crashed.
    */
   sendToTabCrashedPage(browser) {
+    if (
+      AppConstants.MOZ_CRASHREPORTER &&
+      Services.policies.getActivePolicies()?.CrashReportsSubmit?.ForceAutoSubmit
+    ) {
+      let dumpID = this.getDumpID(browser);
+      if (dumpID) {
+        lazy.CrashSubmit.submit(dumpID, lazy.CrashSubmit.SUBMITTED_FROM_AUTO);
+        let childID = this.browserMap.get(browser);
+        this.childMap.set(childID, null); // Avoid resubmission from about:tabcrashed.
+      }
+    }
+
     let title = browser.contentTitle;
     let uri = browser.currentURI;
     let gBrowser = browser.getTabBrowser();

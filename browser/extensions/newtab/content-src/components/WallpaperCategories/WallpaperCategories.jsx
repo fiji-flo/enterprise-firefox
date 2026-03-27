@@ -431,6 +431,8 @@ export class _WallpaperCategories extends React.PureComponent {
 
   render() {
     const prefs = this.props.Prefs.values;
+    // @nova-cleanup(remove-conditional): Remove novaEnabled once Nova ships
+    const novaEnabled = prefs["nova.enabled"];
     const { wallpaperList, categories } = this.props.Wallpapers;
     const { activeWallpaper } = this.props;
     const { activeCategory } = this.state;
@@ -522,9 +524,13 @@ export class _WallpaperCategories extends React.PureComponent {
       );
 
     return (
-      <div>
+      // @nova-cleanup(remove-conditional): Remove nova-enabled class from root div
+      <div className={novaEnabled ? "nova-enabled" : undefined}>
         <div className="category-header">
-          <h2 data-l10n-id="newtab-wallpaper-title"></h2>
+          {
+            // @nova-cleanup(remove-conditional): Remove h2 once Nova ships — title moves to the wallpaper toggle
+            !novaEnabled && <h2 data-l10n-id="newtab-wallpaper-title"></h2>
+          }
           <button
             className="wallpapers-reset"
             onClick={this.handleReset}

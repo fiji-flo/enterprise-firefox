@@ -9,7 +9,13 @@
 
 #include "js/TypeDecls.h"
 
-namespace js::jit {
+namespace js {
+
+namespace gc {
+class AutoMarkingLock;
+}  // namespace gc
+
+namespace jit {
 
 class CacheIRWriter;
 class ICFallbackStub;
@@ -18,9 +24,14 @@ class ICScript;
 bool TryFoldingStubs(JSContext* cx, ICFallbackStub* fallback, JSScript* script,
                      ICScript* icScript);
 
+bool TryFoldingStubsLocked(JSContext* cx, ICFallbackStub* fallback,
+                           JSScript* script, ICScript* icScript,
+                           gc::AutoMarkingLock& lock);
+
 bool AddToFoldedStub(JSContext* cx, const CacheIRWriter& writer,
                      ICScript* icScript, ICFallbackStub* fallback);
 
-}  // namespace js::jit
+}  // namespace jit
+}  // namespace js
 
 #endif  // jit_StubFolding_h
