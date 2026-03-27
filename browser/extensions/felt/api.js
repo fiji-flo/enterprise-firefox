@@ -254,9 +254,10 @@ this.felt = class extends ExtensionAPI {
         Services.felt.makeBackgroundProcess(false);
         switch (message.data?.reason) {
           case "token_refresh_failed":
-            // TODO: this is not 100% in line with the figma document
+            // TODO: this is not 100% in line with the figma document around
+            // informal messages on this screen.
             // We do not currently distinguish between normal session termination
-            // because of a timeout or a forced signoput triggered from the admin
+            // because of a timeout or a forced signout triggered from the admin
             // console.
             this.showWindow("felt-browser-error-token-refresh-failed");
             break;

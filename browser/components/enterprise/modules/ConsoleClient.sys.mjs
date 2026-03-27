@@ -4,11 +4,15 @@
 
 const lazy = {};
 
+const FELT_REFRESH_TIMEOUT = 10000;
+
 ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
   composeOSNames: "resource:///modules/enterprise/EnterpriseOSInfo.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -572,6 +576,19 @@ export const ConsoleClient = {
   },
 
   /**
+   * Quit Firefox, ignoring any callbacks installed by the page
+   * preventing the tab/window from closing.
+   *
+   * returns {void}
+   */
+  quitIgnoringCanClose() {
+    for (let win of Services.wm.getEnumerator("navigator:browser")) {
+      win.skipNextCanClose = true;
+    }
+    Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+  },
+
+  /**
    * Refreshes the session by asking FELT to do a fetch an updated token.
    * Serializes concurrent refresh calls via an internal promise.
    * This should only be called from the browser context.
@@ -590,15 +607,32 @@ export const ConsoleClient = {
       return this._refreshPromise;
     }
 
-    // If we are in the Browser, notify FELT via IPC to refresh the token
-    // create an internal promise that will resolve when FELT signals a refreshed token
-    // Note that only FELT holds the needed refresh token.
-    this._refreshPromise = new Promise(resolve => {
-      // remember our resolve function
-      this._refreshResolve = resolve;
-      // notify FELT to refresh the token
-      Services.felt.refreshTokens();
-    });
+    // Notify FELT to refresh the token. The refresh will be done asynchronously by Felt,
+    // eventually either coming back successfully and resolving the promise
+    // or we get logged out / killed by a failure to refresh the token.
+    //
+    // If the timeout fires (Felt did not come back in time and did not log us out),
+    // we reject the promise and log us out ourselves.
+    const { promise, resolve, reject } = Promise.withResolvers();
+    this._refreshResolve = resolve;
+
+    // If we don't get a response within 10 seconds, sign out and quit.
+    const timeoutId = lazy.setTimeout(() => {
+      this._refreshPromise = null;
+      this._refreshResolve = null;
+      this.signoutUser().finally(() => {
+        this.quitIgnoringCanClose();
+      });
+      reject(
+        new Error("_refreshSession: Felt failed to respond to re-auth in time.")
+      );
+    }, FELT_REFRESH_TIMEOUT);
+
+    this._refreshPromise = promise.then(() => lazy.clearTimeout(timeoutId));
+
+    // Kick off the actual refresh
+    Services.felt.refreshTokens();
+
     return this._refreshPromise;
   },
 
@@ -666,6 +700,7 @@ export const ConsoleClient = {
    *
    * This is only allowed to be executed from the browser side.
    *
+   * @returns {void}
    * @throws {Error} If called from a non-browser context
    */
   async signoutUser() {
@@ -709,13 +744,18 @@ export const ConsoleClient = {
     switch (topic) {
       case "xpcom-shutdown": {
         Services.obs.removeObserver(this, "xpcom-shutdown");
+        Services.obs.removeObserver(this, "felt-firefox-shutdown-for-reauth");
+        Services.obs.removeObserver(
+          this,
+          "felt-firefox-access-token-refreshed"
+        );
         Services.felt.clearTokens();
         this._refreshPromise = null;
         this._refreshResolve = null;
         break;
       }
       case "felt-firefox-shutdown-for-reauth": {
-        Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+        this.quitIgnoringCanClose();
         break;
       }
       case "felt-firefox-access-token-refreshed": {
