@@ -95,7 +95,6 @@ export const ConsoleClient = {
    */
   _refreshPromise: null,
   _refreshResolve: null,
-  _refreshReject: null,
 
   /**
    * This promise guards agains multiple refresh operations on the console/FELT side, similar
@@ -594,10 +593,9 @@ export const ConsoleClient = {
     // If we are in the Browser, notify FELT via IPC to refresh the token
     // create an internal promise that will resolve when FELT signals a refreshed token
     // Note that only FELT holds the needed refresh token.
-    this._refreshPromise = new Promise((resolve, reject) => {
-      // remember our resolve/reject functions
+    this._refreshPromise = new Promise(resolve => {
+      // remember our resolve function
       this._refreshResolve = resolve;
-      this._refreshReject = reject;
       // notify FELT to refresh the token
       Services.felt.refreshTokens();
     });
@@ -714,7 +712,6 @@ export const ConsoleClient = {
         Services.felt.clearTokens();
         this._refreshPromise = null;
         this._refreshResolve = null;
-        this._refreshReject = null;
         break;
       }
       case "felt-firefox-shutdown-for-reauth": {
@@ -727,7 +724,6 @@ export const ConsoleClient = {
         // Reset the promise since we're done.
         this._refreshPromise = null;
         this._refreshResolve = null;
-        this._refreshReject = null;
         break;
       }
     }
