@@ -209,12 +209,13 @@ impl FeltXPCOM {
             Some(client) => {
                 trace!("RefreshTokens(): calling client.notify_refresh_tokens()");
                 client.notify_refresh_tokens();
+                NS_OK
             }
             None => {
                 trace!("firefox_felt_refresh_tokens(): missing client");
+                NS_ERROR_FAILURE
             }
         }
-        NS_OK
     }
 
     fn GetRefreshToken(&self, refresh_token: *mut nsACString) -> nserror::nsresult {
@@ -291,12 +292,13 @@ impl FeltXPCOM {
         match &*guard {
             Some(client) => {
                 client.notify_signout();
+                NS_OK
             }
             None => {
                 trace!("performSignout(): missing client");
+                NS_ERROR_FAILURE
             }
         }
-        NS_OK
     }
 
     fn IpcChannel(&self) -> nserror::nsresult {
