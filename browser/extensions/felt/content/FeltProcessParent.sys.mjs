@@ -270,6 +270,19 @@ export class FeltProcessParent extends JSProcessActorParent {
                 Services.felt.sendAccessToken();
               })
               .catch(error => {
+                // Any non-ReauthRequired error is ignored here by returning early,
+                // to mirror the behaviour before the switch to felt to handle reauth.
+                // These are non-20x-non-401/403 errors, networking issues
+                // and the like.
+                // TODO: define behaviour for these Errors and implement.
+                if (error.name !== "ReauthRequiredError") {
+                  console.error(
+                    "FeltExtension: token refresh failed with non-reauth error, ignoring",
+                    error
+                  );
+                  return;
+                }
+                // At this point, we need to reauthenticate.
                 console.error(
                   "FeltExtension: token refresh failed, reauthenticate",
                   error

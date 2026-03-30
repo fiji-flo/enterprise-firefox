@@ -58,31 +58,6 @@ class ReauthRequiredError extends Error {
 }
 
 /**
- * Error thrown when authentication is present but invalid for the requested operation.
- */
-class InvalidAuthError extends Error {
-  /**
-   * @param {string} [message="Invalid authentication"]
-   * @param {"TOKEN_REFRESH_FAILED"|"UNKNOWN"} [reason="UNKNOWN"]
-   * @param {{cause?: any}} [options]
-   */
-  constructor(
-    message = "Invalid authentication",
-    reason = "UNKNOWN",
-    options = { cause: null }
-  ) {
-    if (options.cause) {
-      super(message, options.cause);
-    } else {
-      super(message);
-    }
-    this.name = "InvalidAuthError";
-    this.code = "INVALID_AUTHENTICATION";
-    this.reason = reason;
-  }
-}
-
-/**
  * Client taking care of the communication with the enterprise console.
  */
 export const ConsoleClient = {
@@ -391,7 +366,7 @@ export const ConsoleClient = {
    * @param {string} path - Console API to request
    * @param {"GET"|"POST"} method - Console API method to use
    * @param {{ _didRefresh?: boolean, jsonBody?: object }} [options]
-   * @throws {InvalidAuthError|Error}
+   * @throws {Error}
    * @returns {Promise<any>} Parsed JSON response body.
    */
   async _fetch(path, method, { _didRefresh = false, jsonBody = null } = {}) {
@@ -434,7 +409,7 @@ export const ConsoleClient = {
    *
    * @param {string} path - Console API to request
    *
-   * @throws {InvalidAuthError|Error}
+   * @throws {Error}
    *
    * @returns {Promise<any>} Promise which resolves to a parsed JSON response body.
    */
@@ -448,7 +423,7 @@ export const ConsoleClient = {
    * @param {string} path - Console API to request
    * @param {object} jsonBody - JSON body
    *
-   * @throws {InvalidAuthError|Error}
+   * @throws {Error}
    *
    * @returns {Promise<any>} Promise which resolves to a parsed JSON response body.
    */
@@ -460,7 +435,7 @@ export const ConsoleClient = {
    * Ensures a non-expired access token is available, refreshing if it's expiring soon.
    *
    * @returns {Promise<string>}
-   * @throws {InvalidAuthError}
+   * @throws {Error}
    */
   async getAccessToken() {
     let accessToken = Services.felt.getAccessTokenIfValid();
@@ -474,10 +449,15 @@ export const ConsoleClient = {
       // If we are in Felt at this point, the authentication flow has
       // completed, but we do not have a valid token.
       // Either case should not happen normally, so throw an error.
-      throw new InvalidAuthError(
-        "Unhandled reauthentication",
-        "UNHANDLED_REAUTHENTICATION"
-      );
+      if (Services.felt.isFeltBrowser()) {
+        throw new Error(
+          "Firefox does not have a valid token, waiting for Felt to shut us down."
+        );
+      } else {
+        throw new Error(
+          "Felt authentication flow has completed, but no valid token is available."
+        );
+      }
     }
     return accessToken;
   },
@@ -485,26 +465,26 @@ export const ConsoleClient = {
   /**
    * Refreshes the session using a refresh token.
    * Serializes concurrent refreshes via an internal promise.
-   * This should only be called from the Felt UI context.
+   * This should only be called from the Felt context.
    *
-   * @throws {InvalidAuthError | ReauthRequiredError} If unable to refresh session
+   * @throws {ReauthRequiredError | Error} If unable to refresh session
    * @returns {Promise<{ access_token, refresh_token, expires_at }>}
    */
   async refreshTokens() {
-    // Assert we are in Felt UI context
+    // Assert we are in Felt context
     if (Services.felt.isFeltBrowser()) {
       throw new Error(
         "refreshTokens(): Called from Browser context, which is not allowed."
       );
     }
 
-    // If a refresh is already underway, just return the promise.
+    // If a felt refresh is already underway, just return the promise.
     if (this._feltRefreshPromise) {
       return this._feltRefreshPromise;
     }
 
     // At this point, we are in the Felt UI context and no
-    // _feltRefreshPromise exists, so do the actual refresh.
+    // felt refresh promise exists, so do the actual refresh.
     this._feltRefreshPromise = (async () => {
       const refreshToken = Services.felt.getRefreshToken();
       if (!refreshToken) {
@@ -518,50 +498,42 @@ export const ConsoleClient = {
 
       const url = this.constructURI(this._paths.TOKEN);
       let res;
-      try {
-        res = await this._xhrFetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-          }),
-        });
-      } catch (cause) {
-        const e = new InvalidAuthError(
-          `Token refresh request failed: ${cause.message}`,
-          "TOKEN_REFRESH_FAILED",
-          { cause }
-        );
-        lazy.log.error(e);
-        throw e;
-      }
+      // We let any errors that are thrown here bubble up, these should
+      // be lower level network errors, i.e. nothing on the HTTP level.
+      res = await this._xhrFetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        }),
+      });
 
+      // These are concrete HTTP errors that should trigger
+      // a full-blown re-authentication.
       if (res.status === 401 || res.status === 403) {
-        const e = new ReauthRequiredError(
+        throw new ReauthRequiredError(
           "Invalid refresh token",
           "INVALID_REFRESH_TOKEN",
           { status: res.status }
         );
-        lazy.log.error(e);
-        throw e;
       }
 
+      // Throw an error if the response is not ok (i.e. not a 20x status code),
+      // and also neither a 401 or a 403 error (handled above).
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new InvalidAuthError(
-          `Token refresh failed (${res.status}): ${text}`,
-          "TOKEN_REFRESH_FAILED"
-        );
+        throw new Error(`Token refresh failed: ${text}, Status: ${res.status}`);
       }
 
       const { access_token, refresh_token, expires_in } = await res.json();
       const expires_at = Math.floor(Date.now() / 1000) + Number(expires_in);
       return { access_token, refresh_token, expires_at };
     })().finally(() => {
+      // In any case, clear the felt refresh promise so that a new one can be started.
       this._feltRefreshPromise = null;
     });
     return this._feltRefreshPromise;
@@ -588,13 +560,15 @@ export const ConsoleClient = {
    * @returns {Promise<void>}
    */
   async _refreshSession() {
-    // Assert we are in the browser
+    // Assert we are in the browser. Currently, there is no use case for
+    // Felt to trigger a session refresh by itself.
     if (!Services.felt.isFeltBrowser()) {
       throw new Error(
         "_refreshSession: called from non-Browser context, which is not allowed."
       );
     }
 
+    // If a refresh is already in progress, return the existing promise.
     if (this._refreshPromise) {
       return this._refreshPromise;
     }
