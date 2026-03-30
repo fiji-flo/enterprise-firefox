@@ -28,7 +28,7 @@ class BrowserReauthRequired(FeltTests):
         # Trigger a token refresh from Firefox via XPCOM IPC to FELT
         self.trigger_token_refresh()
         self._manually_closed_child = True
-        self.wait_process_exit()
+        self.wait_process_exit(self._browser_pid)
 
         # FELT should display the authentication window again
         self.await_felt_auth_window()
