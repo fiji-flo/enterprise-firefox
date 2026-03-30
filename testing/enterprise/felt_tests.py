@@ -3,6 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import ctypes
 import datetime
 import json
 import os
@@ -13,15 +14,45 @@ import tempfile
 import time
 import urllib.parse
 import uuid
-from ctypes import c_wchar_p
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from multiprocessing import Manager, Process, Value
+from multiprocessing import Array, Process, Value
 
 import felt_consts
 import requests
 from base_test import EnterpriseTestsBase
 from marionette_driver import expected
 from marionette_driver.by import By
+
+
+class SharedString:
+    """Process-safe string backed by shared memory.
+
+    Replaces Manager.Value(c_wchar_p, ...) to avoid the Manager IPC path, which
+    pickles data into a memoryview. Under GC pressure that memoryview can be
+    collected while still exported, triggering a CPython bug (bpo-77894 /
+    cpython#123898) that crashes the Manager's ServerProxy processes.
+    Using a shared memory Array avoids all IPC and memoryview allocation.
+    """
+
+    _MAX_SIZE = 128
+
+    def __init__(self, initial=""):
+        self._array = Array(ctypes.c_char, self._MAX_SIZE)
+        self.value = initial
+
+    @property
+    def value(self):
+        with self._array.get_lock():
+            return self._array._obj.value.decode("utf-8")
+
+    @value.setter
+    def value(self, s):
+        encoded = s.encode("utf-8")
+        assert len(encoded) < self._MAX_SIZE, (
+            f"SharedString value too long: {len(encoded)} >= {self._MAX_SIZE}"
+        )
+        with self._array.get_lock():
+            self._array._obj.value = encoded
 
 
 class LocalHttpRequestHandler(BaseHTTPRequestHandler):
@@ -155,24 +186,15 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
         elif path == "/api/browser/hacks/default":
             # Browser prefs that can be applied live
             m = json.dumps({
-                "prefs": felt_consts.live_prefs
-                + [
-                    [
-                        "identity.sync.tokenserver.uri",
-                        "https://ent-dev-tokenserver.sync.nonprod.webservices.mozgcp.net/1.0/sync/1.5",
-                    ]
-                ]
-            })
-            contentType = "application/json"
-        elif path == "/api/browser/hacks/startup":
-            # Browser prefs that needs to be set in the prefs.js file
-            m = json.dumps({
-                "prefs": felt_consts.userjs_prefs + [["marionette.port", 0]],
+                "prefs": felt_consts.config_prefs + [["marionette.port", 0]]
             })
             contentType = "application/json"
 
         elif path == "/api/browser/policies":
             self.check_auth()
+            if self.server.policies_fail_request.value:
+                self.reply("", 500, "Internal Server Error", "application/json")
+                return
             policy_content = {}
             policy_value = (
                 False if self.server.policy_block_about_config.value == 0 else True
@@ -455,6 +477,7 @@ def serve(
     policy_extensions=None,
     policy_access_token=None,
     policy_refresh_token=None,
+    policies_fail_request=None,
     # TODO: Behavior is not yet clearly defined
     # device_posture_reply_forbidden=None,
 ):
@@ -473,6 +496,9 @@ def serve(
         httpd.policy_access_token = policy_access_token
     if policy_refresh_token:
         httpd.policy_refresh_token = policy_refresh_token
+    httpd.policies_fail_request = (
+        policies_fail_request if policies_fail_request is not None else Value("B", 0)
+    )
     httpd.serve_updates = False
     httpd.serve_updates_version = ""
     httpd.serve_forced_updates_count = 0
@@ -501,6 +527,7 @@ class FeltTestsBase(EnterpriseTestsBase):
         self.sso_port = random.randrange(15000, 20000)
         self.policy_block_about_config = Value("B", 1)
         self.policy_extensions = Value("B", 0)
+        self.policies_fail_request = Value("B", 0)
         """
         TODO: Behavior is not yet clearly defined
         self.device_posture_reply_forbidden = Value("B", 0)
@@ -514,9 +541,8 @@ class FeltTestsBase(EnterpriseTestsBase):
         if hasattr(self, "EXTRA_PREFS"):
             self._extra_prefs.update(self.EXTRA_PREFS)
 
-        manager = Manager()
-        self.policy_access_token = manager.Value(c_wchar_p, str(uuid.uuid4()))
-        self.policy_refresh_token = manager.Value(c_wchar_p, str(uuid.uuid4()))
+        self.policy_access_token = SharedString(str(uuid.uuid4()))
+        self.policy_refresh_token = SharedString(str(uuid.uuid4()))
 
         self.console_httpd = Process(
             target=serve,
@@ -528,14 +554,15 @@ class FeltTestsBase(EnterpriseTestsBase):
                 policy_extensions=self.policy_extensions,
                 policy_access_token=self.policy_access_token,
                 policy_refresh_token=self.policy_refresh_token,
+                policies_fail_request=self.policies_fail_request,
                 # TODO: Behavior is not yet clearly defined
                 # device_posture_reply_forbidden=self.device_posture_reply_forbidden,
             ),
         )
         self.console_httpd.start()
 
-        self.cookie_name = manager.Value(c_wchar_p, str(uuid.uuid1()).split("-")[0])
-        self.cookie_value = manager.Value(c_wchar_p, str(uuid.uuid4()).split("-")[4])
+        self.cookie_name = SharedString(str(uuid.uuid1()).split("-")[0])
+        self.cookie_value = SharedString(str(uuid.uuid4()).split("-")[4])
         self.sso_httpd = Process(
             target=serve,
             args=(self.sso_port, SsoHttpHandler),

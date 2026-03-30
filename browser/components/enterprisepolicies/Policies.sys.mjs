@@ -29,6 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   ProxyPolicies: "resource:///modules/policies/ProxyPolicies.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
+  AIChatbotPolicies: "resource:///modules/policies/AIChatbotPolicies.sys.mjs",
   QuickSuggest: "moz-src:///browser/components/urlbar/QuickSuggest.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
 });
@@ -189,6 +190,15 @@ export var Policies = {
       if ("MatchPatterns" in oldParams) {
         unsetAndUnlockPref("browser.ipProtection.inclusion.match_patterns");
       }
+    },
+  },
+
+  AIChatbot: {
+    onBeforeAddons(manager, param) {
+      lazy.AIChatbotPolicies.applyAIChatbotPolicy(param);
+    },
+    onRemove(_manager, _oldParams) {
+      lazy.AIChatbotPolicies.unapplyAIChatbotPolicy();
     },
   },
 
@@ -1076,13 +1086,24 @@ export var Policies = {
         );
         setAndLockPref("browser.tabs.crashReporting.sendReport", true);
         setAndLockPref("browser.tabs.crashReporting.includeURL", true);
+        Services.env.set("MOZ_CRASHREPORTER_POLICY_AUTO_SUBMIT", "1");
+      } else {
+        // if ForceAutoSubmit is unset or is false
+        unsetAndUnlockPref("browser.crashReports.unsubmittedCheck.enabled");
+        unsetAndUnlockPref("browser.crashReports.unsubmittedCheck.autoSubmit2");
+        unsetAndUnlockPref("browser.tabs.crashReporting.sendReport");
+        unsetAndUnlockPref("browser.tabs.crashReporting.includeURL");
+        Services.env.set("MOZ_CRASHREPORTER_POLICY_AUTO_SUBMIT", "");
       }
     },
-    onRemove(_manager, _oldParam) {
-      unsetAndUnlockPref("browser.crashReports.unsubmittedCheck.enabled");
-      unsetAndUnlockPref("browser.crashReports.unsubmittedCheck.autoSubmit2");
-      unsetAndUnlockPref("browser.tabs.crashReporting.sendReport");
-      unsetAndUnlockPref("browser.tabs.crashReporting.includeURL");
+    onRemove(_manager, oldParam) {
+      if (oldParam.ForceAutoSubmit) {
+        unsetAndUnlockPref("browser.crashReports.unsubmittedCheck.enabled");
+        unsetAndUnlockPref("browser.crashReports.unsubmittedCheck.autoSubmit2");
+        unsetAndUnlockPref("browser.tabs.crashReporting.sendReport");
+        unsetAndUnlockPref("browser.tabs.crashReporting.includeURL");
+        Services.env.set("MOZ_CRASHREPORTER_POLICY_AUTO_SUBMIT", "");
+      }
     },
   },
 

@@ -297,41 +297,6 @@ export class FeltProcessParent extends JSProcessActorParent {
     };
   }
 
-  sanitizePrefs(prefs) {
-    let sanitized = [];
-    prefs?.forEach(pref => {
-      const name = JSON.stringify(pref[0]);
-      console.debug(`Felt: sanitizePrefs() ${pref[0]} => ${name})`);
-      let value = pref[1];
-      switch (typeof pref[1]) {
-        case "string":
-          value = JSON.stringify(value);
-          break;
-
-        case "boolean":
-          break;
-
-        case "number":
-          if (!Number.isInteger(pref[1])) {
-            value = `"${pref[1]}"`;
-          } else {
-            value = Number(pref[1]);
-          }
-          break;
-
-        default:
-          console.warn(`Pref ${pref[0]} with value '${pref[1]}' not valid`);
-          value = null;
-          break;
-      }
-
-      if (value !== null) {
-        sanitized.push([name, value]);
-      }
-    });
-    return sanitized;
-  }
-
   sendPrefsToFirefox() {
     Services.felt.sendStringPreference(
       lazy.PREFS.CONSOLE_ADDRESS,
@@ -342,10 +307,6 @@ export class FeltProcessParent extends JSProcessActorParent {
     Services.felt.sendBoolPreference(
       "browser.policies.live_polling.enabled",
       true
-    );
-    Services.felt.sendIntPreference(
-      "browser.policies.live_polling.frequency",
-      lazy.FeltCommon.POLICY_POLLING_FREQUENCY
     );
   }
 
@@ -383,7 +344,6 @@ export class FeltProcessParent extends JSProcessActorParent {
         this.sendPrefsToFirefox();
         Services.felt.sendAccessToken();
 
-        // Gets sync tokenserver uri from the console amongst other prefs
         const { prefs } = await lazy.ConsoleClient.getDefaultPrefs();
         prefs.forEach(pref => {
           const name = pref[0];
@@ -570,20 +530,6 @@ export class FeltProcessParent extends JSProcessActorParent {
     if (Services.felt.isFeltSafeMode()) {
       extraRunArgs.push("--safe-mode");
     }
-
-    const prefsJsFile = PathUtils.join(profilePath, "prefs.js");
-    let prefsJsContent = "";
-    if (await IOUtils.exists(prefsJsFile)) {
-      prefsJsContent = await IOUtils.readUTF8(prefsJsFile);
-    }
-
-    const startupPrefs = (await lazy.ConsoleClient.getStartupPrefs()).prefs;
-    this.sanitizePrefs(startupPrefs).forEach(pref => {
-      prefsJsContent += `\nuser_pref(${pref[0]}, ${pref[1]});`;
-    });
-    prefsJsContent += "\n";
-
-    await IOUtils.writeUTF8(prefsJsFile, prefsJsContent);
 
     const firefoxRunArgs = [
       "--foreground",
