@@ -686,7 +686,7 @@ export const ConsoleClient = {
    * Performs a server-side signout POST request.
    * This is to be called only from the Felt side.
    *
-   * @returns Promise<any>
+   * @returns {Promise<any>}
    */
   async performServerSignout() {
     return this._post(this._paths.SIGNOUT);
