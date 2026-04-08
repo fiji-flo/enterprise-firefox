@@ -87,7 +87,7 @@ pub enum FeltMessage {
     OpenURL((String, i32, Option<FocusHint>)),
     RestartForced,
     Restarting,
-    Logout(LogoutType),
+    LogoutShutdown,
     Exiting,
     UpdateReady,
     ShutdownForReauth,
@@ -99,4 +99,4 @@ pub enum FocusHint {
     Timestamp(u32),
 }
 
-pub const FELT_IPC_VERSION: u32 = 8;
+pub const FELT_IPC_VERSION: u32 = 9;

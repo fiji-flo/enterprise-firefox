@@ -8,20 +8,6 @@
 
 const lazy = {};
 
-// Maps logout types (from nsIFelt) to the CSS class applied to the FELT window
-// to display the appropriate message to the user after logout.
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "logoutTypeMessageClass",
-  () =>
-    new Map([
-      [
-        Services.felt.logoutTypeConsoleForcedLogout,
-        "felt-browser-info-console-forced-logout",
-      ],
-    ])
-);
-
 ChromeUtils.defineESModuleGetters(lazy, {
   UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
   FELT_OPEN_WINDOW_DISPOSITION: "resource:///modules/FeltURLHandler.sys.mjs",
@@ -53,11 +39,9 @@ this.felt = class extends ExtensionAPI {
       ["content", "felt", "content/"],
     ]);
   }
+
   registerActors() {
-    const { ConsoleClient } = ChromeUtils.importESModule(
-      "resource:///modules/enterprise/ConsoleClient.sys.mjs"
-    );
-    const matches = [ConsoleClient.ssoCallbackUriMatchPattern];
+    const matches = [lazy.ConsoleClient.ssoCallbackUriMatchPattern];
     ChromeUtils.registerWindowActor(this.FELT_WINDOW_ACTOR, {
       parent: {
         esModuleURI: "chrome://felt/content/FeltWindowParent.sys.mjs",
@@ -248,27 +232,15 @@ this.felt = class extends ExtensionAPI {
           this
         );
 
-        const doShutdown = () => {
-          // This is only useful for testing purpose when we need to exit the
-          // browser cleanly but need to keep felt alive for some processing after
-          if (!lazy.isBlockingShutdown()) {
-            Services.startup.quit(
-              Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
-            );
-          } else if (!this._win) {
-            Services.felt.makeBackgroundProcess(false);
-            this.showWindow();
-          }
-        };
-
-        if (message.data?.performLogout === true) {
-          lazy.ConsoleClient._post(lazy.ConsoleClient._paths.SIGNOUT)
-            .catch(e => {
-              console.error(`FeltExtension: Failed to post signout: ${e}`);
-            })
-            .then(doShutdown);
-        } else {
-          doShutdown();
+        // This is only useful for testing purpose when we need to exit the
+        // browser cleanly but need to keep felt alive for some processing after
+        if (!lazy.isBlockingShutdown()) {
+          Services.startup.quit(
+            Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
+          );
+        } else if (!this._win) {
+          Services.felt.makeBackgroundProcess(false);
+          this.showWindow();
         }
         break;
       }

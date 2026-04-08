@@ -240,7 +240,7 @@ export class FeltProcessParent extends JSProcessActorParent {
           }
 
           case "felt-firefox-logout":
-            gFeltProcessParentInstance.logoutFirefox(aData);
+            gFeltProcessParentInstance.logoutFirefox();
             break;
 
           case "felt-firefox-tokens": {
@@ -482,9 +482,10 @@ export class FeltProcessParent extends JSProcessActorParent {
             if (this.proc.exitCode === 0) {
               this.abnormalExitCounter = 0;
               this.abnormalExitFirstTime = 0;
-              Services.cpmm.sendAsyncMessage("FeltParent:FirefoxNormalExit", {
-                performLogout: true,
-              });
+              Services.cpmm.sendAsyncMessage(
+                "FeltParent:FirefoxNormalExit",
+                {}
+              );
             } else {
               this.handleRestartAfterAbnormalExit();
             }
@@ -711,13 +712,13 @@ export class FeltProcessParent extends JSProcessActorParent {
    *
    * @param {string} logoutType - One of the logout type payload strings from the IPC message.
    */
-  logoutFirefox(logoutType) {
+  logoutFirefox() {
     if (!Services.felt.isFeltUI()) {
       throw new Error("Logout handling should only happen on FELT side.");
     }
 
     console.debug(
-      `FeltExtension: Logout (${logoutType}), waiting on ${gFeltProcessParentInstance.proc.pid}`
+      `FeltExtension: Logout, waiting on process ${gFeltProcessParentInstance.proc.pid}`
     );
     gFeltProcessParentInstance.logoutReported = true;
 
