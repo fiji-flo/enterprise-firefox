@@ -12,7 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.browser.state.state.TabSessionState
@@ -23,6 +22,7 @@ import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.AddonManagerException
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -73,6 +73,8 @@ import org.mozilla.fenix.utils.Settings
  * selected tab from pinned shortcuts.
  * @param requestDesktopSiteUseCase The [SessionUseCases.RequestDesktopSiteUseCase] for toggling
  * desktop mode for the current session.
+ * @param migratePrivateTabUseCase The [TabsUseCases.MigratePrivateTabUseCase] for moving a private
+ * tab to a normal tab.
  * @param materialAlertDialogBuilder The [MaterialAlertDialogBuilder] used to create a popup when trying to
  * add a shortcut after the shortcut limit has been reached.
  * @param topSitesMaxLimit The maximum number of top sites the user can have.
@@ -97,6 +99,7 @@ class MenuDialogMiddleware(
     private val addPinnedSiteUseCase: TopSitesUseCases.AddPinnedSiteUseCase,
     private val removePinnedSitesUseCase: TopSitesUseCases.RemoveTopSiteUseCase,
     private val requestDesktopSiteUseCase: SessionUseCases.RequestDesktopSiteUseCase,
+    private val migratePrivateTabUseCase: TabsUseCases.MigratePrivateTabUseCase,
     private val materialAlertDialogBuilder: MaterialAlertDialogBuilder,
     private val topSitesMaxLimit: Int,
     private val onDeleteAndQuit: () -> Unit,
@@ -133,6 +136,7 @@ class MenuDialogMiddleware(
             is MenuAction.OnCFRShown -> onCFRShown()
             is MenuAction.OnSummarizationMenuExposed -> cacheMenuExposure(store)
             is MenuAction.OnMoreMenuClicked -> cacheMoreMenuClick(store)
+            is MenuAction.MoveToNonPrivateTab -> migratePrivateTab(store)
             is MenuAction.RequestDesktopSite,
             is MenuAction.RequestMobileSite,
             -> requestSiteMode(
@@ -179,11 +183,10 @@ class MenuDialogMiddleware(
         }
     }
 
-    private suspend fun TabSessionState?.checkSummarizationEligibility(): Boolean = withContext(Dispatchers.Default) {
+    private suspend fun TabSessionState?.checkSummarizationEligibility(): Boolean =
         this@checkSummarizationEligibility?.engineState?.engineSession?.let { session ->
             summarizationEligibilityChecker.checkLanguage(session).getOrDefault(false)
         } ?: false
-    }
 
     private suspend fun setupBookmarkState(
         store: Store<MenuState, MenuAction>,
@@ -449,6 +452,12 @@ class MenuDialogMiddleware(
         if (store.state.summarizationMenuState.enabled) {
             summarizeMenuSettings.cacheDiscoveryEvent(SummarizeDiscoveryEvent.MenuItemExposure)
         }
+    }
+
+    private fun migratePrivateTab(store: Store<MenuState, MenuAction>) = scope.launch {
+        val tabId = store.state.browserMenuState?.selectedTab?.id ?: return@launch
+        migratePrivateTabUseCase(tabId)
+        onDismiss()
     }
 
     private fun cacheMoreMenuClick(store: Store<MenuState, MenuAction>) = scope.launch {

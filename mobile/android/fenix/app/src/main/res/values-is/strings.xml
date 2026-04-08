@@ -1509,12 +1509,8 @@
   <string name="studies_remove">Fjarlægja</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Virkt</string>
-  <!-- Description for studies -->
-  <string name="studies_description_3" moz:removedIn="148" tools:ignore="UnusedResources">Prófaðu eiginleika og hugmyndir áður en þær eru settar í dreifingu.</string>
   <!-- Description for studies. Note: The word "Firefox" should NOT be translated -->
   <string name="studies_description_4" tools:ignore="BrandUsage">Firefox velur notendur af handahófi til að prófa ýmsa eiginleika, sem bætir gæðin fyrir alla.</string>
-  <!-- Title of the Studies data preference -->
-  <string name="studies_title" moz:removedIn="148" tools:ignore="UnusedResources">Settu upp og keyrðu rannsóknir</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title_2">Leyfa rannsóknir varðandi eiginleika</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -2072,7 +2068,11 @@
   <string name="bookmark_delete_single_item" tools:ignore="UnusedResources" moz:removedIn="150">Eyddi %s</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
   <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources" moz:removedIn="150">Eydd atriði: %s</string>
-  <!-- Content description for the bookmark navigation bar back button -->
+  <!--
+    Bookmark undo button for deletion snackbar action
+
+    Content description for the bookmark navigation bar back button
+  -->
   <string name="bookmark_navigate_back_button_content_description">Fara til baka</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
   <string name="bookmark_add_new_folder_button_content_description">Bæta við nýrri möppu</string>
@@ -2410,8 +2410,6 @@
   <string name="preference_accessibility_text_size_summary">Stækka eða minnka texta á vefsvæðum</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">Leturstærð</string>
-  <!-- %d is the percentage of the slide bar for setting the text font size and %% will be announced as "percent". -->
-  <string name="a11y_preference_accessibility_font_size_percentage" tools:ignore="UnusedResources" moz:removedIn="148">%d %%.</string>
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
   <string name="preference_accessibility_auto_size_2">Sjálfvirk leturstærð</string>
   <!-- Summary for Accessibility Text Automatic Size Scaling Preference -->
@@ -3448,7 +3446,7 @@
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Ekki tókst að hlaða inn tungumálum. Athugaðu nettenginguna þína og reyndu aftur.</string>
   <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
-  <string name="translation_error_language_not_supported_warning_text">Því miður styðjum við ekki %1$s ennþá.</string>
+  <string name="translation_error_language_not_supported_warning_text" tools:ignore="UnusedResources" moz:removedIn="150">Því miður styðjum við ekki %1$s ennþá.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Þýðing…</string>
   <!--

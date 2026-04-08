@@ -456,10 +456,7 @@ export class UrlbarView {
 
     let { value } = this.#l10nCache.get(l10n);
     row.setAttribute("feedback-acknowledgment", value);
-    this.window.A11yUtils.announce({
-      raw: value,
-      source: row._content.closest("[role=option]"),
-    });
+    row._content.closest("[role=option]").ariaNotify(value);
   }
 
   /**
@@ -860,11 +857,11 @@ export class UrlbarView {
       this.#previousTabToSearchEngine != secondResult.payload.engine
     ) {
       let engine = secondResult.payload.engine;
-      this.window.A11yUtils.announce({
-        id: secondResult.payload.isGeneralPurposeEngine
-          ? "urlbar-result-action-before-tabtosearch-web"
-          : "urlbar-result-action-before-tabtosearch-other",
-        args: { engine },
+      let stringId = secondResult.payload.isGeneralPurposeEngine
+        ? "urlbar-result-action-before-tabtosearch-web"
+        : "urlbar-result-action-before-tabtosearch-other";
+      this.#ariaNotifyLocalizedString(this.#rows.children[1], stringId, {
+        engine,
       });
       this.#previousTabToSearchEngine = engine;
       // Do not set aria-activedescendant when the user tabs to the result
@@ -2146,12 +2143,16 @@ export class UrlbarView {
         result.providerName == "UrlbarProviderSearchTips" ||
         result.payload.type == "dismissalAcknowledgment"
       ) {
-        // For a11y, we treat search tips as alerts. We use A11yUtils.announce
+        // For a11y, we treat search tips as alerts. We use ariaNotify
         // instead of role="alert" because role="alert" will only fire an alert
         // event when the alert (or something inside it) is the root of an
         // insertion. In this case, the entire tip result gets inserted into the
         // a11y tree as a single insertion, so no alert event would be fired.
-        this.window.A11yUtils.announce(result.payload.titleL10n);
+        this.#ariaNotifyLocalizedString(
+          item,
+          result.payload.titleL10n.id,
+          result.payload.titleL10n.args
+        );
       }
     } else if (result.source == lazy.UrlbarUtils.RESULT_SOURCE.BOOKMARKS) {
       item.setAttribute("type", "bookmark");
@@ -2890,6 +2891,11 @@ export class UrlbarView {
         this.#setElementOverflowing(tagsContainer, false);
       }
     }
+  }
+
+  async #ariaNotifyLocalizedString(element, l10nId, l10nArgs) {
+    let message = await this.document.l10n.formatValue(l10nId, l10nArgs);
+    element.ariaNotify(message);
   }
 
   /**

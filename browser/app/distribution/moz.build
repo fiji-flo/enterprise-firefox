@@ -6,7 +6,7 @@
 
 DIST_SUBDIR = ""
 
-if CONFIG["BUILT_BY_MOZILLA"]:
+if CONFIG["BUILT_BY_MOZILLA"] and not CONFIG["MOZ_ENTERPRISE"]:
     FINAL_TARGET_FILES.distribution += [
         "distribution.ini",
     ]

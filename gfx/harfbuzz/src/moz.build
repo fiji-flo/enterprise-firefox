@@ -100,6 +100,7 @@ UNIFIED_SOURCES += [
     'hb-raster-svg-fill.cc',
     'hb-raster-svg-gradient.cc',
     'hb-raster-svg-parse.cc',
+    'hb-raster-svg-render.cc',
     'hb-raster-svg-use.cc',
     'hb-raster.cc',
     'hb-set.cc',
@@ -127,16 +128,12 @@ UNIFIED_SOURCES += [
     'hb-subset.cc',
     'hb-unicode.cc',
     'hb-vector-svg-draw.cc',
+    'hb-vector-svg-paint.cc',
     'hb-vector-svg-path.cc',
     'hb-vector-svg-subset.cc',
     'hb-vector-svg-utils.cc',
     'hb-vector.cc',
     'hb-zlib.cc',
-]
-
-SOURCES = [
-    'hb-raster-svg-render.cc',
-    'hb-vector-svg-paint.cc',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk':
@@ -163,12 +160,13 @@ DEFINES['HB_NO_UCD'] = True
 DEFINES['HB_NO_UNICODE_FUNCS'] = True
 DEFINES['HB_NO_VAR_COMPOSITES'] = True
 
-# On Android, we want to use harfbuzz's mmap support for file access,
+# We want to use harfbuzz's mmap support for file access,
 # so we need to set the appropriate configuration flags as we're not
 # running harfbuzz's own configure script.
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
+if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'windows':
     DEFINES['HAVE_MMAP'] = 1
     DEFINES['HAVE_SYS_MMAN_H'] = 1
+    DEFINES['HAVE_UNISTD_H'] = 1
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     DEFINES['UNICODE'] = True

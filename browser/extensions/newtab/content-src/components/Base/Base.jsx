@@ -310,6 +310,9 @@ export class BaseContent extends React.PureComponent {
 
       const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
       const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
+      const initialWallpaper = prefs["newtabWallpapers.initialWallpaper"];
+      const prevInitialWallpaper =
+        prevPrefs["newtabWallpapers.initialWallpaper"];
       const uploadedWallpaperTheme =
         prefs["newtabWallpapers.customWallpaper.theme"];
       const prevUploadedWallpaperTheme =
@@ -318,6 +321,7 @@ export class BaseContent extends React.PureComponent {
       // don't update wallpaper unless the wallpaper is being changed.
       if (
         selectedWallpaper !== prevSelectedWallpaper || // selecting a new wallpaper
+        initialWallpaper !== prevInitialWallpaper || // experiment sets initial wallpaper
         uploadedWallpaper !== prevUploadedWallpaper || // uploading a new wallpaper
         wallpaperList !== prevWallpaperList || // remote settings wallpaper list updates
         this.props.App.isForStartupCache.Wallpaper !==
@@ -499,7 +503,8 @@ export class BaseContent extends React.PureComponent {
   renderWallpaperAttribution() {
     const { wallpaperList } = this.props.Wallpapers;
     const activeWallpaper =
-      this.props.Prefs.values[`newtabWallpapers.wallpaper`];
+      this.props.Prefs.values[`newtabWallpapers.wallpaper`] ||
+      this.props.Prefs.values[`newtabWallpapers.initialWallpaper`];
     const selected = wallpaperList.find(wp => wp.title === activeWallpaper);
     // make sure a wallpaper is selected and that the attribution also exists
     if (!selected?.attribution) {
@@ -534,7 +539,9 @@ export class BaseContent extends React.PureComponent {
 
   async updateWallpaper() {
     const prefs = this.props.Prefs.values;
-    const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
+    const selectedWallpaper =
+      prefs["newtabWallpapers.wallpaper"] ||
+      prefs["newtabWallpapers.initialWallpaper"];
     const { wallpaperList, uploadedWallpaper: uploadedWallpaperUrl } =
       this.props.Wallpapers;
     const uploadedWallpaperTheme =
@@ -725,7 +732,9 @@ export class BaseContent extends React.PureComponent {
     // @nova-cleanup(remove-conditional):
     const novaEnabled = prefs[PREF_NOVA_ENABLED];
 
-    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
+    const activeWallpaper =
+      prefs[`newtabWallpapers.wallpaper`] ||
+      prefs[`newtabWallpapers.initialWallpaper`];
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const weatherEnabled = prefs.showWeather;
     const { showTopicSelection } = DiscoveryStream;
@@ -956,8 +965,10 @@ export class BaseContent extends React.PureComponent {
               showSectionsMgmtPanel={this.state.showSectionsMgmtPanel}
               showWidgetsManagementPanel={this.state.showWidgetsManagementPanel}
               toggleWidgetsManagementPanel={this.toggleWidgetsManagementPanel}
+              widgetsEnabled={prefs["widgets.enabled"]}
             />
           </menu>
+          <ConfirmDialog />
         </div>
       );
     }

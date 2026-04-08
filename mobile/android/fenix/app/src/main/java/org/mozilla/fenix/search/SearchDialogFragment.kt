@@ -400,6 +400,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                         SearchFragmentAction.UpdateSearchState(
                             search,
                             showUnifiedSearchFeature,
+                            isPrivate = requireComponents.appStore.state.mode.isPrivate,
                         ),
                     )
 

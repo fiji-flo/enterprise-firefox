@@ -16,6 +16,7 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.ai.AIFeaturesRuntime
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
 import mozilla.components.concept.engine.translate.LanguageModel.Companion.areModelsProcessing
@@ -72,6 +73,25 @@ class TranslationsMiddleware(
                     val engineIsSupported = requestEngineSupport(store)
                     if (engineIsSupported == true) {
                         initializeBrowserStore(store)
+                    }
+                }
+            }
+
+            is TranslationsAction.SetTranslationsEnabledAction -> {
+                scope.launch {
+                    // Notify the browser translations engine to enable or disable translations on that level.
+                    val browserError = setBrowserTranslationsEnabled(action.isTranslationsEnabled)
+
+                    if (action.isTranslationsEnabled) {
+                        store.dispatch(TranslationsAction.InitTranslationsBrowserState)
+                    }
+
+                    if (browserError != null) {
+                        store.dispatch(
+                            TranslationsAction.EngineExceptionAction(
+                                error = TranslationError.CouldNotSetBrowserEnabledError(browserError),
+                            ),
+                        )
                     }
                 }
             }
@@ -1032,5 +1052,29 @@ class TranslationsMiddleware(
                 )
             },
         )
+    }
+
+    /**
+     * Notifies the browser engine to enable or disable the translations feature via
+     * [AIFeaturesRuntime].
+     *
+     * @param isEnabled Whether translations should be enabled.
+     * @return Null on success, or the [Throwable] reported by the engine on failure.
+     */
+    private suspend fun setBrowserTranslationsEnabled(isEnabled: Boolean): Throwable? {
+        return suspendCoroutine { continuation ->
+            engine.aiFeatures.setFeatureEnablement(
+                featureId = "translations",
+                isEnabled = isEnabled,
+                onSuccess = {
+                    logger.info("Successfully set browser translations enabled to $isEnabled.")
+                    continuation.resume(null)
+                },
+                onError = { error ->
+                    logger.error("Error setting browser translations enabled.")
+                    continuation.resume(error)
+                },
+            )
+        }
     }
 }

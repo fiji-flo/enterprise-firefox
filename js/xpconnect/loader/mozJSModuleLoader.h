@@ -99,19 +99,28 @@ class mozJSModuleLoader final {
   static bool IsDevToolsLoaderGlobal(nsIGlobalObject* aGlobal);
 
   // Public methods for use from SyncModuleLoader.
-  static nsresult LoadSingleModuleScript(
+  static nsresult LoadSingleModule(
       mozilla::loader::SyncModuleLoader* aModuleLoader, JSContext* aCx,
       JS::loader::ModuleLoadRequest* aRequest,
-      JS::MutableHandleScript aScriptOut);
+      JS::MutableHandle<JSObject*> aModuleOut);
 
  private:
   static nsresult ReadScriptOnMainThread(JSContext* aCx,
                                          const nsCString& aLocation,
                                          nsCString& aData);
-  static nsresult LoadSingleModuleScriptOnWorker(
+  static nsresult LoadSingleModuleOnWorker(
       mozilla::loader::SyncModuleLoader* aModuleLoader, JSContext* aCx,
       JS::loader::ModuleLoadRequest* aRequest,
-      JS::MutableHandleScript aScriptOut);
+      JS::MutableHandle<JSObject*> aModuleOut);
+
+  static nsresult CompileJsonModuleFromSource(
+      JSContext* aCx, const nsACString& aSource, const nsACString& aLocation,
+      JS::MutableHandle<JSObject*> aModuleOut);
+
+  static nsresult CompileCssModuleFromSource(
+      JSContext* aCx, mozilla::loader::SyncModuleLoader* aModuleLoader,
+      const nsACString& aSource, nsIURI* aBaseURI,
+      JS::MutableHandle<JSObject*> aModuleOut);
 
  public:
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
@@ -148,10 +157,8 @@ class mozJSModuleLoader final {
   // compiling it from source.
   static nsresult GetScriptForLocation(JSContext* aCx, ModuleLoaderInfo& aInfo,
                                        nsIFile* aModuleFile, bool aUseMemMap,
-                                       JS::MutableHandleScript aScriptOut,
+                                       JS::MutableHandle<JSObject*> aModuleOut,
                                        char** aLocationOut = nullptr);
-
-  static JSScript* InstantiateStencil(JSContext* aCx, JS::Stencil* aStencil);
 
   class ModuleEntry {
    public:

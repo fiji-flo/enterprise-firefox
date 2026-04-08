@@ -4,18 +4,14 @@
 
 package org.mozilla.fenix.tabstray.redux.action
 
+import org.mozilla.fenix.tabstray.data.TabGroupTheme
 import org.mozilla.fenix.tabstray.data.TabsTrayItem
+import org.mozilla.fenix.tabstray.redux.action.TabsTrayAction.TabsStorageAction
 
 /**
  *[TabsTrayAction]'s that represent user interactions for the Tab Group feature.
  */
 sealed interface TabGroupAction : TabsTrayAction {
-
-    /**
-     * Fired when the user clicks on edit Tab Group.
-     */
-    data object CreateTabGroupClicked : TabGroupAction
-
     /**
      * Fired when the user clicks on adding tab(s) to a tab group.
      */
@@ -36,7 +32,7 @@ sealed interface TabGroupAction : TabsTrayAction {
     /**
      * Confirms the save of a tab group.
      */
-    data object SaveClicked : TabGroupAction
+    data object SaveClicked : TabGroupAction, TabsStorageAction
 
     /**
      * Invoked when the user dismisses the tab group form.
@@ -49,4 +45,11 @@ sealed interface TabGroupAction : TabsTrayAction {
      * @property group The clicked [TabsTrayItem.TabGroup].
      */
     data class TabGroupClicked(val group: TabsTrayItem.TabGroup) : TabGroupAction
+
+    /**
+     * Invoked when the user changes the tab group theme.
+     *
+     * @property theme The theme of the tab group the user has selected.
+     */
+    data class ThemeChanged(val theme: TabGroupTheme) : TabGroupAction
 }

@@ -933,6 +933,14 @@ bool WebRenderBridgeParent::PushExternalImageForTexture(
   auto op = aIsUpdate ? TextureHost::UPDATE_IMAGE : TextureHost::ADD_IMAGE;
   WebRenderTextureHost* wrTexture = aTexture->AsWebRenderTextureHost();
   if (wrTexture) {
+    if (wrTexture->NumSubTextures() != 1) {
+      gfxCriticalNote << "PushExternalImageForTexture: texture requires "
+                      << wrTexture->NumSubTextures()
+                      << " keys but only 1 provided for extId:"
+                      << wr::AsUint64(aExtId);
+      return false;
+    }
+
     Range<wr::ImageKey> keys(&aKey, 1);
     wrTexture->PushResourceUpdates(aResources, op, keys,
                                    wrTexture->GetExternalImageKey());
@@ -1270,7 +1278,7 @@ void WebRenderBridgeParent::SetAPZSampleTime() {
 
 bool WebRenderBridgeParent::SetDisplayList(
     const LayoutDeviceRect& aRect, ipc::ByteBuf&& aDLItems,
-    ipc::ByteBuf&& aDLCache, ipc::ByteBuf&& aSpatialTreeDL,
+    ipc::ByteBuf&& aSpatialTreeDL,
     const wr::BuiltDisplayListDescriptor& aDLDesc,
     const nsTArray<OpUpdateResource>& aResourceUpdates,
     const nsTArray<RefCountedShmem>& aSmallShmems,
@@ -1281,7 +1289,6 @@ bool WebRenderBridgeParent::SetDisplayList(
       UpdateResources(aResourceUpdates, aSmallShmems, aLargeShmems, aTxn);
 
   wr::Vec<uint8_t> dlItems(std::move(aDLItems));
-  wr::Vec<uint8_t> dlCache(std::move(aDLCache));
   wr::Vec<uint8_t> dlSpatialTreeData(std::move(aSpatialTreeDL));
 
   if (IsRootWebRenderBridgeParent()) {
@@ -1296,7 +1303,7 @@ bool WebRenderBridgeParent::SetDisplayList(
     pipelineId = gfx::GetTemporaryWebRenderPipelineId(pipelineId);
   }
 
-  aTxn.SetDisplayList(aWrEpoch, pipelineId, aDLDesc, dlItems, dlCache,
+  aTxn.SetDisplayList(aWrEpoch, pipelineId, aDLDesc, dlItems,
                       dlSpatialTreeData);
 
   if (aRenderOffscreen) {
@@ -1357,11 +1364,9 @@ bool WebRenderBridgeParent::ProcessDisplayListData(
   success =
       ProcessWebRenderParentCommands(aDisplayList.mCommands, txn) && success;
 
-  if (aDisplayList.mDLItems && aDisplayList.mDLCache &&
-      aDisplayList.mDLSpatialTree) {
+  if (aDisplayList.mDLItems && aDisplayList.mDLSpatialTree) {
     success = SetDisplayList(
                   aDisplayList.mRect, std::move(aDisplayList.mDLItems.ref()),
-                  std::move(aDisplayList.mDLCache.ref()),
                   std::move(aDisplayList.mDLSpatialTree.ref()),
                   aDisplayList.mDLDesc, aDisplayList.mResourceUpdates,
                   aDisplayList.mSmallShmems, aDisplayList.mLargeShmems,
@@ -2301,9 +2306,9 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvCapture() {
 }
 
 mozilla::ipc::IPCResult WebRenderBridgeParent::RecvStartCaptureSequence(
-    const nsACString& aPath, const uint32_t& aFlags) {
+    const uint32_t& aFlags) {
   if (EnsureInitialized()) {
-    mLateInit->mApi->StartCaptureSequence(aPath, aFlags);
+    mLateInit->mApi->StartCaptureSequence(aFlags);
   }
   return IPC_OK();
 }

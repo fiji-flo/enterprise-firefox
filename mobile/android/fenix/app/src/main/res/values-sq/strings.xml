@@ -1528,12 +1528,8 @@
   <string name="studies_remove">Hiqe</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Aktive</string>
-  <!-- Description for studies -->
-  <string name="studies_description_3" moz:removedIn="148" tools:ignore="UnusedResources">Provoni veçori dhe ide para se të hidhen në qarkullim për këdo.</string>
   <!-- Description for studies. Note: The word "Firefox" should NOT be translated -->
   <string name="studies_description_4" tools:ignore="BrandUsage">Firefox-i përzgjedh kuturu përdorues për të testuar veçori, çka përmirëson cilësinë për gjithkënd.</string>
-  <!-- Title of the Studies data preference -->
-  <string name="studies_title" moz:removedIn="148" tools:ignore="UnusedResources">Instaloni dhe kryeni studime</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title_2">Lejoni studim veçorish</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -2093,7 +2089,11 @@
   <string name="bookmark_delete_single_item" tools:ignore="UnusedResources" moz:removedIn="150">U fshi %s</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
   <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources" moz:removedIn="150">Objekte të fshirë: %s</string>
-  <!-- Content description for the bookmark navigation bar back button -->
+  <!--
+    Bookmark undo button for deletion snackbar action
+
+    Content description for the bookmark navigation bar back button
+  -->
   <string name="bookmark_navigate_back_button_content_description">Shko mbrapsht</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
   <string name="bookmark_add_new_folder_button_content_description">Shtoni një dosje të re</string>
@@ -2431,8 +2431,6 @@
   <string name="preference_accessibility_text_size_summary">Bëjeni tekstin në sajte më të madh ose më të vogël</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">Madhësi Shkronjash</string>
-  <!-- %d is the percentage of the slide bar for setting the text font size and %% will be announced as "percent". -->
-  <string name="a11y_preference_accessibility_font_size_percentage" tools:ignore="UnusedResources" moz:removedIn="148">%d %%.</string>
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
   <string name="preference_accessibility_auto_size_2">Përmasim automatik i shkronjave</string>
   <!-- Summary for Accessibility Text Automatic Size Scaling Preference -->
@@ -3467,7 +3465,7 @@
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">S’u ngarkuan dot gjuhë. Kontrolloni lidhjen tuaj internet dhe riprovoni.</string>
   <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
-  <string name="translation_error_language_not_supported_warning_text">Na ndjeni, s’e mbulojmë ende %1$s.</string>
+  <string name="translation_error_language_not_supported_warning_text" tools:ignore="UnusedResources" moz:removedIn="150">Na ndjeni, s’e mbulojmë ende %1$s.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Po përkthehet…</string>
   <!--

@@ -7,7 +7,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
 });
 
-const rustMirrorTelemetryVersion = "4";
+const rustMirrorTelemetryVersion = "5";
 
 // checks validity of an origin
 function checkOrigin(origin) {
@@ -189,6 +189,10 @@ function recordMirrorFailure(runId, operation, error, login = null) {
 
     is_deleted: false,
 
+    has_origin: false,
+    has_form_action_origin: false,
+    has_http_realm: false,
+
     origin_error: null,
     origin_fixable: false,
     form_action_origin_error: null,
@@ -196,7 +200,6 @@ function recordMirrorFailure(runId, operation, error, login = null) {
 
     has_punycode_origin: false,
     has_punycode_form_action_origin: false,
-
     has_ftp_origin: false,
 
     has_empty_password: false,
@@ -212,14 +215,22 @@ function recordMirrorFailure(runId, operation, error, login = null) {
     const timeLastUsed = roundToMonthUTC(login.timeLastUsed);
     data.is_deleted = login.deleted;
 
-    const [originError, fixableOriginError] = validateOrigin(login.origin);
-    data.origin_error = originError;
-    data.origin_fixable = !!fixableOriginError;
-    const [formActionOriginError, fixableFormActionOriginError] =
-      validateOrigin(login.formActionOrigin);
+    data.has_origin = !!login.origin;
+    data.has_origin = !!login.formActionOrigin;
+    data.has_http_realm = !!login.httpRealm;
 
+    const [originError, fixedOrigin] = validateOrigin(login.origin);
+    data.origin_error = originError;
+    data.origin_fixable = !!fixedOrigin;
+    let formActionOriginError = null;
+    let fixedFormActionOrigin = null;
+    if (login.formActionOrigin) {
+      [formActionOriginError, fixedFormActionOrigin] = validateOrigin(
+        login.formActionOrigin
+      );
+    }
     data.form_action_origin_error = formActionOriginError;
-    data.form_action_origin_fixable = !!fixableFormActionOriginError;
+    data.form_action_origin_fixable = !!fixedFormActionOrigin;
 
     data.has_punycode_origin = isPunycodeOrigin(login.origin);
     data.has_punycode_form_action_origin = isPunycodeOrigin(

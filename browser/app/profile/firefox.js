@@ -317,15 +317,6 @@ pref("browser.startup.firstrunSkipsHomepage", true);
 // Whether we should show the session-restore infobar on startup
 pref("browser.startup.couldRestoreSession.count", 0);
 
-// Show an about:blank window as early as possible for quick startup feedback.
-// Held to nightly on Linux due to bug 1450626.
-// Disabled on Mac because the bouncing dock icon already provides feedback.
-#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK) && defined(NIGHTLY_BUILD)
-  pref("browser.startup.blankWindow", true);
-#else
-  pref("browser.startup.blankWindow", false);
-#endif
-
 // Show a skeleton UI window prior to loading libxul. Only visible for windows
 // users as it is not implemented anywhere else.
 #if defined(XP_WIN)
@@ -382,10 +373,15 @@ pref("browser.urlbar.autoFill", true);
 pref("browser.urlbar.autoFill.adaptiveHistory.enabled", false);
 
 // Duration in ms to block after backspace penalty. Default: 2 days.
-pref("browser.urlbar.autoFill.adaptiveHistory.backspaceBlockDurationMs", 172800000);
+pref("browser.urlbar.autoFill.backspaceBlockDurationMs", 172800000);
+
+// How many times the user must consecutively backspace away an autofill
+// suggestion before we penalize and temporarily suppress it from autofilling.
+// The result may still appear as a regular history result.
+pref("browser.urlbar.autoFill.backspaceThreshold", 3);
 
 // Duration in ms to block an origin/URL after dismiss. Default: 7 days.
-pref("browser.urlbar.autoFill.adaptiveHistory.dismissalBlockDurationMs", 604800000);
+pref("browser.urlbar.autoFill.dismissalBlockDurationMs", 604800000);
 
 // Minimum char length of the user's search string to enable adaptive history
 // autofill.
@@ -2229,6 +2225,7 @@ pref("sidebar.expandOnHover", true);
 pref("sidebar.old-sidebar.has-used", false);
 pref("sidebar.new-sidebar.has-used", false);
 pref("sidebar.history.sortOption", "date");
+pref("sidebar.updatedBookmarks.enabled", false);
 
 pref("sidebar.notification.badge.aichat", false);
 
@@ -2813,7 +2810,6 @@ pref("browser.migrate.chromium-edge.enabled", true);
 pref("browser.migrate.chromium-edge-beta.enabled", true);
 pref("browser.migrate.edge.enabled", true);
 pref("browser.migrate.firefox.enabled", true);
-pref("browser.migrate.ie.enabled", false);
 pref("browser.migrate.opera.enabled", true);
 pref("browser.migrate.opera-gx.enabled", true);
 pref("browser.migrate.safari.enabled", true);

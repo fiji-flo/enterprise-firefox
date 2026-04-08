@@ -486,7 +486,7 @@ yaml:
 rst:
     description: rst lint run over the gecko codebase
     treeherder:
-        symbol: text(rst)
+        symbol: doc(rst)
     run:
         mach: lint -v -l rst -f treeherder -f json:/builds/worker/mozlint.json .
     when:
@@ -709,7 +709,7 @@ perfdocs-verify:
     attributes:
         code-review: false
     treeherder:
-        symbol: text(perfdocs)
+        symbol: doc(perfdocs)
     run:
         mach: lint -v -l perfdocs -f treeherder -f json:/builds/worker/mozlint.json .
     worker:
@@ -785,7 +785,7 @@ trojan-source:
     treeherder:
         symbol: misc(trojan-source)
     run:
-        mach: lint -v -l trojan-source --include-third-party -f treeherder -f json:/builds/worker/mozlint.json .
+        mach: lint -v -l trojan-source -f treeherder -f json:/builds/worker/mozlint.json .
     when:
         files-changed:
             - '**/*.c'

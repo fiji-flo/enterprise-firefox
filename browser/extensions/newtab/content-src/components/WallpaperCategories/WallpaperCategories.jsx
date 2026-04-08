@@ -118,6 +118,7 @@ export class _WallpaperCategories extends React.PureComponent {
 
     // Setting this now so when we remove v1 we don't have to migrate v1 values.
     this.props.setPref("newtabWallpapers.wallpaper", id);
+    this.props.setPref("newtabWallpapers.initialWallpaper", "");
   }
 
   // Note: There's a separate event (debouncedHandleChange) that fires the handleChange
@@ -132,6 +133,7 @@ export class _WallpaperCategories extends React.PureComponent {
     }
 
     this.props.setPref("newtabWallpapers.wallpaper", id);
+    this.props.setPref("newtabWallpapers.initialWallpaper", "");
 
     const uploadedPreviously =
       this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
@@ -256,6 +258,7 @@ export class _WallpaperCategories extends React.PureComponent {
 
     // Reset active wallpaper
     this.props.setPref("newtabWallpapers.wallpaper", "");
+    this.props.setPref("newtabWallpapers.initialWallpaper", "");
 
     // Fire WALLPAPER_CLICK telemetry event
     this.handleUserEvent(at.WALLPAPER_CLICK, {
@@ -353,6 +356,7 @@ export class _WallpaperCategories extends React.PureComponent {
 
         // Set active wallpaper ID to "custom"
         this.props.setPref("newtabWallpapers.wallpaper", "custom");
+        this.props.setPref("newtabWallpapers.initialWallpaper", "");
 
         // Update the uploadedPreviously pref to TRUE
         // Note: this pref used for telemetry. Do not reset to false.

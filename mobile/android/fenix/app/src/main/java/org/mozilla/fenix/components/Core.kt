@@ -26,6 +26,7 @@ import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.engine.middleware.SessionPrioritizationMiddleware
 import mozilla.components.browser.state.engine.middleware.TranslationsMiddleware
+import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
@@ -127,6 +128,7 @@ import org.mozilla.fenix.gecko.GeckoProvider
 import org.mozilla.fenix.historymetadata.DefaultHistoryMetadataService
 import org.mozilla.fenix.historymetadata.HistoryMetadataMiddleware
 import org.mozilla.fenix.historymetadata.HistoryMetadataService
+import org.mozilla.fenix.longfox.LongFoxFeature
 import org.mozilla.fenix.media.MediaSessionService
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.perf.StrictModeManager
@@ -144,6 +146,7 @@ import org.mozilla.fenix.summarization.onboarding.SummarizationFeatureDiscoveryC
 import org.mozilla.fenix.tabgroups.storage.redux.middleware.TabGroupMiddleware
 import org.mozilla.fenix.tabgroups.storage.repository.DefaultTabGroupRepository
 import org.mozilla.fenix.telemetry.TelemetryMiddleware
+import org.mozilla.fenix.utils.Settings.DeleteDownloadBehavior
 import org.mozilla.fenix.utils.getUndoDelay
 import org.mozilla.geckoview.GeckoRuntime
 import java.util.concurrent.TimeUnit
@@ -279,7 +282,12 @@ class Core(
      * NB: This does not need to be lazy as it is initialized
      * with the engine on startup.
      */
-    val requestInterceptor = AppRequestInterceptor(context)
+    val requestInterceptor = AppRequestInterceptor(
+        context = context,
+        isPrivateForSession = { session ->
+            store.state.findTabOrCustomTab(session)?.content?.private ?: true
+        },
+    )
 
     /**
      * [Client] implementation to be used for code depending on `concept-fetch``
@@ -356,7 +364,7 @@ class Core(
                     applicationContext = context,
                     downloadServiceClass = DownloadService::class.java,
                     deleteFileFromStorage = {
-                       context.settings().shouldCleanUpDownloadsAutomatically()
+                        context.settings().deleteDownloadBehavior == DeleteDownloadBehavior.DELETE_FROM_DEVICE
                     },
                     downloadFileUtils = DefaultDownloadFileUtils(
                         context = context.applicationContext,
@@ -712,6 +720,8 @@ class Core(
     val summarizationEligibilityChecker: SummarizationEligibilityChecker by lazyMonitored {
         DefaultSummarizationEligibilityChecker()
     }
+
+    val longFoxFeature by lazyMonitored { LongFoxFeature() }
 
     /**
      * Shared Preferences that encrypt/decrypt using Android KeyStore and lib-dataprotect for 23+

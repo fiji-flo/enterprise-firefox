@@ -7,6 +7,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/NativeKeyBindingsType.h"
 #include "mozilla/PresShell.h"
@@ -521,10 +522,16 @@ WindowRenderer* PuppetWidget::GetWindowRenderer() {
 
 bool PuppetWidget::CreateRemoteLayerManager(
     const std::function<bool(WebRenderLayerManager*)>& aInitializeFunc) {
-  RefPtr<WebRenderLayerManager> lm = new WebRenderLayerManager(this);
   MOZ_ASSERT(mBrowserChild);
+  auto* const cbc = CompositorBridgeChild::Get();
+  if (!cbc) {
+    return false;
+  }
 
-  if (!aInitializeFunc(lm)) {
+  nsCString error;
+  RefPtr<WebRenderLayerManager> lm = WebRenderLayerManager::Create(
+      this, cbc, wr::AsPipelineId(mBrowserChild->GetLayersId()), error);
+  if (!lm || !aInitializeFunc(lm)) {
     return false;
   }
 

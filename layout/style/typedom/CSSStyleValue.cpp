@@ -31,51 +31,57 @@ CSSStyleValue::CSSStyleValue(nsCOMPtr<nsISupports> aParent,
 }
 
 // static
-RefPtr<CSSStyleValue> CSSStyleValue::Create(
-    nsCOMPtr<nsISupports> aParent, const CSSPropertyId& aPropertyId,
-    StylePropertyTypedValue&& aTypedValue) {
-  RefPtr<CSSStyleValue> styleValue;
+void CSSStyleValue::Create(nsCOMPtr<nsISupports> aParent,
+                           const CSSPropertyId& aPropertyId,
+                           StylePropertyTypedValueList&& aTypedValueList,
+                           nsTArray<RefPtr<CSSStyleValue>>& aRetVal) {
+  switch (aTypedValueList.tag) {
+    case StylePropertyTypedValueList::Tag::Typed: {
+      const auto& typedValueList = aTypedValueList.AsTyped();
 
-  switch (aTypedValue.tag) {
-    case StylePropertyTypedValue::Tag::Typed: {
-      const auto& typedValue = aTypedValue.AsTyped();
+      aRetVal.SetCapacity(typedValueList.values.Length());
 
-      switch (typedValue.tag) {
-        case StyleTypedValue::Tag::Keyword: {
-          const auto& keywordValue = typedValue.AsKeyword();
+      for (const auto& typedValue : typedValueList.values) {
+        RefPtr<CSSStyleValue> styleValue;
 
-          styleValue =
-              CSSKeywordValue::Create(std::move(aParent), keywordValue);
+        switch (typedValue.tag) {
+          case StyleTypedValue::Tag::Keyword: {
+            const auto& keywordValue = typedValue.AsKeyword();
 
-          break;
+            styleValue = CSSKeywordValue::Create(aParent, keywordValue);
+
+            break;
+          }
+
+          case StyleTypedValue::Tag::Numeric: {
+            const auto& numericValue = typedValue.AsNumeric();
+
+            styleValue = CSSNumericValue::Create(aParent, numericValue);
+
+            break;
+          }
         }
 
-        case StyleTypedValue::Tag::Numeric: {
-          const auto& numericValue = typedValue.AsNumeric();
-
-          styleValue =
-              CSSNumericValue::Create(std::move(aParent), numericValue);
-
-          break;
-        }
+        aRetVal.AppendElement(std::move(styleValue));
       }
-      break;
-    }
-
-    case StylePropertyTypedValue::Tag::Unsupported: {
-      auto unsupportedValue = std::move(aTypedValue).ExtractUnsupported();
-
-      styleValue = CSSUnsupportedValue::Create(std::move(aParent), aPropertyId,
-                                               std::move(unsupportedValue));
 
       break;
     }
 
-    case StylePropertyTypedValue::Tag::None:
+    case StylePropertyTypedValueList::Tag::Unsupported: {
+      auto unsupportedValue = std::move(aTypedValueList).ExtractUnsupported();
+
+      RefPtr<CSSStyleValue> styleValue = CSSUnsupportedValue::Create(
+          std::move(aParent), aPropertyId, std::move(unsupportedValue));
+
+      aRetVal.AppendElement(std::move(styleValue));
+
+      break;
+    }
+
+    case StylePropertyTypedValueList::Tag::None:
       break;
   }
-
-  return styleValue;
 }
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CSSStyleValue)

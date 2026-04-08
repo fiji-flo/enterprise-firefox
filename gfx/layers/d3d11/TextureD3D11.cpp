@@ -383,9 +383,10 @@ void D3D11TextureData::SyncWithObject(RefPtr<SyncObjectClient> aSyncObject) {
 
 bool D3D11TextureData::SerializeSpecific(
     SurfaceDescriptorD3D10* const aOutDesc) {
-  *aOutDesc = SurfaceDescriptorD3D10(
-      mSharedHandle, mGpuProcessTextureId, mArrayIndex, mFormat, mSize,
-      mColorSpace, mColorRange, mHasKeyedMutex, mFencesHolderId);
+  *aOutDesc = SurfaceDescriptorD3D10(mSharedHandle, mGpuProcessTextureId,
+                                     mArrayIndex, mFormat, mSize, mColorSpace,
+                                     mColorRange, mTransferFunction,
+                                     mHasKeyedMutex, mFencesHolderId);
   return true;
 }
 
@@ -409,8 +410,9 @@ void D3D11TextureData::GetSubDescriptor(
 already_AddRefed<TextureClient> D3D11TextureData::CreateTextureClient(
     ID3D11Texture2D* aTexture, uint32_t aIndex, gfx::IntSize aSize,
     gfx::SurfaceFormat aFormat, gfx::ColorSpace2 aColorSpace,
-    gfx::ColorRange aColorRange, KnowsCompositor* aKnowsCompositor,
-    ZeroCopyUsageInfo* aUsageInfo, const RefPtr<FenceD3D11> aWriteFence) {
+    gfx::ColorRange aColorRange, gfx::TransferFunction aTransferFunction,
+    KnowsCompositor* aKnowsCompositor, ZeroCopyUsageInfo* aUsageInfo,
+    const RefPtr<FenceD3D11> aWriteFence) {
   MOZ_ASSERT(aTexture);
 
   RefPtr<ID3D11Device> device;
@@ -428,6 +430,7 @@ already_AddRefed<TextureClient> D3D11TextureData::CreateTextureClient(
       aWriteFence, TextureAllocationFlags::ALLOC_MANUAL_SYNCHRONIZATION);
   data->mColorSpace = aColorSpace;
   data->SetColorRange(aColorRange);
+  data->SetTransferFunction(aTransferFunction);
 
   RefPtr<TextureClient> textureClient = MakeAndAddRef<TextureClient>(
       data, TextureFlags::NO_FLAGS,
@@ -711,7 +714,8 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
     ID3D11Texture2D* aTextureCr, const gfx::IntSize& aSize,
     const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
     const gfx::ColorDepth aColorDepth, const YUVColorSpace aYUVColorSpace,
-    const gfx::ColorRange aColorRange) {
+    const gfx::ColorRange aColorRange,
+    const gfx::TransferFunction aTransferFunction) {
   if (!aTextureY || !aTextureCb || !aTextureCr) {
     return nullptr;
   }
@@ -789,7 +793,7 @@ DXGIYCbCrTextureData* DXGIYCbCrTextureData::Create(
 
   DXGIYCbCrTextureData* texture = new DXGIYCbCrTextureData(
       textures, handles, aSize, aSizeY, aSizeCbCr, aColorDepth, aYUVColorSpace,
-      aColorRange, fencesHolderId, fence);
+      aColorRange, aTransferFunction, fencesHolderId, fence);
   return texture;
 }
 
@@ -799,6 +803,7 @@ DXGIYCbCrTextureData::DXGIYCbCrTextureData(
     const gfx::IntSize& aSizeY, const gfx::IntSize& aSizeCbCr,
     const gfx::ColorDepth aColorDepth, const gfx::YUVColorSpace aYUVColorSpace,
     const gfx::ColorRange aColorRange,
+    const gfx::TransferFunction aTransferFunction,
     const CompositeProcessFencesHolderId aFencesHolderId,
     const RefPtr<FenceD3D11> aWriteFence)
     : mSize(aSize),
@@ -807,6 +812,7 @@ DXGIYCbCrTextureData::DXGIYCbCrTextureData(
       mColorDepth(aColorDepth),
       mYUVColorSpace(aYUVColorSpace),
       mColorRange(aColorRange),
+      mTransferFunction(aTransferFunction),
       mFencesHolderId(aFencesHolderId),
       mWriteFence(aWriteFence),
       mD3D11Textures{aD3D11Textures[0], aD3D11Textures[1], aD3D11Textures[2]},
@@ -830,9 +836,10 @@ void DXGIYCbCrTextureData::FillInfo(TextureData::Info& aInfo) const {
 
 void DXGIYCbCrTextureData::SerializeSpecific(
     SurfaceDescriptorDXGIYCbCr* const aOutDesc) {
-  *aOutDesc = SurfaceDescriptorDXGIYCbCr(
-      mHandles[0], mHandles[1], mHandles[2], mSize, mSizeY, mSizeCbCr,
-      mColorDepth, mYUVColorSpace, mColorRange, mFencesHolderId);
+  *aOutDesc = SurfaceDescriptorDXGIYCbCr(mHandles[0], mHandles[1], mHandles[2],
+                                         mSize, mSizeY, mSizeCbCr, mColorDepth,
+                                         mYUVColorSpace, mColorRange,
+                                         mTransferFunction, mFencesHolderId);
 }
 
 bool DXGIYCbCrTextureData::Serialize(SurfaceDescriptor& aOutDescriptor) {
@@ -961,7 +968,8 @@ DXGITextureHostD3D11::DXGITextureHostD3D11(
       mHasKeyedMutex(aDescriptor.hasKeyedMutex()),
       mFencesHolderId(aDescriptor.fencesHolderId()),
       mColorSpace(aDescriptor.colorSpace()),
-      mColorRange(aDescriptor.colorRange()) {
+      mColorRange(aDescriptor.colorRange()),
+      mTransferFunction(aDescriptor.transferFunction()) {
   if (!mFencesHolderId) {
     return;
   }
@@ -1075,7 +1083,8 @@ DXGITextureHostD3D11::GetAsSurfaceWithDevice(ID3D11Device* const aDevice) {
   }
 
   RefPtr<gfx::SourceSurface> sourceSurface = gfx::SourceSurfaceD3D11::Create(
-      d3dTexture, mArrayIndex, mColorSpace, mColorRange, mFencesHolderId);
+      d3dTexture, mArrayIndex, mColorSpace, mColorRange, mTransferFunction,
+      mFencesHolderId);
   if (!sourceSurface) {
     return nullptr;
   }
@@ -1094,7 +1103,7 @@ void DXGITextureHostD3D11::CreateRenderTexture(
 
   RefPtr<wr::RenderDXGITextureHost> texture = new wr::RenderDXGITextureHost(
       mHandle, mGpuProcessTextureId, mArrayIndex, mFormat, mColorSpace,
-      mColorRange, mSize, mHasKeyedMutex, mFencesHolderId);
+      mColorRange, mTransferFunction, mSize, mHasKeyedMutex, mFencesHolderId);
   if (mFlags & TextureFlags::SOFTWARE_DECODED_VIDEO) {
     texture->SetIsSoftwareDecodedVideo();
   }
@@ -1148,7 +1157,10 @@ void DXGITextureHostD3D11::PushResourceUpdates(
     case gfx::SurfaceFormat::R10G10B10A2_UINT32:
     case gfx::SurfaceFormat::R10G10B10X2_UINT32:
     case gfx::SurfaceFormat::R16G16B16A16F: {
-      MOZ_ASSERT(aImageKeys.length() == 1);
+      if (aImageKeys.length() != 1) {
+        MOZ_ASSERT_UNREACHABLE("unexpected key length");
+        return;
+      }
 
       wr::ImageDescriptor descriptor(mSize, GetFormat());
       // Prefer TextureExternal unless the backend requires TextureRect.
@@ -1167,7 +1179,11 @@ void DXGITextureHostD3D11::PushResourceUpdates(
     case gfx::SurfaceFormat::P010:
     case gfx::SurfaceFormat::P016:
     case gfx::SurfaceFormat::NV12: {
-      MOZ_ASSERT(aImageKeys.length() == 2);
+      if (aImageKeys.length() != 2) {
+        MOZ_ASSERT_UNREACHABLE("unexpected key length");
+        return;
+      }
+
       MOZ_ASSERT(mSize.width % 2 == 0);
       MOZ_ASSERT(mSize.height % 2 == 0);
 
@@ -1224,7 +1240,10 @@ void DXGITextureHostD3D11::PushDisplayItems(
     case gfx::SurfaceFormat::R16G16B16A16F: {
       // WebRender isn't HDR ready so we have to push to the compositor.
       preferCompositorSurface = preferExternalCompositing = true;
-      MOZ_ASSERT(aImageKeys.length() == 1);
+      if (aImageKeys.length() != 1) {
+        MOZ_ASSERT_UNREACHABLE("unexpected key length");
+        return;
+      }
       aBuilder.PushImage(aBounds, aClip, true, false, aFilter, aImageKeys[0],
                          !(mFlags & TextureFlags::NON_PREMULTIPLIED),
                          wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
@@ -1235,7 +1254,10 @@ void DXGITextureHostD3D11::PushDisplayItems(
     case gfx::SurfaceFormat::R8G8B8A8:
     case gfx::SurfaceFormat::B8G8R8A8:
     case gfx::SurfaceFormat::B8G8R8X8: {
-      MOZ_ASSERT(aImageKeys.length() == 1);
+      if (aImageKeys.length() != 1) {
+        MOZ_ASSERT_UNREACHABLE("unexpected key length");
+        return;
+      }
       aBuilder.PushImage(aBounds, aClip, true, false, aFilter, aImageKeys[0],
                          !(mFlags & TextureFlags::NON_PREMULTIPLIED),
                          wr::ColorF{1.0f, 1.0f, 1.0f, 1.0f},
@@ -1249,7 +1271,10 @@ void DXGITextureHostD3D11::PushDisplayItems(
       // it may be handled as if it was DXGI_FORMAT_P016. This is approximately
       // perceptually correct. However, due to rounding error, the precise
       // quantized value after sampling may be off by 1.
-      MOZ_ASSERT(aImageKeys.length() == 2);
+      if (aImageKeys.length() != 2) {
+        MOZ_ASSERT_UNREACHABLE("unexpected key length");
+        return;
+      }
       aBuilder.PushP010Image(
           aBounds, aClip, true, aImageKeys[0], aImageKeys[1],
           wr::ColorDepth::Color16,
@@ -1259,7 +1284,10 @@ void DXGITextureHostD3D11::PushDisplayItems(
       break;
     }
     case gfx::SurfaceFormat::NV12: {
-      MOZ_ASSERT(aImageKeys.length() == 2);
+      if (aImageKeys.length() != 2) {
+        MOZ_ASSERT_UNREACHABLE("unexpected key length");
+        return;
+      }
       aBuilder.PushNV12Image(
           aBounds, aClip, true, aImageKeys[0], aImageKeys[1],
           GetFormat() == gfx::SurfaceFormat::NV12 ? wr::ColorDepth::Color8
@@ -1359,6 +1387,7 @@ DXGIYCbCrTextureHostD3D11::DXGIYCbCrTextureHostD3D11(
       mColorDepth(aDescriptor.colorDepth()),
       mYUVColorSpace(aDescriptor.yUVColorSpace()),
       mColorRange(aDescriptor.colorRange()),
+      mTransferFunction(aDescriptor.transferFunction()),
       mFencesHolderId(aDescriptor.fencesHolderId()) {
   if (auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get()) {
     fenceHolderMap->RegisterReference(mFencesHolderId);
@@ -1380,8 +1409,8 @@ void DXGIYCbCrTextureHostD3D11::CreateRenderTexture(
   MOZ_ASSERT(mExternalImageId.isSome());
 
   RefPtr<wr::RenderTextureHost> texture = new wr::RenderDXGIYCbCrTextureHost(
-      mHandles, mYUVColorSpace, mColorDepth, mColorRange, mSizeY, mSizeCbCr,
-      mFencesHolderId);
+      mHandles, mYUVColorSpace, mColorDepth, mColorRange, mTransferFunction,
+      mSizeY, mSizeCbCr, mFencesHolderId);
 
   wr::RenderThread::Get()->RegisterExternalImage(aExternalImageId,
                                                  texture.forget());
@@ -1400,8 +1429,13 @@ void DXGIYCbCrTextureHostD3D11::PushResourceUpdates(
     return;
   }
 
+  if (aImageKeys.length() != 3) {
+    MOZ_ASSERT_UNREACHABLE("unexpected key length");
+    return;
+  }
+
   MOZ_ASSERT(mHandles[0] && mHandles[1] && mHandles[2]);
-  MOZ_ASSERT(aImageKeys.length() == 3);
+
   // Assume the chroma planes are rounded up if the luma plane is odd sized.
   MOZ_ASSERT((mSizeCbCr.width == mSizeY.width ||
               mSizeCbCr.width == (mSizeY.width + 1) >> 1) &&
@@ -1445,7 +1479,10 @@ void DXGIYCbCrTextureHostD3D11::PushDisplayItems(
     return;
   }
 
-  MOZ_ASSERT(aImageKeys.length() == 3);
+  if (aImageKeys.length() != 3) {
+    MOZ_ASSERT_UNREACHABLE("unexpected key length");
+    return;
+  }
 
   aBuilder.PushYCbCrPlanarImage(
       aBounds, aClip, true, aImageKeys[0], aImageKeys[1], aImageKeys[2],

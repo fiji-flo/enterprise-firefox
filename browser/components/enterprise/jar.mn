@@ -5,13 +5,13 @@
 browser.jar:
   content/browser/enterprise/enterprise-badge.css           (content/enterprise-badge.css)
   content/browser/enterprise/enterprise-badge.inc.xhtml     (content/enterprise-badge.inc.xhtml)
-  content/browser/enterprise/badge-logo.svg                 (content/icons/badge-logo.svg)
   content/browser/enterprise/alert.svg                      (content/icons/alert.svg)
   content/browser/enterprise/enterprise-panel.inc.xhtml     (content/enterprise-panel.inc.xhtml)
   content/browser/enterprise/enterprise-urlbar-actions.inc.xhtml (content/enterprise-urlbar-actions.inc.xhtml)
   content/browser/enterprise/enterprise-urlbar-actions.css  (content/enterprise-urlbar-actions.css)
   content/browser/enterprise/enterprise-urlbar-panels.inc.xhtml (content/enterprise-urlbar-panels.inc.xhtml)
   content/browser/enterprise/lockdown-mode.svg              (content/icons/lockdown-mode.svg)
+  content/browser/enterprise/user-avatar.svg                (content/icons/user-avatar.svg)
 
   content/builtin-themes/enterprise-light                   (theme/light/*.svg)
   content/builtin-themes/enterprise-light                   (theme/light/*.png)

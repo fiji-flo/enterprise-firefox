@@ -379,10 +379,6 @@
     --space-xlarge: var(--dimension-relative-150); /* 1.5rem */
     --space-xxlarge: var(--dimension-relative-200); /* 2rem */
 
-    /** tab **/
-    --tab-attention-dot-color: var(--color-accent-attention);
-    --tab-box-shadow: var(--box-shadow-level-1);
-
     /** table **/
     --table-background-color: light-dark(#f8f8fa, rgb(35, 34, 43));
     --table-border-color: color-mix(in srgb, currentColor 41%, transparent);

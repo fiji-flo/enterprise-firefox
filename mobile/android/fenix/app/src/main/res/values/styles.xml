@@ -684,6 +684,10 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowTranslucentNavigation">false</item>
     </style>
+    <style name="QRCodeDialogStyle" parent="NormalThemeBase">
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+    </style>
     <style name="WallpaperOnboardingDialogStyle" parent="DialogStyleBase">
         <item name="android:windowIsFloating">true</item>
         <item name="android:backgroundDimAmount">0.06</item>
@@ -825,6 +829,7 @@
 
     <style name="SwitchCompatPreferenceMaterialStyle" parent="@style/Preference.SwitchPreferenceCompat.Material">
         <item name="widgetLayout">@layout/preference_material_switch</item>
+        <item name="singleLineTitle">false</item>
     </style>
 
     <style name="MaterialSwitchStyle" parent="Widget.Material3.CompoundButton.MaterialSwitch">

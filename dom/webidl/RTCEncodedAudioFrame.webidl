@@ -6,10 +6,7 @@
  * https://w3c.github.io/webrtc-encoded-transform
  */
 
-dictionary RTCEncodedAudioFrameMetadata {
-    unsigned long synchronizationSource;
-    octet payloadType;
-    sequence<unsigned long> contributingSources;
+dictionary RTCEncodedAudioFrameMetadata : RTCEncodedFrameMetadata{
     short sequenceNumber;
 };
 
@@ -25,7 +22,7 @@ dictionary RTCEncodedAudioFrameOptions {
 interface RTCEncodedAudioFrame {
     [Throws]
     constructor(RTCEncodedAudioFrame originalFrame, optional RTCEncodedAudioFrameOptions options = {});
-    readonly attribute unsigned long timestamp;
+    readonly attribute unsigned long timestamp;    // legacy name of metadata rtpTimestamp
     attribute ArrayBuffer data;
     RTCEncodedAudioFrameMetadata getMetadata();
 };

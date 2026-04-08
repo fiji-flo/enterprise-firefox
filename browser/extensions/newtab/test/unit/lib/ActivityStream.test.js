@@ -40,7 +40,7 @@ describe("ActivityStream", () => {
       DEFAULT_SITES,
       AboutPreferences,
       DefaultPrefs,
-      NewTabActorRegistry: { init: () => {} },
+      NewTabActorRegistry: { init: () => {}, uninit: () => {} },
       NewTabInit,
       SectionsFeed,
       PlacesFeed,

@@ -84,9 +84,8 @@ class ScriptFetchOptions {
       return false;
     }
 
-    // NOTE: mParserMetadata can be ignored.
-    return mCORSMode == other->mCORSMode &&
-           mFetchPriority == other->mFetchPriority;
+    // NOTE: mParserMetadata and mFetchPriority can be ignored.
+    return mCORSMode == other->mCORSMode;
   }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {

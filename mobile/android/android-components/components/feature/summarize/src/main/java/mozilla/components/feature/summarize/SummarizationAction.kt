@@ -6,6 +6,7 @@ package mozilla.components.feature.summarize
 
 import mozilla.components.concept.llm.Llm
 import mozilla.components.concept.llm.LlmProvider
+import mozilla.components.feature.summarize.content.Content
 import mozilla.components.lib.state.Action
 import mozilla.components.ui.richtext.ir.RichDocument
 
@@ -17,6 +18,9 @@ interface SummarizationAction : Action
 /** The Summarization Screen View Appeared */
 data object ViewAppeared : SummarizationAction
 
+/** The Summarization Screen View was Dismissed */
+data object ViewDismissed : SummarizationAction
+
 /** The user tapped the settings cog. */
 data object SettingsClicked : SummarizationAction
 
@@ -26,9 +30,16 @@ data object SettingsBackClicked : SummarizationAction
 /** Shake Consent has been requested */
 data object ShakeConsentRequested : SummarizationAction
 
-internal sealed interface LlmProviderAction : SummarizationAction {
-    data object ProviderFailed : LlmProviderAction
-    data object ProviderUnavailable : LlmProviderAction
+/**  */
+sealed interface LlmProviderAction : SummarizationAction {
+
+    /** The LLM provider failed to initialize. */
+    data class ProviderFailed(val exception: Llm.Exception) : LlmProviderAction
+
+    /** The LLM provider has been made available */
+    data object ProviderAvailable : LlmProviderAction
+
+    /** The LLM provider finished initializing with the given [llm]. */
     data class ProviderInitialized(val llm: Llm) : LlmProviderAction
 }
 
@@ -43,14 +54,19 @@ data class SummarizationFailed(val throwable: Throwable) : SummarizationAction
 data class SummarizationRequested(val info: LlmProvider.Info) : SummarizationAction
 
 /**
+ * The Summarization has completed successfully.
+ */
+data object SummarizationCompleted : SummarizationAction
+
+/**
  * We've received a new parsed document.
  */
 data class ReceivedParsedDocument(val document: RichDocument) : SummarizationAction
 
 /**
- * We've received a response from the Llm.
+ * Page content has been extracted and is ready to be sent to the LLM.
  */
-data class ReceivedLlmResponse(val response: Llm.Response) : SummarizationAction
+data class ContentExtracted(val content: Content) : SummarizationAction
 
 /**
  * Actions for the consent step of the shake to summarize user flow when using an on-device model.

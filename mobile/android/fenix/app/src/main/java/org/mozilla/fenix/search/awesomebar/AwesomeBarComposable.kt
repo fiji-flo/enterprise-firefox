@@ -278,6 +278,7 @@ class AwesomeBarComposable(
                 BrowserStoreToFenixSearchMapperMiddleware(
                     browserStore = browserStore,
                     scope = lifecycleScope,
+                    appStore = components.appStore,
                 ),
                 FenixSearchMiddleware(
                     fragment = fragment,

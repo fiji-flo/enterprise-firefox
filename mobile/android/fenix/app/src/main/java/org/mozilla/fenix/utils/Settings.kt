@@ -78,6 +78,7 @@ import java.security.InvalidParameterException
 import java.util.concurrent.TimeUnit.MILLISECONDS
 
 private const val AUTOPLAY_USER_SETTING = "AUTOPLAY_USER_SETTING"
+private const val MAX_ANIMATION_FOREGROUND = 5
 
 /**
  * A simple wrapper for SharedPreferences that makes reading preference a little bit easier.
@@ -385,6 +386,16 @@ class Settings(
     val canShowCfr: Boolean
         get() = (System.currentTimeMillis() - lastCfrShownTimeInMillis) > THREE_DAYS_MS
 
+    val cfrPopupsEnabled by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_cfr_popups_enabled),
+        default = { FxNimbus.features.enablePopups.value().cfrPopupsEnabled },
+    )
+
+    val inAppMessagesEnabled by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_in_app_messages_enabled),
+        default = { FxNimbus.features.enablePopups.value().inAppMessagesEnabled },
+    )
+
     var forceEnableZoom by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_accessibility_force_enable_zoom),
         default = false,
@@ -443,6 +454,11 @@ class Settings(
     var utmContent by stringPreference(
         appContext.getPreferenceKey(R.string.pref_key_utm_content),
         default = "",
+    )
+
+    var isUserMetaAttributed by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_is_user_meta_attributed),
+        default = false,
     )
 
     var contileContextId by stringPreference(
@@ -1399,6 +1415,106 @@ class Settings(
         default = true,
     )
 
+    /**
+     * Defines the user's preferred behavior when deleting a downloaded file.
+     *
+     * This enum class represents the different actions that can be taken when a user
+     * initiates a deletion for a download entry in the app. The preference is stored
+     * as an integer and can be retrieved or updated via the `deleteDownloadBehavior` setting.
+     *
+     * @property value The integer value associated with each behavior.
+     */
+    enum class DeleteDownloadBehavior(val value: Int) {
+        /**
+         * Deletes the file from the device's storage.
+         */
+        DELETE_FROM_DEVICE(0),
+
+        /**
+         * Only removes the download entry from the app's history, leaving the file on the device.
+         */
+        REMOVE_FROM_HISTORY(1),
+
+        /**
+         * Prompts the user to choose between deleting from the device or removing from history each time.
+         */
+        ASK_WHEN_DELETING(2),
+        ;
+
+        companion object {
+            /**
+             * Converts an integer value into its corresponding [DeleteDownloadBehavior] enum constant.
+             *
+             * If the integer does not match any known value, it defaults to [DELETE_FROM_DEVICE].
+             *
+             * @param value The integer to convert.
+             * @return The matching [DeleteDownloadBehavior] or the default.
+             */
+            fun fromInt(value: Int) = entries.firstOrNull { it.value == value } ?: DELETE_FROM_DEVICE
+        }
+    }
+
+    /**
+     * Migrates legacy download deletion preferences to the new unified [DeleteDownloadBehavior] setting.
+     *
+     * Previously, the user's preference for handling deleted downloads was stored across multiple
+     * separate boolean keys (including a legacy "clean up files automatically" toggle). This
+     * function reads those old boolean values, maps them to the appropriate [DeleteDownloadBehavior]
+     * enum value, saves the new integer preference, and removes the legacy keys from
+     * [SharedPreferences].
+     *
+     * This migration ensures existing users do not lose their settings after updating the app.
+     * It will safely return early if the migration has already been performed.
+     */
+    fun migrateDeleteDownloadBehaviorIfNeeded() {
+        val newKey = appContext.getString(R.string.pref_key_downloads_delete_behavior)
+        if (preferences.contains(newKey)) return
+
+        val legacyCleanupKey = appContext.getString(
+            R.string.pref_key_downloads_clean_up_files_automatically,
+        )
+        val oldDeleteFromDeviceKey = appContext.getString(R.string.pref_key_downloads_delete_from_device)
+        val oldRemoveFromHistoryKey = appContext.getString(
+            R.string.pref_key_downloads_remove_from_downloads_history,
+        )
+        val oldAskWhenDeletingKey = appContext.getString(R.string.pref_key_downloads_ask_when_to_delete_files)
+
+        val migratedBehavior = when {
+            preferences.contains(legacyCleanupKey) -> {
+                if (preferences.getBoolean(legacyCleanupKey, false)) {
+                    DeleteDownloadBehavior.DELETE_FROM_DEVICE
+                } else {
+                    DeleteDownloadBehavior.REMOVE_FROM_HISTORY
+                }
+            }
+            preferences.getBoolean(oldRemoveFromHistoryKey, false) -> DeleteDownloadBehavior.REMOVE_FROM_HISTORY
+            preferences.getBoolean(oldAskWhenDeletingKey, false) -> DeleteDownloadBehavior.ASK_WHEN_DELETING
+            else -> DeleteDownloadBehavior.DELETE_FROM_DEVICE
+        }
+
+        preferences.edit {
+            putInt(newKey, migratedBehavior.value)
+            remove(legacyCleanupKey)
+            remove(oldDeleteFromDeviceKey)
+            remove(oldRemoveFromHistoryKey)
+            remove(oldAskWhenDeletingKey)
+        }
+    }
+
+    var deleteDownloadBehavior: DeleteDownloadBehavior
+        get() = DeleteDownloadBehavior.fromInt(
+            preferences.getInt(
+                appContext.getString(R.string.pref_key_downloads_delete_behavior),
+                DeleteDownloadBehavior.DELETE_FROM_DEVICE.value,
+            ),
+        )
+        set(value) = preferences.edit {
+            putInt(
+                appContext.getString(R.string.pref_key_downloads_delete_behavior),
+                value.value,
+            )
+        }
+
     var shouldUseBottomToolbar by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_toolbar_bottom),
         default = { FxNimbus.features.defaultBottomToolbar.value().enabled },
@@ -1577,7 +1693,7 @@ class Settings(
 
     val shouldShowPwaCfr: Boolean
         get() {
-            if (!canShowCfr) return false
+            if (!canShowCfr || !inAppMessagesEnabled) return false
             // We only want to show this on the 3rd time a user visits a site
             if (userNeedsToVisitInstallableSites) return false
 
@@ -2888,6 +3004,50 @@ class Settings(
         key = appContext.getPreferenceKey(R.string.pref_key_private_mode_and_stories_entry_point),
         default = { FxNimbus.features.privateModeAndStoriesEntryPoint.value().enabled },
     )
+
+    /**
+     * The number of times the app has been brought to the foreground since the news button
+     * animation was last shown.
+     */
+    var newsButtonForegroundCount by intPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_news_button_foreground_count),
+        default = 0,
+    )
+
+    /**
+     * The timestamp in milliseconds when the news button animation was last shown.
+     */
+    var newsButtonAnimationLastShownMillis by longPreference(
+        appContext.getPreferenceKey(R.string.pref_key_news_button_animation_last_shown),
+        default = 0L,
+    )
+
+    /**
+     * Increments [newsButtonForegroundCount] up to a maximum of 5.
+     */
+    fun incrementNewsButtonForegroundCount() {
+        if (newsButtonForegroundCount < MAX_ANIMATION_FOREGROUND) {
+            newsButtonForegroundCount++
+        }
+    }
+
+    /**
+     * Returns whether the news button animation should be shown. The animation is shown every
+     * 5 foreground visits and at most once per week.
+     */
+    fun shouldShowNewsButtonAnimation(): Boolean {
+        return (newsButtonForegroundCount % MAX_ANIMATION_FOREGROUND == 0) &&
+            (System.currentTimeMillis() - newsButtonAnimationLastShownMillis >= ONE_WEEK_MS)
+    }
+
+    /**
+     * Records that the news button animation has been shown by updating the last shown timestamp
+     * and resetting [newsButtonForegroundCount].
+     */
+    fun recordNewsButtonAnimationShown() {
+        newsButtonAnimationLastShownMillis = System.currentTimeMillis()
+        newsButtonForegroundCount = 0
+    }
 
     /**
      * Whether the Tab Groups feature is enabled.

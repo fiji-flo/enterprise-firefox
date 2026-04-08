@@ -222,6 +222,19 @@
           >
             <span slot="message" class="felt-browser-error-details"></span>
           </moz-message-bar>
+          <moz-message-bar
+            class="felt-updates-warning-messages is-hidden"
+            type="warning"
+            dismissable="true"
+          >
+            <span slot="message" class="felt-browser-error-details"></span>
+          </moz-message-bar>
+          <moz-message-bar
+            class="felt-browser-info-console-forced-logout is-hidden"
+            data-l10n-id="felt-browser-info-console-forced-logout"
+            type="info"
+            dismissable="true"
+          ></moz-message-bar>
         </div>
         <span
           class="felt-powered-by text-deemphasized"
@@ -241,11 +254,7 @@
           ></browser>
         </div>
       </div>
-      <span
-        class="felt-version text-deemphasized"
-        data-l10n-id="felt-version"
-        data-l10n-args='{"version": "1.0"}'
-      ></span>
+      <span class="felt-version text-deemphasized"></span>
     </div>
   </body>
 </html>

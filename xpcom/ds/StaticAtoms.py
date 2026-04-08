@@ -672,6 +672,7 @@ STATIC_ATOMS = [
     Atom("mark", "mark"),
     Atom("marquee", "marquee"),
     Atom("match", "match"),
+    Atom("match_element", "match-element"),
     Atom("max", "max"),
     Atom("maxheight", "maxheight"),
     Atom("maximum_scale", "maximum-scale"),
@@ -2465,6 +2466,7 @@ STATIC_ATOMS = [
     Atom("mathml_font_family_math_enabled", "mathml.font_family_math.enabled"),
     Atom("layout_css_always_underline_links", "layout.css.always_underline_links"),
     Atom("layout_css_android_pip_enabled", "layout.css.android-pip.enabled"),
+    Atom("layout_css_appearance_base_enabled", "layout.css.appearance-base.enabled"),
     Atom("layout_css_cached_scrollbar_styles_enabled", "layout.css.cached-scrollbar-styles.enabled"),
     Atom("layout_testing_scrollbars_always_hidden", "layout.testing.scrollbars.always-hidden"),
     # Contextual Identity / Containers
@@ -2547,6 +2549,7 @@ STATIC_ATOMS = [
     Atom("PseudoStyle_FirstLetter", ":first-letter"),
     Atom("PseudoStyle_FirstLine", ":first-line"),
     Atom("PseudoStyle_Highlight", ":highlight"),
+    Atom("PseudoStyle_Picker", ":picker"),
     Atom("PseudoStyle_Selection", ":selection"),
     Atom("PseudoStyle_TargetText", ":target-text"),
     Atom("PseudoStyle_ViewTransition", ":view-transition"),
@@ -2632,6 +2635,7 @@ STATIC_ATOMS = [
     Atom("PseudoStyle_MozSvgOuterSvgAnonChild", ":-moz-svg-outer-svg-anon-child"),
     Atom("PseudoStyle_MozSvgForeignContent", ":-moz-svg-foreign-content"),
     Atom("PseudoStyle_MozSvgText", ":-moz-svg-text"),
+    Atom("PseudoStyle_WebkitScrollbar", ":-webkit-scrollbar"),
     # END ATOMS
 ] + HTML_PARSER_ATOMS
 # fmt: on

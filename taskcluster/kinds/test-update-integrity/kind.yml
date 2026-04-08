@@ -14,13 +14,20 @@ transforms:
 kind-dependencies:
     - build-signing
     - mar-signing
+    - mar-signing-l10n
     - partials-signing
     - repackage
+    - repackage-l10n
+    - shippable-l10n-signing
     - toolchain
 
 only-for-build-platforms:
     - linux64-shippable/opt
     - linux64-aarch64-shippable/opt
+    - macosx64-shippable/opt
+    - win32-shippable/opt
+    - win64-shippable/opt
+    - win64-aarch64-shippable/opt
 
 tasks:
     test-update-integrity:
@@ -33,8 +40,8 @@ tasks:
         description: verify update integrity
         worker-type: b-linux
         from-deps:
-            kinds: [mar-signing, partials-signing, repackage, build-signing]
-            group-by: platform-no-l10n
+            kinds: [mar-signing, mar-signing-l10n, partials-signing, repackage, repackage-l10n, build-signing, shippable-l10n-signing]
+            group-by: single-locale
             copy-attributes: true
             fetches:
                 # partials not listed here because the number and naming of them
@@ -44,6 +51,8 @@ tasks:
                 # fetches for these kinds are added in a transform
                 mar-signing:
                     - artifact: target.complete.mar
+                mar-signing-l10n:
+                    - artifact: "{locale}/target.complete.mar"
 
         cert-overrides:
             by-project:
@@ -78,4 +87,9 @@ tasks:
         use-python: default
         fetches:
             toolchain:
-                - linux64-marannon
+                by-build-platform:
+                    mac.*:
+                        - linux64-marannon
+                        - linux64-libdmg
+                    default:
+                        - linux64-marannon

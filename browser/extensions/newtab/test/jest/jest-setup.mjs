@@ -15,3 +15,9 @@ globalThis.IntersectionObserver = class {
   unobserve() {}
   disconnect() {}
 };
+
+globalThis.matchMedia = () => ({
+  matches: false,
+  addListener: () => {},
+  removeListener: () => {},
+});

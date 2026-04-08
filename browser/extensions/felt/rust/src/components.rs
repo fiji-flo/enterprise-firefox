@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
+use nserror::{
+    nsresult, NS_ERROR_CONNECTION_REFUSED, NS_ERROR_FAILURE, NS_ERROR_NOT_CONNECTED, NS_OK,
+};
 use nsstring::{nsACString, nsCString};
 use std::cell::RefCell;
 use std::env;
@@ -17,7 +19,7 @@ use xpcom::RefPtr;
 
 use log::{error, trace};
 
-use crate::message::{FeltMessage, FELT_IPC_VERSION};
+use crate::message::{FeltMessage, LogoutType, FELT_IPC_VERSION};
 #[cfg(target_os = "linux")]
 use crate::utils;
 use crate::utils::{Tokens, CONSOLE_URL, TOKENS, TOKEN_EXPIRY_SKEW};
@@ -62,11 +64,11 @@ impl FeltXPCOM {
                 }
                 Err(err) => {
                     error!("FeltXPCOM:SendMessage: error: {}", err);
-                    NS_ERROR_FAILURE
+                    NS_ERROR_CONNECTION_REFUSED
                 }
             }
         } else {
-            NS_ERROR_FAILURE
+            NS_ERROR_NOT_CONNECTED
         }
     }
 
@@ -384,9 +386,9 @@ impl FeltXPCOM {
                                 trace!("FeltServerThread::felt_server::ipc_loop(): ExtensionReady");
                                 crate::utils::notify_observers("felt-extension-ready".to_string());
                             },
-                            Ok(FeltMessage::LogoutShutdown) => {
-                                trace!("FeltServerThread::felt_server::ipc_loop(): Shutdown for logout");
-                                crate::utils::notify_observers("felt-firefox-logout".to_string());
+                            Ok(FeltMessage::Logout(logout_type)) => {
+                                trace!("FeltServerThread::felt_server::ipc_loop(): Logout {:?}", logout_type);
+                                crate::utils::notify_observers_with_payload("felt-firefox-logout".to_string(), Some(logout_type.as_str().to_string()));
                             },
                             Ok(FeltMessage::AccessToken((access_token, expires_at))) => {
                                 trace!("FeltServerThread::felt_server::ipc_loop(): Update tokens from browser");

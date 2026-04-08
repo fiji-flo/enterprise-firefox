@@ -26,9 +26,16 @@
     <!-- Label for the secret settings preference -->
     <string name="preferences_debug_settings">Secret Settings</string>
 
-    <!-- Label for the secret settings homepage preference category -->
-    <string name="homepage_debug_settings_homepage_category_title">Homepage</string>
-    <string name="homepage_debug_settings_homepage_category_key">homepage</string>
+    <!-- Labels for secret settings preference categories -->
+    <string name="secret_settings_category_homepage_title" translatable="false">Homepage</string>
+    <string name="secret_settings_category_toolbar_title" translatable="false">Toolbar</string>
+    <string name="secret_settings_category_search_title" translatable="false">Search</string>
+    <string name="secret_settings_category_tabs_title" translatable="false">Tabs</string>
+    <string name="secret_settings_category_network_title" translatable="false">Network</string>
+    <string name="secret_settings_category_performance_title" translatable="false">Performance</string>
+    <string name="secret_settings_category_terms_of_service_title" translatable="false">Terms of Service</string>
+    <string name="secret_settings_category_features_title" translatable="false">Features</string>
+    <string name="secret_settings_category_debug_title" translatable="false">Debug</string>
 
     <!-- Label for the secret settings preference -->
     <string name="preferences_debug_info" translatable="false">Secret Debug Info</string>
@@ -375,19 +382,19 @@
     <!-- Title for the translations AI feature toggle -->
     <string name="ai_controls_translations_title">Translations</string>
     <!-- Description for the translations AI feature toggle -->
-    <string name="ai_controls_translations_description">All translations stay private on your device. </string>
+    <string name="ai_controls_translations_description" tools:ignore="UnusedResources">All translations stay private on your device. </string>
     <!-- Link text to navigate to more translations settings -->
-    <string name="ai_controls_more_translations_settings">More translations settings</string>
+    <string name="ai_controls_more_translations_settings" tools:ignore="UnusedResources">More translations settings</string>
     <!-- Title for the page summaries AI feature toggle -->
     <string name="ai_controls_page_summaries_title">Page summaries</string>
     <!-- Description for the page summaries AI feature toggle -->
-    <string name="ai_controls_page_summaries_description">Pages and summaries are never stored.</string>
+    <string name="ai_controls_page_summaries_description" tools:ignore="UnusedResources">Pages and summaries are never stored.</string>
     <!-- Link text to navigate to more page summary settings -->
     <string name="ai_controls_more_page_summary_settings">More page summary settings</string>
     <!-- Title for the voice search AI feature toggle -->
     <string name="ai_controls_voice_search_title">Voice search</string>
     <!-- Description for the voice search AI feature toggle -->
-    <string name="ai_controls_voice_search_description">Audio is converted to text by Google Speech Services.</string>
+    <string name="ai_controls_voice_search_description" tools:ignore="UnusedResources">Audio is converted to text by Google Speech Services.</string>
     <!-- Title for the block AI enhancements confirmation dialog -->
     <string name="ai_controls_block_dialog_title">Block AI enhancements?</string>
     <!-- Body text for the block AI enhancements confirmation dialog. %1$s is the name of the app (for example "Firefox"). -->

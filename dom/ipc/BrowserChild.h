@@ -816,8 +816,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
       const MaybeDiscardedBrowsingContext& aBc, const PrintData& aPrintData,
       RefPtr<BrowsingContext>* aCachedBrowsingContext);
 
-  bool CreateRemoteLayerManager(
-      mozilla::layers::PCompositorBridgeChild* aCompositorChild);
+  bool CreateRemoteLayerManager();
 
   nsresult PrepareRequestData(nsIRequest* aRequest, RequestData& aRequestData);
   nsresult PrepareProgressListenerData(nsIWebProgress* aWebProgress,

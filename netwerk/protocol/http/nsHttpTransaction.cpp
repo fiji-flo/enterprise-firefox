@@ -239,8 +239,8 @@ nsresult nsHttpTransaction::Init(
 
   if (NS_FAILED(rv)) return rv;
 
-  mConnInfo = cinfo;
-  mFinalizedConnInfo = cinfo;
+  mConnInfo = cinfo->Clone();
+  mFinalizedConnInfo = mConnInfo;
   mCallbacks = callbacks;
   mConsumerTarget = target;
   mCaps = caps;
@@ -526,6 +526,14 @@ void nsHttpTransaction::SetConnection(nsAHttpConnection* conn) {
     mConnection = conn;
     if (mConnection) {
       mIsHttp3Used = mConnection->Version() == HttpVersion::v3_0;
+      if (mActivated) {
+        mConnection->GetSelfAddr(&mSelfAddr);
+        mConnection->GetPeerAddr(&mPeerAddr);
+        mResolvedByTRR = mConnection->ResolvedByTRR();
+        mEffectiveTRRMode = mConnection->EffectiveTRRMode();
+        mTRRSkipReason = mConnection->TRRSkipReason();
+        mEchConfigUsed = mConnection->GetEchConfigUsed();
+      }
     }
   }
 }
@@ -620,12 +628,7 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
   // If we are using a persistent connection they will remain null,
   // and the correct value will be returned in Performance.
   if (GetRequestStart().IsNull()) {
-    if (mConnInfo && mConnInfo->GetHappyEyeballsEnabled()) {
-      // Happy eyeballs sets connection timing data directly.
-      if (status == NS_NET_STATUS_SENDING_TO) {
-        SetRequestStart(TimeStamp::Now(), true);
-      }
-    } else if (status == NS_NET_STATUS_RESOLVING_HOST) {
+    if (status == NS_NET_STATUS_RESOLVING_HOST) {
       SetDomainLookupStart(TimeStamp::Now(), true);
     } else if (status == NS_NET_STATUS_RESOLVED_HOST) {
       SetDomainLookupEnd(TimeStamp::Now());
@@ -634,7 +637,7 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
       {
         MutexAutoLock lock(mLock);
         mTimings.connectStart = tnow;
-        if (mConnInfo->IsHttp3()) {
+        if (mConnInfo && mConnInfo->IsHttp3()) {
           mTimings.secureConnectionStart = tnow;
         }
       }
@@ -2785,6 +2788,18 @@ void nsHttpTransaction::DisableHttp3(bool aAllowRetryHTTPSRR) {
     RemoveAlternateServiceUsedHeader(mRequestHead);
     MOZ_ASSERT(!connInfo->IsHttp3());
     mConnInfo.swap(connInfo);
+  }
+}
+
+void nsHttpTransaction::RemoveAltSvcUsedHeader() {
+  RemoveAlternateServiceUsedHeader(mRequestHead);
+}
+
+void nsHttpTransaction::Deactivate() {
+  MOZ_ASSERT(OnSocketThread());
+  if (mActivated) {
+    gHttpHandler->ConnMgr()->RemoveActiveTransaction(this);
+    mActivated = false;
   }
 }
 

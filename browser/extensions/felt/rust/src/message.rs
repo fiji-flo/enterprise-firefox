@@ -45,6 +45,33 @@ impl nsICookieWrapper {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum LogoutType {
+    Normal = 0,
+    ConsoleForcedLogout = 1,
+    Unknown = 255,
+}
+
+impl LogoutType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LogoutType::Normal => "normal",
+            LogoutType::ConsoleForcedLogout => "console-forced-logout",
+            LogoutType::Unknown => "unknown",
+        }
+    }
+}
+
+impl From<i32> for LogoutType {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => LogoutType::Normal,
+            1 => LogoutType::ConsoleForcedLogout,
+            _ => LogoutType::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum FeltMessage {
     VersionProbe(u32),
     VersionValidated(bool),
@@ -60,7 +87,7 @@ pub enum FeltMessage {
     OpenURL((String, i32, Option<FocusHint>)),
     RestartForced,
     Restarting,
-    LogoutShutdown,
+    Logout(LogoutType),
     Exiting,
     UpdateReady,
     ShutdownForReauth,
@@ -72,4 +99,4 @@ pub enum FocusHint {
     Timestamp(u32),
 }
 
-pub const FELT_IPC_VERSION: u32 = 7;
+pub const FELT_IPC_VERSION: u32 = 8;

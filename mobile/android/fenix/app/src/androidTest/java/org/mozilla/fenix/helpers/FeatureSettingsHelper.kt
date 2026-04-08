@@ -107,6 +107,11 @@ interface FeatureSettingsHelper {
     var isTermsOfServiceAccepted: Boolean
 
     /**
+     * Enable or disable the private mode and stories entry point.
+     */
+    var isPrivateModeAndStoriesEntryPointEnabled: Boolean
+
+    /**
      * The Open links in External apps settings, between the following options:
      * - Ask before opening
      * - Never

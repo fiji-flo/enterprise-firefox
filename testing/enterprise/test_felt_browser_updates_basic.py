@@ -13,6 +13,10 @@ from felt_tests import FeltTests
 
 
 class FeltUpdatesBasicChecks(FeltTests):
+    EXTRA_PREFS = {
+        "enterprise.felt_tests.read_update_url_from_prefs": True,
+    }
+
     def test_felt_updates_basic_checks(self):
         self.run_felt_chrome_on_email_submit()
         self.run_verify_felt_app_update_url()

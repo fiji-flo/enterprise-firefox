@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.tabstray.ui.tabitems
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -70,17 +73,11 @@ private const val PLACEHOLDER_THREE_DOT_MENU_CONTENT_DESCRIPTION = "More options
 
 /**
  * @param isSelected: Whether the tab is selected in multiselect mode
- * @param isActive: Whether the tab is the active tab, or single-selected
- * @param activeColors: The coloring of the RadioCheckmark in the active state.  Note that
- * this param will probably be unnecessary once TabGridItem and TabGroupItem are aligned on
- * the active (outlined) state representation.
  * @param uncheckedBorderColor: The border color to display when the item is unchecked
  */
 @Composable
 fun MultiSelectTabButton(
     isSelected: Boolean,
-    isActive: Boolean,
-    activeColors: RadioCheckmarkColors,
     uncheckedBorderColor: Color = RadioCheckmarkColors.default().borderColor,
 ) {
     Box(
@@ -89,14 +86,7 @@ fun MultiSelectTabButton(
     ) {
         RadioCheckmark(
             isSelected = isSelected,
-            // Note - when active state switches to use a border rather than a color change,
-            // this UI will look the same for TabGroupCard and TabGridItem.  In the interim,
-            // handling this difference by passing in the active color set
-            colors = if (isActive) {
-                activeColors
-            } else {
-                RadioCheckmarkColors.default(borderColor = uncheckedBorderColor)
-            },
+            colors = RadioCheckmarkColors.default(borderColor = uncheckedBorderColor),
         )
     }
 }
@@ -169,11 +159,13 @@ fun TabGroupMenuButton(
         },
         modifier = modifier
             .testTag(TabsTrayTestTag.TAB_GROUP_THREE_DOT_BUTTON),
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = LocalContentColor.current,
+        ),
     ) {
         Icon(
             painter = painterResource(id = iconsR.drawable.mozac_ic_ellipsis_vertical_24),
             contentDescription = PLACEHOLDER_THREE_DOT_MENU_CONTENT_DESCRIPTION,
-            tint = MaterialTheme.colorScheme.onSurface,
         )
 
         DropdownMenu(
@@ -226,8 +218,31 @@ private fun generateTabGroupMenuItems(
 
 // Long text string for verifying that tab items handle long titles with appropriate truncation.
 const val LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do " +
-        "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis " +
-        "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute " +
-        "irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla " +
-        "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia " +
-        "deserunt mollit anim id est laborum."
+    "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis " +
+    "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute " +
+    "irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla " +
+    "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia " +
+    "deserunt mollit anim id est laborum."
+
+/**
+ * Renders a border around a [TabsTrayItem] to signify that it is in focus.
+ * When the tab is not in focus, its BorderStroke will be null.
+ */
+@Composable
+@ReadOnlyComposable
+fun tabItemConditionalBorder(selectionState: TabsTrayItemSelectionState): BorderStroke? {
+    return if (selectionState.isFocused) {
+        tabItemBorderFocused()
+    } else {
+        null
+    }
+}
+
+/**
+ * Renders a border around a [TabsTrayItem] to signify that it is in focus.
+ */
+@Composable
+@ReadOnlyComposable
+fun tabItemBorderFocused(): BorderStroke {
+    return BorderStroke(width = 4.dp, color = MaterialTheme.colorScheme.tertiary)
+}

@@ -196,11 +196,11 @@
 #sidebar-button {
   /* stylelint-disable-next-line media-query-no-invalid */
   @media not -moz-pref("sidebar.revamp") {
-    list-style-image: url("chrome://browser/skin/sidebars.svg");
+    list-style-image: url("chrome://browser/skin/sidebar-collapsed.svg");
 
     &:-moz-locale-dir(ltr)[sidebar-positionend],
     &:-moz-locale-dir(rtl):not([sidebar-positionend]) {
-      list-style-image: url("chrome://browser/skin/sidebars-right.svg");
+      list-style-image: url("chrome://browser/skin/sidebar-collapsed-right.svg");
     }
   }
 
@@ -358,6 +358,15 @@
       list-style-image: url("chrome://browser/content/ipprotection/assets/states/ipprotection-excluded.svg");
       fill: transparent;
       stroke: var(--icon-color-success);
+    }
+  }
+
+  &.ipprotection-paused {
+    list-style-image: url("chrome://browser/content/logos/ipprotection-paused.svg");
+    fill: var(--icon-color);
+
+    &:is([overflowedItem="true"], [cui-areatype="panel"]) {
+      list-style-image: url("chrome://browser/content/ipprotection/assets/states/ipprotection-paused.svg");
     }
   }
   > .toolbarbutton-icon {

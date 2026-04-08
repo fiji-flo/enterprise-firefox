@@ -7,8 +7,12 @@ project-repo-param-prefix: ''
 product-dir: 'browser'
 treeherder:
     branch-map:
-        enterprise-main: enterprise-main
-        enterprise-release: enterprise-release
+        by-project:
+            enterprise-firefox-try:
+                default: enterprise-firefox-try
+            default:
+                enterprise-main: enterprise-main
+                enterprise-release: enterprise-release
     group-names:
         'js-bench-sm': 'JavaScript shell benchmarks with Spidermonkey'
         'js-bench-v8': 'JavaScript shell benchmarks with Google V8'
@@ -70,6 +74,8 @@ treeherder:
         'M': 'Mochitests'
         'M-f': 'Mochitest failures'
         'M-ioi': 'Mochitests tagged with inc-origin-init'
+        'M-sa': 'Mochitest with a browser restart between every test'
+        'M-sa-cf': 'Mochitest with a browser restart between every test for confirm failure'
         'M-ioi-cf': 'Mochitests tagged with inc-origin-init for confirm failure'
         'Mn': 'Marionette tests'
         'Mn-ioi': 'Marionette tests tagged with inc-origin-init'
@@ -249,6 +255,7 @@ treeherder:
         'compose-engine': 'compose-engine'
         'compose-tabstray': 'compose-tabstray'
         'concept-accelerometer': 'concept-accelerometer'
+        'concept-ai-controls': 'concept-ai-controls'
         'concept-integrity': 'concept-integrity'
         'concept-awesomebar': 'concept-awesomebar'
         'concept-base': 'concept-base'
@@ -273,6 +280,7 @@ treeherder:
         'feature-contextmenu': 'feature-contextmenu'
         'feature-customtabs': 'feature-customtabs'
         'feature-downloads': 'feature-downloads'
+        'feature-example': 'feature-example'
         'feature-findinpage': 'feature-findinpage'
         'feature-fxsuggest': 'feature-fxsuggest'
         'feature-intent': 'feature-intent'
@@ -300,6 +308,7 @@ treeherder:
         'feature-webauthn': 'feature-webauthn'
         'feature-webcompat': 'feature-webcompat'
         'feature-webnotifications': 'feature-webnotifications'
+        'lib-ai-controls': 'lib-ai-controls'
         'lib-crash': 'lib-crash'
         'lib-auth': 'lib-auth'
         'lib-crash-sentry': 'lib-crash-sentry'
@@ -332,6 +341,7 @@ treeherder:
         'service-glean': 'service-glean'
         'service-location': 'service-location'
         'service-mars': 'service-mars'
+        'service-merino-manifest': 'service-merino-manifest'
         'service-nimbus': 'service-nimbus'
         'service-pocket': 'service-pocket'
         'service-sync-autofill': 'service-sync-autofill'
@@ -553,6 +563,7 @@ taskgraph:
     repositories:
         gecko:
             name: 'Mozilla Firefox'
+    decision-parameters: 'gecko_taskgraph.parameters:get_decision_parameters'
 
 workers:
     aliases:
@@ -847,7 +858,7 @@ workers:
             os: windows
             worker-type: '{alias}'
         win11-64-25h2(|-gpu|-source|-large|-webgpu|-privileged):
-            provisioner: 'gecko-t'
+            provisioner: '{trust-domain}-t'
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'

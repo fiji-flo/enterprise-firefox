@@ -1112,12 +1112,7 @@ void nsINode::Normalize() {
         node->GetCharacterDataBuffer();
     if (characterDataBuffer->GetLength()) {
       nsIContent* target = node->GetPreviousSibling();
-      NS_ASSERTION((target && target->NodeType() == TEXT_NODE) ||
-                       notifyDevToolsOfNodeRemovals,
-                   "Should always have a previous text sibling unless "
-                   "mutation events messed us up");
-      if (MOZ_LIKELY(!notifyDevToolsOfNodeRemovals) ||
-          (target && target->NodeType() == TEXT_NODE)) {
+      if (target && target->NodeType() == TEXT_NODE) {
         nsTextNode* t = static_cast<nsTextNode*>(target);
         if (characterDataBuffer->Is2b()) {
           t->AppendTextForNormalize(characterDataBuffer->Get2b(),
@@ -3889,8 +3884,10 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
         JSAutoRealm ar(cx, wrapper);
         UpdateReflectorGlobal(cx, wrapper, aError);
         if (aError.Failed()) {
+          bool needsRollBack = false;
           if (wasRegistered) {
-            newDoc->UnregisterActivityObserver(aNode->AsElement());
+            needsRollBack =
+                newDoc->UnregisterActivityObserver(aNode->AsElement());
           }
           if (hadProperties) {
             // NOTE: When it fails it removes all properties for the node
@@ -3900,7 +3897,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
           }
           aNode->mNodeInfo.swap(newNodeInfo);
           aNode->NodeInfoChanged(newDoc);
-          if (wasRegistered) {
+          if (needsRollBack) {
             oldDoc->RegisterActivityObserver(aNode->AsElement());
           }
           return nullptr;

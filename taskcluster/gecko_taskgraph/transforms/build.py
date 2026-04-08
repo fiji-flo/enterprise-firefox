@@ -219,6 +219,7 @@ def enable_full_crashsymbols(config, jobs):
         "try",
         "try-comm-central",
         "enterprise-firefox",
+        "enterprise-firefox-try",
     }
     for job in jobs:
         enable_full_crashsymbols = job["attributes"].get("enable-full-crashsymbols")
@@ -323,7 +324,7 @@ def add_enterprise_secret_scopes(config, jobs):
     """Enterprise builds re-use some secrets from the Gecko trust domain."""
     level = config.params["level"]
     for job in jobs:
-        if config.params["project"] == "enterprise-firefox":
+        if config.params["project"] in ("enterprise-firefox", "enterprise-firefox-try"):
             job.setdefault("scopes", []).extend([
                 f"secrets:get:project/releng/gecko/build/level-{level}/gls-gapi.data",
                 f"secrets:get:project/releng/gecko/build/level-{level}/sb-gapi.data",

@@ -6,7 +6,7 @@
 
 use gecko_profiler::schema::{Format, Location};
 use gecko_profiler::{
-    gecko_profiler_category, MarkerOptions, MarkerSchema, MarkerTiming, ProfilerMarker,
+    gecko_profiler_category, FlowId, MarkerOptions, MarkerSchema, MarkerTiming, ProfilerMarker,
     ProfilerTime,
 };
 use serde::{Deserialize, Serialize};
@@ -14,15 +14,6 @@ use std::collections::HashMap;
 use std::fmt::Write;
 
 const MARKER_NAME: &str = "Happy Eyeballs";
-
-fn hex_string(id: u64) -> [u8; 16] {
-    let mut buf = [0; 16];
-    let hex_digits = b"0123456789abcdef";
-    for i in 0..16 {
-        buf[i] = hex_digits[(id >> (60 - i * 4)) as usize & 0xf];
-    }
-    buf
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 enum Outcome {
@@ -67,7 +58,7 @@ impl From<std::net::SocketAddr> for IpVersion {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DnsMarker {
-    flow: u64,
+    flow: FlowId,
     origin: String,
     record_type: String,
     outcome: Outcome,
@@ -96,14 +87,14 @@ impl ProfilerMarker for DnsMarker {
         json_writer.unique_string_property("outcome", self.outcome.as_str());
         json_writer.string_property("response", &self.response);
         json_writer.unique_string_property("flow", unsafe {
-            std::str::from_utf8_unchecked(&hex_string(self.flow))
+            std::str::from_utf8_unchecked(&self.flow.to_hex())
         });
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ConnectionMarker {
-    flow: u64,
+    flow: FlowId,
     origin: String,
     outcome: Outcome,
     http_version: String,
@@ -138,18 +129,19 @@ impl ProfilerMarker for ConnectionMarker {
         json_writer.string_property("address", &self.address);
         json_writer.bool_property("has_ech", self.has_ech);
         json_writer.unique_string_property("flow", unsafe {
-            std::str::from_utf8_unchecked(&hex_string(self.flow))
+            std::str::from_utf8_unchecked(&self.flow.to_hex())
         });
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct LifetimeMarker {
-    flow: u64,
+    flow: FlowId,
     origin: String,
     ip_preference: String,
     alt_svc: String,
     http_versions: String,
+    ech_enabled: bool,
 }
 
 impl ProfilerMarker for LifetimeMarker {
@@ -164,6 +156,7 @@ impl ProfilerMarker for LifetimeMarker {
         schema.add_key_label_format("ip_preference", "IP Preference", Format::UniqueString);
         schema.add_key_label_format("alt_svc", "Alt-Svc", Format::UniqueString);
         schema.add_key_label_format("http_versions", "HTTP Versions", Format::UniqueString);
+        schema.add_key_label_format("ech_enabled", "ECH Enabled", Format::String);
         schema.add_key_label_format("flow", "Flow", Format::Flow);
         schema
     }
@@ -173,8 +166,9 @@ impl ProfilerMarker for LifetimeMarker {
         json_writer.unique_string_property("ip_preference", &self.ip_preference);
         json_writer.unique_string_property("alt_svc", &self.alt_svc);
         json_writer.unique_string_property("http_versions", &self.http_versions);
+        json_writer.bool_property("ech_enabled", self.ech_enabled);
         json_writer.unique_string_property("flow", unsafe {
-            std::str::from_utf8_unchecked(&hex_string(self.flow))
+            std::str::from_utf8_unchecked(&self.flow.to_hex())
         });
     }
 }
@@ -193,19 +187,20 @@ struct ConnInfo {
 }
 
 pub(crate) struct Profiler {
-    flow_id: u64,
+    flow_id: FlowId,
     origin: String,
     start: Option<ProfilerTime>,
     ip_preference: String,
     alt_svc: String,
     http_versions: String,
+    ech_enabled: bool,
     dns_infos: HashMap<happy_eyeballs::Id, DnsInfo>,
     conn_infos: HashMap<happy_eyeballs::Id, ConnInfo>,
 }
 
 impl Profiler {
     pub(crate) fn new(
-        flow_id: u64,
+        flow_id: FlowId,
         origin: &str,
         network_config: &happy_eyeballs::NetworkConfig,
     ) -> Self {
@@ -217,6 +212,7 @@ impl Profiler {
                 ip_preference: String::new(),
                 alt_svc: String::new(),
                 http_versions: String::new(),
+                ech_enabled: false,
                 dns_infos: HashMap::new(),
                 conn_infos: HashMap::new(),
             };
@@ -267,12 +263,13 @@ impl Profiler {
             ip_preference,
             alt_svc,
             http_versions,
+            ech_enabled: network_config.ech,
             dns_infos: HashMap::new(),
             conn_infos: HashMap::new(),
         }
     }
 
-    pub(crate) fn set_flow_id(&mut self, flow_id: u64) {
+    pub(crate) fn set_flow_id(&mut self, flow_id: FlowId) {
         self.flow_id = flow_id;
     }
 
@@ -329,7 +326,33 @@ impl Profiler {
         };
         let response: Vec<_> = infos
             .iter()
-            .map(|si| format!("priority={} target={:?}", si.priority, si.target_name,))
+            .map(|si| {
+                let mut s = format!("priority={} target={:?}", si.priority, si.target_name);
+                if !si.alpn_http_versions.is_empty() {
+                    let mut alpn: Vec<_> = si
+                        .alpn_http_versions
+                        .iter()
+                        .map(|v| format!("{v:?}"))
+                        .collect();
+                    alpn.sort();
+                    let _ = write!(s, " alpn=[{}]", alpn.join(","));
+                }
+                if si.ech_config.is_some() {
+                    s.push_str(" ech=yes");
+                }
+                if let Some(port) = si.port {
+                    let _ = write!(s, " port={}", port);
+                }
+                if !si.ipv4_hints.is_empty() {
+                    let ips: Vec<_> = si.ipv4_hints.iter().map(|ip| ip.to_string()).collect();
+                    let _ = write!(s, " ipv4hints=[{}]", ips.join(","));
+                }
+                if !si.ipv6_hints.is_empty() {
+                    let ips: Vec<_> = si.ipv6_hints.iter().map(|ip| ip.to_string()).collect();
+                    let _ = write!(s, " ipv6hints=[{}]", ips.join(","));
+                }
+                s
+            })
             .collect();
         gecko_profiler::add_marker(
             MARKER_NAME,
@@ -462,6 +485,7 @@ impl Drop for Profiler {
                 ip_preference: std::mem::take(&mut self.ip_preference),
                 alt_svc: std::mem::take(&mut self.alt_svc),
                 http_versions: std::mem::take(&mut self.http_versions),
+                ech_enabled: self.ech_enabled,
             },
         );
     }

@@ -106,6 +106,8 @@ void MsaaAccessible::MsaaShutdown() {
   }
 
   mAcc = nullptr;
+  ::UiaDisconnectProvider(this);
+  ::CoDisconnectObject(static_cast<IAccessible*>(this), 0);
 }
 
 int32_t MsaaAccessible::GetChildIDFor(Accessible* aAccessible) {

@@ -155,8 +155,6 @@
 }
 
 .customize-menu {
-  --toggle-row-height: 42px;
-
   overflow: auto;
   height: 100%;
 
@@ -283,18 +281,11 @@
       #row-selector {
         width: 138px;
       }
-
-      // @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-toggle
-      .nova-enabled & {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        height: var(--toggle-row-height); // setting fixed height so section doesn't resize and move pixels when it's toggled on/off
-      }
     }
 
     .more-info-top-wrapper,
-    .more-info-pocket-wrapper {
+    .more-info-pocket-wrapper,
+    .more-info-widgets-wrapper {
       margin-inline-start: calc(var(--space-xxsmall) * -1);
       overflow: hidden;
 
@@ -304,11 +295,18 @@
       }
     }
 
-    .more-info-pocket-wrapper {
+    .more-info-pocket-wrapper,
+    .more-info-widgets-wrapper {
       .more-information {
-        // Note: This is necessary so the follow/block topics panel can
+        // Note: This is necessary so the management panels can
         // be positioned absolutely across the entire Customize menu
         position: static;
+      }
+    }
+
+    .more-info-pocket-wrapper {
+      .more-information {
+        padding-block: var(--space-medium);
       }
 
       .check-wrapper {
@@ -603,16 +601,18 @@
 }
 
 .widgets-mgmt-panel-container {
-  margin-block: var(--space-medium);
+  padding-block: var(--space-medium);
 }
 
-// @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-section and #row-selector
+// @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-section, #widgets-section and #row-selector
 .nova-enabled {
-  #shortcuts-section {
+  #shortcuts-section,
+  #widgets-section,
+  #pocket-section {
     margin-block: var(--space-medium);
   }
 
   .section #shortcuts-toggle #row-selector {
-    width: unset;
+    width: 100%;
   }
 }

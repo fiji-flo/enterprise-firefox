@@ -29,6 +29,7 @@
 #include "mozilla/Base64.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
+#include "mozilla/EndianUtils.h"
 #include "mozilla/Printf.h"
 #include "mozilla/RandomNum.h"
 #include "mozilla/SHA1.h"
@@ -1540,9 +1541,9 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
       // and accept-encoding.dictionary, update both if either changes (which is
       // quite rare, so there's no real perf hit)
       nsAutoCString acceptDictionaryEncodings;
-      rv = Preferences::GetCString(HTTP_PREF("accept-encoding.dictionary"),
-                                   acceptDictionaryEncodings);
-      if (NS_SUCCEEDED(rv) && !acceptDictionaryEncodings.IsEmpty()) {
+      nsresult rvDic = Preferences::GetCString(
+          HTTP_PREF("accept-encoding.dictionary"), acceptDictionaryEncodings);
+      if (NS_SUCCEEDED(rvDic) && !acceptDictionaryEncodings.IsEmpty()) {
         acceptEncodings.Append(", "_ns);
         acceptEncodings.Append(acceptDictionaryEncodings);
         rv = SetAcceptEncodings(acceptEncodings.get(), true, true);
@@ -2573,10 +2574,17 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
     }
   }
 
+  bool fetchHTTPSRR = EchConfigEnabled();
+  if (StaticPrefs::network_http_happy_eyeballs_enabled()) {
+    ci->SetHappyEyeballsEnabled(true);
+    // When HE is enabled, HTTPS RR lookups are handled by
+    // HappyEyeballsConnectionAttempt.
+    fetchHTTPSRR = false;
+  }
+
   LOG(("MaybeSpeculativeConnectWithHTTPSRR for ci=%s", ci->HashKey().get()));
   // When ech is enabled, always do speculative connect with HTTPS RR.
-  return MaybeSpeculativeConnectWithHTTPSRR(ci, aCallbacks, 0,
-                                            EchConfigEnabled());
+  return MaybeSpeculativeConnectWithHTTPSRR(ci, aCallbacks, 0, fetchHTTPSRR);
 }
 
 nsresult nsHttpHandler::SpeculativeConnect(nsHttpConnectionInfo* ci,

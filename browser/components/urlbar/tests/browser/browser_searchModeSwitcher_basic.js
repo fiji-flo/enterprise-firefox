@@ -751,15 +751,12 @@ add_task(async function nimbusScotchBonnetEnableOverride() {
 
 add_task(async function test_button_stuck() {
   let win = await BrowserTestUtils.openNewBrowserWindow();
-  let popup = win.gURLBar.querySelector(".searchmode-switcher-popup");
-  let button = win.gURLBar.querySelector(".searchmode-switcher");
 
   info("Show the SearchModeSwitcher");
-  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
-  EventUtils.synthesizeMouseAtCenter(button, {}, win);
-  await promiseMenuOpen;
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(win);
 
   info("Hide the SearchModeSwitcher");
+  let button = win.gURLBar.querySelector(".searchmode-switcher");
   let promiseMenuClosed = BrowserTestUtils.waitForEvent(popup, "popuphidden");
   // Need native mouse event as the popup will be closed on blur.
   EventUtils.synthesizeNativeMouseEvent({
@@ -804,7 +801,7 @@ add_task(async function test_search_service_fail() {
     .stub(UrlbarSearchUtils, "init")
     .rejects(new Error("Initialization failed"));
 
-  SearchService.forceInitializationStatusForTests("not initialized");
+  SearchService.forceInitializationStatusForTests("failed");
 
   // Force updateSearchIcon to be triggered
   await SpecialPowers.pushPrefEnv({
@@ -843,6 +840,8 @@ add_task(async function test_search_service_fail() {
   stub.restore();
 
   SearchService.forceInitializationStatusForTests("success");
+  UrlbarSearchUtils.resetInitPromiseForTests();
+  await UrlbarSearchUtils.init();
 
   await BrowserTestUtils.closeWindow(newWin);
   await SpecialPowers.popPrefEnv();

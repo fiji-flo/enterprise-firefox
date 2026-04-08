@@ -148,6 +148,9 @@ tags = "os_integration"
 ["browser_aboutPrefs_fc_patch_partialBadSize.js"]
 
 ["browser_aboutPrefs_fc_patch_partialBadSize_complete.js"]
+skip-if = [
+  "os == 'win' && debug && standalone", # Bug 2028653
+]
 
 ["browser_aboutPrefs_fc_patch_partialBadSize_completeBadSize.js"]
 
@@ -211,6 +214,9 @@ skip-if = [
 
 ["browser_elevationDialog.js"]
 tags = "os_integration"
+skip-if = [
+  "standalone", # Bug 2025775
+]
 
 # Memory Fallback Tests
 

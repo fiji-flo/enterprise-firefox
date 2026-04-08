@@ -264,25 +264,31 @@ nsresult SVGElement::CopyInnerTo(mozilla::dom::Element* aDest) {
 //----------------------------------------------------------------------
 // SVGElement methods
 
-void SVGElement::DidAnimateClass() {
-  // For Servo, snapshot the element before we change it.
+void SVGElement::WillAnimateClass() {
   if (auto* doc = GetComposedDoc()) {
     if (auto* pc = doc->GetPresContext()) {
       pc->RestyleManager()->ClassAttributeWillBeChangedBySMIL(this);
     }
   }
+}
 
-  nsAutoString src;
-  mClassAttribute.GetAnimValue(src, this);
-  if (!mClassAnimAttr) {
-    mClassAnimAttr = std::make_unique<nsAttrValue>();
+void SVGElement::DidAnimateClass() {
+  if (mClassAttribute.IsAnimated()) {
+    nsAutoString src;
+    mClassAttribute.GetAnimValue(src, this);
+    if (!mClassAnimAttr) {
+      mClassAnimAttr = std::make_unique<nsAttrValue>();
+    }
+    mClassAnimAttr->ParseAtomArray(src);
+  } else {
+    mClassAnimAttr.reset();
   }
-  mClassAnimAttr->ParseAtomArray(src);
 
   // Update bloom filter after mutating mClassAnimAttr.
-  UpdateSubtreeBloomFilterForClass(mClassAnimAttr.get());
+  UpdateSubtreeBloomFilterForClass(GetClasses());
   UpdateSubtreeBloomFilterForAttribute(nsGkAtoms::_class);
   PropagateBloomFilterToParents();
+
   DidAnimateAttribute(kNameSpaceID_None, nsGkAtoms::_class);
 }
 
@@ -448,12 +454,13 @@ bool SVGElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
       // Check for SVGAnimatedPointList attribute
       if (GetPointListAttrName() == aAttribute) {
         if (SVGAnimatedPointList* pointList = GetAnimatedPointList()) {
-          pointList->SetBaseValueString(aValue);
-          // The spec says we parse everything up to the failure, so we DON'T
-          // need to check the result of SetBaseValueString or call
-          // pointList->ClearBaseValue() if it fails
-          aResult.SetTo(pointList->GetBaseValue(), &aValue);
-          didSetResult = true;
+          rv = pointList->SetBaseValueString(aValue);
+          if (NS_FAILED(rv)) {
+            pointList->ClearBaseValue();
+          } else {
+            aResult.SetTo(pointList->GetBaseValue(), &aValue);
+            didSetResult = true;
+          }
           foundMatch = true;
         }
       }

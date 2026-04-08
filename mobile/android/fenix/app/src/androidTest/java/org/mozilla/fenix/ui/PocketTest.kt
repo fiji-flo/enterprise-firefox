@@ -2,6 +2,7 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.AppAndSystemHelper.isNetworkConnected
@@ -63,6 +64,7 @@ class PocketTest {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252509
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=2028550")
     @Test
     fun verifyPocketSectionTest() {
         runWithCondition(isNetworkConnected()) {
@@ -83,6 +85,7 @@ class PocketTest {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252513
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=2028550")
     @Test
     fun openPocketStoryItemTest() {
         runWithCondition(isNetworkConnected()) {

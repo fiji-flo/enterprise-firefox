@@ -55,7 +55,13 @@ impl PingUploader for ViaductUploader {
 
         #[cfg(feature = "felt")]
         let result = modify_for_enterprise(upload_request)
-            .and_then(|upload_request| viaduct_upload(upload_request));
+            .and_then(|upload_request| viaduct_upload(upload_request))
+            .map(|r| match r {
+                // 401 means the access token is expired or revoked.
+                // Treat as recoverable so Glean retries after the token is refreshed.
+                UploadResult::HttpStatus { code: 401 } => UploadResult::recoverable_failure(),
+                other => other,
+            });
 
         // Localhost-destined pings are sent without OHTTP,
         // even if configured to use OHTTP.
@@ -127,6 +133,12 @@ fn viaduct_upload(upload_request: PingUploadRequest) -> Result<UploadResult, Via
 fn modify_for_enterprise(
     mut upload_request: PingUploadRequest,
 ) -> Result<PingUploadRequest, ViaductUploaderError> {
+    let localhost_port = static_prefs::pref!("telemetry.fog.test.localhost_port");
+    if localhost_port > 0 {
+        log::trace!("FOG modify_for_enterprise doing nothing on tests, localhost_port={}", localhost_port);
+        return Ok(upload_request);
+    }
+
     let console_url = felt::CONSOLE_URL
         .get()
         .ok_or(ViaductUploaderError::EnterpriseUrlNotSet)?;

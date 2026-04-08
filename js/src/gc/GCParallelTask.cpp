@@ -67,7 +67,7 @@ void js::GCParallelTask::start() {
 }
 
 void js::GCParallelTask::startOrRunIfIdle(AutoLockHelperThreadState& lock) {
-  if (wasStarted(lock)) {
+  if (isQueued(lock) || wasStarted(lock)) {
     return;
   }
 
@@ -182,7 +182,7 @@ class MOZ_RAII AutoGCContext {
   JS::GCContext context;
 
  public:
-  explicit AutoGCContext(JSRuntime* runtime) : context(runtime) {
+  explicit AutoGCContext(JSRuntime* runtime) : context(&runtime->gc) {
     MOZ_RELEASE_ASSERT(TlsGCContext.init(),
                        "Failed to initialize TLS for GC context");
 

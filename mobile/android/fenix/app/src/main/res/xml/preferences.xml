@@ -199,7 +199,7 @@
         <androidx.preference.Preference
             android:key="@string/pref_key_downloads"
             app:iconSpaceReserved="false"
-            android:title="@string/preferences_downloads" />
+            android:title="@string/preferences_downloads_2" />
 
         <androidx.preference.Preference
             android:key="@string/pref_key_firefox_labs"

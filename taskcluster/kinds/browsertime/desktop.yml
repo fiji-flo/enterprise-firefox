@@ -544,15 +544,24 @@ browsertime-benchmark:
             default: 900
     mozharness:
         extra-options:
-            by-test-platform:
-                macosx1400.*shippable.*:
-                    - --extra-profiler-run
-                    - --page-timeout=900000
-                macosx1500.*shippable.*:
-                    - --extra-profiler-run
-                    - --page-timeout=900000
+            by-subtest:
+                jetstream3:
+                    by-test-platform:
+                        macosx1400.*shippable.*:
+                            - --page-timeout=900000
+                        macosx1500.*shippable.*:
+                            - --page-timeout=900000
+                        default: []
                 default:
-                    - --extra-profiler-run
+                    by-test-platform:
+                        macosx1400.*shippable.*:
+                            - --extra-profiler-run
+                            - --page-timeout=900000
+                        macosx1500.*shippable.*:
+                            - --extra-profiler-run
+                            - --page-timeout=900000
+                        default:
+                            - --extra-profiler-run
 
 browsertime-benchmark-wasm:
     description: Raptor (browsertime) WASM benchmarks

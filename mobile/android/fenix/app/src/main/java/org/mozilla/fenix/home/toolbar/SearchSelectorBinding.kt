@@ -20,6 +20,7 @@ import mozilla.components.lib.state.helpers.AbstractBinding
 import mozilla.components.support.ktx.android.content.getColorFromAttr
 import org.mozilla.fenix.GleanMetrics.Toolbar
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.ext.increaseTapAreaVertically
 import org.mozilla.fenix.ext.pixelSizeFor
 import org.mozilla.fenix.ext.settings
@@ -34,6 +35,7 @@ internal class SearchSelectorBinding(
     private val context: Context,
     private val toolbarView: HomeToolbarView,
     private val searchSelectorMenu: SearchSelectorMenu,
+    private val browsingModeManager: BrowsingModeManager,
     browserStore: BrowserStore,
     mainDispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : AbstractBinding<BrowserState>(browserStore, mainDispatcher) {
@@ -67,7 +69,11 @@ internal class SearchSelectorBinding(
     }
 
     override suspend fun onState(flow: Flow<BrowserState>) {
-        flow.map { state -> state.search.selectedOrDefaultSearchEngine }
+        flow.map { state ->
+            state.search.selectedOrDefaultSearchEngine(
+                private = browsingModeManager.mode.isPrivate,
+            )
+        }
             .distinctUntilChanged()
             .collect { searchEngine ->
                 val name = searchEngine?.name

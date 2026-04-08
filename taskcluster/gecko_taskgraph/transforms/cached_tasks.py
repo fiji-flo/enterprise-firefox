@@ -112,3 +112,19 @@ def bump_priority(config, tasks):
     for task in tasks:
         task.setdefault("priority", "medium")
         yield task
+
+
+@transforms.add
+def bump_priority_enterprise(config, tasks):
+    """Bump priority of cached tasks on enterprise from low to medium to avoid breakage for developers"""
+    if int(config.params["level"]) != 3:
+        yield from tasks
+        return
+
+    if config.params["project"] != "enterprise-firefox":
+        yield from tasks
+        return
+
+    for task in tasks:
+        task.setdefault("priority", "medium")
+        yield task

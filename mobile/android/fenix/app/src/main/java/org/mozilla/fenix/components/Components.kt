@@ -11,11 +11,16 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.play.core.review.ReviewManagerFactory
+import mozilla.components.concept.ai.controls.AIFeatureBlock
+import mozilla.components.concept.ai.controls.AIFeatureRegistry
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.amo.AMOAddonsProvider
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
 import mozilla.components.feature.addons.update.DefaultAddonUpdater
 import mozilla.components.feature.autofill.AutofillConfiguration
+import mozilla.components.feature.summarize.PageSummaryFeature
+import mozilla.components.feature.summarize.settings.SummarizationSettings
+import mozilla.components.lib.ai.controls.default
 import mozilla.components.lib.crash.store.CrashAction
 import mozilla.components.lib.crash.store.CrashMiddleware
 import mozilla.components.lib.integrity.googleplay.GooglePlayIntegrityClient
@@ -82,6 +87,7 @@ import org.mozilla.fenix.perf.StartupStateProvider
 import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
 import org.mozilla.fenix.reviewprompt.ReviewPromptMiddleware
+import org.mozilla.fenix.settings.datachoices.DataChoicesSearchProvider
 import org.mozilla.fenix.settings.settingssearch.DefaultFenixSettingsIndexer
 import org.mozilla.fenix.termsofuse.TermsOfUseManager
 import org.mozilla.fenix.termsofuse.store.DefaultTermsOfUsePromptRepository
@@ -388,7 +394,12 @@ class Components(private val context: Context) {
     }
 
     val settingsIndexer by lazyMonitored {
-        DefaultFenixSettingsIndexer(context)
+        DefaultFenixSettingsIndexer(
+            context = context,
+            additionalProviders = listOf(
+                DataChoicesSearchProvider,
+            ),
+        )
     }
 
     val ads by lazyMonitored {
@@ -409,6 +420,22 @@ class Components(private val context: Context) {
                 maxMasksReached = context.getString(R.string.email_masks_max_free_tier_reached),
                 errorRetrievingMasks = context.getString(R.string.email_masks_error_retrieving_masks),
             ),
+        )
+    }
+
+    val aiFeatureRegistry by lazyMonitored {
+        AIFeatureRegistry.default().also {
+            if (settings.shakeToSummarizeFeatureFlagEnabled) {
+                it.register(PageSummaryFeature(SummarizationSettings.dataStore(context)))
+            }
+        }
+    }
+
+    @Suppress("unused")
+    val aiControlsFeatureBlock by lazyMonitored {
+        AIFeatureBlock.default(
+            context,
+            registry = aiFeatureRegistry,
         )
     }
 

@@ -5,11 +5,11 @@
 ## Chrome
 
 appmenuitem-new-ai-window =
-    .label = New smart window
-    .value = New smart window
+    .label = New Smart Window
+    .value = New Smart Window
 
 appmenuitem-new-classic-window =
-    .label = New classic window
+    .label = New Classic Window
 
 menu-file-new-ai-window =
     .label = New Smart Window
@@ -31,7 +31,7 @@ smartwindow-document-title = New Tab
 
 toolbar-button-ai-window-toggle =
     .label = Smart window
-    .tooltiptext = Switch between Smart and Classic windows.
+    .tooltiptext = Switch between Smart and Classic Windows.
 
 ai-window-toggleview-switch-classic =
     .label = Classic Window
@@ -68,6 +68,7 @@ smartbar-placeholder =
 
 ## Mentions
 
+smartbar-mention-typing-placeholder = Tag a tab or site
 smartbar-mentions-list-no-results-label = No results found
 smartbar-mentions-list-recent-tabs-label = Recent tabs
 
@@ -108,10 +109,10 @@ smartwindow-ask-button =
 ## Memories toggle button
 
 aiwindow-memories-on =
-    .tooltiptext = Memories on
+    .tooltiptext = Use memories in responses when helpful
     .aria-label = Memories on
 aiwindow-memories-off =
-    .tooltiptext = Memories off
+    .tooltiptext = Don’t use memories in responses
     .aria-label = Memories off
 
 ## New Chat Button

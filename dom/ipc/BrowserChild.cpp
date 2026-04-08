@@ -2479,8 +2479,10 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealKeyEvent(
     // likely being spun. If the following key event is not suppressed or
     // delayed, it could cause mPreviousConsumedKeyDownCode is not updated
     // correctly.
-    MOZ_DIAGNOSTIC_ASSERT_IF(isOtherKeyDownBeingDispatched,
-                             localEvent.mFlags.mIsSuppressedOrDelayed);
+    NS_WARNING_ASSERTION(!isOtherKeyDownBeingDispatched ||
+                             localEvent.mFlags.mIsSuppressedOrDelayed,
+                         "keypress event isn't suppressed or delayed while "
+                         "event loop is being spun");
 
     // Update the end time of the possible repeated event so that we can skip
     // some incoming events in case event handling took long time.
@@ -2558,7 +2560,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealKeyEvent(
              mCurrentBeingDispatchedKeyDownCode.value() ==
                  aEvent.mCodeNameIndex) {
       MOZ_DIAGNOSTIC_ASSERT(isOtherKeyDownBeingDispatched);
-      MOZ_DIAGNOSTIC_ASSERT(localEvent.mFlags.mIsSuppressedOrDelayed);
+      NS_WARNING_ASSERTION(localEvent.mFlags.mIsSuppressedOrDelayed,
+                           "keypress event isn't suppressed or delayed while "
+                           "event loop is being spun");
       mCurrentBeingDispatchedKeyDownCode.reset();
     }
 
@@ -3226,8 +3230,7 @@ void BrowserChild::InitRenderingState(
 
   // Pushing layers transactions directly to a separate
   // compositor context.
-  PCompositorBridgeChild* compositorChild = CompositorBridgeChild::Get();
-  if (!compositorChild) {
+  if (!CompositorBridgeChild::Get()) {
     mLayersConnected = Some(false);
     NS_WARNING("failed to get CompositorBridgeChild instance");
     return;
@@ -3254,7 +3257,7 @@ void BrowserChild::InitRenderingState(
                  layers::LayersBackend::LAYERS_NONE);
   bool success = false;
   if (mLayersConnected == Some(true)) {
-    success = CreateRemoteLayerManager(compositorChild);
+    success = CreateRemoteLayerManager();
   }
 
   if (success) {
@@ -3275,16 +3278,11 @@ void BrowserChild::InitRenderingState(
   }
 }
 
-bool BrowserChild::CreateRemoteLayerManager(
-    mozilla::layers::PCompositorBridgeChild* aCompositorChild) {
-  MOZ_ASSERT(aCompositorChild);
-
+bool BrowserChild::CreateRemoteLayerManager() {
   return mPuppetWidget->CreateRemoteLayerManager(
       [&](WebRenderLayerManager* aLayerManager) -> bool {
         nsCString error;
-        return aLayerManager->Initialize(aCompositorChild,
-                                         wr::AsPipelineId(mLayersId),
-                                         &mTextureFactoryIdentifier, error);
+        return aLayerManager->Initialize(&mTextureFactoryIdentifier, error);
       });
 }
 
@@ -3619,9 +3617,8 @@ void BrowserChild::ReinitRendering() {
   SendEnsureLayersConnected(&options);
   if (options) {
     mCompositorOptions = options;
-    RefPtr<CompositorBridgeChild> cb = CompositorBridgeChild::Get();
-    if (cb) {
-      success = CreateRemoteLayerManager(cb);
+    if (CompositorBridgeChild::Get()) {
+      success = CreateRemoteLayerManager();
     }
   }
 

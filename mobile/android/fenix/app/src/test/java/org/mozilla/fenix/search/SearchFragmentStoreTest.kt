@@ -1481,6 +1481,113 @@ class SearchFragmentStoreTest {
     }
 
     @Test
+    fun `GIVEN private browsing mode WHEN updating SearchFragmentState from SearchState THEN use private default search engine`() {
+        val store = SearchFragmentStore(
+            emptyDefaultState(
+                searchEngineSource = SearchEngineSource.None,
+                areShortcutsAvailable = false,
+                defaultEngine = null,
+            ),
+        )
+
+        assertNull(store.state.defaultEngine)
+
+        store.dispatch(
+            SearchFragmentAction.UpdateSearchState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mockk(), type = SearchEngine.Type.BUNDLED),
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null,
+                    userSelectedPrivateSearchEngineId = "engine-a",
+                    userSelectedPrivateSearchEngineName = null,
+                ),
+                isUnifiedSearchEnabled = false,
+                isPrivate = true,
+            ),
+        )
+
+        assertNotNull(store.state.defaultEngine)
+        assertEquals("Engine A", store.state.defaultEngine!!.name)
+        assertTrue(store.state.searchEngineSource is SearchEngineSource.Default)
+        assertEquals("Engine A", store.state.searchEngineSource.searchEngine!!.name)
+    }
+
+    @Test
+    fun `GIVEN normal browsing mode WHEN updating SearchFragmentState from SearchState with private engine set THEN use normal default search engine`() {
+        val store = SearchFragmentStore(
+            emptyDefaultState(
+                searchEngineSource = SearchEngineSource.None,
+                areShortcutsAvailable = false,
+                defaultEngine = null,
+            ),
+        )
+
+        assertNull(store.state.defaultEngine)
+
+        store.dispatch(
+            SearchFragmentAction.UpdateSearchState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mockk(), type = SearchEngine.Type.BUNDLED),
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null,
+                    userSelectedPrivateSearchEngineId = "engine-a",
+                    userSelectedPrivateSearchEngineName = null,
+                ),
+                isUnifiedSearchEnabled = false,
+                isPrivate = false,
+            ),
+        )
+
+        assertNotNull(store.state.defaultEngine)
+        assertEquals("Engine B", store.state.defaultEngine!!.name)
+        assertTrue(store.state.searchEngineSource is SearchEngineSource.Default)
+        assertEquals("Engine B", store.state.searchEngineSource.searchEngine!!.name)
+    }
+
+    @Test
+    fun `GIVEN private mode with no private engine set WHEN updating SearchFragmentState THEN fall back to normal default`() {
+        val store = SearchFragmentStore(
+            emptyDefaultState(
+                searchEngineSource = SearchEngineSource.None,
+                areShortcutsAvailable = false,
+                defaultEngine = null,
+            ),
+        )
+
+        store.dispatch(
+            SearchFragmentAction.UpdateSearchState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mockk(), type = SearchEngine.Type.BUNDLED),
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null,
+                    userSelectedPrivateSearchEngineId = null,
+                    userSelectedPrivateSearchEngineName = null,
+                ),
+                isUnifiedSearchEnabled = false,
+                isPrivate = true,
+            ),
+        )
+
+        assertNotNull(store.state.defaultEngine)
+        assertEquals("Engine B", store.state.defaultEngine!!.name)
+    }
+
+    @Test
     fun `GIVEN normal browsing mode and search suggestions enabled WHEN checking if search suggestions should be shown THEN return true`() {
         var settings: Settings = mockk {
             every { shouldShowSearchSuggestions } returns false

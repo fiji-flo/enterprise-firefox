@@ -550,7 +550,7 @@ xul|label[disabled] {
 
 /* Category List */
 
-#categories {
+#categories:not(moz-page-nav) {
   appearance: none;
   background-color: initial; /* override the background-color set on all richlistboxes in common.inc.css */
   margin: 70px 0 0;
@@ -560,7 +560,7 @@ xul|label[disabled] {
 }
 
 @media print {
-  #categories {
+  #categories:not(moz-page-nav) {
     display: none;
   }
 }

@@ -11,6 +11,7 @@ const { E10SUtils } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
   ConsoleClient: "resource:///modules/enterprise/ConsoleClient.sys.mjs",
   FeltCommon: "chrome://felt/content/FeltCommon.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
@@ -479,20 +480,46 @@ function focusEmailOnLoginVisible() {
   const loginPane = document.querySelector(".felt-login");
   const emailInput = document.getElementById("felt-form__email");
 
-  new MutationObserver(() => {
+  function maybeFocusEmail() {
     if (!loginPane.classList.contains("is-hidden")) {
       emailInput?.focus();
     }
-  }).observe(loginPane, { attributeFilter: ["class"] });
+  }
 
-  if (!loginPane.classList.contains("is-hidden")) {
-    emailInput?.focus();
+  new MutationObserver(maybeFocusEmail).observe(loginPane, {
+    attributeFilter: ["class"],
+  });
+
+  window.addEventListener("focus", maybeFocusEmail);
+
+  maybeFocusEmail();
+}
+
+/**
+ * Sets the displayed Firefox build version and date
+ */
+function setBuildVersion() {
+  const versionElement = document.querySelector(".felt-version");
+  const version = lazy.AppConstants.MOZ_APP_VERSION_DISPLAY;
+
+  if (lazy.AppConstants.NIGHTLY_BUILD) {
+    const buildID = Services.appinfo.appBuildID;
+    const year = buildID.slice(0, 4);
+    const month = buildID.slice(4, 6);
+    const day = buildID.slice(6, 8);
+    const isodate = `${year}-${month}-${day}`;
+    versionElement.setAttribute("data-l10n-id", "felt-version-nightly");
+    document.l10n.setArgs(versionElement, { version, isodate });
+  } else {
+    versionElement.setAttribute("data-l10n-id", "felt-version");
+    document.l10n.setArgs(versionElement, { version });
   }
 }
 
 window.addEventListener(
   "load",
   () => {
+    setBuildVersion();
     ErrorReport.init();
     lazy.Updates.init(document, ErrorReport);
     setupMarionetteEnvironment();

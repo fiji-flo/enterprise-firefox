@@ -125,7 +125,9 @@ class BrowserToolbarSearchMiddlewareTest {
         every { navigate(any<NavDirections>()) } just Runs
         every { navigate(any<Int>()) } just Runs
     }
-    val browsingModeManager: BrowsingModeManager = mockk()
+    val browsingModeManager: BrowsingModeManager = mockk {
+        every { mode } returns Normal
+    }
 
     @Test
     fun `WHEN the toolbar enters in edit mode THEN a new search selector button is added`() {

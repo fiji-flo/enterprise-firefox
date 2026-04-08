@@ -91,6 +91,8 @@ const lazy = XPCOMUtils.declareLazy({
     default: false,
   },
   logger: () => lazy.UrlbarUtils.getLogger({ prefix: "SmartbarInput" }),
+  getCurrentTabUrl:
+    "moz-src:///browser/components/aiwindow/ui/modules/ChatUtils.sys.mjs",
 });
 
 const UNLIMITED_MAX_RESULTS = 99;
@@ -105,7 +107,7 @@ let px = number => number.toFixed(2) + "px";
  *
  * @typedef {object} ContextWebsite
  * @property {string} type
- *   The source kind; currently always "tab".
+ *   The source kind; tab|currentTab
  * @property {string} url
  *   URL of the website.
  * @property {string} label
@@ -266,6 +268,7 @@ export class SmartbarInput extends HTMLElement {
    */
   #sapName;
   #smartbarAction = "";
+  #smartbarActionPending = false;
   #smartbarEditor = null;
   #smartbarInputController = null;
   _userTypedValue = "";
@@ -413,6 +416,7 @@ export class SmartbarInput extends HTMLElement {
     this._inputContainer = this.querySelector(".urlbar-input-container");
 
     this.controller = new lazy.UrlbarController({ input: this });
+    this.controller.addListener(this);
     this.view = new lazy.UrlbarView(this);
     this.searchModeSwitcher = new lazy.SearchModeSwitcher(this);
 
@@ -571,6 +575,8 @@ export class SmartbarInput extends HTMLElement {
     if (this.sapName == "searchbar") {
       this.parentNode.removeAttribute("overflows");
     }
+
+    this.controller.removeListener(this);
 
     if (this._copyCutController) {
       this.inputField.controllers.removeController(this._copyCutController);
@@ -1412,6 +1418,8 @@ export class SmartbarInput extends HTMLElement {
         selType: "ask_button",
         result: null,
       });
+      this.#contextWebsites = [];
+      this.#updateContextChips();
       return true;
     }
 
@@ -2244,7 +2252,10 @@ export class SmartbarInput extends HTMLElement {
       let input;
       if (!result.heuristic) {
         input = this._lastSearchString;
-      } else if (result.autofill?.type == "adaptive") {
+      } else if (
+        result.autofill?.type == "adaptive_url" ||
+        result.autofill?.type == "adaptive_origin"
+      ) {
         input = result.autofill.adaptiveHistoryInput;
       }
       // `input` may be an empty string, so do a strict comparison here.
@@ -2558,11 +2569,33 @@ export class SmartbarInput extends HTMLElement {
       this._setValue(this.userTypedValue);
     }
 
-    if (this.#isSmartbarMode) {
-      this.#updateSmartbarCTAButton(firstResult);
-    }
-
     return false;
+  }
+
+  /**
+   * Invoked by the controller when a query starts.
+   *
+   * @param {UrlbarQueryContext} _queryContext
+   */
+  onQueryStarted(_queryContext) {
+    this.#smartbarActionPending = true;
+  }
+
+  /**
+   * Invoked by the controller when query results are received.
+   *
+   * @param {UrlbarQueryContext} queryContext
+   */
+  onQueryResults(queryContext) {
+    if (
+      !this.#isSmartbarMode ||
+      queryContext.pendingHeuristicProviders.size ||
+      !this.#smartbarActionPending
+    ) {
+      return;
+    }
+    this.#smartbarActionPending = false;
+    this.#updateSmartbarCTAButton(queryContext.results[0]);
   }
 
   /**
@@ -3803,7 +3836,10 @@ export class SmartbarInput extends HTMLElement {
     // if the caret isn't at the end of the input.
     let canAutofillPlaceholder = false;
     if (this._autofillPlaceholder) {
-      if (this._autofillPlaceholder.type == "adaptive") {
+      if (
+        this._autofillPlaceholder.type == "adaptive_url" ||
+        this._autofillPlaceholder.type == "adaptive_origin"
+      ) {
         canAutofillPlaceholder =
           value.length >=
             this._autofillPlaceholder.adaptiveHistoryInput.length &&
@@ -4211,11 +4247,11 @@ export class SmartbarInput extends HTMLElement {
    *   The new selectionStart.
    * @param {number} options.selectionEnd
    *   The new selectionEnd.
-   * @param {"origin" | "url" | "adaptive"} options.type
-   *   The autofill type, one of: "origin", "url", "adaptive"
+   * @param {"origin" | "url" | "adaptive_url" | "adaptive_origin"} options.type
+   *   The autofill type.
    * @param {string} options.adaptiveHistoryInput
-   *   If the autofill type is "adaptive", this is the matching `input` value
-   *   from adaptive history.
+   *   If the autofill type is "adaptive_url" or "adaptive_origin", this is the
+   *   matching `input` value from adaptive history.
    * @param {string} [options.untrimmedValue]
    *   Untrimmed value including a protocol.
    */
@@ -5886,7 +5922,12 @@ export class SmartbarInput extends HTMLElement {
         this.window.gBrowser.selectedBrowser?.getAttribute("usercontextid") ?? 0
       );
       options.tabGroup = this.window.gBrowser.selectedTab.group?.id ?? null;
-      options.currentPage = this.window.gBrowser.currentURI?.spec ?? "";
+      const currentPageSpec = this.window.gBrowser.currentURI?.spec;
+      // currentURI can be transiently null during a docshell swap (tab drag);
+      // omit currentPage rather than passing "" which fails UrlbarQueryContext validation.
+      if (currentPageSpec) {
+        options.currentPage = currentPageSpec;
+      }
     }
 
     if (this.searchMode) {
@@ -5920,7 +5961,8 @@ export class SmartbarInput extends HTMLElement {
     if (
       this.#isSidebarMode &&
       event.target == this.window.gBrowser.selectedTab &&
-      event.detail.changed.includes("image")
+      (event.detail.changed.includes("image") ||
+        event.detail.changed.includes("label"))
     ) {
       this.#updateContextChips();
     }
@@ -6354,21 +6396,34 @@ export class SmartbarInput extends HTMLElement {
   }
 
   /**
+   * Provides the current page url and context sites for current
+   * smartbar state. Used for when a starter prompt is clicked
+   * which lives outside of Smartbar.
+   *
+   * @returns {{ pageUrl: ?URL, contextWebsites: Array<ContextWebsite>}}
+   */
+  getCurrentContextData() {
+    return {
+      pageUrl: this.#getContextPageUrl(),
+      contextWebsites: this.#getResolvedContextWebsites(),
+    };
+  }
+
+  /**
    * Returns the page URL to associate with the next submitted message, or null
    * if the implicit current-tab chip has been removed.
    *
-   * @returns {?string}
+   * @returns {?URL}
    */
   #getContextPageUrl() {
     if (!this.#isSidebarMode) {
       return null;
     }
-    const currentTabUrl =
-      this.window.gBrowser?.selectedTab?.linkedBrowser.currentURI?.spec;
-    if (currentTabUrl == this.#removedImplicitTabUrl) {
+    const currentTabUrl = lazy.getCurrentTabUrl(this.window);
+    if (currentTabUrl?.spec == this.#removedImplicitTabUrl) {
       return null;
     }
-    return currentTabUrl ?? null;
+    return URL.parse(currentTabUrl?.spec) ?? null;
   }
 
   /**
@@ -6389,7 +6444,7 @@ export class SmartbarInput extends HTMLElement {
       const url = tab?.linkedBrowser.currentURI?.spec;
       if (url && url != this.#removedImplicitTabUrl) {
         candidates.unshift({
-          type: "tab",
+          type: "currentTab",
           url,
           label: tab.label || url,
           iconSrc: this.#resolveTabIconSrc(tab.image, url),
@@ -6474,17 +6529,6 @@ export class SmartbarInput extends HTMLElement {
    */
   set isSidebarMode(isSidebar) {
     this.#isSidebarMode = !!isSidebar;
-    this.#updateContextChips();
-  }
-
-  /**
-   * Sets the explicit website context and updates the rendered chips.
-   *
-   * @param {ContextWebsite[]} websites
-   */
-  setAndUpdateContextWebsites(websites) {
-    this.#contextWebsites = websites;
-    this.#removedImplicitTabUrl = null;
     this.#updateContextChips();
   }
 

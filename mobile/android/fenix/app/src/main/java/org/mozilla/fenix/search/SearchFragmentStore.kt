@@ -310,7 +310,9 @@ fun createInitialSearchFragmentState(
             browsingMode = browsingMode,
             settings = settings,
             isTrendingSuggestionSupported =
-            components.core.store.state.search.selectedOrDefaultSearchEngine?.trendingUrl != null,
+            components.core.store.state.search.selectedOrDefaultSearchEngine(
+                private = browsingMode.isPrivate,
+            )?.trendingUrl != null,
         ),
         showRecentSearches = settings.shouldShowRecentSearchSuggestions,
         showQrButton = !isAndroidAutomotiveAvailable,
@@ -425,7 +427,11 @@ sealed class SearchFragmentAction : Action {
      * Updates the local `SearchFragmentState` from the global `SearchState` in `BrowserStore`.
      * If the unified search is enabled, then search shortcuts should not be shown.
      */
-    data class UpdateSearchState(val search: SearchState, val isUnifiedSearchEnabled: Boolean) : SearchFragmentAction()
+    data class UpdateSearchState(
+        val search: SearchState,
+        val isUnifiedSearchEnabled: Boolean,
+        val isPrivate: Boolean = false,
+    ) : SearchFragmentAction()
 
     /**
      * Action indicating a suggestion was clicked.
@@ -625,8 +631,11 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
         is SearchFragmentAction.SetShowSearchSuggestions ->
             state.copy(showSearchSuggestionsFromCurrentEngine = action.show)
         is SearchFragmentAction.UpdateSearchState -> {
+            val resolvedEngine = action.search.selectedOrDefaultSearchEngine(
+                private = action.isPrivate,
+            )
             state.copy(
-                defaultEngine = action.search.selectedOrDefaultSearchEngine,
+                defaultEngine = resolvedEngine,
                 areShortcutsAvailable = action.search.searchEngines.size > 1,
                 showSearchShortcuts = !action.isUnifiedSearchEnabled &&
                     state.url.isEmpty() &&
@@ -634,7 +643,7 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                     action.search.searchEngines.size > 1,
                 searchEngineSource = when (state.searchEngineSource) {
                     is SearchEngineSource.Default, is SearchEngineSource.None -> {
-                        action.search.selectedOrDefaultSearchEngine?.let { SearchEngineSource.Default(it) }
+                        resolvedEngine?.let { SearchEngineSource.Default(it) }
                             ?: SearchEngineSource.None
                     }
                     else -> {

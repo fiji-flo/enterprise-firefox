@@ -45,6 +45,7 @@ class HomeScreenTest {
     val retryTestRule = RetryTestRule(3)
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/235396
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=2028550")
     @Test
     fun homeScreenItemsTest() {
         // Workaround to make sure the Pocket articles are populated before starting the test.

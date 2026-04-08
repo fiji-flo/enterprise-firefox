@@ -43,6 +43,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrefsFeed: "resource://newtab/lib/PrefsFeed.sys.mjs",
   PlacesFeed: "resource://newtab/lib/PlacesFeed.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
+  RemoteRenderer: "resource://newtab/lib/RemoteRenderer.sys.mjs",
   SectionsFeed: "resource://newtab/lib/SectionsManager.sys.mjs",
   SectionsLayoutFeed: "resource://newtab/lib/SectionsLayoutFeed.sys.mjs",
   StartupCacheInit: "resource://newtab/lib/StartupCacheInit.sys.mjs",
@@ -116,6 +117,9 @@ const PREF_IMAGE_PROXY_ENABLED =
   "browser.newtabpage.activity-stream.discoverystream.imageProxy.enabled";
 
 const PREF_IMAGE_PROXY_ENABLED_STORE = "discoverystream.imageProxy.enabled";
+
+const PREF_NEWTAB_REMOTE_RENDERER_ENABLED =
+  "browser.newtabpage.activity-stream.remote-renderer.enabled";
 
 export const PREF_DEFAULT_VALUE_TOPSITES_ENABLED = true;
 export const PREF_DEFAULT_VALUE_TOPSTORIES_ENABLED = true;
@@ -1005,6 +1009,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabWallpapers.initialWallpaper",
+    {
+      title:
+        "Initial wallpaper set by a Nimbus experiment. Persists after experiment ends.",
+      value: "",
+    },
+  ],
+  [
     "sov.enabled",
     {
       title: "Enables share of voice (SOV)",
@@ -1503,6 +1515,14 @@ export const PREFS_CONFIG = new Map([
       value: true,
     },
   ],
+  [
+    "remote-renderer.enabled",
+    {
+      title:
+        "Set to true to enable the RemoteSettings backed renderer for newtab. See RemoteRenderer.sys.mjs for more details.",
+      value: false,
+    },
+  ],
 ]);
 
 // Array of each feed's FEEDS_CONFIG factory and values to add to PREFS_CONFIG
@@ -1727,6 +1747,12 @@ export class ActivityStream {
     this._defaultPrefs = new lazy.DefaultPrefs(PREFS_CONFIG);
     this._proxyRegistered = false;
     this.#createdInstant = createdInstant ?? null;
+
+    if (
+      Services.prefs.getBoolPref(PREF_NEWTAB_REMOTE_RENDERER_ENABLED, false)
+    ) {
+      this.remoteRenderer = new lazy.RemoteRenderer();
+    }
   }
 
   /**
@@ -1939,6 +1965,7 @@ export class ActivityStream {
 
     this.store.uninit();
     this.unregisterNetworkProxy();
+    lazy.NewTabActorRegistry.uninit();
     this.initialized = false;
   }
 

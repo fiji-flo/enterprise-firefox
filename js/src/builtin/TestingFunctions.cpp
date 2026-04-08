@@ -28,7 +28,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <functional>
 #include <utility>
 
 #if defined(XP_UNIX) && !defined(XP_DARWIN)
@@ -9647,6 +9646,10 @@ static bool BaselineCompile(JSContext* cx, unsigned argc, Value* vp) {
     if (!jit::IsBaselineJitEnabled(cx)) {
       returnedStr = "baseline disabled";
       break;
+    }
+    if (script->length() > jit::BaselineMaxScriptLength ||
+        script->nslots() > jit::BaselineMaxScriptSlots) {
+      script->disableBaselineCompile();
     }
     if (!script->canBaselineCompile()) {
       returnedStr = "can't compile";

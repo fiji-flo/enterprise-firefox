@@ -104,6 +104,7 @@ def test_query_paths_variants(monkeypatch, run_mach, capfd, variant):
         expected = ["test-linux2404-64/debug-mochitest-browser-chrome%s-*" % variant]
     else:
         expected = [
+            "test-linux2404-64/debug-mochitest-browser-chrome-standalone-*",
             "test-linux2404-64/debug-mochitest-browser-chrome-swr-*",
         ]
 
@@ -155,6 +156,7 @@ def test_query_tags(run_mach, capfd, tag):
         print(output)
 
         expected = [
+            "test-linux2404-64/debug-mochitest-browser-chrome-standalone-*",
             "test-linux2404-64/debug-mochitest-devtools-chrome-*",
             "test-linux2404-64/debug-mochitest-chrome-1proc-*",
             "test-linux2404-64/debug-mochitest-chrome-gpu-1proc",

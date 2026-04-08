@@ -145,7 +145,11 @@ VideoEngine::VideoEngine(const CaptureDeviceType& aCaptureDeviceType,
        EnumValueToString(mCaptureDevType)));
 }
 
-VideoEngine::~VideoEngine() = default;
+VideoEngine::~VideoEngine() {
+  if (mDeviceInfo) {
+    mDeviceInfo->DeRegisterVideoInputFeedBack(this);
+  }
+}
 
 #undef LOG
 #undef LOG_ENABLED

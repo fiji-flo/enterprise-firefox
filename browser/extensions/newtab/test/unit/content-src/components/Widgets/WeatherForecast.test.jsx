@@ -153,7 +153,7 @@ describe("<WeatherForecast>", () => {
   });
 
   it("should display city name when search is inactive", () => {
-    const cityName = wrapper.find(".city-name h3");
+    const cityName = wrapper.find(".city-name h2");
     assert.ok(cityName.exists());
     assert.equal(cityName.text(), "Testville");
   });
@@ -175,6 +175,20 @@ describe("<WeatherForecast>", () => {
 
     assert.ok(wrapper.find("LocationSearch").exists());
     assert.ok(!wrapper.find(".city-name h3").exists());
+  });
+
+  describe("high/low temperature aria-labels", () => {
+    it("should have an aria-label on the high temperature arrow", () => {
+      const highArrow = wrapper.find(".high-temperature .arrow-icon.arrow-up");
+      assert.ok(highArrow.exists());
+      assert.equal(highArrow.prop("data-l10n-id"), "newtab-weather-high");
+    });
+
+    it("should have an aria-label on the low temperature arrow", () => {
+      const lowArrow = wrapper.find(".low-temperature .arrow-icon.arrow-down");
+      assert.ok(lowArrow.exists());
+      assert.equal(lowArrow.prop("data-l10n-id"), "newtab-weather-low");
+    });
   });
 
   describe("context menu", () => {

@@ -195,16 +195,6 @@ toolbar .toolbarbutton-1 {
   }
 }
 
-#TabsToolbar .toolbarbutton-1 {
-  margin: 0;
-
-  > .toolbarbutton-icon,
-  > .toolbarbutton-text,
-  > .toolbarbutton-badge-stack {
-    border-radius: var(--tab-border-radius);
-  }
-}
-
 #PanelUI-menu-button {
   /* Adds padding to end of toolbar while making that space click the first button */
   padding-inline-end: var(--toolbar-start-end-padding);

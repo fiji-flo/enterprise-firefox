@@ -158,7 +158,7 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
       const wr::RenderReasons& aReasons) override;
   mozilla::ipc::IPCResult RecvCapture() override;
   mozilla::ipc::IPCResult RecvStartCaptureSequence(
-      const nsACString& path, const uint32_t& aFlags) override;
+      const uint32_t& aFlags) override;
   mozilla::ipc::IPCResult RecvStopCaptureSequence() override;
   mozilla::ipc::IPCResult RecvSyncWithCompositor() override;
 
@@ -347,7 +347,7 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
                               const VsyncId& aVsyncId);
 
   bool SetDisplayList(const LayoutDeviceRect& aRect, ipc::ByteBuf&& aDLItems,
-                      ipc::ByteBuf&& aDLCache, ipc::ByteBuf&& aSpatialTreeDL,
+                      ipc::ByteBuf&& aSpatialTreeDL,
                       const wr::BuiltDisplayListDescriptor& aDLDesc,
                       const nsTArray<OpUpdateResource>& aResourceUpdates,
                       const nsTArray<RefCountedShmem>& aSmallShmems,

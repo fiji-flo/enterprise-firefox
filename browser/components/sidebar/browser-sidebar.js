@@ -164,12 +164,18 @@ var SidebarController = {
         this.makeSidebar({
           name: "bookmarks",
           elementId: "sidebar-switcher-bookmarks",
-          url: "chrome://browser/content/places/bookmarksSidebar.xhtml",
+          url:
+            this.sidebarRevampEnabled && this.updatedBookmarksPanelEnabled
+              ? "chrome://browser/content/sidebar/sidebar-bookmarks.html"
+              : "chrome://browser/content/places/bookmarksSidebar.xhtml",
           menuId: "menu_bookmarksSidebar",
           keyId: "viewBookmarksSidebarKb",
           menuL10nId: "menu-view-bookmarks",
           revampL10nId: "sidebar-menu-bookmarks-label",
           iconUrl: "chrome://browser/skin/bookmark-hollow.svg",
+          contextMenuId: this.sidebarRevampEnabled
+            ? "sidebar-bookmarks-context-menu"
+            : undefined,
           disabled: true,
           gleanEvent: Glean.bookmarks.sidebarToggle,
           gleanClickEvent: Glean.sidebar.bookmarksIconClick,
@@ -384,6 +390,20 @@ var SidebarController = {
       this._state = new this.SidebarState(this);
     }
 
+    // Watch for fullscreen transitions to sync the sidebar attribute.
+    this._fullscreenObserver = new MutationObserver(() => {
+      const inFullscreen =
+        document.documentElement.hasAttribute("inDOMFullscreen");
+      this._state.fullscreen = inFullscreen;
+    });
+
+    this._fullscreenObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["inDOMFullscreen"],
+    });
+    // Initial check: is the window already in fullscreen when we start?
+    this._state.fullscreen =
+      document.documentElement.hasAttribute("inDOMFullscreen");
     this._pinnedTabsContainer = document.getElementById(
       "pinned-tabs-container"
     );
@@ -531,7 +551,7 @@ var SidebarController = {
         (this.sidebarRevampEnabled || windowPrivacyMatches)
       ) {
         const backupState = this.SidebarManager.getBackupState();
-        this.initializeUIState(backupState);
+        this.updateUIState(backupState);
       }
     });
     this._initDeferred.resolve();
@@ -540,6 +560,10 @@ var SidebarController = {
   uninit() {
     // Set a flag to allow us to ignore pref changes while the host document is being unloaded.
     this._uninitializing = true;
+    if (this._fullscreenObserver) {
+      this._fullscreenObserver.disconnect();
+      this._fullscreenObserver = null;
+    }
 
     // If this is the last browser window, persist various values that should be
     // remembered for after a restart / reopening a browser window.
@@ -617,7 +641,7 @@ var SidebarController = {
    *
    * @param {SidebarStateProps} state
    */
-  async initializeUIState(state) {
+  async updateUIState(state) {
     if (!state) {
       return;
     }
@@ -639,7 +663,7 @@ var SidebarController = {
     }
     await this.promiseInitialized;
     await this.waitUntilStable(); // Finish currently scheduled tasks.
-    await this._state.loadInitialState(state);
+    await this._state.loadCurrentState(state);
     await this.waitUntilStable(); // Finish newly scheduled tasks.
     this.updateToolbarButton();
     if (this.sidebarRevampVisibility === "expand-on-hover") {
@@ -909,7 +933,7 @@ var SidebarController = {
     const sourceState = sourceController.inPopup
       ? null
       : sourceController._state?.getProperties();
-    await this.initializeUIState(sourceState);
+    await this.updateUIState(sourceState);
 
     return true;
   },
@@ -2504,6 +2528,28 @@ XPCOMUtils.defineLazyPreferenceGetter(
     if (!SidebarController.uninitializing) {
       SidebarController.toggleRevampSidebar();
       SidebarController._state.revampEnabled = newValue;
+    }
+  }
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SidebarController,
+  "updatedBookmarksPanelEnabled",
+  "sidebar.updatedBookmarks.enabled",
+  false,
+  (_aPreference, _previousValue, newValue) => {
+    if (!SidebarController.uninitializing) {
+      const bookmarksSidebar = SidebarController.sidebars.get(
+        "viewBookmarksSidebar"
+      );
+      if (bookmarksSidebar) {
+        bookmarksSidebar.url =
+          SidebarController.sidebarRevampEnabled && newValue
+            ? "chrome://browser/content/sidebar/sidebar-bookmarks.html"
+            : "chrome://browser/content/places/bookmarksSidebar.xhtml";
+        if (SidebarController.currentID === "viewBookmarksSidebar") {
+          SidebarController.show("viewBookmarksSidebar");
+        }
+      }
     }
   }
 );

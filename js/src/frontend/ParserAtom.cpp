@@ -704,8 +704,7 @@ bool ParserAtomsTable::isIdentifier(TaggedParserAtomIndex index) const {
 #ifdef DEBUG
   char content[3];
   getLength3Content(index.toLength3StaticParserString(), content);
-  MOZ_ASSERT(!reinterpret_cast<const Latin1Char*>(
-      IsIdentifier(reinterpret_cast<const Latin1Char*>(content), 3)));
+  MOZ_ASSERT(!IsIdentifier(reinterpret_cast<const Latin1Char*>(content), 3));
 #endif
   return false;
 }
@@ -1215,7 +1214,7 @@ bool InstantiateMarkedAtomsAsPermanent(JSContext* cx, FrontendContext* fc,
 }
 
 /* static */
-MOZ_RUNINIT WellKnownParserAtoms WellKnownParserAtoms::singleton_;
+constinit WellKnownParserAtoms WellKnownParserAtoms::singleton_;
 
 template <typename CharT>
 TaggedParserAtomIndex WellKnownParserAtoms::lookupChar16Seq(

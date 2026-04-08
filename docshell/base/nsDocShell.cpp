@@ -1032,7 +1032,7 @@ bool nsDocShell::MaybeHandleSubframeHistory(
         dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();
         nsCOMPtr<nsILoadGroup> loadGroup;
         GetLoadGroup(getter_AddRefs(loadGroup));
-        if (contentChild && loadGroup && !mCheckingSessionHistory) {
+        if (contentChild && loadGroup && !GetIsAttemptingToNavigate()) {
           RefPtr<Document> parentDoc = parentDS->GetDocument();
           parentDoc->BlockOnload();
           RefPtr<BrowsingContext> browsingContext = mBrowsingContext;
@@ -10961,7 +10961,7 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
 nsresult nsDocShell::UpdateURLAndHistory(
     Document* aDocument, nsIURI* aNewURI, nsIStructuredCloneContainer* aData,
     NavigationHistoryBehavior aHistoryHandling, nsIURI* aCurrentURI,
-    bool aEqualURIs) {
+    bool aEqualURIs, bool aFiredNavigateEvent) {
   MOZ_LOG_FMT(gNavigationAPILog, LogLevel::Debug, "UpdateURLAndHistory {}",
               aHistoryHandling);
 
@@ -11106,7 +11106,8 @@ nsresult nsDocShell::UpdateURLAndHistory(
     // newEntry, and historyHandling.
     navigation->UpdateEntriesForSameDocumentNavigation(
         mActiveEntry.get(),
-        isReplace ? NavigationType::Replace : NavigationType::Push);
+        isReplace ? NavigationType::Replace : NavigationType::Push,
+        aFiredNavigateEvent);
   }
 
   return NS_OK;

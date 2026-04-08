@@ -108,6 +108,7 @@ import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.e2e.SystemInsetsPaddedFragment
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getBottomToolbarHeight
+import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.getTopToolbarHeight
 import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.isToolbarAtBottom
@@ -121,6 +122,7 @@ import org.mozilla.fenix.ext.updateMicrosurveyPromptForConfigurationChange
 import org.mozilla.fenix.home.bookmarks.BookmarksFeature
 import org.mozilla.fenix.home.bookmarks.controller.DefaultBookmarksController
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
+import org.mozilla.fenix.home.logo.LogoController
 import org.mozilla.fenix.home.pocket.controller.DefaultPocketStoriesController
 import org.mozilla.fenix.home.privatebrowsing.controller.DefaultPrivateBrowsingController
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabFeature
@@ -149,6 +151,7 @@ import org.mozilla.fenix.home.topsites.DefaultTopSitesView
 import org.mozilla.fenix.home.topsites.TopSitesBinding
 import org.mozilla.fenix.home.topsites.controller.DefaultTopSiteController
 import org.mozilla.fenix.home.topsites.getTopSitesConfig
+import org.mozilla.fenix.home.ui.HomeSwipeIntegration
 import org.mozilla.fenix.home.ui.Homepage
 import org.mozilla.fenix.home.ui.MiddleSearchHomepage
 import org.mozilla.fenix.messaging.DefaultMessageController
@@ -209,6 +212,8 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
     private val bottomToolbarContainerView: BottomToolbarContainerView
         get() = _bottomToolbarContainerView!!
     private var awesomeBarComposable: AwesomeBarComposable? = null
+
+    private var homeSwipeIntegration: HomeSwipeIntegration? = null
 
     private val searchSelectorMenu by lazy {
         SearchSelectorMenu(
@@ -662,6 +667,10 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             privacyNoticeBannerController = DefaultPrivacyNoticeBannerController(
                 privacyNoticeBannerStore = privacyNoticeBannerStore,
             ),
+            logoController = LogoController(
+                longFoxFeature = components.core.longFoxFeature,
+                container = activity.getRootView() as? ViewGroup,
+            ),
         )
 
         nullableToolbarView = buildToolbar(activity)
@@ -673,6 +682,16 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         initComposeHomepage()
 
         disableAppBarDragging()
+
+        homeSwipeIntegration = HomeSwipeIntegration(
+            components = requireContext().components,
+            settings = requireContext().settings(),
+            binding = binding,
+            activity = requireActivity() as HomeActivity,
+            toolbarView = toolbarView,
+            homeNavigationBar = homeNavigationBar,
+            navController = findNavController(),
+        )
 
         FxNimbus.features.homescreen.recordExposure()
 
@@ -971,6 +990,8 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             HomeScreen.standardHomepageViewCount.add()
         }
 
+        homeSwipeIntegration?.initializeSwipeUI()
+
         observePrivateModeLock {
             findNavController().navigate(
                 NavGraphDirections.actionGlobalUnlockPrivateTabsFragment(NavigationOrigin.HOME_PAGE),
@@ -1019,8 +1040,9 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                 feature = SearchSelectorBinding(
                     context = view.context,
                     toolbarView = it,
-                    browserStore = requireComponents.core.store,
                     searchSelectorMenu = searchSelectorMenu,
+                    browsingModeManager = browsingModeManager,
+                    browserStore = requireComponents.core.store,
                 ),
                 owner = viewLifecycleOwner,
                 view = binding.root,
@@ -1238,6 +1260,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         _sessionControlInteractor = null
         _bottomToolbarContainerView = null
         awesomeBarComposable = null
+        homeSwipeIntegration = null
         _binding = null
 
         bundleArgs.clear()
@@ -1246,6 +1269,11 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
 
     override fun onStart() {
         super.onStart()
+
+        val settings = requireContext().settings()
+        if (settings.privateModeAndStoriesEntryPointEnabled) {
+            settings.incrementNewsButtonForegroundCount()
+        }
 
         findNavController().addOnDestinationChangedListener(destinationChangedListener)
 
@@ -1312,7 +1340,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         evaluateMessagesForMicrosurvey(components)
 
         maybeShowEncourageSearchCfr(
-            canShowCfr = components.settings.canShowCfr,
+            canShowCfr = components.settings.canShowCfr && components.settings.cfrPopupsEnabled,
             shouldShowCFR = components.settings.shouldShowSearchBarCFR,
             showCfr = ::showEncourageSearchCfr,
             recordExposure = { FxNimbus.features.encourageSearchCfr.recordExposure() },

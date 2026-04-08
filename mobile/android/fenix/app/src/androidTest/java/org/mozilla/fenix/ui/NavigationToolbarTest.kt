@@ -864,8 +864,8 @@ class NavigationToolbarTest {
 
         navigationToolbar(composeTestRule) {
             verifyNavBarPositionWithTabStripEnabled(true)
-            verifyTheTheTabStripPageViewNavigationBarBookmarkButton()
-            verifyTheTabStripNavigationBarShareButton()
+            verifyTheNavigationBarAddBookmarkButton()
+            verifyTheNavigationBarShareButton()
             verifyTheNewTabButton()
             verifyTheTabCounter("0")
             verifyTheMainMenuButton()
@@ -904,8 +904,8 @@ class NavigationToolbarTest {
             verifyTheTabStripOpenTab("Test_Page_1")
             verifyTheTabStripCloseTabButton("Test_Page_1")
             verifyNavBarPositionWithTabStripEnabled(true)
-            verifyTheTheTabStripPageViewNavigationBarBookmarkButton()
-            verifyTheTabStripNavigationBarShareButton()
+            verifyTheNavigationBarAddBookmarkButton()
+            verifyTheNavigationBarShareButton()
             verifyTheNewTabButton(false)
             verifyTheTabCounter("1")
             verifyTheMainMenuButton()

@@ -5,6 +5,7 @@
 #ifndef mozilla_dom_ScrollTimeline_h
 #define mozilla_dom_ScrollTimeline_h
 
+#include "mozilla/AnimationTarget.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/WritingModes.h"
 #include "mozilla/dom/AnimationTimeline.h"
@@ -20,7 +21,6 @@ enum class StyleOverflow : uint8_t;
 namespace mozilla {
 class ScrollContainerFrame;
 class ElementAnimationData;
-struct NonOwningAnimationTarget;
 namespace dom {
 class Document;
 class Element;
@@ -157,8 +157,15 @@ class ScrollTimeline : public AnimationTimeline,
     // We are using this magic number for progress-based timeline duration
     // because we don't support percentage for duration.
     const auto interval = IntervalForAttachmentRange(aRange);
-    return TimeDuration::FromMilliseconds((interval.second - interval.first) *
-                                          PROGRESS_TIMELINE_DURATION_MILLISEC);
+    // FIXME: Bug 2006263. This function is used for computing the normalized
+    // timing for each animation effect. Per spec, we should just return 100%.
+    // However, we use TimeDuration to represent the duration now, so if the
+    // interval is negative or zero when applying the animation attachment
+    // range, we return 0 as the tentative solution.
+    return TimeDuration::FromMilliseconds(
+        (interval.second > interval.first ? interval.second - interval.first
+                                          : 0.0) *
+        PROGRESS_TIMELINE_DURATION_MILLISEC);
   }
 
   void WillRefresh();
@@ -177,8 +184,9 @@ class ScrollTimeline : public AnimationTimeline,
     return mSource.mElement;
   }
 
-  virtual const Element* TimelineTargetElement() const {
-    return SourceElement();
+  virtual NonOwningAnimationTarget TimelineTarget() const {
+    MOZ_ASSERT(mSource);
+    return {mSource.mElement, PseudoStyleRequest{mSource.mPseudoType}};
   }
 
   bool SourceMatches(const Element* aElement,

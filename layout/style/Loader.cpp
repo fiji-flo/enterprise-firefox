@@ -281,6 +281,7 @@ SheetLoadData::SheetLoadData(
       mPreloadKind(aPreloadKind),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
+      mLoaderPrincipal(aLoader->LoaderPrincipal()),
       mReferrerInfo(aReferrerInfo),
       mNonce(aNonce),
       mFetchPriority{aFetchPriority},
@@ -324,6 +325,7 @@ SheetLoadData::SheetLoadData(
       mPreloadKind(StylePreloadKind::None),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
+      mLoaderPrincipal(aLoader->LoaderPrincipal()),
       mReferrerInfo(aReferrerInfo),
       mNonce(u""_ns),
       mFetchPriority(FetchPriority::Auto),
@@ -370,6 +372,7 @@ SheetLoadData::SheetLoadData(
       mPreloadKind(aPreloadKind),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
+      mLoaderPrincipal(aLoader->LoaderPrincipal()),
       mReferrerInfo(aReferrerInfo),
       mNonce(aNonce),
       mFetchPriority(aFetchPriority),
@@ -523,6 +526,7 @@ void Loader::DeregisterFromSheetCache() {
 }
 
 void Loader::DropDocumentReference() {
+  MOZ_ASSERT(NS_IsMainThread());
   // Flush out pending datas just so we don't leak by accident.
   if (mSheets) {
     DeregisterFromSheetCache();
@@ -671,7 +675,7 @@ void SheetLoadData::OnStartRequest(nsIRequest* aRequest) {
     if (mSheet->GetCORSMode() != CORS_NONE) {
       return true;
     }
-    if (!mLoader->LoaderPrincipal()->Subsumes(mSheet->Principal())) {
+    if (!mLoaderPrincipal->Subsumes(mSheet->Principal())) {
       return false;
     }
     if (nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(channel)) {
@@ -743,8 +747,7 @@ nsresult SheetLoadData::VerifySheetReadyToParse(nsresult aStatus,
     // FIXME(emilio, bug 1995647): This should arguably use IsOriginClean(),
     // though test_css_cross_domain_no_orb.html tests precisely this behavior
     // intentionally, and this is quirks-only...
-    const bool sameOrigin =
-        mLoader->LoaderPrincipal()->Subsumes(mSheet->Principal());
+    const bool sameOrigin = mLoaderPrincipal->Subsumes(mSheet->Principal());
     const auto flag = sameOrigin && mCompatMode == eCompatibility_NavQuirks
                           ? nsIScriptError::warningFlag
                           : nsIScriptError::errorFlag;
@@ -2351,6 +2354,7 @@ size_t Loader::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
 }
 
 nsIPrincipal* Loader::LoaderPrincipal() const {
+  MOZ_ASSERT(NS_IsMainThread());
   if (mDocument) {
     return mDocument->NodePrincipal();
   }
@@ -2359,10 +2363,12 @@ nsIPrincipal* Loader::LoaderPrincipal() const {
 }
 
 nsIPrincipal* Loader::PartitionedPrincipal() const {
+  MOZ_ASSERT(NS_IsMainThread());
   return mDocument ? mDocument->PartitionedPrincipal() : LoaderPrincipal();
 }
 
 bool Loader::ShouldBypassCache() const {
+  MOZ_ASSERT(NS_IsMainThread());
   return mDocument && nsContentUtils::ShouldBypassSubResourceCache(mDocument);
 }
 

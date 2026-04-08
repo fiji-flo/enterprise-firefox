@@ -27,6 +27,7 @@ import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.app.links.AppLinkRedirect
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesUseCases
@@ -78,6 +79,7 @@ class MenuDialogMiddlewareTest {
     private lateinit var removePinnedSiteUseCase: TopSitesUseCases.RemoveTopSiteUseCase
     private lateinit var appLinksUseCases: AppLinksUseCases
     private lateinit var requestDesktopSiteUseCase: SessionUseCases.RequestDesktopSiteUseCase
+    private lateinit var migratePrivateTabUseCase: TabsUseCases.MigratePrivateTabUseCase
     private lateinit var settings: Settings
 
     private val summarizeFeatureSettings = FakeSummarizationFeatureConfiguration()
@@ -95,6 +97,7 @@ class MenuDialogMiddlewareTest {
         removePinnedSiteUseCase = mockk(relaxUnitFun = true)
         appLinksUseCases = mockk()
         requestDesktopSiteUseCase = mockk(relaxUnitFun = true)
+        migratePrivateTabUseCase = mockk(relaxed = true)
         lastSavedFolderCache = mockk(relaxed = true)
 
         settings = Settings(testContext)
@@ -867,6 +870,50 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
+    fun `WHEN move to non-private tab action is dispatched THEN the private tab is migrated and menu is dismissed`() = runTest(testDispatcher) {
+        val tabId = "test-tab-id"
+        var dismissWasCalled = false
+
+        val browserMenuState = BrowserMenuState(
+            selectedTab = createTab(
+                id = tabId,
+                url = "https://www.mozilla.org",
+                private = true,
+            ),
+        )
+        val store = createStore(
+            menuState = MenuState(
+                browserMenuState = browserMenuState,
+            ),
+            onDismiss = { dismissWasCalled = true },
+        )
+        testScheduler.advanceUntilIdle()
+
+        store.dispatch(MenuAction.MoveToNonPrivateTab)
+        testScheduler.advanceUntilIdle()
+
+        coVerify { migratePrivateTabUseCase(tabId) }
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN no selected tab WHEN move to non-private tab action is dispatched THEN the use case is not invoked`() = runTest(testDispatcher) {
+        var dismissWasCalled = false
+
+        val store = createStore(
+            menuState = MenuState(browserMenuState = null),
+            onDismiss = { dismissWasCalled = true },
+        )
+        testScheduler.advanceUntilIdle()
+
+        store.dispatch(MenuAction.MoveToNonPrivateTab)
+        testScheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { migratePrivateTabUseCase(any()) }
+        assertFalse(dismissWasCalled)
+    }
+
+    @Test
     fun `WHEN custom menu item action is dispatched THEN pending intent is sent with url`() = runTest(testDispatcher) {
         val url = "https://www.mozilla.org"
         val mockIntent: PendingIntent = mockk()
@@ -1224,6 +1271,7 @@ class MenuDialogMiddlewareTest {
                 addPinnedSiteUseCase = addPinnedSiteUseCase,
                 removePinnedSitesUseCase = removePinnedSiteUseCase,
                 requestDesktopSiteUseCase = requestDesktopSiteUseCase,
+                migratePrivateTabUseCase = migratePrivateTabUseCase,
                 materialAlertDialogBuilder = alertDialogBuilder,
                 topSitesMaxLimit = TOP_SITES_MAX_COUNT,
                 onDeleteAndQuit = onDeleteAndQuit,

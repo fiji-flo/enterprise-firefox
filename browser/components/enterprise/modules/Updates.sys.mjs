@@ -166,8 +166,7 @@ export const Updates = {
       // downloadedBytes / totalBytes being "undefined" will move from 0 to 10%
       case lazy.AppUpdater.STATUS.DOWNLOADING: {
         this.cancelDelayedUpdateCheckUI();
-        this.hide(".felt-updates-checking");
-        this.show(".felt-updates-application");
+        this.displayUpdateDownloadingPanel();
 
         let percent = FELT_UPDATE_APPLY_PERCENT_INIT;
         if (downloadedBytes && totalBytes) {
@@ -217,8 +216,9 @@ export const Updates = {
         break;
 
       case lazy.AppUpdater.STATUS.UNSUPPORTED_SYSTEM:
-        this.displayLoginStateWithUpdateError(
-          "unsupported-system-contact-admin"
+        this.displayLoginStateWithUpdateWarning(
+          "felt-warning-unsupported-system-contact-admin",
+          "warning-unsupported-system-contact-admin"
         );
         break;
 
@@ -284,9 +284,7 @@ export const Updates = {
     }
 
     this._checkingTimeout = lazy.setTimeout(() => {
-      this.hide(".felt-updates-application");
-      this.show(".felt-updates-checking");
-      this.show(".felt-updates");
+      this.displayUpdateCheckingPanel();
     }, 500);
   },
 
@@ -295,6 +293,18 @@ export const Updates = {
       lazy.clearTimeout(this._checkingTimeout);
     }
     this._checkingTimeout = null;
+  },
+
+  displayUpdateCheckingPanel() {
+    this.hide(".felt-updates-application");
+    this.show(".felt-updates-checking");
+    this.show(".felt-updates");
+  },
+
+  displayUpdateDownloadingPanel() {
+    this.hide(".felt-updates-checking");
+    this.show(".felt-updates-application");
+    this.show(".felt-updates");
   },
 
   displayUpdateState() {
@@ -321,6 +331,18 @@ export const Updates = {
     this.displayLoginState();
   },
 
+  displayLoginStateWithUpdateWarning(warningTitle, warningMsg) {
+    this.hide(".felt-updates-message");
+    this._errorReporter.update("felt-updates-warning-messages", warningMsg);
+    const warning = this._document.querySelector(
+      ".felt-updates-warning-messages"
+    );
+    if (warning) {
+      this._document.l10n.setAttributes(warning, warningTitle, {});
+    }
+    this.displayLoginState();
+  },
+
   automaticRestart() {
     // Ensure the on-disk status is changed from "pending-elevate" to
     // "pending" before restarting. Without this, ProcessUpdates sees
@@ -344,6 +366,22 @@ export const Updates = {
     Services.obs.removeObserver(this, "xpcom-shutdown");
   },
 
+  sendUpdateReady() {
+    try {
+      Services.felt?.sendUpdateReady();
+    } catch (ex) {
+      if (ex.result === Cr.NS_ERROR_NOT_CONNECTED) {
+        console.warn(
+          `FeltUpdates: sendUpdateReady() failed because not connected: no browser ?`
+        );
+      } else if (ex.result === Cr.NS_ERROR_CONNECTION_REFUSED) {
+        console.warn(`FeltUpdates: sendUpdateReady() failed to send`);
+      } else {
+        throw ex;
+      }
+    }
+  },
+
   observe(subject, topic, state) {
     // We would coerce subject
     //   update = subject && subject.QueryInterface(Ci.nsIUpdate);
@@ -364,7 +402,7 @@ export const Updates = {
               .elevationOptedIn()
               .then(
                 () => {
-                  Services.felt?.sendUpdateReady();
+                  this.sendUpdateReady();
                 },
                 err => {
                   console.error(
@@ -377,7 +415,7 @@ export const Updates = {
           case "applied":
           case "applied-service":
           case "succeeded":
-            Services.felt?.sendUpdateReady();
+            this.sendUpdateReady();
             break;
           default:
             console.warn(`FeltUpdates: unhandled nsIUpdate state: ${state}`);
@@ -388,14 +426,23 @@ export const Updates = {
       case "update-error":
         switch (state) {
           case "elevation-attempt-failed":
-            Services.felt?.sendUpdateReady();
+            this.displayLoginStateWithUpdateWarning(
+              "felt-warning-title-elevation-attempt-failed",
+              "warning-elevation-attempt-failed-contact-admin"
+            );
+            this.sendUpdateReady();
             break;
-          case "download-attempt-failed": // this.showUpdateAvailableNotification(update, false);
+          case "download-attempt-failed":
+            this.displayLoginStateWithUpdateWarning(
+              "felt-warning-title-download-attempt-failed",
+              "warning-download-attempt-failed-contact-admin"
+            );
+            break;
           case "check-attempts-exceeded":
           case "unknown":
           case "bad-perms":
           case "download-attempts-exceeded":
-          case "elevation-attempts-exceeded": // this.showManualUpdateNotification(update, false);
+          case "elevation-attempts-exceeded":
           default:
             console.warn(
               `FeltUpdates: unhandled nsIUpdateService error: ${state}`

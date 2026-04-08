@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <functional>
 #include <iterator>
 #include <new>
 #include <numeric>
@@ -7610,6 +7609,15 @@ void DatabaseConnection::UpdateRefcountFunction::ReleaseSavepoint() {
   mConnection->AssertIsOnConnectionThread();
   MOZ_ASSERT(mInSavepoint);
 
+  // The savepoint is being committed. The deltas it contributed are now
+  // permanent in mDelta, so reset mSavepointDelta on each entry before
+  // dropping the index. The FileInfoEntry objects themselves persist in
+  // mFileInfoEntries across savepoints; without this reset, a stale
+  // mSavepointDelta would be carried into the next savepoint.
+  for (const auto& entry : mSavepointEntriesIndex.Values()) {
+    entry->ResetSavepointDelta();
+  }
+
   mSavepointEntriesIndex.Clear();
   mInSavepoint = false;
 }
@@ -10402,6 +10410,13 @@ bool TransactionBase::VerifyRequestParams(
     switch (fileAddInfo.type()) {
       case StructuredCloneFileBase::eBlob:
         if (NS_AUUF_OR_WARN_IF(!file)) {
+          return false;
+        }
+
+        // Reject actors managed by a different Database
+        if (NS_AUUF_OR_WARN_IF(file->Manager() !=
+                               static_cast<const PBackgroundIDBDatabaseParent*>(
+                                   &GetDatabase()))) {
           return false;
         }
         break;

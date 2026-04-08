@@ -13,6 +13,7 @@ import mozilla.components.feature.summarize.ErrorReporter
 import mozilla.components.feature.summarize.SummarizationMiddleware
 import mozilla.components.feature.summarize.SummarizationState
 import mozilla.components.feature.summarize.SummarizationStore
+import mozilla.components.feature.summarize.content.ContentProvider
 import mozilla.components.feature.summarize.content.PageContentExtractor
 import mozilla.components.feature.summarize.content.PageMetadataExtractor
 import mozilla.components.feature.summarize.settings.SummarizationSettings
@@ -22,14 +23,17 @@ import mozilla.components.feature.summarize.summarizationReducer
  * A [ViewModel] that owns and survives configuration changes for a [SummarizationStore].
  *
  * @param initializedFromShake Whether the summarization feature was triggered by a shake gesture.
+ * @param connectionType the current network [ConnectionType].
  * @param llmProvider the [LlmProvider] used to summarize the page.
  * @param settings the SummarizationSettings.
  * @param pageContentExtractor an extractor for page content.
  * @param pageMetadataExtractor an extractor for page metadata.
  * @param errorReporter reports caught exceptions to the crash reporting service.
  */
+@Suppress("LongParameterList")
 class SummarizationStoreViewModel(
     initializedFromShake: Boolean,
+    connectionType: ConnectionType,
     llmProvider: CloudLlmProvider,
     settings: SummarizationSettings,
     pageContentExtractor: PageContentExtractor,
@@ -40,11 +44,11 @@ class SummarizationStoreViewModel(
         initialState = SummarizationState.Inert(initializedFromShake),
         reducer = ::summarizationReducer,
         middleware = listOf(
+            SummarizationTelemetryMiddleware(connectionType),
             SummarizationMiddleware(
                 settings = settings,
                 llmProvider = llmProvider,
-                pageContentExtractor = pageContentExtractor,
-                pageMetadataExtractor = pageMetadataExtractor,
+                contentProvider = ContentProvider.fromPage(pageContentExtractor, pageMetadataExtractor),
                 errorReporter = errorReporter,
                 scope = viewModelScope,
             ),
@@ -56,6 +60,7 @@ class SummarizationStoreViewModel(
          * Creates a [ViewModelProvider.Factory] for [SummarizationStoreViewModel].
          *
          * @param initializedFromShake Whether the summarization feature was triggered by a shake gesture.
+         * @param connectionType the current network [ConnectionType].
          * @param llmProvider the [LlmProvider] used to summarize the page.
          * @param settings the SummarizationSettings.
          * @param pageContentExtractor an extractor for page content.
@@ -64,6 +69,7 @@ class SummarizationStoreViewModel(
          */
         fun factory(
             initializedFromShake: Boolean,
+            connectionType: ConnectionType,
             llmProvider: CloudLlmProvider,
             settings: SummarizationSettings,
             pageContentExtractor: PageContentExtractor,
@@ -75,6 +81,7 @@ class SummarizationStoreViewModel(
                 return SummarizationStoreViewModel(
                     initializedFromShake,
                     llmProvider = llmProvider,
+                    connectionType = connectionType,
                     settings = settings,
                     pageContentExtractor = pageContentExtractor,
                     pageMetadataExtractor = pageMetadataExtractor,

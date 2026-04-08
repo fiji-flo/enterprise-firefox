@@ -1294,8 +1294,8 @@ renaming_overrides_prefixing = true
   inline Span<const mozilla::StyleAtom> AsSpan() const;
 """
 
-"PropertyTypedValue" = """
-  StylePropertyTypedValue(StylePropertyTypedValue&& other)
+"PropertyTypedValueList" = """
+  StylePropertyTypedValueList(StylePropertyTypedValueList&& other)
       : tag(other.tag) {
     switch (tag) {
       case Tag::None:
@@ -1310,10 +1310,10 @@ renaming_overrides_prefixing = true
     }
   }
 
-  StylePropertyTypedValue& operator=(StylePropertyTypedValue&& other) {
+  StylePropertyTypedValueList& operator=(StylePropertyTypedValueList&& other) {
     if (this != &other) {
-      this->~StylePropertyTypedValue();
-      new (this) StylePropertyTypedValue(std::move(other));
+      this->~StylePropertyTypedValueList();
+      new (this) StylePropertyTypedValueList(std::move(other));
     }
     return *this;
   }

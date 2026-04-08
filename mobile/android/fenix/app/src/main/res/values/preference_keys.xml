@@ -103,6 +103,8 @@
     <string name="pref_key_crash_pull_never_show_again" translatable="false">pref_key_crash_pull_never_show_again</string>
     <string name="pref_key_crash_pull_dont_show_before" translatable="false">pref_key_crash_pull_dont_show_before</string>
     <string name="pref_key_privacy_notice_banner_last_displayed_time" translatable="false">pref_key_privacy_notice_banner_last_displayed_time</string>
+    <string name="pref_cfr_popups_enabled" translatable="false">pref_cfr_popups_enabled</string>
+    <string name="pref_in_app_messages_enabled" translatable="false">pref_in_app_messages_enabled</string>
 
     <!-- Data Choices -->
     <string name="pref_key_telemetry" translatable="false">pref_key_telemetry</string>
@@ -134,6 +136,7 @@
 
     <!-- Search Settings -->
     <string name="pref_key_search_engine_list" translatable="false">pref_key_search_engine_list</string>
+    <string name="pref_key_private_search_engine_list" translatable="false">pref_key_private_search_engine_list</string>
     <string name="pref_key_show_search_engine_shortcuts" translatable="false">pref_key_show_search_engine_shortcuts</string>
     <string name="pref_key_show_search_suggestions" translatable="false">pref_key_show_search_suggestions</string>
     <string name="pref_key_show_clipboard_suggestions" translatable="false">pref_key_show_clipboard_suggestions</string>
@@ -327,6 +330,7 @@
     <string name="pref_key_utm_campaign" translatable="false">pref_key_utm_campaign</string>
     <string name="pref_key_utm_term" translatable="false">pref_key_utm_term</string>
     <string name="pref_key_utm_content" translatable="false">pref_key_utm_content</string>
+    <string name="pref_key_is_user_meta_attributed" translatable="false">pref_key_is_user_meta_attributed</string>
 
     <string name="pref_key_contile_context_id" translatable="false">pref_key_contile_context_id</string>
 
@@ -554,6 +558,13 @@
     <string name="pref_key_external_download_manager" translatable="false">pref_key_external_download_manager</string>
     <string name="pref_key_downloads_clean_up_files_automatically" translatable="false">pref_key_downloads_clean_up_files_automatically</string>
 
+    <!-- Downloads Settings Radio Button-->
+    <string name="pref_key_downloads_delete_or_remove_downloads_category" translatable="false">pref_key_downloads_delete_or_remove_downloads_category</string>
+    <string name="pref_key_downloads_delete_from_device" translatable="false">pref_key_downloads_delete_from_device</string>
+    <string name="pref_key_downloads_remove_from_downloads_history" translatable="false">pref_key_downloads_remove_from_downloads_history</string>
+    <string name="pref_key_downloads_ask_when_to_delete_files" translatable="false">pref_key_downloads_ask_when_to_delete_files</string>
+    <string name="pref_key_downloads_delete_behavior" translatable="false">pref_key_downloads_delete_behavior</string>
+
     <!-- Tab Manager-->
     <string name="pref_key_tab_manager_opening_animation" translatable="false">pref_key_tab_manager_opening_animation</string>
 
@@ -562,6 +573,8 @@
 
     <!-- Private Mode and Stories Entry Point -->
     <string name="pref_key_private_mode_and_stories_entry_point" translatable="false">pref_key_private_mode_and_stories_entry_point</string>
+    <string name="pref_key_news_button_foreground_count" translatable="false">pref_key_news_button_foreground_count</string>
+    <string name="pref_key_news_button_animation_last_shown" translatable="false">pref_key_news_button_animation_last_shown</string>
 
     <!-- Tab Groups -->
     <string name="pref_key_tab_groups" translatable="false">pref_key_tab_groups_feature</string>

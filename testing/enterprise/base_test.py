@@ -10,6 +10,7 @@ import time
 from copy import deepcopy
 from enum import Enum
 
+from marionette_driver import errors
 from marionette_driver.marionette import Marionette
 from marionette_driver.wait import Wait
 from marionette_harness import MarionetteTestCase
@@ -153,6 +154,7 @@ class EnterpriseTestsBase(MarionetteTestCase):
         self._logger.info(
             f"New Marionette MOVED OUT {marionette_port_file} TO {port_file_copy}"
         )
+        self._child_driver.set_pref("enterprise.is_testing", True)
 
     def get_driver(self, env):
         return self._driver if env == Environment.FELT else self._child_driver

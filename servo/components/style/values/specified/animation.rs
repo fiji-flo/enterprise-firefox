@@ -8,9 +8,9 @@ use crate::derives::*;
 use crate::parser::{Parse, ParserContext};
 use crate::properties::{NonCustomPropertyId, PropertyId, ShorthandId};
 use crate::values::generics::animation as generics;
-use crate::values::generics::position::TreeScoped;
+use crate::values::generics::position::{IsTreeScoped, TreeScoped};
 use crate::values::specified::{LengthPercentage, NonNegativeNumber, Time};
-use crate::values::{CustomIdent, DashedIdent, KeyframesName};
+use crate::values::{AtomIdent, CustomIdent, DashedIdent, KeyframesName};
 use crate::Atom;
 use cssparser::{match_ignore_ascii_case, Parser};
 use std::fmt::{self, Write};
@@ -607,6 +607,12 @@ impl TimelineIdent {
     }
 }
 
+impl IsTreeScoped for TimelineIdent {
+    fn is_tree_scoped(&self) -> bool {
+        !self.is_none()
+    }
+}
+
 impl Parse for TimelineIdent {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -707,26 +713,26 @@ impl Parse for ViewTimelineInset {
     PartialEq,
     MallocSizeOf,
     SpecifiedValueInfo,
+    ToCss,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,
     ToTyped,
 )]
-#[repr(C, u8)]
-pub enum ViewTransitionNameKeyword {
-    /// None keyword.
-    None,
-    /// match-element keyword.
-    /// https://drafts.csswg.org/css-view-transitions-2/#auto-vt-name
-    MatchElement,
-    /// A `<custom-ident>`.
-    Ident(Atom),
-}
+#[repr(transparent)]
+#[value_info(other_values = "none, match-element")]
+pub struct ViewTransitionNameKeyword(AtomIdent);
 
 impl ViewTransitionNameKeyword {
     /// Returns the `none` value.
     pub fn none() -> Self {
-        Self::None
+        Self(AtomIdent(atom!("none")))
+    }
+}
+
+impl IsTreeScoped for ViewTransitionNameKeyword {
+    fn is_tree_scoped(&self) -> bool {
+        self.0 .0 != atom!("none")
     }
 }
 
@@ -742,26 +748,12 @@ impl Parse for ViewTransitionNameKeyword {
         }
 
         if ident.eq_ignore_ascii_case("match-element") {
-            return Ok(Self::MatchElement);
+            return Ok(Self(AtomIdent(atom!("match-element"))));
         }
 
         // We check none already, so don't need to exclude none here.
         // Note: "auto" is not supported yet so we exclude it.
-        CustomIdent::from_ident(location, ident, &["auto"]).map(|i| Self::Ident(i.0))
-    }
-}
-
-impl ToCss for ViewTransitionNameKeyword {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        use crate::values::serialize_atom_identifier;
-        match *self {
-            Self::None => dest.write_str("none"),
-            Self::MatchElement => dest.write_str("match-element"),
-            Self::Ident(ref ident) => serialize_atom_identifier(ident, dest),
-        }
+        CustomIdent::from_ident(location, ident, &["auto"]).map(|i| Self(AtomIdent(i.0)))
     }
 }
 
@@ -802,6 +794,12 @@ pub struct ViewTransitionClassList(
     #[ignore_malloc_size_of = "Arc"]
     crate::ArcSlice<CustomIdent>,
 );
+
+impl IsTreeScoped for ViewTransitionClassList {
+    fn is_tree_scoped(&self) -> bool {
+        !self.is_none()
+    }
+}
 
 impl ViewTransitionClassList {
     /// Returns the default value, `none`. We use the default slice (i.e. empty) to represent it.

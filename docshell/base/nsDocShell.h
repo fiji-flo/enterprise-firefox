@@ -1105,7 +1105,7 @@ class nsDocShell final : public nsDocLoader,
       mozilla::dom::Document* aDocument, nsIURI* aNewURI,
       nsIStructuredCloneContainer* aData,
       mozilla::dom::NavigationHistoryBehavior aHistoryHandling,
-      nsIURI* aCurrentURI, bool aEqualURIs);
+      nsIURI* aCurrentURI, bool aEqualURIs, bool aFiredNavigateEvent = true);
 
   bool IsSameDocumentAsActiveEntry(
       const mozilla::dom::SessionHistoryInfo& aSHInfo);

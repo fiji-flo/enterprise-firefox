@@ -10,6 +10,7 @@
 @import url("chrome://browser/skin/tabbrowser/content-area.css");
 @import url("chrome://browser/skin/tabbrowser/ctrlTab.css");
 @import url("chrome://browser/skin/tabbrowser/fullscreen-and-pointerlock.css");
+@import url("chrome://browser/skin/tabbrowser/tab.tokens.css");
 @import url("chrome://browser/skin/tabbrowser/tabs.css");
 @import url("chrome://browser/skin/tabbrowser/tab-hover-preview.css");
 @import url("chrome://browser/skin/toolbarbuttons.css");

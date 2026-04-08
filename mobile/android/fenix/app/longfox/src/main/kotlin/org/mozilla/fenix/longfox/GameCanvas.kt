@@ -8,12 +8,14 @@ package org.mozilla.fenix.longfox
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
@@ -32,10 +34,9 @@ import org.mozilla.fenix.longfox.GameState.Companion.CELL_SIZE_DP
  * body, head, tail and food.
  *
  * @param state the current game state
- * @param onSize a callback that is called when the canvas is resized
  */
 @Composable
-fun GameCanvas(state: GameState, onSize: (Size) -> Unit) {
+fun GameCanvas(state: GameState) {
     val context = LocalContext.current
     val cellSize = state.cellSize.toInt()
 
@@ -69,17 +70,35 @@ fun GameCanvas(state: GameState, onSize: (Size) -> Unit) {
         }
     }
 
-    val shouldersPath = remember { Path() }
-    val bottomPath = remember { Path() }
+    val foxBrush = remember { Brush.linearGradient(listOf(Color.Red, Color.Yellow)) }
+    val bodyPath = remember { Path() }
+    val bodyCells = remember(state.fox) {
+        val foxBody = state.fox.drop(1).dropLast(1)
+        val bodySet = foxBody.toHashSet()
+        foxBody.map { cell ->
+            val hasLeft = GridPoint(cell.x - 1, cell.y) in bodySet
+            val hasRight = GridPoint(cell.x + 1, cell.y) in bodySet
+            val hasUp = GridPoint(cell.x, cell.y - 1) in bodySet
+            val hasDown = GridPoint(cell.x, cell.y + 1) in bodySet
+            BodyCellDrawData(
+                left = cell.x * state.cellSize,
+                top = cell.y * state.cellSize,
+                roundTopLeft = !hasLeft && !hasUp,
+                roundTopRight = !hasRight && !hasUp,
+                roundBottomRight = !hasRight && !hasDown,
+                roundBottomLeft = !hasLeft && !hasDown,
+            )
+        }
+    }
 
     Canvas(
         modifier = Modifier
-            .background(color = Color.Black)
-            .size((CELL_SIZE_DP * state.numCellsWide).dp),
+            .background(color = LongFoxColors.backgroundColor)
+            .border(1.dp, LongFoxColors.mortarColor)
+            .size((CELL_SIZE_DP * state.numCells).dp),
     ) {
-        onSize(size)
         drawHead(state, kitHead)
-        drawBody(state, shouldersPath, bottomPath)
+        drawBody(bodyCells, state.cellSize, foxBrush, bodyPath)
         drawTail(state, kitTail)
         drawFood(state, cookie)
     }
@@ -89,6 +108,6 @@ fun GameCanvas(state: GameState, onSize: (Size) -> Unit) {
 @Composable
 fun GameCanvasPreview() {
     MaterialTheme {
-        GameCanvas(GameState(size = Size(600f, 1000f)), onSize = { _ -> })
+        GameCanvas(GameState(size = Size(600f, 1000f)))
     }
 }

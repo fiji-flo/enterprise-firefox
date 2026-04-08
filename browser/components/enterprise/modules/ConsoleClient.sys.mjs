@@ -23,11 +23,9 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 /**
- * Preferences used to integrate the a remote enterprise console
+ * Remote enterprise console preference
  */
-export const PREFS = {
-  CONSOLE_ADDRESS: "enterprise.console.address",
-};
+export const CONSOLE_ADDRESS_PREF = "enterprise.console.address";
 
 /**
  * Error logged when user needs to reauthenticate to obtain new token data
@@ -92,7 +90,7 @@ export const ConsoleClient = {
   get consoleBaseURI() {
     let consoleURI;
     try {
-      consoleURI = Services.prefs.getStringPref(PREFS.CONSOLE_ADDRESS);
+      consoleURI = Services.prefs.getStringPref(CONSOLE_ADDRESS_PREF);
     } catch (e) {
       lazy.log.error("Critial misconfiguration: Missing console URI.");
       throw e;
@@ -108,17 +106,13 @@ export const ConsoleClient = {
       SSO: "/sso/login",
       SIGNOUT: "/sso/logout",
       SSO_CALLBACK: "/sso/callback",
-      DEFAULT_PREFS: "/api/browser/hacks/default",
+      CONFIG: "/api/browser/config",
       REMOTE_POLICIES: "/api/browser/policies",
       KEY: "/api/browser/key",
       TOKEN: "/sso/token",
       DEVICE_POSTURE: "/sso/device_posture",
       WHOAMI: "/api/browser/whoami",
-      LEARN_MORE: "/downloads/firefox.html",
       FXACCOUNT: "/api/browser/account",
-      FXACCOUNTS_OAUTH: "/api/fxa/oauth/v1",
-      FXACCOUNTS_PROFILE: "/api/fxa/profile/v1",
-      FXACCOUNTS_AUTH: "/api/fxa/api/v1",
     };
   },
 
@@ -155,17 +149,6 @@ export const ConsoleClient = {
   },
 
   /**
-   * Learn more uri linked in the enterprise panel
-   *
-   * @returns {string} learn more uri
-   */
-  get learnMoreURI() {
-    const url = this.consoleBaseURI;
-    url.pathname = this._paths.LEARN_MORE;
-    return url.href;
-  },
-
-  /**
    * SSO callback uri that we match to create Felt actors on
    *
    * @returns {string}
@@ -182,11 +165,13 @@ export const ConsoleClient = {
     return url.href + "?*";
   },
 
-  // prefs that do not need to be written and can be sent during runtime
-  // tbd: remove
-  async getDefaultPrefs() {
-    const payload = await this._get(this._paths.DEFAULT_PREFS);
-    return payload;
+  /**
+   * Fetches configurations for Firefox
+   *
+   * @returns {Promise<object>}
+   */
+  async getFirefoxConfigs() {
+    return this._get(this._paths.CONFIG);
   },
 
   /**
@@ -195,8 +180,7 @@ export const ConsoleClient = {
    * @returns {Promise<{policies: Record<string, any>}>}
    */
   async getRemotePolicies() {
-    const payload = await this._get(this._paths.REMOTE_POLICIES);
-    return payload;
+    return this._get(this._paths.REMOTE_POLICIES);
   },
 
   /**
@@ -213,8 +197,7 @@ export const ConsoleClient = {
     if (deviceId !== "") {
       body.device_id = deviceId;
     }
-    const payload = await this._post(this._paths.FXACCOUNT, body);
-    return payload;
+    return this._post(this._paths.FXACCOUNT, body);
   },
 
   /**
@@ -345,8 +328,7 @@ export const ConsoleClient = {
    * @returns {Promise<object>}
    */
   async getLoggedInUserInfo() {
-    const payload = await this._get(this._paths.WHOAMI);
-    return payload;
+    return this._get(this._paths.WHOAMI);
   },
 
   /**
@@ -355,8 +337,7 @@ export const ConsoleClient = {
    * @returns {Promise<Record<string, any>>}
    */
   async getPrimarySecret() {
-    const payload = await this._get(this._paths.KEY);
-    return payload;
+    return this._get(this._paths.KEY);
   },
 
   /**
@@ -396,7 +377,7 @@ export const ConsoleClient = {
     }
 
     if ((res.status === 403 || res.status === 401) && !_didRefresh) {
-      await this._refreshSession();
+      await this.handleSessionRefresh();
       return this._fetch(path, method, { _didRefresh: true, jsonBody });
     }
 
@@ -488,7 +469,7 @@ export const ConsoleClient = {
     this._feltRefreshPromise = (async () => {
       const refreshToken = Services.felt.getRefreshToken();
       if (!refreshToken) {
-        const e = new ReauthRequiredError(
+        throw new ReauthRequiredError(
           "No refresh token available",
           "MISSING_REFRESH_TOKEN"
         );

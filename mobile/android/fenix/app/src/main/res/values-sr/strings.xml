@@ -1531,12 +1531,8 @@
   <string name="studies_remove">Уклони</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Активно</string>
-  <!-- Description for studies -->
-  <string name="studies_description_3" moz:removedIn="148" tools:ignore="UnusedResources">Испробајте функције и идеје пре него што буду доступне свима.</string>
   <!-- Description for studies. Note: The word "Firefox" should NOT be translated -->
   <string name="studies_description_4" tools:ignore="BrandUsage">Firefox насумично бира кориснике за тестирање функција, што побољшава квалитет за све.</string>
-  <!-- Title of the Studies data preference -->
-  <string name="studies_title" moz:removedIn="148" tools:ignore="UnusedResources">Инсталирајте и покрените истраживања</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title_2">Дозволи студије функција</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -1702,6 +1698,14 @@
     <item quantity="few">%1$d језичка</item>
     <item quantity="other">%1$d језичака</item>
   </plurals>
+  <!-- Title for the Delete tab group confirmation dialog. -->
+  <string name="delete_tab_group_confirmation_dialog_title">Обрисати групу језичака?</string>
+  <!-- Text shown in the body of the Delete tab group confirmation dialog. -->
+  <string name="delete_tab_group_confirmation_dialog_body">Овим се група трајно брише.</string>
+  <!-- Text shown on the confirm button in the Delete tab group confirmation dialog. -->
+  <string name="delete_tab_group_confirmation_dialog_confirm">Обриши групу</string>
+  <!-- Text shown on the cancel button in the Delete tab group confirmation dialog. -->
+  <string name="delete_tab_group_confirmation_dialog_cancel">Откажи</string>
   <!--
     History
 
@@ -2097,7 +2101,11 @@
   <string name="bookmark_delete_single_item" tools:ignore="UnusedResources" moz:removedIn="150">%s је избрисан</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
   <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources" moz:removedIn="150">Избрисане ставке: %s</string>
-  <!-- Content description for the bookmark navigation bar back button -->
+  <!--
+    Bookmark undo button for deletion snackbar action
+
+    Content description for the bookmark navigation bar back button
+  -->
   <string name="bookmark_navigate_back_button_content_description">Иди назад</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
   <string name="bookmark_add_new_folder_button_content_description">Додај нову фасциклу</string>
@@ -2435,8 +2443,6 @@
   <string name="preference_accessibility_text_size_summary">Чини текст на веб страницама већим или мањим</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">Величина фонта</string>
-  <!-- %d is the percentage of the slide bar for setting the text font size and %% will be announced as "percent". -->
-  <string name="a11y_preference_accessibility_font_size_percentage" tools:ignore="UnusedResources" moz:removedIn="148">%d %%.</string>
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
   <string name="preference_accessibility_auto_size_2">Аутоматско одређивање величине фонта</string>
   <!-- Summary for Accessibility Text Automatic Size Scaling Preference -->
@@ -3473,7 +3479,9 @@
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Учитавање језика није успело. Проверите интернет везу и покушајте поново.</string>
   <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
-  <string name="translation_error_language_not_supported_warning_text">Жао нам је, још увек не подржавамо %1$s.</string>
+  <string name="translation_error_language_not_supported_warning_text" tools:ignore="UnusedResources" moz:removedIn="150">Жао нам је, још увек не подржавамо %1$s.</string>
+  <!-- The title of the warning card informs the user that translations from a language are not supported yet. %1$s is the name of the source language. -->
+  <string name="translation_error_language_not_supported_warning_text_2">Нажалост, још увек не подржавамо преводе са језика %1$s.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Превођење…</string>
   <!--

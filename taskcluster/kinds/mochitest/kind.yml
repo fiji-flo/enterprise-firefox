@@ -26,6 +26,12 @@ task-defaults:
         retrigger: true
     use-python: default
     use-uv: true
+    worker-type:
+        by-test-platform:
+            windows11-64-24h2-asan/.*: win11-64-25h2-large
+            windows11-(32|64)-24h2(-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2
+            windows11-aarch64-24h2(-devedition|-shippable)?/.*: win11-a64-25h2
+            default: default
     require-signed-extensions:
         by-release-type:
             release|esr.*: true
@@ -291,6 +297,7 @@ tasks:
             - webrender-sw
             - webrender-sw+a11y-checks
             - msix
+            - standalone
             - vertical-tabs
             - inc-origin-init
             - trainhop-beta
@@ -331,6 +338,11 @@ tasks:
                     by-test-platform:
                         windows11-64.*: built-projects
                         default: []
+                standalone:
+                    by-test-platform:
+                        linux.*-64/(opt|debug): ['autoland', 'mozilla-central']
+                        windows.*-64-[^-/]+/(opt|debug): ['autoland', 'mozilla-central']
+                        default: []
                 vertical-tabs:
                     by-test-platform:
                         .*-asan.*: []
@@ -366,6 +378,10 @@ tasks:
                     by-test-platform:
                         .*/debug: 16
                         default: 7
+                standalone:
+                    by-test-platform:
+                        windows.*/debug: 60
+                        default: 40
                 default:
                     by-test-platform:
                         linux.*/debug: 16
@@ -380,6 +396,7 @@ tasks:
         max-run-time:
             by-variant:
                 msix: 5400
+                standalone: 5400
                 default:
                     by-test-platform:
                         linux.*64-ccov/opt: 9000
@@ -593,12 +610,18 @@ tasks:
         loopback-video: true
         variants:
             - a11y-checks
+            - standalone
             - http3
         run-on-projects:
             by-variant:
                 a11y-checks:
                     by-test-platform:
                         linux.*64(-shippable)?/opt: ['trunk']
+                        default: []
+                standalone:
+                    by-test-platform:
+                        linux.*-64/(opt|debug): ['autoland', 'mozilla-central']
+                        windows.*-64-[^-/]+/(opt|debug): ['autoland', 'mozilla-central']
                         default: []
                 http3:
                     by-test-platform:
@@ -619,15 +642,22 @@ tasks:
                 default: 5400
         chunks: dynamic
         default-chunks:
-            by-test-platform:
-                .*-ccov.*: 12
-                linux.*-wayland.*/debug: 14
-                linux.*64/debug: 14
-                macosx.*64(-qr)?/debug: 8
-                win.*/debug: 8
-                .*-asan/opt: 8
-                .*-tsan/opt: 16
-                default: 5
+            by-variant:
+                standalone:
+                    by-test-platform:
+                        windows.*/debug: 32
+                        linux.*/debug: 20
+                        default: 16
+                default:
+                    by-test-platform:
+                        .*-ccov.*: 12
+                        linux.*-wayland.*/debug: 14
+                        linux.*64/debug: 14
+                        macosx.*64(-qr)?/debug: 8
+                        win.*/debug: 8
+                        .*-asan/opt: 8
+                        .*-tsan/opt: 16
+                        default: 5
         mozharness:
             mochitest-flavor: chrome
             chunked: true
@@ -711,6 +741,10 @@ tasks:
         treeherder-symbol: M(gpu)
         schedules-component: mochitest-plain
         loopback-video: true
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         variants:
             - no-fission
             - webrender-sw+no-fission
@@ -773,6 +807,10 @@ tasks:
         treeherder-symbol: M(gpu-c)
         loopback-video: true
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         run-without-variant: false
         variants:
             - 1proc
@@ -967,7 +1005,12 @@ tasks:
                     by-test-platform:
                         linux.*: t-linux-talos-1804
                         default: default
-                default: default
+                default:
+                    by-test-platform:
+                        windows11-64-24h2-asan/.*: win11-64-25h2-large
+                        windows11-(32|64)-24h2(-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2
+                        windows11-aarch64-24h2(-devedition|-shippable)?/.*: win11-a64-25h2
+                        default: default
 
     mochitest-valgrind:
         description: "Mochitest plain Valgrind run"
@@ -992,6 +1035,10 @@ tasks:
         treeherder-symbol: M(gl1c)
         schedules-component: mochitest-plain
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         test-manifest-loader: null  # don't load tests in the taskgraph
         loopback-video: true
         max-run-time: 1800
@@ -1033,6 +1080,10 @@ tasks:
         treeherder-symbol: M(gl1e)
         schedules-component: mochitest-plain
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         test-manifest-loader: null  # don't load tests in the taskgraph
         loopback-video: true
         max-run-time: 2700
@@ -1074,6 +1125,10 @@ tasks:
         treeherder-symbol: M(gl2c)
         schedules-component: mochitest-plain
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         chunks:
             by-test-platform:
                 android.*: 2
@@ -1121,6 +1176,10 @@ tasks:
         treeherder-symbol: M(gl2e)
         schedules-component: mochitest-plain
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         variants:
             - no-fission
             - webrender-sw+no-fission
@@ -1161,6 +1220,10 @@ tasks:
         treeherder-symbol: M(gl2d)
         schedules-component: mochitest-plain
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         variants:
             - webrender-sw
         run-on-projects: []  # Don't run this for now.
@@ -1179,6 +1242,10 @@ tasks:
         treeherder-symbol: M(webgpu)
         schedules-component: mochitest-plain
         virtualization: virtual-with-gpu
+        worker-type:
+            by-test-platform:
+                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                default: default
         loopback-video: true
         variants:
             - no-fission

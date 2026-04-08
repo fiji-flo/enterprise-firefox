@@ -9,17 +9,50 @@ const { createPropertyFormatter } = StyleDictionary.formatHelpers;
 const figmaConfig = require("./figma-tokens-config");
 const { OVERRIDE_IDENTIFIERS } = require("./override-identifiers");
 
+/**
+ * Base tokens are shared across all components and surfaces (e.g. color, typography, spacing).
+ * They are not component-specific and always go into the shared CSS output.
+ *
+ * @type {{ dir: string }}
+ */
+const BASE_TOKEN_PATH = {
+  dir: "src/tokens/base",
+};
+
+/**
+ * @typedef {object} TokenPath
+ * @property {string} dir - Path to the component directory, relative to design-system/.
+ * @property {boolean} [isGlobal] - If true, tokens go into the shared CSS output.
+ *  If false/absent, each component gets its own CSS output file co-located with its tokens.json.
+ * @property {function(string): string} [nameTransform] - Optional transform applied to the filename-derived component name.
+ */
+/** @type {TokenPath[]} */
+const COMPONENT_TOKEN_PATHS = [
+  {
+    dir: "src/tokens/components",
+    isGlobal: true,
+  },
+  {
+    dir: "../../../content/widgets",
+    nameTransform: name => name.replace("moz-", ""),
+  },
+  {
+    dir: "../../../../browser/themes/shared",
+  },
+];
+
 const PURPOSE = {
   SEMANTIC: "semantic",
   STORYBOOK: "storybook",
 };
 
 /**
- * @typedef {object[]} TokenCategories
+ * @typedef {object} TokenCategory
  * @property {string} name - A name used to group tokens into a category for storybook/stylelint to reference.
- * @property {string[]} alternateNames - Names not matching standard token naming conventions (e.g. "width" instead of "size").
+ * @property {string[]} [alternateNames] - Names not matching standard token naming conventions (e.g. "width" instead of "size").
  * @property {string[]} purposes - What the token category is used for, either semantic tokens used by stylelint or tokens to be demonstrated in storybook.
  */
+/** @type {TokenCategory[]} */
 const TOKEN_CATEGORIES = [
   {
     name: "table-background",
@@ -129,46 +162,50 @@ const TOKEN_CATEGORIES = [
 ];
 
 /**
- * Gets the list of component names for either global component tokens or from moz-components, such as moz-badge.
+ * Returns info about all component token files across all COMPONENT_TOKEN_PATHS.
  *
- * @param {boolean} mozComponents
- * @returns {string[]}
+ * @returns {{ name: string, destination: string | null }[]}
  */
-const getComponentNames = (mozComponents = false) => {
-  let fileNames = [];
-
-  if (mozComponents) {
-    fileNames = fs.readdirSync(
-      path.join(__dirname, "../../../../content/widgets"),
-      { recursive: true }
-    );
-  } else {
-    fileNames = fs.readdirSync(
-      path.join(__dirname, "../src/tokens/components")
-    );
-  }
-
-  return fileNames
-    .filter(
-      fileName =>
-        fileName.endsWith(".tokens.json") &&
-        !OVERRIDE_IDENTIFIERS.some(({ name }) =>
-          fileName.endsWith(`.${name}.tokens.json`)
-        )
-    )
-    .map(fileName =>
-      path.basename(fileName).replace(".tokens.json", "").replace("moz-", "")
-    );
+const getComponentInfo = () => {
+  return COMPONENT_TOKEN_PATHS.filter(({ dir }) =>
+    fs.existsSync(path.join(__dirname, "..", dir))
+  ).flatMap(({ dir, isGlobal = false, nameTransform = n => n }) => {
+    const srcDir = path.join(__dirname, "..", dir);
+    return fs
+      .readdirSync(srcDir, { recursive: true })
+      .filter(f => typeof f === "string")
+      .filter(
+        f =>
+          f.endsWith(".tokens.json") &&
+          !OVERRIDE_IDENTIFIERS.some(({ name }) =>
+            f.endsWith(`.${name}.tokens.json`)
+          )
+      )
+      .map(relativePath => ({
+        name: nameTransform(
+          path.basename(relativePath).replace(".tokens.json", "")
+        ),
+        destination: isGlobal
+          ? null
+          : `${dir}/${relativePath.replace(".tokens.json", ".tokens.css")}`,
+      }));
+  });
 };
 
-const getTokenSections = () => {
-  const componentNames = getComponentNames();
-  const mozComponentNames = getComponentNames(true);
+/**
+ * Returns only the components that produce their own CSS output file.
+ *
+ * @returns {{ name: string, destination: string }[]}
+ */
+const getExternalComponentInfo = () =>
+  /** @type {{ name: string, destination: string }[]} */
+  (getComponentInfo().filter(({ destination }) => destination !== null));
 
-  const componentSections = [...componentNames, ...mozComponentNames].reduce(
-    (components, componentName) => ({
+const getTokenSections = () => {
+  const componentSections = getComponentInfo().reduce(
+    (components, { name }) => ({
       ...components,
-      [componentName]: componentName,
+      [name]: name,
     }),
     {}
   );
@@ -195,7 +232,8 @@ const getTokenSections = () => {
 };
 
 /**
- * Defines file configuration options for each component that style-dictionary will process.
+ * Defines file configuration options for all external components that
+ * style-dictionary will process.
  *
  * @typedef {object} FileConfig
  * @property {string} destination - The file path where CSS will be written.
@@ -203,25 +241,21 @@ const getTokenSections = () => {
  *
  * @returns {FileConfig[]}
  */
-const getMozComponentFileConfig = () => {
-  const componentNames = getComponentNames(true);
-
-  return componentNames.map(componentName => ({
-    destination: `../../../content/widgets/moz-${componentName}/moz-${componentName}.tokens.css`,
-    format: `css/variables/${componentName}`,
+const getExternalComponentFileConfig = () =>
+  getExternalComponentInfo().map(({ name, destination }) => ({
+    destination,
+    format: `css/variables/${name}`,
   }));
-};
 
 /**
- * Defines formatting functions for each component that style-dictionary will process.
+ * Defines formatting functions for all external components that
+ * style-dictionary will process.
  *
  * @returns {{[key: string]: Function}}
  */
-const getMozComponentFormatConfig = () => {
-  const componentNames = getComponentNames(true);
-
-  return componentNames.reduce(
-    (config, componentName) => ({
+const getExternalComponentFormatConfig = () =>
+  getExternalComponentInfo().reduce(
+    (config, { name: componentName }) => ({
       ...config,
       [`css/variables/${componentName}`]: createDesktopFormat({
         componentName,
@@ -229,7 +263,6 @@ const getMozComponentFormatConfig = () => {
     }),
     {}
   );
-};
 
 const TSHIRT_ORDER = [
   "circle",
@@ -330,7 +363,7 @@ function formatBaseTokenNames(str) {
  * https://amzn.github.io/style-dictionary/#/formats?id=formatter
  *
  * @param {object} config
- * @param {string} config.surface
+ * @param {string} [config.surface]
  *  Which desktop area we are generating CSS for.
  *  Either "brand" (i.e. in-content) or "platform" (i.e. chrome).
  * @param {string} [config.componentName=""]
@@ -436,8 +469,8 @@ const shouldSkipToken = ({ overrideIdentifier, componentName, token }) => {
   // Skip custom component tokens if we're only getting base/shared tokens.
   if (
     !componentName &&
-    getComponentNames(true).some(
-      name => token.name.startsWith(`${name}-`) || token.name === name
+    getExternalComponentInfo().some(
+      ({ name }) => token.name.startsWith(`${name}-`) || token.name === name
     )
   ) {
     return true;
@@ -870,10 +903,9 @@ function getTokenCategory(filePath) {
 }
 
 module.exports = {
-  source: [
-    "src/tokens/**/*.tokens.json",
-    "../../../content/widgets/**/*.tokens.json",
-  ],
+  source: [BASE_TOKEN_PATH, ...COMPONENT_TOKEN_PATHS].map(
+    ({ dir }) => `${dir}/**/*.tokens.json`
+  ),
   format: {
     "css/variables/shared": createDesktopFormat(),
     "css/variables/brand": createDesktopFormat({ surface: "brand" }),
@@ -882,7 +914,7 @@ module.exports = {
     "javascript/tokens-table": args => tokensTableFormat(args, false),
     // Organize tokens to be used by stylelint rules.
     "javascript/semantic-categories": args => tokensTableFormat(args, true),
-    ...getMozComponentFormatConfig(),
+    ...getExternalComponentFormatConfig(),
     ...figmaConfig.formats,
   },
   parsers: [
@@ -921,7 +953,7 @@ module.exports = {
             typeof token.original.value == "object" &&
             token.original.value.platform,
         },
-        ...getMozComponentFileConfig(),
+        ...getExternalComponentFileConfig(),
       ],
     },
     tables: {

@@ -425,6 +425,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     }
 
     Sequence<JS::Value> arguments;
+    SequenceRooter<JS::Value> rooter(aCx, &arguments);
 
     for (uint32_t i = 0; i < length; ++i) {
       JS::Rooted<JS::Value> value(aCx);
@@ -1307,7 +1308,7 @@ struct ConsoleTimingMarker : public BaseMarkerType<ConsoleTimingMarker> {
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {
-      {"label", MS::InputType::String, "Label", MS::Format::String},
+      {"label", MS::InputType::CString, "Label", MS::Format::String},
       {"entryType", MS::InputType::CString, "Entry Type", MS::Format::String}};
 
   static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
@@ -1315,12 +1316,6 @@ struct ConsoleTimingMarker : public BaseMarkerType<ConsoleTimingMarker> {
   static constexpr const char* AllLabels = "{timeStamper.data.label}";
 
   static constexpr MS::ETWMarkerGroup Group = MS::ETWMarkerGroup::UserMarkers;
-
-  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
-                                   const ProfilerString8View& aLabel,
-                                   const ProfilerString8View& aEntryType) {
-    StreamJSONMarkerDataImpl(aWriter, aLabel, aEntryType);
-  }
 };
 
 void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,

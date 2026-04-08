@@ -57,23 +57,34 @@ void CSSContainerRule::GetCssText(nsACString& aCssText) const {
 }
 
 void CSSContainerRule::GetContainerName(nsACString& aName) const {
-  Servo_ContainerRule_GetContainerName(mRawRule, &aName);
+  const size_t n = Servo_ContainerRule_GetConditionsLength(mRawRule);
+  if (n == 1) {
+    Servo_ContainerRule_GetContainerName(mRawRule, 0, &aName);
+  }
 }
 
 void CSSContainerRule::GetContainerQuery(nsACString& aQuery) const {
-  Servo_ContainerRule_GetContainerQuery(mRawRule, &aQuery);
+  const size_t n = Servo_ContainerRule_GetConditionsLength(mRawRule);
+  if (n == 1) {
+    Servo_ContainerRule_GetContainerQuery(mRawRule, 0, &aQuery);
+  }
 }
 
 void CSSContainerRule::GetConditions(
     nsTArray<CSSContainerCondition>& aConditions) const {
-  auto& condition = *aConditions.AppendElement();
-  GetContainerName(condition.mName);
-  GetContainerQuery(condition.mQuery);
+  const size_t n = Servo_ContainerRule_GetConditionsLength(mRawRule);
+  aConditions.SetCapacity(n);
+  for (size_t i = 0; i < n; i++) {
+    CSSContainerCondition& condition = *aConditions.AppendElement();
+    Servo_ContainerRule_GetContainerName(mRawRule, i, &condition.mName);
+    Servo_ContainerRule_GetContainerQuery(mRawRule, i, &condition.mQuery);
+  }
 }
 
-Element* CSSContainerRule::QueryContainerFor(const Element& aElement) const {
-  return const_cast<Element*>(
-      Servo_ContainerRule_QueryContainerFor(mRawRule, &aElement));
+Element* CSSContainerRule::QueryContainerFor(const Element& aElement,
+                                             size_t aConditionIndex) const {
+  return const_cast<Element*>(Servo_ContainerRule_QueryContainerFor(
+      mRawRule, &aElement, aConditionIndex));
 }
 
 void CSSContainerRule::SetRawAfterClone(RefPtr<StyleContainerRule> aRaw) {

@@ -49,6 +49,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
         openLinksInApp = getOpenLinksInApp(settings),
         tabManagerOpeningAnimationEnabled = settings.tabManagerOpeningAnimationEnabled,
         hasSeenBrowserToolbarCFR = settings.hasSeenBrowserToolbarCFR,
+        isPrivateModeAndStoriesEntryPointEnabled = settings.privateModeAndStoriesEntryPointEnabled,
     )
 
     /**
@@ -76,6 +77,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
     override var openLinksInExternalApp: OpenLinksInApp by updatedFeatureFlags::openLinksInApp
     override var tabManagerOpeningAnimationEnabled: Boolean by updatedFeatureFlags::tabManagerOpeningAnimationEnabled
     override var hasSeenBrowserToolbarCFR: Boolean by updatedFeatureFlags::hasSeenBrowserToolbarCFR
+    override var isPrivateModeAndStoriesEntryPointEnabled: Boolean by updatedFeatureFlags::isPrivateModeAndStoriesEntryPointEnabled
 
     override fun applyFlagUpdates() {
         Log.i(TAG, "applyFlagUpdates: Trying to apply the updated feature flags: $updatedFeatureFlags")
@@ -113,6 +115,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
         setOpenLinksInApp(featureFlags.openLinksInApp)
         settings.tabManagerOpeningAnimationEnabled = featureFlags.tabManagerOpeningAnimationEnabled
         settings.hasSeenBrowserToolbarCFR = featureFlags.hasSeenBrowserToolbarCFR
+        settings.privateModeAndStoriesEntryPointEnabled = featureFlags.isPrivateModeAndStoriesEntryPointEnabled
     }
 }
 
@@ -138,6 +141,7 @@ private data class FeatureFlags(
     var openLinksInApp: OpenLinksInApp,
     var tabManagerOpeningAnimationEnabled: Boolean,
     var hasSeenBrowserToolbarCFR: Boolean,
+    var isPrivateModeAndStoriesEntryPointEnabled: Boolean,
 )
 
 internal fun getETPPolicy(settings: Settings): ETPPolicy {

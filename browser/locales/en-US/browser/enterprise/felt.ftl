@@ -16,9 +16,17 @@ felt-sso-continue-btn =
 felt-pending-action-notification = Please wait while { -brand-short-name } starts…
 felt-powered-by =
     Powered by { -vendor-short-name }
-# $version is the version of Felt, not the version of Firefox.
-felt-version =
-    Version { $version }
+
+# Example of resulting string: 151.0a1 (2026-04-01)
+# Variables:
+#   $version (String): version of Firefox for Nightly builds, e.g. 151.0a1
+#   $isodate (String): date in ISO format, e.g. 2026-04-01
+felt-version-nightly = { $version } ({ $isodate })
+
+# Example of resulting string: 151.0b1 (e.g. for beta builds) or 151.0. (e.g. for release build)
+# Variables:
+#   $version (String): version of Firefox for beta and release builds
+felt-version = { $version }
 
 ## Error details when launching the browser crashes
 
@@ -30,6 +38,12 @@ felt-browser-error-token-refresh-failed =
     .message = Please sign in again, or contact your administrator if you have any questions.
 felt-browser-error-multiple-crashes2 =
     .heading = { -brand-short-name } crashed multiple times
+
+## Logout messages
+
+felt-browser-info-console-forced-logout =
+    .heading = You’ve been signed out
+    .message = An administrator signed you out as part of routine account management. If you have any questions, please contact your administrator directly.
 
 ## Network error headings
 
@@ -52,5 +66,13 @@ felt-updates-uptodate = { -brand-short-name } is up to date
 felt-error-updates =
     .heading = An error occurred while applying updates…
 felt-error-contact-admin = Please contact your administrator.
-felt-error-unsupported-system-contact-admin = Your current system does not support this new version. Please contact your administrator.
+felt-warning-unsupported-system-contact-admin =
+    .heading = Unsupported operating system
+felt-error-warning-unsupported-system-contact-admin = A new version of { -brand-short-name } is available, but your operating system is not supported. Contact your administrator for assistance.
 felt-error-checking-failed-contact-admin = Unexpected failure while checking for an update. Please contact your administrator.
+felt-warning-title-elevation-attempt-failed =
+    .heading = Update couldn’t be installed
+felt-error-warning-elevation-attempt-failed-contact-admin = An update couldn’t be installed due to insufficient system privileges. Please contact your administrator for help.
+felt-warning-title-download-attempt-failed =
+    .heading = Update couldn’t be downloaded
+felt-error-warning-download-attempt-failed-contact-admin = The latest update couldn’t be downloaded. If this problem persists, contact your administrator for help.

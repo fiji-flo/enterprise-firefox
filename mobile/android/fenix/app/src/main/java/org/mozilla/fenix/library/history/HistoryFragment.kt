@@ -845,6 +845,7 @@ class HistoryFragment :
                 BrowserStoreToFenixSearchMapperMiddleware(
                     browserStore = requireComponents.core.store,
                     scope = lifecycleScope,
+                    appStore = requireComponents.appStore,
                 ),
                 FenixSearchMiddleware(
                     fragment = this@HistoryFragment,

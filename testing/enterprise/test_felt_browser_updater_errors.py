@@ -17,6 +17,7 @@ class FeltUpdaterErrors(FeltUpdaterErrorsBase):
         "app.update.disabledForTesting": False,
         "app.update.BITS.enabled": False,
         "enterprise.felt_tests.is_updates_testing": False,
+        "enterprise.felt_tests.read_update_url_from_prefs": True,
     }
 
     def test_felt_updater_errors(self):

@@ -19,6 +19,8 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.ai.AIFeaturesError
+import mozilla.components.concept.engine.ai.AIFeaturesRuntime
 import mozilla.components.concept.engine.translate.DetectedLanguages
 import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
@@ -64,6 +66,8 @@ class TranslationsMiddlewareTest {
     private lateinit var state: BrowserState
     private lateinit var store: BrowserStore
 
+    private lateinit var mockAiFeatures: AIFeaturesRuntime
+
     // Mock Variables
     private val mockFrom = Language(code = "es", localizedDisplayName = "Spanish")
     private val mockTo = Language(code = "en", localizedDisplayName = "English")
@@ -82,6 +86,8 @@ class TranslationsMiddlewareTest {
     fun setup() {
         engine = mock()
         engineSession = mock()
+        mockAiFeatures = mock()
+        whenever(engine.aiFeatures).thenReturn(mockAiFeatures)
         tab = createTab(
             url = "https://www.firefox.com",
             title = "Firefox",
@@ -1139,6 +1145,64 @@ class TranslationsMiddlewareTest {
 
         captureActionsMiddleware.assertFirstAction(TranslationsAction.SetLanguageModelsAction::class) { action ->
             assertEquals(mockLanguageModels, action.languageModels)
+        }
+    }
+
+    @Test
+    fun `WHEN SetTranslationsEnabledAction is dispatched with true THEN InitTranslationsBrowserState is also dispatched and browser state is set`() = runTest(testDispatcher) {
+        translationsMiddleware.invoke(
+            store = store,
+            next = {},
+            action = TranslationsAction.SetTranslationsEnabledAction(isTranslationsEnabled = true),
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val successCallback = argumentCaptor<(() -> Unit)>()
+        verify(mockAiFeatures).setFeatureEnablement(eq("translations"), eq(true), onSuccess = successCallback.capture(), onError = any())
+        successCallback.value.invoke()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        captureActionsMiddleware.assertFirstAction(TranslationsAction.InitTranslationsBrowserState::class)
+    }
+
+    @Test
+    fun `WHEN SetTranslationsEnabledAction is dispatched with false THEN InitTranslationsBrowserState is not dispatched and browser state is set`() = runTest(testDispatcher) {
+        // InitTranslationsBrowserState has already went through on test startup
+        captureActionsMiddleware.reset()
+
+        translationsMiddleware.invoke(
+            store = store,
+            next = {},
+            action = TranslationsAction.SetTranslationsEnabledAction(isTranslationsEnabled = false),
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val successCallback = argumentCaptor<(() -> Unit)>()
+        verify(mockAiFeatures).setFeatureEnablement(eq("translations"), eq(false), onSuccess = successCallback.capture(), onError = any())
+        successCallback.value.invoke()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        captureActionsMiddleware.assertNotDispatched(TranslationsAction.InitTranslationsBrowserState::class)
+    }
+
+    @Test
+    fun `WHEN SetTranslationsEnabledAction fails THEN EngineExceptionAction is dispatched with CouldNotSetBrowserEnabledError`() = runTest(testDispatcher) {
+        captureActionsMiddleware.reset()
+
+        translationsMiddleware.invoke(
+            store = store,
+            next = {},
+            action = TranslationsAction.SetTranslationsEnabledAction(isTranslationsEnabled = true),
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val errorCallback = argumentCaptor<((Throwable) -> Unit)>()
+        verify(mockAiFeatures).setFeatureEnablement(eq("translations"), eq(true), onSuccess = any(), onError = errorCallback.capture())
+        errorCallback.value.invoke(AIFeaturesError.CouldNotSetError(Exception("Could not set translations enabled.")))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        captureActionsMiddleware.assertFirstAction(TranslationsAction.EngineExceptionAction::class) { action ->
+            assertTrue(action.error is TranslationError.CouldNotSetBrowserEnabledError)
         }
     }
 }

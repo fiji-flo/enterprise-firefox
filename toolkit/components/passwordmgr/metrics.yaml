@@ -953,6 +953,18 @@ pwmgr:
         description: >
           The error message or exception string from the failure.
         type: string
+      has_origin:
+        description: >
+          Whether the login includes an origin
+        type: boolean
+      has_form_action_origin:
+        description: >
+          Whether the login includes a form action origin
+        type: boolean
+      has_http_realm:
+        description: >
+          Whether the login includes a http realm
+        type: boolean
       origin_error:
         description: >
           a string providing more information about an invalid origin, can be "EmptyString", "SurroundingWhitespace", "MissingScheme", "InvalidScheme", "IllegalCharacters", "InvalidPercentEncoding", "InvalidPort" or "UrlParseError"

@@ -5,8 +5,6 @@
 package mozilla.components.lib.llm.mlpa
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
 import mozilla.components.concept.llm.Llm
 import mozilla.components.concept.llm.Prompt
 import mozilla.components.lib.llm.mlpa.service.AuthorizationToken
@@ -19,21 +17,15 @@ internal class MlpaLlm(
     val chatService: ChatService,
     val authorizationToken: AuthorizationToken,
 ) : Llm {
-    override suspend fun prompt(prompt: Prompt): Flow<Llm.Response> = flow {
-        chatService.completion(authorizationToken, prompt.asRequest)
-            .onCompletion { cause ->
-                val action = cause
-                    ?.let { Llm.Response.Failure("MlpaLlm Failed: ${it.message}") }
-                    ?: Llm.Response.Success.ReplyFinished
-                emit(action)
-            }
-            .collect { emit(Llm.Response.Success.ReplyPart(it)) }
-    }
+    override suspend fun prompt(prompt: Prompt): Flow<String> = chatService.completion(
+        authorizationToken,
+        request = prompt.asRequest,
+    )
 }
 
 internal val Prompt.asRequest
     get() = Request(
-        model = ModelID.mistral,
+        model = ModelID.mozSummarization,
         messages = listOf(
             Message.user(value),
         ),

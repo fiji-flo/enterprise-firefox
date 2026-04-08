@@ -12,7 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI:
     "moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs",
   IPPEnrollAndEntitleManager:
-    "moz-src:///toolkit/components/ipprotection/IPPEnrollAndEntitleManager.sys.mjs",
+    "moz-src:///toolkit/components/ipprotection/fxa/IPPEnrollAndEntitleManager.sys.mjs",
   IPPExceptionsManager:
     "moz-src:///toolkit/components/ipprotection/IPPExceptionsManager.sys.mjs",
   IPPOnboardingMessage:
@@ -31,7 +31,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   IPProtection:
     "moz-src:///browser/components/ipprotection/IPProtection.sys.mjs",
   IPPSignInWatcher:
-    "moz-src:///toolkit/components/ipprotection/IPPSignInWatcher.sys.mjs",
+    "moz-src:///toolkit/components/ipprotection/fxa/IPPSignInWatcher.sys.mjs",
   IPProtectionStates:
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
   SpecialMessageActions:
@@ -242,6 +242,9 @@ export class IPProtectionPanel {
       bandwidthUsage: this.#getBandwidthUsage(),
       isActivating:
         lazy.IPPProxyManager.state === lazy.IPPProxyStates.ACTIVATING,
+      isCheckingEntitlement:
+        lazy.IPPEnrollAndEntitleManager.isEnrolling ||
+        lazy.IPPEnrollAndEntitleManager.isCheckingEntitlement,
     };
 
     // The progress listener to listen for page navigations.
@@ -888,6 +891,9 @@ export class IPProtectionPanel {
         error: errorType,
         isActivating:
           lazy.IPPProxyManager.state === lazy.IPPProxyStates.ACTIVATING,
+        isCheckingEntitlement:
+          lazy.IPPEnrollAndEntitleManager.isEnrolling ||
+          lazy.IPPEnrollAndEntitleManager.isCheckingEntitlement,
         bandwidthUsage: this.#getBandwidthUsage(),
         bandwidthWarning:
           lazy.IPProtectionService.state === lazy.IPProtectionStates.READY

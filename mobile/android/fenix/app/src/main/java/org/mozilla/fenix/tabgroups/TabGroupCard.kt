@@ -5,7 +5,6 @@
 package org.mozilla.fenix.tabgroups
 
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,9 +21,11 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,7 +42,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.createTab
-import mozilla.components.compose.base.RadioCheckmarkColors
 import mozilla.components.compose.base.theme.surfaceDimVariant
 import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.support.utils.ext.isLandscape
@@ -64,6 +64,7 @@ import org.mozilla.fenix.tabstray.ui.tabitems.TabsTrayItemSelectionState
 import org.mozilla.fenix.tabstray.ui.tabitems.ThumbnailShape
 import org.mozilla.fenix.tabstray.ui.tabitems.gridItemAspectRatio
 import org.mozilla.fenix.tabstray.ui.tabitems.tabItemClickable
+import org.mozilla.fenix.tabstray.ui.tabitems.tabItemConditionalBorder
 import org.mozilla.fenix.theme.FirefoxTheme
 
 const val TOP_START_THUMBNAIL_INDEX = 0
@@ -101,11 +102,7 @@ fun TabGroupCard(
                     clickedItem = group,
                 ),
             shape = TabContentCardShape,
-            border = if (selectionState.isFocused) {
-                BorderStroke(width = 4.dp, color = MaterialTheme.colorScheme.tertiary)
-            } else {
-                null
-            },
+            border = tabItemConditionalBorder(selectionState),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             ),
@@ -119,25 +116,26 @@ fun TabGroupCard(
                         .wrapContentHeight(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Spacer(
-                        modifier = Modifier
-                            .width(FirefoxTheme.layout.space.static100),
-                    )
+                    CompositionLocalProvider(LocalContentColor provides group.theme.onPrimary) {
+                        Spacer(
+                            modifier = Modifier
+                                .width(FirefoxTheme.layout.space.static100),
+                        )
 
-                    Text(
-                        text = group.title.take(MAX_URI_LENGTH),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag(TAB_GROUP_TITLE),
-                        color = group.theme.onPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = FirefoxTheme.typography.caption,
-                    )
+                        Text(
+                            text = group.title.take(MAX_URI_LENGTH),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag(TAB_GROUP_TITLE),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = FirefoxTheme.typography.caption,
+                        )
 
-                    Spacer(modifier = Modifier.width(FirefoxTheme.layout.space.static50))
+                        Spacer(modifier = Modifier.width(FirefoxTheme.layout.space.static50))
 
-                    TabGroupOptionButton(groupTheme = group.theme, selectionState = selectionState)
+                        TabGroupOptionButton(selectionState = selectionState)
+                    }
                 }
 
                 Spacer(
@@ -168,13 +166,11 @@ fun TabGroupCard(
  * Renders the button in the top-right corner of the TabGroupCard.
  */
 @Composable
-private fun TabGroupOptionButton(groupTheme: TabGroupTheme, selectionState: TabsTrayItemSelectionState) {
+private fun TabGroupOptionButton(selectionState: TabsTrayItemSelectionState) {
     if (selectionState.multiSelectEnabled) {
         MultiSelectTabButton(
             isSelected = selectionState.isSelected,
-            isActive = selectionState.isFocused,
-            activeColors = RadioCheckmarkColors.default(),
-            uncheckedBorderColor = groupTheme.onPrimary,
+            uncheckedBorderColor = LocalContentColor.current,
         )
     } else {
         TabGroupMenuButton(modifier = Modifier.size(TabHeaderIconTouchTargetSize), includeCloseOption = true)

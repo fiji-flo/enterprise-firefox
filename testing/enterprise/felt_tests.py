@@ -17,9 +17,9 @@ import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from multiprocessing import Array, Process, Value
 
-import felt_consts
 import requests
 from base_test import EnterpriseTestsBase
+from felt_consts import firefox_config
 from marionette_driver import expected
 from marionette_driver.by import By
 
@@ -183,12 +183,18 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
             self.end_headers()
             return
 
-        elif path == "/api/browser/hacks/default":
-            # Browser prefs that can be applied live
+        elif path == "/api/browser/config":
             m = json.dumps({
-                "prefs": felt_consts.config_prefs + [["marionette.port", 0]]
+                "learn_more_url": firefox_config["learn_more_url"]["pref_value"],
+                "company_logo_url": "",
+                "policies": {"polling_frequency": 500},
+                "services": {
+                    "push_url": "",
+                    "remote_settings_url": "",
+                    "tokenserver_url": "",
+                },
+                "extra_prefs": [["marionette.port", 0]],
             })
-            contentType = "application/json"
 
         elif path == "/api/browser/policies":
             self.check_auth()
@@ -196,16 +202,18 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
                 self.reply("", 500, "Internal Server Error", "application/json")
                 return
             policy_content = {}
-            policy_value = (
-                False if self.server.policy_block_about_config.value == 0 else True
-            )
-            policy_content.update(
-                {"BlockAboutConfig": policy_value} if policy_value else {}
-            )
 
-            policy_value = self.server.policy_extensions.value == 1
-            policy_content.update(
-                {
+            # Reflect the states:
+            #  - "Unset" is -1, no value is pushed
+            #  - "False" is 0
+            #  - "True" is 1
+            if self.server.policy_block_about_config.value >= 0:
+                policy_content.update({
+                    "BlockAboutConfig": self.server.policy_block_about_config.value == 1
+                })
+
+            if self.server.policy_extensions.value == 1:
+                policy_content.update({
                     "ExtensionSettings": {
                         "treestyletab@piro.sakura.ne.jp": {
                             "installation_mode": "force_installed",
@@ -213,10 +221,7 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
                             "updates_disabled": True,
                         }
                     }
-                }
-                if policy_value
-                else {}
-            )
+                })
 
             m = json.dumps({"policies": policy_content})
             contentType = "application/json"
@@ -291,6 +296,8 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
             contentType = "text/xml"
 
         elif path == "/sso/callback":
+            self.server.policy_access_token.value = str(uuid.uuid4())
+            self.server.policy_refresh_token.value = str(uuid.uuid4())
             policy_access_token = self.server.policy_access_token.value
             policy_refresh_token = self.server.policy_refresh_token.value
 
@@ -419,6 +426,10 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
 
         elif path == "/sso/logout":
             self.check_auth()
+            with self.server.signout_count.get_lock():
+                self.server.signout_count.value += 1
+            self.server.policy_access_token.value = ""
+            self.server.policy_refresh_token.value = ""
             m = json.dumps(None)
 
         elif path == "/api/browser/forced_updates_count":
@@ -478,6 +489,7 @@ def serve(
     policy_access_token=None,
     policy_refresh_token=None,
     policies_fail_request=None,
+    signout_count=None,
     # TODO: Behavior is not yet clearly defined
     # device_posture_reply_forbidden=None,
 ):
@@ -499,6 +511,7 @@ def serve(
     httpd.policies_fail_request = (
         policies_fail_request if policies_fail_request is not None else Value("B", 0)
     )
+    httpd.signout_count = signout_count if signout_count is not None else Value("i", 0)
     httpd.serve_updates = False
     httpd.serve_updates_version = ""
     httpd.serve_forced_updates_count = 0
@@ -516,6 +529,76 @@ def serve(
     )
 
 
+class FeltLogoutChecker:
+    """Context manager that asserts a FELT-managed Firefox browser logout of a specific type occurred.
+
+    Must be instantiated while the FELT window is open (i.e. in setup()), since it
+    registers a "felt-firefox-logout" observer in the FELT window via execute_script at
+    construction time. Use assert_browser_logouts_with() to set the expected logout type,
+    then wrap the action that triggers the logout in a with block.
+    """
+
+    def __init__(self, test):
+        self._test = test
+        self._expected_type = None
+        self._saved_window_handle = None
+
+        with test._driver.using_context("chrome"):
+            test._driver.execute_script(
+                """
+                Services.prefs.clearUserPref("enterprise._test.logout_type");
+                Services.obs.addObserver({
+                    observe(subject, topic, data) {
+                        Services.prefs.setStringPref("enterprise._test.logout_type", data);
+                    }
+                }, "felt-firefox-logout", false);
+                """
+            )
+
+    def assert_browser_logouts_with(self, expected_type):
+        self._expected_type = expected_type
+        return self
+
+    def __enter__(self):
+        try:
+            self._saved_window_handle = self._test._driver.current_chrome_window_handle
+        except Exception:
+            # If the parent browser window was closed, there is nothing to restore.
+            self._saved_window_handle = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            return False
+
+        handles = self._test._wait.until(
+            lambda mn: self._test._driver.chrome_window_handles
+        )
+        # switch_to_window resets Marionette's internal curBrowser pointer to the new
+        # window; without it, execute_script would throw "browsing context has been
+        # discarded" because it still references the old closed window.
+        self._test._driver.switch_to_window(handles[0])
+        with self._test._driver.using_context("chrome"):
+            logout_type = self._test._wait.until(
+                lambda mn: mn.execute_script(
+                    'return Services.prefs.getStringPref("enterprise._test.logout_type", "") || null;'
+                )
+            )
+        assert logout_type == self._expected_type, (
+            f"Unexpected logout type: {logout_type}"
+        )
+
+        try:
+            parent_handles = self._test._driver.chrome_window_handles
+            if self._saved_window_handle in parent_handles:
+                self._test._driver.switch_to_window(self._saved_window_handle)
+        except Exception:
+            # If the parent browser window was closed, there is nothing to restore.
+            pass
+
+        return False
+
+
 class FeltTestsBase(EnterpriseTestsBase):
     EXTRA_ENV = {}
 
@@ -525,7 +608,7 @@ class FeltTestsBase(EnterpriseTestsBase):
         self._manually_closed_child = False
         self.console_port = random.randrange(10000, 14999)
         self.sso_port = random.randrange(15000, 20000)
-        self.policy_block_about_config = Value("B", 1)
+        self.policy_block_about_config = Value("b", 1)
         self.policy_extensions = Value("B", 0)
         self.policies_fail_request = Value("B", 0)
         """
@@ -541,8 +624,9 @@ class FeltTestsBase(EnterpriseTestsBase):
         if hasattr(self, "EXTRA_PREFS"):
             self._extra_prefs.update(self.EXTRA_PREFS)
 
-        self.policy_access_token = SharedString(str(uuid.uuid4()))
-        self.policy_refresh_token = SharedString(str(uuid.uuid4()))
+        self.policy_access_token = SharedString("")
+        self.policy_refresh_token = SharedString("")
+        self.signout_count = Value("i", 0)
 
         self.console_httpd = Process(
             target=serve,
@@ -555,6 +639,7 @@ class FeltTestsBase(EnterpriseTestsBase):
                 policy_access_token=self.policy_access_token,
                 policy_refresh_token=self.policy_refresh_token,
                 policies_fail_request=self.policies_fail_request,
+                signout_count=self.signout_count,
                 # TODO: Behavior is not yet clearly defined
                 # device_posture_reply_forbidden=self.device_posture_reply_forbidden,
             ),
@@ -794,6 +879,21 @@ class FeltTestsBase(EnterpriseTestsBase):
         assert len(self._driver.chrome_window_handles) == 1, "One window exists"
         self._driver.switch_to_window(self._driver.chrome_window_handles[0])
         self._driver.set_context("content")
+
+    def maybe_save_screenshot(
+        self, env, identifier, element=None, full=True, scroll=True
+    ):
+        if "UX_SCREENSHOT" in os.environ.keys():
+            # UPLOAD_DIR is defined on TaskCluster, use it to write at the correct place
+            with open(
+                os.path.join(
+                    os.environ.get("UPLOAD_DIR", ""), f"screenshot_{identifier}.png"
+                ),
+                "wb",
+            ) as fh:
+                self.get_driver(env).save_screenshot(
+                    fh, element=element, full=full, scroll=scroll
+                )
 
 
 class FeltTests(FeltTestsBase):

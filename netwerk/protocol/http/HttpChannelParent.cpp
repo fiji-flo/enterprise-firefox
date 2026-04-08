@@ -271,12 +271,16 @@ void HttpChannelParent::CleanupBackgroundChannel() {
     }
 
     // This HttpChannelParent might still have a reference from
-    // BackgroundChannelRegistrar.
+    // BackgroundChannelRegistrar. Only remove our own entry; another
+    // HttpChannelParent may have been registered under the same channel Id
+    // (e.g. after a redirect), and we must not remove that entry.
     nsCOMPtr<nsIBackgroundChannelRegistrar> registrar =
         BackgroundChannelRegistrar::GetOrCreate();
     MOZ_ASSERT(registrar);
-
-    registrar->DeleteChannel(mChannel->ChannelId());
+    if (RefPtr<BackgroundChannelRegistrar> bkregistrar =
+            do_QueryObject(registrar)) {
+      bkregistrar->DeleteChannelIfMatches(mChannel->ChannelId(), this);
+    }
 
     // If mAsyncOpenBarrier is greater than zero, it means AsyncOpen procedure
     // is still on going. we need to abort AsyncOpen with failure to destroy
@@ -977,6 +981,11 @@ HttpChannelParent::ContinueVerification(
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aCallback);
 
+  if (mIPCClosed) {
+    aCallback->ReadyToVerify(NS_ERROR_FAILURE);
+    return NS_OK;
+  }
+
   // Continue the verification procedure if background channel is ready.
   if (mBgParent) {
     aCallback->ReadyToVerify(NS_OK);
@@ -1214,20 +1223,12 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
   if (httpChannelImpl) {
     httpChannelImpl->IsFromCache(&args.isFromCache());
     httpChannelImpl->GetCacheDisposition(&args.cacheDisposition());
-    httpChannelImpl->IsRacing(&args.isRacing());
     httpChannelImpl->GetCacheEntryId(&args.cacheEntryId());
     httpChannelImpl->GetCacheTokenFetchCount(&args.cacheFetchCount());
     httpChannelImpl->GetCacheTokenExpirationTime(&args.cacheExpirationTime());
     httpChannelImpl->GetProtocolVersion(args.protocolVersion());
 
     mDataSentToChildProcess = httpChannelImpl->DataSentToChildProcess();
-
-    // If RCWN is enabled and cache wins, we can't use the ODA from socket
-    // process.
-    if (args.isRacing()) {
-      mDataSentToChildProcess =
-          httpChannelImpl->DataSentToChildProcess() && !args.isFromCache();
-    }
     args.dataFromSocketProcess() = mDataSentToChildProcess;
   }
 

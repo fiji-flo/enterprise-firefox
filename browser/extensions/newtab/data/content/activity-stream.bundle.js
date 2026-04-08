@@ -129,6 +129,7 @@ for (const type of [
   "DISCOVERY_STREAM_DEV_EXPIRE_CACHE",
   "DISCOVERY_STREAM_DEV_IDLE_DAILY",
   "DISCOVERY_STREAM_DEV_IMPRESSIONS",
+  "DISCOVERY_STREAM_DEV_REFRESH_CACHE",
   "DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER",
   "DISCOVERY_STREAM_DEV_SYNC_RS",
   "DISCOVERY_STREAM_DEV_SYSTEM_TICK",
@@ -683,8 +684,6 @@ class TogglePrefCheckbox extends (external_React_default()).PureComponent {
 class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
   constructor(props) {
     super(props);
-    this.restorePrefDefaults = this.restorePrefDefaults.bind(this);
-    this.setConfigValue = this.setConfigValue.bind(this);
     this.expireCache = this.expireCache.bind(this);
     this.refreshCache = this.refreshCache.bind(this);
     this.showPlaceholder = this.showPlaceholder.bind(this);
@@ -710,33 +709,16 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.state = {
       toggledStories: {},
       weatherQuery: "",
-      pendingOverrides: {}
+      pendingOverrides: {},
+      overridesTogglePressed: null
     };
   }
   componentDidMount() {
     this.requestDebugFeatures();
   }
-  setConfigValue(configName, configValue) {
-    this.props.dispatch(actionCreators.OnlyToMain({
-      type: actionTypes.DISCOVERY_STREAM_CONFIG_SET_VALUE,
-      data: {
-        name: configName,
-        value: configValue
-      }
-    }));
-  }
-  restorePrefDefaults() {
-    this.props.dispatch(actionCreators.OnlyToMain({
-      type: actionTypes.DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS
-    }));
-  }
   refreshCache() {
-    const {
-      config
-    } = this.props.state.DiscoveryStream;
     this.props.dispatch(actionCreators.OnlyToMain({
-      type: actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE,
-      data: config
+      type: actionTypes.DISCOVERY_STREAM_DEV_REFRESH_CACHE
     }));
   }
   refreshInferredPersonalization() {
@@ -793,7 +775,8 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       this.setState({
         pendingOverrides: {
           ...currentOverrides
-        }
+        },
+        overridesTogglePressed: false
       });
       this.setDebugOverrides(null);
       return;
@@ -801,6 +784,9 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     const overrides = Object.keys(this.state.pendingOverrides).length ? {
       ...this.state.pendingOverrides
     } : currentOverrides;
+    this.setState({
+      overridesTogglePressed: true
+    });
     this.setDebugOverrides(overrides);
   }
   handleDebugOverrideChange(featureName, value) {
@@ -1052,7 +1038,8 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       return null;
     }
     const overrides = this.getOverrideValues(features);
-    const overridesEnabled = Object.keys(overrides).length;
+    const storeOverridesEnabled = !!Object.keys(overrides).length;
+    const overridesEnabled = this.state.overridesTogglePressed !== null ? this.state.overridesTogglePressed : storeOverridesEnabled;
     const hasAnyNonZeroOverride = Object.values(overrides).some(value => Number.isFinite(value) && value > 0);
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
       className: "inferred-overrides-header"
@@ -1083,6 +1070,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
       id: "inferred-personalization-overrides",
       pressed: overridesEnabled || null,
+      ontoggle: this.handleDebugOverridesToggle,
       onToggle: this.handleDebugOverridesToggle,
       label: "Enable overrides"
     })))), /*#__PURE__*/external_React_default().createElement(Row, {
@@ -1232,6 +1220,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       disabled: !unifiedAdsSpocsEnabled || null,
       pressed: allizomEnabled || null,
       ontoggle: this.handleAllizomToggle,
+      onToggle: this.handleAllizomToggle,
       label: "Toggle allizom"
     }))), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
       className: "min"
@@ -1283,9 +1272,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     }, "Data last fetched"), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(feeds.data[feed.url] ? feeds.data[feed.url].lastUpdated : null) || "(no data)")));
   }
   render() {
-    const prefToggles = "enabled collapsible".split(" ");
     const {
-      config,
       layout
     } = this.props.state.DiscoveryStream;
     const sectionsEnabled = this.props.otherPrefs[PREF_SECTIONS_ENABLED];
@@ -1299,9 +1286,6 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     const billboardPressed = billboardsEnabled && spocPlacements.includes("newtab_billboard");
     const leaderboardPressed = leaderboardEnabled && spocPlacements.includes("newtab_leaderboard");
     return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
-      className: "button",
-      onClick: this.restorePrefDefaults
-    }, "Restore Pref Defaults"), " ", /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.refreshCache
     }, "Refresh Cache"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
@@ -1328,6 +1312,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       id: "sections-toggle",
       pressed: sectionsEnabled || null,
       ontoggle: this.handleSectionsToggle,
+      onToggle: this.handleSectionsToggle,
       label: "Toggle DS Sections"
     })), /*#__PURE__*/external_React_default().createElement("details", {
       className: "details-section"
@@ -1337,6 +1322,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       id: "newtab_leaderboard",
       pressed: leaderboardPressed || null,
       ontoggle: this.toggleIABBanners,
+      onToggle: this.toggleIABBanners,
       label: "Enable IAB Leaderboard"
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "toggle-wrapper"
@@ -1344,6 +1330,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       id: "newtab_billboard",
       pressed: billboardPressed || null,
       ontoggle: this.toggleIABBanners,
+      onToggle: this.toggleIABBanners,
       label: "Enable IAB Billboard"
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "toggle-wrapper"
@@ -1351,17 +1338,12 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       id: "newtab_rectangle",
       pressed: mediumRectangleEnabledPressed || null,
       ontoggle: this.toggleIABBanners,
+      onToggle: this.toggleIABBanners,
       label: "Enable IAB Medium Rectangle (MREC)"
     }))), /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.sendConversionEvent
-    }, "Send conversion event"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
-      key: pref
-    }, /*#__PURE__*/external_React_default().createElement("td", null, /*#__PURE__*/external_React_default().createElement(TogglePrefCheckbox, {
-      checked: config[pref],
-      pref: pref,
-      onChange: this.setConfigValue
-    })))))), /*#__PURE__*/external_React_default().createElement("h3", null, "Layout"), layout.map((row, rowIndex) => /*#__PURE__*/external_React_default().createElement("div", {
+    }, "Send conversion event"), /*#__PURE__*/external_React_default().createElement("h3", null, "Layout"), layout.map((row, rowIndex) => /*#__PURE__*/external_React_default().createElement("div", {
       key: `row-${rowIndex}`
     }, row.components.map((component, componentIndex) => /*#__PURE__*/external_React_default().createElement("div", {
       key: `component-${componentIndex}`,
@@ -1497,15 +1479,17 @@ class _ConfirmDialog extends (external_React_default()).PureComponent {
     if (!message_body) {
       return null;
     }
-    return /*#__PURE__*/external_React_default().createElement("span", null, message_body.map(msg => /*#__PURE__*/external_React_default().createElement("p", {
+    return /*#__PURE__*/external_React_default().createElement("span", null, message_body.map((msg, index) => /*#__PURE__*/external_React_default().createElement("p", {
       key: msg,
-      "data-l10n-id": msg
+      "data-l10n-id": msg,
+      id: index === 0 ? "confirmation-dialog-title" : undefined
     })));
   }
   render() {
     return /*#__PURE__*/external_React_default().createElement("dialog", {
       ref: this.dialogRef,
       className: "confirmation-dialog",
+      "aria-labelledby": "confirmation-dialog-title",
       onClick: e => {
         // Close modal when clicking on the backdrop pseudo element (the background of the modal)
         if (e.target === this.dialogRef.current) {
@@ -6166,6 +6150,7 @@ class MoreRecommendations extends (external_React_default()).PureComponent {
   }
 }
 ;// CONCATENATED MODULE: ./content-src/components/ModalOverlay/ModalOverlay.jsx
+function ModalOverlay_extends() { return ModalOverlay_extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, ModalOverlay_extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6201,7 +6186,7 @@ function ModalOverlayWrapper({
       }
     };
   }, [onClose]);
-  return /*#__PURE__*/external_React_default().createElement("dialog", {
+  return /*#__PURE__*/external_React_default().createElement("dialog", ModalOverlay_extends({
     ref: dialogRef,
     className: "modalOverlayOuter",
     onClick: e => {
@@ -6209,9 +6194,10 @@ function ModalOverlayWrapper({
         onClose(e);
       }
     }
-  }, /*#__PURE__*/external_React_default().createElement("div", {
+  }, headerId ? {
+    "aria-labelledby": headerId
+  } : {}), /*#__PURE__*/external_React_default().createElement("div", {
     className: className,
-    "aria-labelledby": headerId,
     id: id
   }, children));
 }
@@ -6576,6 +6562,7 @@ const INITIAL_STATE = {
     coarseInferredInterests: {},
     coarsePrivateInferredInterests: {},
     debugFeatures: null,
+    inferredTelemetrySettingsOverrides: {},
   },
   Search: {
     // When search hand-off is enabled, we render a big button that is styled to
@@ -7078,6 +7065,8 @@ function InferredPersonalization(
         coarseInferredInterests: action.data.coarseInferredInterests,
         coarsePrivateInferredInterests:
           action.data.coarsePrivateInferredInterests,
+        inferredTelemetrySettingsOverrides:
+          action.data.inferredTelemetrySettingsOverrides,
         lastUpdated: action.data.lastUpdated,
       };
     case actionTypes.INFERRED_PERSONALIZATION_DEBUG_FEATURES_UPDATE:
@@ -9289,6 +9278,7 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       className: "form-input-container"
     }, /*#__PURE__*/external_React_default().createElement("h3", {
       className: "section-title grey-title",
+      id: "top-site-form-title",
       "data-l10n-id": showAsAdd ? addTopsitesHeaderL10nId : editTopsitesHeaderL10nId
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "fields-and-preview"
@@ -9506,7 +9496,8 @@ class _TopSites extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement(ModalOverlayWrapper, {
       unstyled: true,
       onClose: this.onEditFormClose,
-      innerClassName: "modal"
+      innerClassName: "modal",
+      headerId: "top-site-form-title"
     }, /*#__PURE__*/external_React_default().createElement(TopSiteForm, TopSites_extends({
       site: props.TopSites.rows[editForm.index],
       onClose: this.onEditFormClose,
@@ -12978,7 +12969,7 @@ const FocusTimer = ({
     }
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "newtab-widget-timer-notification-title-wrapper"
-  }, /*#__PURE__*/external_React_default().createElement("h3", {
+  }, /*#__PURE__*/external_React_default().createElement("h2", {
     "data-l10n-id": "newtab-widget-timer-notification-title"
   }), /*#__PURE__*/external_React_default().createElement("div", {
     className: "focus-timer-context-menu-wrapper"
@@ -13497,7 +13488,7 @@ function WeatherForecast({
     className: "city-name"
   }, searchActive ? /*#__PURE__*/external_React_default().createElement(LocationSearch, {
     outerClassName: ""
-  }) : /*#__PURE__*/external_React_default().createElement("h3", null, weatherData.locationData.city)), renderContextMenu()), !isSmallSize && !hasError && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
+  }) : /*#__PURE__*/external_React_default().createElement("h2", null, weatherData.locationData.city)), renderContextMenu()), !isSmallSize && !hasError && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
     className: "current-weather-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "weather-icon-column"
@@ -13514,11 +13505,13 @@ function WeatherForecast({
   }, /*#__PURE__*/external_React_default().createElement("span", {
     className: "high-temperature"
   }, /*#__PURE__*/external_React_default().createElement("span", {
-    className: "arrow-icon arrow-up"
+    className: "arrow-icon arrow-up",
+    "data-l10n-id": "newtab-weather-high"
   }), WEATHER_SUGGESTION.forecast.high[prefs["weather.temperatureUnits"]], "\xB0"), /*#__PURE__*/external_React_default().createElement("span", {
     className: "low-temperature"
   }, /*#__PURE__*/external_React_default().createElement("span", {
-    className: "arrow-icon arrow-down"
+    className: "arrow-icon arrow-down",
+    "data-l10n-id": "newtab-weather-low"
   }), WEATHER_SUGGESTION.forecast.low[prefs["weather.temperatureUnits"]], "\xB0"))), /*#__PURE__*/external_React_default().createElement("hr", null)), hasError && /*#__PURE__*/external_React_default().createElement("div", {
     className: "forecast-error",
     ref: errorRef
@@ -13624,6 +13617,7 @@ const CONTAINER_ACTION_TYPES = {
   CHANGE_SIZE_ALL: "change_size_all",
   FEEDBACK: "feedback"
 };
+const PREF_WIDGETS_ENABLED = "widgets.enabled";
 const PREF_WIDGETS_LISTS_ENABLED = "widgets.lists.enabled";
 const PREF_WIDGETS_SYSTEM_LISTS_ENABLED = "widgets.system.lists.enabled";
 const PREF_WIDGETS_TIMER_ENABLED = "widgets.focusTimer.enabled";
@@ -13682,8 +13676,9 @@ function Widgets() {
   const feedbackEnabled = prefs.trainhopConfig?.widgets?.feedbackEnabled || prefs[PREF_WIDGETS_FEEDBACK_ENABLED];
   const hideAllToastEnabled = prefs.trainhopConfig?.widgets?.hideAllToastEnabled || prefs[PREF_WIDGETS_HIDE_ALL_TOAST_ENABLED];
   const feedbackUrl = prefs.trainhopConfig?.widgets?.feedbackUrl ?? WIDGETS_FEEDBACK_URL;
-  const listsEnabled = (nimbusListsTrainhopEnabled || nimbusListsEnabled || prefs[PREF_WIDGETS_SYSTEM_LISTS_ENABLED]) && prefs[PREF_WIDGETS_LISTS_ENABLED];
-  const timerEnabled = (nimbusTimerTrainhopEnabled || nimbusTimerEnabled || prefs[PREF_WIDGETS_SYSTEM_TIMER_ENABLED]) && prefs[PREF_WIDGETS_TIMER_ENABLED];
+  const widgetsEnabled = prefs[PREF_WIDGETS_ENABLED];
+  const listsEnabled = widgetsEnabled && (nimbusListsTrainhopEnabled || nimbusListsEnabled || prefs[PREF_WIDGETS_SYSTEM_LISTS_ENABLED]) && prefs[PREF_WIDGETS_LISTS_ENABLED];
+  const timerEnabled = widgetsEnabled && (nimbusTimerTrainhopEnabled || nimbusTimerEnabled || prefs[PREF_WIDGETS_SYSTEM_TIMER_ENABLED]) && prefs[PREF_WIDGETS_TIMER_ENABLED];
 
   // This weather forecast widget will only show when the following are true:
   // - The weather view is set to "detailed" (can be checked with the weather.display pref)
@@ -13701,7 +13696,7 @@ function Widgets() {
   const systemShowWeather = prefs["system.showWeather"];
   const weatherExperimentEnabled = prefs.trainhopConfig?.weather?.enabled;
   const isWeatherEnabled = showWeather && (systemShowWeather || weatherExperimentEnabled);
-  const weatherForecastEnabled = weatherForecastSystemEnabled && showDetailedView && weatherData?.initialized && isWeatherEnabled;
+  const weatherForecastEnabled = widgetsEnabled && weatherForecastSystemEnabled && showDetailedView && weatherData?.initialized && isWeatherEnabled;
 
   // Widget size is "small" only when maximize feature is enabled and widgets
   // are currently minimized. Otherwise defaults to "medium".
@@ -14393,6 +14388,7 @@ function SectionsMgmtPanel({
     return /*#__PURE__*/external_React_default().createElement("li", {
       key: sectionKey
     }, /*#__PURE__*/external_React_default().createElement("label", {
+      id: `follow-topic-label-${sectionKey}`,
       htmlFor: `follow-topic-${sectionKey}`
     }, title), /*#__PURE__*/external_React_default().createElement("div", {
       className: following ? "section-follow following" : "section-follow"
@@ -14402,10 +14398,14 @@ function SectionsMgmtPanel({
       index: receivedRank,
       section: sectionKey,
       id: `follow-topic-${sectionKey}`
+      // Compose accessible label from the localized "Following" span and the topic title label.
+      ,
+      "aria-labelledby": `follow-state-${sectionKey} follow-topic-label-${sectionKey}`
     }, /*#__PURE__*/external_React_default().createElement("span", {
       className: "section-button-follow-text",
       "data-l10n-id": "newtab-section-follow-button"
     }), /*#__PURE__*/external_React_default().createElement("span", {
+      id: `follow-state-${sectionKey}`,
       className: "section-button-following-text",
       "data-l10n-id": "newtab-section-following-button"
     }), /*#__PURE__*/external_React_default().createElement("span", {
@@ -14422,6 +14422,7 @@ function SectionsMgmtPanel({
     return /*#__PURE__*/external_React_default().createElement("li", {
       key: sectionKey
     }, /*#__PURE__*/external_React_default().createElement("label", {
+      id: `blocked-topic-label-${sectionKey}`,
       htmlFor: `blocked-topic-${sectionKey}`
     }, title), /*#__PURE__*/external_React_default().createElement("div", {
       className: blocked ? "section-block blocked" : "section-block"
@@ -14431,10 +14432,14 @@ function SectionsMgmtPanel({
       index: receivedRank,
       section: sectionKey,
       id: `blocked-topic-${sectionKey}`
+      // Compose accessible label from the localized "Blocked" span and the topic title label.
+      ,
+      "aria-labelledby": `blocked-state-${sectionKey} blocked-topic-label-${sectionKey}`
     }, /*#__PURE__*/external_React_default().createElement("span", {
       className: "section-button-block-text",
       "data-l10n-id": "newtab-section-block-button"
     }), /*#__PURE__*/external_React_default().createElement("span", {
+      id: `blocked-state-${sectionKey}`,
       className: "section-button-blocked-text",
       "data-l10n-id": "newtab-section-blocked-button"
     }), /*#__PURE__*/external_React_default().createElement("span", {
@@ -14579,6 +14584,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
 
     // Setting this now so when we remove v1 we don't have to migrate v1 values.
     this.props.setPref("newtabWallpapers.wallpaper", id);
+    this.props.setPref("newtabWallpapers.initialWallpaper", "");
   }
 
   // Note: There's a separate event (debouncedHandleChange) that fires the handleChange
@@ -14594,6 +14600,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       id = `solid-color-picker-${event.target.value}`;
     }
     this.props.setPref("newtabWallpapers.wallpaper", id);
+    this.props.setPref("newtabWallpapers.initialWallpaper", "");
     const uploadedPreviously = this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
     this.handleUserEvent(actionTypes.WALLPAPER_CLICK, {
       selected_wallpaper: id,
@@ -14688,6 +14695,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
 
     // Reset active wallpaper
     this.props.setPref("newtabWallpapers.wallpaper", "");
+    this.props.setPref("newtabWallpapers.initialWallpaper", "");
 
     // Fire WALLPAPER_CLICK telemetry event
     this.handleUserEvent(actionTypes.WALLPAPER_CLICK, {
@@ -14786,6 +14794,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
 
         // Set active wallpaper ID to "custom"
         this.props.setPref("newtabWallpapers.wallpaper", "custom");
+        this.props.setPref("newtabWallpapers.initialWallpaper", "");
 
         // Update the uploadedPreviously pref to TRUE
         // Note: this pref used for telemetry. Do not reset to false.
@@ -15261,6 +15270,7 @@ function WidgetsManagementPanel({
     id: "weather-toggle",
     pressed: weatherEnabled || null,
     ontoggle: onToggleWidget,
+    onToggle: onToggleWidget,
     "data-preference": "showWeather",
     "data-event-source": "WEATHER",
     "data-l10n-id": "newtab-custom-widget-weather-toggle"
@@ -15271,6 +15281,7 @@ function WidgetsManagementPanel({
     id: "timer-toggle",
     pressed: timerEnabled || null,
     ontoggle: onToggleWidget,
+    onToggle: onToggleWidget,
     "data-preference": "widgets.focusTimer.enabled",
     "data-event-source": "WIDGET_TIMER",
     "data-l10n-id": "newtab-custom-widget-timer-toggle"
@@ -15281,6 +15292,7 @@ function WidgetsManagementPanel({
     id: "lists-toggle",
     pressed: listsEnabled || null,
     ontoggle: onToggleWidget,
+    onToggle: onToggleWidget,
     "data-preference": "widgets.lists.enabled",
     "data-event-source": "WIDGET_LISTS",
     "data-l10n-id": "newtab-custom-widget-lists-toggle"
@@ -15308,6 +15320,7 @@ class ContentSection extends (external_React_default()).PureComponent {
     // Refs are necessary for dynamically measuring drawer heights for slide animations
     this.topSitesDrawerRef = /*#__PURE__*/external_React_default().createRef();
     this.pocketDrawerRef = /*#__PURE__*/external_React_default().createRef();
+    this.widgetsMgmtDrawerRef = /*#__PURE__*/external_React_default().createRef();
   }
   inputUserEvent(eventSource, eventValue) {
     (0,external_ReactRedux_namespaceObject.batch)(() => {
@@ -15394,22 +15407,30 @@ class ContentSection extends (external_React_default()).PureComponent {
   setDrawerMargins() {
     this.setDrawerMargin(`TOP_SITES`, this.props.enabledSections.topSitesEnabled);
     this.setDrawerMargin(`TOP_STORIES`, this.props.enabledSections.pocketEnabled);
+    this.setDrawerMargin(`WIDGETS`, this.props.widgetsEnabled);
   }
   setDrawerMargin(drawerID, isOpen) {
     let drawerRef;
-    if (drawerID === `TOP_SITES`) {
-      drawerRef = this.topSitesDrawerRef.current;
-    } else if (drawerID === `TOP_STORIES`) {
-      drawerRef = this.pocketDrawerRef.current;
-    } else {
-      return;
+    switch (drawerID) {
+      case `TOP_SITES`:
+        drawerRef = this.topSitesDrawerRef.current;
+        break;
+      case `TOP_STORIES`:
+        drawerRef = this.pocketDrawerRef.current;
+        break;
+      case `WIDGETS`:
+        drawerRef = this.widgetsMgmtDrawerRef.current;
+        break;
+      default:
+        return;
     }
     if (drawerRef) {
       // Use measured height if valid, otherwise use a large fallback
       // since overflow:hidden on the parent safely hides the drawer
-      let drawerHeight = parseFloat(window.getComputedStyle(drawerRef)?.height) || 100;
+      let drawerHeight = drawerRef.offsetHeight || 100;
       if (isOpen) {
-        drawerRef.style.marginTop = "var(--space-small)";
+        // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep the marginTop assignment
+        drawerRef.style.marginTop = this.props.novaEnabled ? "" : "var(--space-small)";
       } else {
         drawerRef.style.marginTop = `-${drawerHeight + 3}px`;
       }
@@ -15439,7 +15460,8 @@ class ContentSection extends (external_React_default()).PureComponent {
       // @nova-cleanup(remove-conditional): Remove novaEnabled
       novaEnabled,
       toggleWidgetsManagementPanel,
-      showWidgetsManagementPanel
+      showWidgetsManagementPanel,
+      widgetsEnabled
     } = this.props;
     const {
       topSitesEnabled,
@@ -15453,6 +15475,16 @@ class ContentSection extends (external_React_default()).PureComponent {
       listsEnabled
     } = enabledWidgets;
 
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check and newtab-custom-stories-toggle, default to newtab-recommended-stories-toggle
+    let pocketToggleL10nId;
+    if (mayHaveInferredPersonalization) {
+      pocketToggleL10nId = "newtab-custom-stories-personalized-toggle";
+    } else if (novaEnabled) {
+      pocketToggleL10nId = "newtab-recommended-stories-toggle";
+    } else {
+      pocketToggleL10nId = "newtab-custom-stories-toggle";
+    }
+
     // @nova-cleanup(remove-conditional): This conditional adds the toggle for wallpaper visibility.
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: "home-section"
@@ -15462,6 +15494,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       id: "wallpapers-toggle",
       pressed: wallpapersEnabled || null,
       ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
       "data-preference": "newtabWallpapers.enabled",
       "data-event-source": "WALLPAPERS",
       "data-l10n-id": "newtab-wallpaper-toggle-title"
@@ -15485,6 +15518,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       id: "weather-toggle",
       pressed: weatherEnabled || null,
       ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
       "data-preference": "showWeather",
       "data-event-source": "WEATHER",
       "data-l10n-id": "newtab-custom-widget-weather-toggle"
@@ -15495,6 +15529,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       id: "lists-toggle",
       pressed: listsEnabled || null,
       ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
       "data-preference": "widgets.lists.enabled",
       "data-event-source": "WIDGET_LISTS",
       "data-l10n-id": "newtab-custom-widget-lists-toggle"
@@ -15505,6 +15540,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       id: "timer-toggle",
       pressed: timerEnabled || null,
       ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
       "data-preference": "widgets.focusTimer.enabled",
       "data-event-source": "WIDGET_TIMER",
       "data-l10n-id": "newtab-custom-widget-timer-toggle"
@@ -15517,6 +15553,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       id: "weather-toggle",
       pressed: weatherEnabled || null,
       ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
       "data-preference": "showWeather",
       "data-event-source": "WEATHER",
       "data-l10n-id": "newtab-custom-weather-toggle"
@@ -15530,9 +15567,10 @@ class ContentSection extends (external_React_default()).PureComponent {
       id: "shortcuts-toggle",
       pressed: topSitesEnabled || null,
       ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
       "data-preference": "feeds.topsites",
       "data-event-source": "TOP_SITES",
-      "data-l10n-id": novaEnabled ? "newtab-custom-shortcuts-toggle-rows" : "newtab-custom-shortcuts-toggle"
+      "data-l10n-id": novaEnabled ? "newtab-custom-shortcuts-nova" : "newtab-custom-shortcuts-toggle"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       slot: "nested"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -15540,7 +15578,7 @@ class ContentSection extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-information",
       ref: this.topSitesDrawerRef
-    }, /*#__PURE__*/external_React_default().createElement("moz-select", {
+    }, /*#__PURE__*/external_React_default().createElement("moz-select", ContentSection_extends({
       id: "row-selector",
       className: "selector",
       name: "row-count",
@@ -15548,7 +15586,11 @@ class ContentSection extends (external_React_default()).PureComponent {
       value: topSitesRowsCount,
       "aria-labelledby": "custom-shortcuts-title",
       onChange: this.onPreferenceSelect
-    }, [1, 2, 3, 4].map(num =>
+      // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and spread operator, keep the attributes
+    }, novaEnabled && {
+      "data-l10n-id": "newtab-custom-row-description",
+      inputLayout: "inline-end"
+    }), [1, 2, 3, 4].map(num =>
     // @nova-cleanup(remove-conditional): Remove the conditional and "else" block after Nova lands
     novaEnabled ? /*#__PURE__*/external_React_default().createElement("moz-option", {
       key: num,
@@ -15565,8 +15607,26 @@ class ContentSection extends (external_React_default()).PureComponent {
       className: "divider",
       role: "separator"
     }),
-    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep WidgetsManagementPanel
-    novaEnabled && mayHaveWidgets && /*#__PURE__*/external_React_default().createElement(WidgetsManagementPanel, {
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep toggle and WidgetsManagementPanel
+    novaEnabled && mayHaveWidgets && /*#__PURE__*/external_React_default().createElement("div", {
+      id: "widgets-section",
+      className: "section"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "widgets-system-toggle",
+      pressed: widgetsEnabled || null,
+      ontoggle: this.onPreferenceSelect,
+      onToggle: this.onPreferenceSelect,
+      "data-preference": "widgets.enabled",
+      "data-event-source": "WIDGETS_SYSTEM",
+      "data-l10n-id": "newtab-custom-widget-section-toggle"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      slot: "nested"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "more-info-widgets-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "more-information",
+      ref: this.widgetsMgmtDrawerRef
+    }, /*#__PURE__*/external_React_default().createElement(WidgetsManagementPanel, {
       enabledSections: enabledSections,
       enabledWidgets: enabledWidgets,
       mayHaveWeather: mayHaveWeather,
@@ -15579,7 +15639,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       onSubpanelToggle: onSubpanelToggle,
       togglePanel: toggleWidgetsManagementPanel,
       showPanel: showWidgetsManagementPanel
-    }),
+    })))))),
     // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep divider
     // The pocketRegion check makes sure there is only one divider present if it's false
     novaEnabled && pocketRegion && /*#__PURE__*/external_React_default().createElement("span", {
@@ -15588,18 +15648,15 @@ class ContentSection extends (external_React_default()).PureComponent {
     }), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
       id: "pocket-section",
       className: "section"
-    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", ContentSection_extends({
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
       id: "pocket-toggle",
       pressed: pocketEnabled || null,
       ontoggle: this.onPreferenceSelect,
-      "aria-describedby": "custom-pocket-subtitle",
+      onToggle: this.onPreferenceSelect,
       "data-preference": "feeds.section.topstories",
-      "data-event-source": "TOP_STORIES"
-    }, mayHaveInferredPersonalization ? {
-      "data-l10n-id": "newtab-custom-stories-personalized-toggle"
-    } : {
-      "data-l10n-id": "newtab-custom-stories-toggle"
-    }), /*#__PURE__*/external_React_default().createElement("div", {
+      "data-event-source": "TOP_STORIES",
+      "data-l10n-id": pocketToggleL10nId
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       slot: "nested"
     }, (mayHaveInferredPersonalization || mayHaveTopicSections) && /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-info-pocket-wrapper"
@@ -15628,7 +15685,9 @@ class ContentSection extends (external_React_default()).PureComponent {
       onSubpanelToggle: onSubpanelToggle,
       togglePanel: toggleSectionsMgmtPanel,
       showPanel: showSectionsMgmtPanel
-    }))))))), /*#__PURE__*/external_React_default().createElement("span", {
+    }))))))),
+    // @nova-cleanup(remove-conditional): Remove this divider once Nova lands
+    !novaEnabled && /*#__PURE__*/external_React_default().createElement("span", {
       className: "divider",
       role: "separator"
     }), /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
@@ -15760,7 +15819,8 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       showSectionsMgmtPanel: this.props.showSectionsMgmtPanel,
       novaEnabled: novaEnabled,
       toggleWidgetsManagementPanel: this.props.toggleWidgetsManagementPanel,
-      showWidgetsManagementPanel: this.props.showWidgetsManagementPanel
+      showWidgetsManagementPanel: this.props.showWidgetsManagementPanel,
+      widgetsEnabled: this.props.widgetsEnabled
     })))));
   }
 }
@@ -16859,7 +16919,8 @@ function TopicSelection({
   }
   return /*#__PURE__*/external_React_default().createElement(ModalOverlayWrapper, {
     onClose: handleUserClose,
-    innerClassName: "topic-selection-container"
+    innerClassName: "topic-selection-container",
+    headerId: "topic-selection-title"
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "topic-selection-form",
     ref: modalRef
@@ -16869,6 +16930,7 @@ function TopicSelection({
     onClick: handleUserClose
   }), /*#__PURE__*/external_React_default().createElement("h1", {
     className: "title",
+    id: "topic-selection-title",
     "data-l10n-id": "newtab-topic-selection-title"
   }), /*#__PURE__*/external_React_default().createElement("p", {
     className: "subtitle",
@@ -17459,12 +17521,16 @@ class BaseContent extends (external_React_default()).PureComponent {
       } = prevProps;
       const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
       const prevSelectedWallpaper = prevPrefs["newtabWallpapers.wallpaper"];
+      const initialWallpaper = prefs["newtabWallpapers.initialWallpaper"];
+      const prevInitialWallpaper = prevPrefs["newtabWallpapers.initialWallpaper"];
       const uploadedWallpaperTheme = prefs["newtabWallpapers.customWallpaper.theme"];
       const prevUploadedWallpaperTheme = prevPrefs["newtabWallpapers.customWallpaper.theme"];
 
       // don't update wallpaper unless the wallpaper is being changed.
       if (selectedWallpaper !== prevSelectedWallpaper ||
       // selecting a new wallpaper
+      initialWallpaper !== prevInitialWallpaper ||
+      // experiment sets initial wallpaper
       uploadedWallpaper !== prevUploadedWallpaper ||
       // uploading a new wallpaper
       wallpaperList !== prevWallpaperList ||
@@ -17632,7 +17698,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     const {
       wallpaperList
     } = this.props.Wallpapers;
-    const activeWallpaper = this.props.Prefs.values[`newtabWallpapers.wallpaper`];
+    const activeWallpaper = this.props.Prefs.values[`newtabWallpapers.wallpaper`] || this.props.Prefs.values[`newtabWallpapers.initialWallpaper`];
     const selected = wallpaperList.find(wp => wp.title === activeWallpaper);
     // make sure a wallpaper is selected and that the attribution also exists
     if (!selected?.attribution) {
@@ -17665,7 +17731,7 @@ class BaseContent extends (external_React_default()).PureComponent {
   }
   async updateWallpaper() {
     const prefs = this.props.Prefs.values;
-    const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
+    const selectedWallpaper = prefs["newtabWallpapers.wallpaper"] || prefs["newtabWallpapers.initialWallpaper"];
     const {
       wallpaperList,
       uploadedWallpaper: uploadedWallpaperUrl
@@ -17818,7 +17884,7 @@ class BaseContent extends (external_React_default()).PureComponent {
 
     // @nova-cleanup(remove-conditional):
     const novaEnabled = prefs[Base_PREF_NOVA_ENABLED];
-    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
+    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`] || prefs[`newtabWallpapers.initialWallpaper`];
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const weatherEnabled = prefs.showWeather;
     const {
@@ -17941,8 +18007,9 @@ class BaseContent extends (external_React_default()).PureComponent {
         toggleSectionsMgmtPanel: this.toggleSectionsMgmtPanel,
         showSectionsMgmtPanel: this.state.showSectionsMgmtPanel,
         showWidgetsManagementPanel: this.state.showWidgetsManagementPanel,
-        toggleWidgetsManagementPanel: this.toggleWidgetsManagementPanel
-      })));
+        toggleWidgetsManagementPanel: this.toggleWidgetsManagementPanel,
+        widgetsEnabled: prefs["widgets.enabled"]
+      })), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null));
     }
 
     // @nova-cleanup(remove-conditional): Delete this entire classic return block along with all variables only used here

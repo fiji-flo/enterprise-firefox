@@ -5,6 +5,7 @@
 #ifndef GFXMESSAGEUTILS_H_
 #define GFXMESSAGEUTILS_H_
 
+#include "DriverCrashGuard.h"
 #include "FilterSupport.h"
 #include "ImageTypes.h"
 #include "RegionBuilder.h"
@@ -17,6 +18,7 @@
 #include "gfxTelemetry.h"
 #include "gfxTypes.h"
 #include "ipc/EnumSerializer.h"
+#include "mozilla/EnumTypeTraits.h"
 #include "ipc/IPCMessageUtilsSpecializations.h"
 #include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/gfx/FileHandleWrapper.h"
@@ -202,6 +204,13 @@ struct ParamTraits<gfxRect> {
 };
 
 template <>
+struct ParamTraits<mozilla::gfx::CrashGuardType>
+    : public ContiguousEnumSerializer<mozilla::gfx::CrashGuardType,
+                                      mozilla::gfx::CrashGuardType::D3D11Layers,
+                                      mozilla::gfx::CrashGuardType::NUM_TYPES> {
+};
+
+template <>
 struct ParamTraits<gfxContentType>
     : public ContiguousEnumSerializer<gfxContentType, gfxContentType::COLOR,
                                       gfxContentType::SENTINEL> {};
@@ -255,6 +264,36 @@ struct ParamTraits<mozilla::gfx::ColorSpace>
     : public ContiguousEnumSerializer<mozilla::gfx::ColorSpace,
                                       mozilla::gfx::ColorSpace::SRGB,
                                       mozilla::gfx::ColorSpace::Max> {};
+
+template <typename E>
+using GfxEnumSerializer =
+    ContiguousEnumSerializerInclusive<E, mozilla::ContiguousEnumValues<E>::min,
+                                      mozilla::ContiguousEnumValues<E>::max>;
+
+template <>
+struct ParamTraits<mozilla::gfx::SVGMorphologyOperator>
+    : public GfxEnumSerializer<mozilla::gfx::SVGMorphologyOperator> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGFEColorMatrixType>
+    : public GfxEnumSerializer<mozilla::gfx::SVGFEColorMatrixType> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGFEComponentTransferType>
+    : public GfxEnumSerializer<mozilla::gfx::SVGFEComponentTransferType> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGFEBlendMode>
+    : public GfxEnumSerializer<mozilla::gfx::SVGFEBlendMode> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGEdgeMode>
+    : public GfxEnumSerializer<mozilla::gfx::SVGEdgeMode> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGChannel>
+    : public GfxEnumSerializer<mozilla::gfx::SVGChannel> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGTurbulenceType>
+    : public GfxEnumSerializer<mozilla::gfx::SVGTurbulenceType> {};
+template <>
+struct ParamTraits<mozilla::gfx::SVGFECompositeOperator>
+    : public GfxEnumSerializer<mozilla::gfx::SVGFECompositeOperator> {};
 
 template <>
 struct ParamTraits<mozilla::gfx::CompositionOp>

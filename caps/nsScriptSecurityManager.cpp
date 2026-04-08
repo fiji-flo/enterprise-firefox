@@ -1072,7 +1072,8 @@ nsresult nsScriptSecurityManager::CheckLoadURIFlags(
         }
       } else if (targetScheme.EqualsLiteral("moz-page-thumb") ||
                  targetScheme.EqualsLiteral("page-icon") ||
-                 targetScheme.EqualsLiteral("moz-newtab-wallpaper")) {
+                 targetScheme.EqualsLiteral("moz-newtab-wallpaper") ||
+                 targetScheme.EqualsLiteral("moz-newtab-remote-renderer")) {
         if (XRE_IsParentProcess()) {
           return NS_OK;
         }
@@ -1232,8 +1233,7 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(
   // available.
   uint32_t flags[] = {nsIURIFixup::FIXUP_FLAG_NONE,
                       nsIURIFixup::FIXUP_FLAG_FIX_SCHEME_TYPOS};
-  for (uint32_t i = 0; i < std::size(flags); ++i) {
-    uint32_t fixupFlags = flags[i];
+  for (unsigned int fixupFlags : flags) {
     if (aPrincipal->OriginAttributesRef().IsPrivateBrowsing()) {
       fixupFlags |= nsIURIFixup::FIXUP_FLAG_PRIVATE_CONTEXT;
     }
