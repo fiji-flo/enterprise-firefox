@@ -377,7 +377,7 @@ export const ConsoleClient = {
     }
 
     if ((res.status === 403 || res.status === 401) && !_didRefresh) {
-      await this.handleSessionRefresh();
+      await this._refreshSession();
       return this._fetch(path, method, { _didRefresh: true, jsonBody });
     }
 
