@@ -367,14 +367,12 @@ export const EnterpriseHandler = {
 
   async initiateShutdown() {
     // TODO: Bug 2001029 - Assert or force-enable session restore?
-
     try {
       await lazy.ConsoleClient.signoutUser();
     } catch (e) {
       console.error(`Unable to signout the user: ${e}`);
-    } finally {
-      Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
     }
+    // FELT will call shutdownFirefox() to quit us after handling the logout.
   },
 
   uninit() {

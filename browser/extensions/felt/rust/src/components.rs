@@ -283,9 +283,9 @@ impl FeltXPCOM {
         }
     }
 
-    fn ShutdownFirefoxForReauth(&self) -> nserror::nsresult {
-        trace!("FeltXPCOM::ShutdownFirefoxForReauth");
-        self.send(FeltMessage::ShutdownForReauth)
+    fn ShutdownFirefox(&self) -> nserror::nsresult {
+        trace!("FeltXPCOM::ShutdownFirefox");
+        self.send(FeltMessage::Shutdown)
     }
 
     fn PerformSignout(&self) -> nserror::nsresult {

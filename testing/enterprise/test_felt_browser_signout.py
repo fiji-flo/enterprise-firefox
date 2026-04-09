@@ -34,19 +34,24 @@ class BaseBrowserSignout(FeltTests):
         return private_cookies
 
     def run_perform_signout(self):
+        print(f"run_perform_signout A")
         self.connect_child_browser(
             capabilities={
                 # Do not auto-handle prompts.
                 "unhandledPromptBehavior": "ignore"
             }
         )
+        print(f"run_perform_signout B")
 
         self.assert_user_signed_in(env=Environment.FIREFOX)
+        print(f"run_perform_signout C")
         # Cache email for later use in prefilled email input field assertion
         user = self.get_logged_in_user_info(env=Environment.FIREFOX)
+        print(f"run_perform_signout D")
         self._signed_in_email = user["email"]
 
         self._child_driver.set_context("chrome")
+        print(f"run_perform_signout E")
 
         self._logger.info("Clicking enterprise badge to open enterprise panel")
         self.get_elem_child("#enterprise-badge-toolbar-button").click()
@@ -56,6 +61,7 @@ class BaseBrowserSignout(FeltTests):
             self._child_driver.session_capabilities.get("unhandledPromptBehavior")
             == "ignore"
         ), "Driver should not auto-handle prompt"
+        print(f"run_perform_signout F")
 
         try:
             # This will cause an UnexpectedAlertPresentException, which is our expected signout dialog
@@ -66,14 +72,17 @@ class BaseBrowserSignout(FeltTests):
             pass
 
         self._logger.info("Waiting for the signout dialog to open")
+        print(f"run_perform_signout G")
         alert = self._child_driver.switch_to_alert()
         # Wait(self._child_driver, 5).until(alert)
+        print(f"run_perform_signout H")
 
         self._logger.info(
             "Signing out the user by clicking the Signout button in the dialog"
         )
         # This target the primary action, which is clicking the Signout button
         alert.accept()
+        print(f"run_perform_signout I")
 
         self._child_driver.set_context("content")
 
@@ -81,6 +90,7 @@ class BaseBrowserSignout(FeltTests):
         # cleanup the browser and we can then make sure that our self-closing
         # is correct.
         self._manually_closed_child = True
+        print(f"run_perform_signout J")
 
         # Set new cookie on server side
         self.cookie_name.value = str(uuid.uuid1()).split("-")[0]
@@ -88,14 +98,18 @@ class BaseBrowserSignout(FeltTests):
 
         # Verify felt authentication window reloaded
         self.await_felt_auth_window()
+        print(f"run_perform_signout K")
         self.force_window()
+        print(f"run_perform_signout L")
 
         # Verify no user signed in in Felt
         self.assert_user_signed_out(env=Environment.FELT)
+        print(f"run_perform_signout M")
 
         # Verify no cookies from the previous sign in session
         cookies = self.get_private_cookies()
         assert len(cookies) == 0, f"No private cookies, found {len(cookies)}"
+        print(f"run_perform_signout N")
 
     def run_prefilled_email_submit(self):
         self._driver.set_context("chrome")
@@ -128,8 +142,10 @@ class BaseBrowserSignout(FeltTests):
 
         expected_cookie = list(
             filter(
-                lambda x: x["name"] == self.cookie_name.value
-                and x["value"] == self.cookie_value.value,
+                lambda x: (
+                    x["name"] == self.cookie_name.value
+                    and x["value"] == self.cookie_value.value
+                ),
                 self._child_driver.get_cookies(),
             )
         )

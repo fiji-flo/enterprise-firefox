@@ -932,4 +932,7 @@ class FeltTests(FeltTestsBase):
         self._logger.info("Performed SSO auth")
 
     def await_felt_auth_window(self):
+        print(
+            f"await_felt_auth_window self._driver.chrome_window_handles: {self._driver.chrome_window_handles}"
+        )
         self._wait.until(lambda mn: len(self._driver.chrome_window_handles) == 1)

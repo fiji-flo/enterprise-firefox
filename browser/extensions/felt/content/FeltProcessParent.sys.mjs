@@ -297,7 +297,7 @@ export class FeltProcessParent extends JSProcessActorParent {
                     }
                   );
                 });
-                Services.felt.shutdownFirefoxForReauth();
+                Services.felt.shutdownFirefox();
               });
             break;
           }
@@ -730,8 +730,9 @@ export class FeltProcessParent extends JSProcessActorParent {
         console.error(`FeltExtension: Server signout failed: ${err}`);
       })
       .finally(() => {
-        // clear token data on the FELT side
+        // clear token data on the FELT side, then shut Firefox down
         Services.felt.clearTokens();
+        Services.felt.shutdownFirefox();
         gFeltProcessParentInstance.proc.exitPromise.then(_ => {
           Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {
             reason: "logout",

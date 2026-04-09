@@ -391,9 +391,9 @@ impl FeltClientThread {
                                         trace!("FeltClientThread::felt_client::ipc_loop(): ERROR setting access token");
                                     }
                                 }
-                                Ok(FeltMessage::ShutdownForReauth) => {
-                                    trace!("FeltClientThread::felt_client::ipc_loop(): ShutdownForReauth");
-                                    utils::notify_observers("felt-firefox-shutdown-for-reauth".to_string());
+                                Ok(FeltMessage::Shutdown) => {
+                                    trace!("FeltClientThread::felt_client::ipc_loop(): Shutdown");
+                                    utils::notify_observers("felt-firefox-shutdown".to_string());
                                 },
                                 Ok(FeltMessage::OpenURL((url, disposition, focus_hint))) => {
                                     trace!(

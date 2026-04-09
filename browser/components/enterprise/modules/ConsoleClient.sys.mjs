@@ -681,7 +681,7 @@ export const ConsoleClient = {
 
     if (Services.felt.isFeltBrowser()) {
       Services.obs.addObserver(this, "felt-firefox-access-token-refreshed");
-      Services.obs.addObserver(this, "felt-firefox-shutdown-for-reauth");
+      Services.obs.addObserver(this, "felt-firefox-shutdown");
     }
 
     return this;
@@ -691,7 +691,7 @@ export const ConsoleClient = {
     switch (topic) {
       case "xpcom-shutdown": {
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        Services.obs.removeObserver(this, "felt-firefox-shutdown-for-reauth");
+        Services.obs.removeObserver(this, "felt-firefox-shutdown");
         Services.obs.removeObserver(
           this,
           "felt-firefox-access-token-refreshed"
@@ -701,7 +701,7 @@ export const ConsoleClient = {
         this._refreshResolve = null;
         break;
       }
-      case "felt-firefox-shutdown-for-reauth": {
+      case "felt-firefox-shutdown": {
         this.quitIgnoringCanClose();
         break;
       }

@@ -82,5 +82,5 @@ interface nsIFelt : nsISupports {
   void performSignout();
 
   [must_use]
-  void shutdownFirefoxForReauth();
+  void shutdownFirefox();
 };

@@ -232,16 +232,23 @@ this.felt = class extends ExtensionAPI {
           this
         );
 
-        // This is only useful for testing purpose when we need to exit the
-        // browser cleanly but need to keep felt alive for some processing after
-        if (!lazy.isBlockingShutdown()) {
-          Services.startup.quit(
-            Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
-          );
-        } else if (!this._win) {
-          Services.felt.makeBackgroundProcess(false);
-          this.showWindow();
-        }
+        lazy.ConsoleClient.performServerSignout()
+          .catch(err => {
+            console.error(`FeltExtension: Failed to post signout on exit: ${err}`);
+          })
+          .finally(() => {
+            Services.felt.clearTokens();
+            // This is only useful for testing purpose when we need to exit the
+            // browser cleanly but need to keep felt alive for some processing after
+            if (!lazy.isBlockingShutdown()) {
+              Services.startup.quit(
+                Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
+              );
+            } else if (!this._win) {
+              Services.felt.makeBackgroundProcess(false);
+              this.showWindow();
+            }
+          });
         break;
       }
 
