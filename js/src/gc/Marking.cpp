@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -941,8 +939,6 @@ void js::gc::PerformIncrementalPreWriteBarrier(TenuredCell* cell) {
   // The same as PerformIncrementalReadBarrier except for an extra check on the
   // runtime for cells in atoms zone.
 
-  Zone* zone = cell->zoneFromAnyThread();
-
   MOZ_ASSERT(cell);
   if (cell->isMarkedBlack()) {
     return;
@@ -951,6 +947,7 @@ void js::gc::PerformIncrementalPreWriteBarrier(TenuredCell* cell) {
   // Barriers can be triggered off the main thread by background finalization of
   // HeapPtrs to the atoms zone. We don't want to trigger the barrier in this
   // case.
+  Zone* zone = cell->zoneFromAnyThread();
   bool checkThread = zone->isAtomsZone();
   JSRuntime* runtime = cell->runtimeFromAnyThread();
   if (checkThread && !CurrentThreadCanAccessRuntime(runtime)) {
@@ -2327,8 +2324,7 @@ inline void MarkStack::poisonUnused() {
                capacity_ - topIndex_, MemCheckKind::MakeUndefined);
 }
 
-size_t MarkStack::sizeOfExcludingThis(
-    mozilla::MallocSizeOf mallocSizeOf) const {
+size_t MarkStack::sizeOfExcludingThis() const {
   return capacity_ * sizeof(uintptr_t);
 }
 
@@ -2828,8 +2824,8 @@ void GCMarker::checkZone(Cell* cell) {
 #endif
 
 size_t GCMarker::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
-  return mallocSizeOf(this) + stack.sizeOfExcludingThis(mallocSizeOf) +
-         otherStack.sizeOfExcludingThis(mallocSizeOf);
+  return mallocSizeOf(this) + stack.sizeOfExcludingThis() +
+         otherStack.sizeOfExcludingThis();
 }
 
 /*** IsMarked / IsAboutToBeFinalized ****************************************/
@@ -2960,12 +2956,21 @@ inline void SweepingTracer::onEdge(T** thingp, const char* name) {
   }
 #endif
 
+  // Any zone can contain references to symbols so make sure we've finished
+  // marking them before we try and sweep them. If this fails then we missed
+  // adding a sweep group edge somewhere. This check can be disabled in places
+  // where we only care about references from the current zone.
+  MOZ_ASSERT_IF(cell->getTraceKind() == JS::TraceKind::Symbol &&
+                    !allowSweepingSymbolsEarly,
+                !zone->isGCMarking());
+
   // It would be nice if we could assert that the zone of the tenured cell is in
   // the Sweeping state, but that isn't always true for:
   //  - atoms
   //  - the jitcode map
   //  - the mark queue
-  if ((zone->isGCSweeping() || zone->isAtomsZone()) && !cell->isMarkedAny()) {
+  if ((zone->isGCSweeping() || (zone->isAtomsZone() && zone->isGCMarking())) &&
+      !cell->isMarkedAny()) {
     *thingp = nullptr;
   }
 }

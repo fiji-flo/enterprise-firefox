@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.tabstray.redux.state
 
+import org.mozilla.fenix.tabgroups.EditTabGroup
 import org.mozilla.fenix.tabstray.data.TabGroupTheme
 
 /**
@@ -39,3 +40,15 @@ data class TabGroupFormState(
     fun getInitialName(defaultName: String?): String =
         if (edited || name.isNotBlank()) name else (defaultName ?: "")
 }
+
+/**
+ * Returns an initial [TabGroupFormState] derived from [TabsTrayState].
+ *
+ * Note: Because we need a localized string for the initial name, this is constructed at render time in [EditTabGroup].
+ */
+fun TabsTrayState.initializeTabGroupForm() = TabGroupFormState(
+    tabGroupId = null,
+    name = "",
+    nextTabGroupNumber = tabGroups.size + 1,
+    edited = false,
+)

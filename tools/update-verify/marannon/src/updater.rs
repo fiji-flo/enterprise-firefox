@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fs::File;
-use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tar::Archive;
 use xz::read::XzDecoder;
+
+use anyhow::{anyhow, bail, Result};
+use log::error;
 
 use crate::runner::CommandRunner;
 
@@ -43,12 +45,13 @@ pub(crate) fn prepare_updater(
     cert_overrides: &[CertOverride],
     output_dir: &Path,
     runner: &dyn CommandRunner,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+) -> Result<PathBuf> {
     let updater = unpack_updater(pkg, appname, output_dir)?;
     if !cert_overrides.is_empty() {
         replace_certs(
-            cert_replace_script.ok_or("cert_replace_script is required to override certs")?,
-            cert_dir.ok_or("cert_dir is required to override certs")?,
+            cert_replace_script
+                .ok_or_else(|| anyhow!("cert_replace_script is required to override certs"))?,
+            cert_dir.ok_or_else(|| anyhow!("cert_dir is required to override certs"))?,
             &updater,
             cert_overrides,
             runner,
@@ -57,11 +60,7 @@ pub(crate) fn prepare_updater(
     return Ok(updater);
 }
 
-fn unpack_updater(
-    pkg: &Path,
-    appname: &str,
-    output_dir: &Path,
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+fn unpack_updater(pkg: &Path, appname: &str, output_dir: &Path) -> Result<PathBuf> {
     let compressed = File::open(pkg)?;
     let tar = XzDecoder::new(compressed);
     let mut archive = Archive::new(tar);
@@ -71,12 +70,9 @@ fn unpack_updater(
     updater_binary.push("updater");
     let updater_path = updater_binary
         .to_str()
-        .ok_or("Couldn't parse updater binary path")?;
+        .ok_or_else(|| anyhow!("Couldn't parse updater binary path"))?;
     if !updater_binary.exists() {
-        return Err(Box::new(Error::new(
-            ErrorKind::Other,
-            format!("updater binary doesn't exist at {updater_path}"),
-        )));
+        bail!("updater binary doesn't exist at {updater_path}");
     }
     return Ok(updater_binary);
 }
@@ -87,7 +83,7 @@ fn replace_certs(
     updater: &Path,
     overrides: &[CertOverride],
     runner: &dyn CommandRunner,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let mut command = Command::new("python3");
     command
         .arg(cert_replace_script)
@@ -98,17 +94,19 @@ fn replace_certs(
         command.arg(cert_pair.orig.clone());
         command.arg(cert_pair.replacement.clone());
     }
-    if runner.run(&mut command)? == 0 {
+    let result = runner.run(command)?;
+    if result.exit_code == 0 {
         return Ok(());
     }
-    return Err(Box::new(Error::new(
-        ErrorKind::Other,
-        "Failed to replace certs!",
-    )));
+    // only log the output on error
+    error!("{}", result.output);
+    bail!("Failed to replace certs!");
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::runner::CommandResult;
+
     use super::*;
     use std::str::FromStr;
     use tempfile::TempDir;
@@ -135,8 +133,11 @@ mod tests {
 
     struct FakeRunner(i32);
     impl CommandRunner for FakeRunner {
-        fn run(&self, _: &mut Command) -> Result<i32, Box<dyn std::error::Error>> {
-            Ok(self.0)
+        fn run(&self, _: Command) -> Result<CommandResult> {
+            Ok(CommandResult {
+                exit_code: self.0,
+                output: String::new(),
+            })
         }
     }
 

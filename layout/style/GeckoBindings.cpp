@@ -189,10 +189,8 @@ void Gecko_GetQueryContainerSize(const Element* aElement, nscoord* aOutWidth,
 }
 
 void Gecko_ComputedStyle_Init(ComputedStyle* aStyle,
-                              const ServoComputedData* aValues,
-                              PseudoStyleType aPseudoType) {
-  new (KnownNotNull, aStyle)
-      ComputedStyle(aPseudoType, ServoComputedDataForgotten(aValues));
+                              const ServoComputedData* aValues) {
+  new (KnownNotNull, aStyle) ComputedStyle(ServoComputedDataForgotten(aValues));
 }
 
 ServoComputedData::ServoComputedData(const ServoComputedDataForgotten aValue) {

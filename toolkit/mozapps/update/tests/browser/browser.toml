@@ -214,9 +214,6 @@ skip-if = [
 
 ["browser_elevationDialog.js"]
 tags = "os_integration"
-skip-if = [
-  "standalone", # Bug 2025775
-]
 
 # Memory Fallback Tests
 

@@ -60,9 +60,11 @@ export default class ASRouterNewTabMessage extends MozLitElement {
     );
   }
 
-  // We don't permanently block on dismiss, re-show behavior is controlled by
-  // the message's frequency cap. If a message should only appear once per
-  // session or lifetime, set that in the message config.
+  #handleXButton() {
+    this.handleBlock?.();
+    this.#handleDismiss();
+  }
+
   #handleDismiss() {
     this.handleDismiss?.();
   }
@@ -176,7 +178,7 @@ export default class ASRouterNewTabMessage extends MozLitElement {
                 size="small"
                 iconSrc="chrome://global/skin/icons/close.svg"
                 data-l10n-id="newtab-activation-window-message-dismiss-button"
-                @click=${this.#handleDismiss.bind(this)}
+                @click=${this.#handleXButton.bind(this)}
               ></moz-button>
             </div>`}
         <div class="message-inner">

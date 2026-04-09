@@ -3738,6 +3738,12 @@ export var Policies = {
       setAndLockPref("network.http.windows-sso.enabled", param);
     },
   },
+
+  XSLTEnabled: {
+    onBeforeAddons(manager, param) {
+      setAndLockPref("dom.xslt.enabled", param);
+    },
+  },
 };
 
 /*

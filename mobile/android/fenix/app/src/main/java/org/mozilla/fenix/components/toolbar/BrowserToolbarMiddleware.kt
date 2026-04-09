@@ -736,12 +736,13 @@ class BrowserToolbarMiddleware(
         val isWideWindow = isWideScreen()
         val isTallWindow = isTallScreen()
         val shouldUseExpandedToolbar = settings.shouldUseExpandedToolbar
-        val primarySlotAction = ShortcutType.fromValue(settings.toolbarSimpleShortcut)
-            ?.toToolbarAction() ?: ToolbarAction.NewTab
+        val primarySlotAction = ShortcutType.fromValue(settings.toolbarSimpleShortcut)?.toToolbarAction()
 
-        val configs = listOf(
-            ToolbarActionConfig(primarySlotAction) {
-                !shouldUseExpandedToolbar || !isTallWindow || isWideWindow
+        val configs = listOfNotNull(
+            primarySlotAction?.let {
+                ToolbarActionConfig(it) {
+                    !shouldUseExpandedToolbar || !isTallWindow || isWideWindow
+                }
             },
             ToolbarActionConfig(ToolbarAction.TabCounter) {
                 !shouldUseExpandedToolbar || !isTallWindow || isWideWindow
@@ -1294,5 +1295,6 @@ class BrowserToolbarMiddleware(
         ShortcutType.TRANSLATE -> ToolbarAction.Translate
         ShortcutType.HOMEPAGE -> ToolbarAction.Homepage
         ShortcutType.BACK -> ToolbarAction.Back
+        ShortcutType.NONE -> null
     }
 }

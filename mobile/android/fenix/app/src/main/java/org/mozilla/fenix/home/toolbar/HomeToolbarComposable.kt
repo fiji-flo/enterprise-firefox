@@ -64,8 +64,7 @@ import org.mozilla.fenix.wallpapers.Wallpaper
 internal const val EDIT_TOOLBAR_DELAY_AFTER_VOICE_REQUEST = 1_000L
 
 /**
- * A wrapper over the [BrowserToolbar] composable to allow for extra customisation and
- * integration in the same framework as the [HomeToolbarView].
+ * A wrapper over the [BrowserToolbar] composable to allow for extra customisation.
  *
  * @param context [Context] used for various system interactions.
  * @param homeBinding [FragmentHomeBinding] which will serve as parent for this composable.
@@ -116,8 +115,6 @@ internal class HomeToolbarComposable(
 
         setContent {
             val isSearching = toolbarStore.observeAsComposableState { it.isEditMode() }.value
-            val isSearchEmpty =
-                toolbarStore.observeAsComposableState { it.editState.query.current.isEmpty() }.value
             val shouldShowTabStrip: Boolean = remember { settings.isTabStripEnabled }
             val isAddressBarVisible = remember { addressBarVisibility }
 
@@ -139,7 +136,7 @@ internal class HomeToolbarComposable(
                 MaterialTheme(
                     colorScheme = homepageToolbarColors(
                         isPrivateMode = browsingModeManager.mode == BrowsingMode.Private,
-                        shouldUseEdgeToEdgeColors = isEdgeToEdgeBackgroundEnabled && isSearchEmpty,
+                        shouldUseEdgeToEdgeColors = isEdgeToEdgeBackgroundEnabled && !isSearching,
                     ),
                 ) {
                     Column {

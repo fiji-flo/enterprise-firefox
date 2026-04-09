@@ -83,6 +83,7 @@ projects:
     - components:lib-fetch-okhttp
     - components:lib-publicsuffixlist
     - components:lib-state
+    - components:service-merino-manifest
     - components:support-base
     - components:support-images
     - components:support-ktx
@@ -740,6 +741,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -807,6 +809,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -853,6 +856,7 @@ projects:
     - components:lib-state
     - components:service-digitalassetlinks
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -979,6 +983,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -987,6 +992,47 @@ projects:
     - components:support-remotesettings
     - components:support-test
     - components:support-test-libstate
+    - components:support-utils
+    - components:tooling-lint
+    - components:ui-autocomplete
+    - components:ui-colors
+    - components:ui-icons
+    - components:ui-tabcounter
+    - components:ui-widgets
+  components:feature-ipprotection:
+    description: Feature module bridging GeckoView IP protection proxy state into
+      an AC store.
+    path: components/feature/ipprotection
+    publish: false
+    upstream_dependencies:
+    - components:browser-errorpages
+    - components:browser-menu
+    - components:browser-menu2
+    - components:browser-session-storage
+    - components:browser-state
+    - components:browser-tabstray
+    - components:browser-thumbnails
+    - components:browser-toolbar
+    - components:compose-base
+    - components:concept-awesomebar
+    - components:concept-base
+    - components:concept-engine
+    - components:concept-fetch
+    - components:concept-menu
+    - components:concept-storage
+    - components:concept-sync
+    - components:concept-tabstray
+    - components:concept-toolbar
+    - components:feature-session
+    - components:feature-tabs
+    - components:lib-dataprotect
+    - components:lib-publicsuffixlist
+    - components:lib-state
+    - components:service-firefox-accounts
+    - components:support-base
+    - components:support-images
+    - components:support-ktx
+    - components:support-test
     - components:support-utils
     - components:tooling-lint
     - components:ui-autocomplete
@@ -1180,6 +1226,7 @@ projects:
     - components:lib-state
     - components:service-digitalassetlinks
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -1299,6 +1346,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -1477,6 +1525,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-firefox-accounts
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -1700,6 +1749,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-location
+    - components:service-merino-manifest
     - components:support-appservices
     - components:support-base
     - components:support-images
@@ -1979,6 +2029,7 @@ projects:
     - components:service-digitalassetlinks
     - components:service-glean
     - components:service-location
+    - components:service-merino-manifest
     - components:service-nimbus
     - components:service-sync-logins
     - components:support-android-test
@@ -2036,6 +2087,7 @@ projects:
     - components:lib-publicsuffixlist
     - components:lib-state
     - components:service-location
+    - components:service-merino-manifest
     - components:service-nimbus
     - components:support-appservices
     - components:support-base
@@ -2341,6 +2393,13 @@ projects:
     path: components/service/merino-manifest
     publish: true
     upstream_dependencies:
+    - components:concept-base
+    - components:concept-fetch
+    - components:lib-publicsuffixlist
+    - components:support-base
+    - components:support-ktx
+    - components:support-test
+    - components:support-utils
     - components:tooling-lint
   components:service-nimbus:
     description: A client-side experiment SDK

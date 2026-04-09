@@ -3423,7 +3423,8 @@ const SponsorLabel = ({
   sponsored_by_override,
   sponsor,
   context,
-  newSponsoredLabel
+  newSponsoredLabel,
+  novaEnabled
 }) => {
   const classList = `story-sponsored-label ${newSponsoredLabel || ""} clamp`;
   // If override is not false or an empty string.
@@ -3437,6 +3438,19 @@ const SponsorLabel = ({
     // This is to support the use cases where the sponsored context is displayed elsewhere.
     return null;
   } else if (sponsor) {
+    if (novaEnabled) {
+      return /*#__PURE__*/external_React_default().createElement("div", {
+        className: "source-wrapper"
+      }, /*#__PURE__*/external_React_default().createElement("span", {
+        className: "source clamp"
+      }, sponsor), /*#__PURE__*/external_React_default().createElement("span", {
+        className: "ds-spoc-separator",
+        "aria-hidden": "true"
+      }), /*#__PURE__*/external_React_default().createElement("span", {
+        className: "ds-spoc-sponsored",
+        "data-l10n-id": "newtab-label-sponsored-fixed"
+      }));
+    }
     return /*#__PURE__*/external_React_default().createElement("p", {
       className: classList
     }, /*#__PURE__*/external_React_default().createElement(FluentOrText, {
@@ -3463,12 +3477,14 @@ class DSContextFooter extends (external_React_default()).PureComponent {
       sponsored_by_override,
       cta_button_variant,
       source,
-      mayHaveSectionsCards
+      mayHaveSectionsCards,
+      novaEnabled
     } = this.props;
     const sponsorLabel = SponsorLabel({
       sponsored_by_override,
       sponsor,
-      context
+      context,
+      novaEnabled
     });
     const dsMessageLabel = DSMessageLabel({
       context,
@@ -3613,7 +3629,8 @@ const DefaultMeta = ({
   dispatch,
   mayHaveSectionsCards,
   format,
-  icon_src
+  icon_src,
+  novaEnabled
 }) => {
   const shouldShowFooter = format !== "rectangle" && format !== "spoc";
   return /*#__PURE__*/external_React_default().createElement("div", {
@@ -3644,7 +3661,8 @@ const DefaultMeta = ({
     cta_button_variant: ctaButtonVariant,
     source: source,
     dispatch: dispatch,
-    mayHaveSectionsCards: mayHaveSectionsCards
+    mayHaveSectionsCards: mayHaveSectionsCards,
+    novaEnabled: novaEnabled
   }), newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSMessageFooter, {
     context_type: context_type,
     context: null
@@ -3709,18 +3727,42 @@ class _DSCard extends (external_React_default()).PureComponent {
         height: 250
       }
     };
+    this.novaSectionsCardImagesSizes = {
+      small: {
+        width: 132,
+        height: 108
+      },
+      medium: {
+        width: 300,
+        height: 160
+      },
+      large: {
+        width: 240,
+        height: 200
+      }
+    };
     this.sectionsColumnMediaMatcher = {
       1: "default",
       2: "(min-width: 724px)",
       3: "(min-width: 1122px)",
       4: "(min-width: 1390px)"
     };
+    this.novaSectionsColumnMediaMatcher = {
+      1: "default",
+      2: "(min-width: 684px)",
+      3: "(min-width: 1032px)",
+      4: "(min-width: 1380px)"
+    };
   }
   getSectionImageSize(column, size) {
+    // @nova-cleanup(remove-pref): Remove conditional, use nova sizes as default
+    const novaEnabled = this.props.Prefs.values["nova.enabled"];
+    const imageSizes = novaEnabled ? this.novaSectionsCardImagesSizes : this.sectionsCardImagesSizes;
+    const mediaMatchers = novaEnabled ? this.novaSectionsColumnMediaMatcher : this.sectionsColumnMediaMatcher;
     const cardImageSize = {
-      mediaMatcher: this.sectionsColumnMediaMatcher[column],
-      width: this.sectionsCardImagesSizes[size].width,
-      height: this.sectionsCardImagesSizes[size].height
+      mediaMatcher: mediaMatchers[column],
+      width: imageSizes[size].width,
+      height: imageSizes[size].height
     };
     return cardImageSize;
   }
@@ -4006,6 +4048,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       readTime: displayReadTime
     } = DiscoveryStream;
     const sectionsEnabled = Prefs.values[DSCard_PREF_SECTIONS_ENABLED];
+    const novaEnabled = Prefs.values["nova.enabled"];
     // We can ignore hideDescriptions if we are in sections.
     const excerpt = !hideDescriptions || sectionsEnabled ? this.props.excerpt : "";
     let timeToRead;
@@ -4021,11 +4064,16 @@ class _DSCard extends (external_React_default()).PureComponent {
     const ctaButtonClassName = ctaButtonEnabled ? `ds-card-cta-button` : ``;
     const compactImagesClassName = compactImages ? `ds-card-compact-image` : ``;
     const imageGradientClassName = imageGradient ? `ds-card-image-gradient` : ``;
-    const sectionsCardsClassName = [mayHaveSectionsCards ? `sections-card-ui` : ``, this.props.sectionsClassNames].join(" ");
+    const sectionsCardsClassName = [mayHaveSectionsCards ? `sections-card-ui` : ``, novaEnabled ? `nova-card-ui` : ``, this.props.sectionsClassNames].filter(Boolean).join(" ");
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
-    const spocFormatClassName = isMediumRectangle ? `ds-spoc-rectangle` : ``;
+    let spocFormatClassName = ``;
+    if (isMediumRectangle) {
+      spocFormatClassName = `ds-spoc-rectangle`;
+    } else if (format === "spoc") {
+      spocFormatClassName = `ds-spoc`;
+    }
     const faviconSrc = this.getFaviconSrc();
     let images = this.renderImage({
       sizes: this.standardCardImageSizes
@@ -4110,7 +4158,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       state: this.state,
       format: format,
       icon_src: faviconSrc,
-      tabIndex: this.props.tabIndex
+      tabIndex: this.props.tabIndex,
+      novaEnabled: novaEnabled
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -11492,20 +11541,22 @@ const TASK_TYPE = {
   COMPLETED: "completed"
 };
 const USER_ACTION_TYPES = {
+  CHANGE_SIZE: "change_size",
   LIST_COPY: "list_copy",
   LIST_CREATE: "list_create",
-  LIST_EDIT: "list_edit",
   LIST_DELETE: "list_delete",
+  LIST_EDIT: "list_edit",
+  TASK_COMPLETE: "task_complete",
   TASK_CREATE: "task_create",
-  TASK_EDIT: "task_edit",
   TASK_DELETE: "task_delete",
-  TASK_COMPLETE: "task_complete"
+  TASK_EDIT: "task_edit"
 };
 const PREF_WIDGETS_LISTS_MAX_LISTS = "widgets.lists.maxLists";
 const PREF_WIDGETS_LISTS_MAX_LISTITEMS = "widgets.lists.maxListItems";
 const PREF_WIDGETS_LISTS_BADGE_ENABLED = "widgets.lists.badge.enabled";
 const PREF_WIDGETS_LISTS_BADGE_LABEL = "widgets.lists.badge.label";
 const Lists_PREF_NOVA_ENABLED = "nova.enabled";
+const PREF_LISTS_SIZE = "widgets.lists.size";
 
 // eslint-disable-next-line max-statements
 function Lists({
@@ -11524,9 +11575,16 @@ function Lists({
   const [pendingNewList, setPendingNewList] = (0,external_React_namespaceObject.useState)(null);
   const selectedList = (0,external_React_namespaceObject.useMemo)(() => lists[selected], [lists, selected]);
 
-  // Bug 2012829 - Calculate widget size dynamically based on isMaximized prop.
-  // Future sizes: mini, medium, large.
-  const widgetSize = isMaximized ? "medium" : "small";
+  // @nova-cleanup(remove-pref): Remove novaEnabled and this check; always use prefs[PREF_LISTS_SIZE] directly and always apply col-4 class after Nova ships
+  const novaEnabled = prefs[Lists_PREF_NOVA_ENABLED];
+  // Nova path: only "medium" or "large" are selectable; "small" is disabled in the submenu
+  const isSmallSize = novaEnabled ? false : !isMaximized && widgetsMayBeMaximized;
+  let widgetSize;
+  if (novaEnabled) {
+    widgetSize = prefs[PREF_LISTS_SIZE] || "large";
+  } else {
+    widgetSize = isSmallSize ? "small" : "medium";
+  }
   const prevCompletedCount = (0,external_React_namespaceObject.useRef)(selectedList?.completed?.length || 0);
   const inputRef = (0,external_React_namespaceObject.useRef)(null);
   const selectRef = (0,external_React_namespaceObject.useRef)(null);
@@ -11548,14 +11606,14 @@ function Lists({
       }));
       const telemetryData = {
         widget_name: "lists",
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.AlsoToMain({
         type: actionTypes.WIDGETS_IMPRESSION,
         data: telemetryData
       }));
     });
-  }, [dispatch, widgetsMayBeMaximized, widgetSize]);
+  }, [dispatch, widgetSize]);
   const listsRef = useIntersectionObserver(handleIntersection);
   const reorderLists = (0,external_React_namespaceObject.useCallback)((draggedElement, targetElement, before = false) => {
     const draggedIndex = selectedList.tasks.findIndex(({
@@ -11675,7 +11733,7 @@ function Lists({
           widget_name: "lists",
           widget_source: "widget",
           user_action: USER_ACTION_TYPES.TASK_CREATE,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -11745,7 +11803,7 @@ function Lists({
           widget_name: "lists",
           widget_source: "widget",
           user_action: userAction,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.AlsoToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -11784,7 +11842,7 @@ function Lists({
         widget_name: "lists",
         widget_source: "widget",
         user_action: USER_ACTION_TYPES.TASK_DELETE,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -11828,7 +11886,7 @@ function Lists({
           widget_name: "lists",
           widget_source: "widget",
           user_action: USER_ACTION_TYPES.LIST_EDIT,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -11870,7 +11928,7 @@ function Lists({
         widget_name: "lists",
         widget_source: "widget",
         user_action: USER_ACTION_TYPES.LIST_CREATE,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -11910,7 +11968,7 @@ function Lists({
           widget_name: "lists",
           widget_source: "widget",
           user_action: USER_ACTION_TYPES.LIST_DELETE,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -11960,7 +12018,7 @@ function Lists({
           widget_name: "lists",
           widget_source: "widget",
           user_action: USER_ACTION_TYPES.LIST_DELETE,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -11983,7 +12041,7 @@ function Lists({
         widget_name: "lists",
         widget_source: "context_menu",
         enabled: false,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_ENABLED,
@@ -12023,7 +12081,7 @@ function Lists({
         widget_name: "lists",
         widget_source: "widget",
         user_action: USER_ACTION_TYPES.LIST_COPY,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -12059,6 +12117,46 @@ function Lists({
       prevCompletedCount.current = doneCount;
     }
   }, [selectedList, fireConfetti, selected]);
+  const handleChangeSize = (0,external_React_namespaceObject.useCallback)(size => {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: PREF_LISTS_SIZE,
+          value: size
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "lists",
+          widget_source: "context_menu",
+          user_action: USER_ACTION_TYPES.CHANGE_SIZE,
+          action_value: size,
+          widget_size: size
+        }
+      }));
+    });
+  }, [dispatch]);
+  const sizeSubmenuRef = (0,external_React_namespaceObject.useRef)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const el = sizeSubmenuRef.current;
+    if (!el) {
+      return undefined;
+    }
+    // The size submenu panel-list is moved into the panel-item's shadow DOM by
+    // the panel-list custom element, so React's synthetic onClick doesn't reach
+    // inner items. We use composedPath() to find the clicked item across the
+    // shadow boundary via its data-size attribute.
+    const listener = e => {
+      const item = e.composedPath().find(node => node.dataset?.size);
+      if (item) {
+        handleChangeSize(item.dataset.size);
+      }
+    };
+    el.addEventListener("click", listener);
+    return () => el.removeEventListener("click", listener);
+  }, [handleChangeSize]);
   if (!lists) {
     return null;
   }
@@ -12089,9 +12187,6 @@ function Lists({
   const nimbusBadgeTrainhopLabel = prefs.trainhopConfig?.widgets?.listsBadgeLabel;
   const badgeEnabled = (nimbusBadgeEnabled || nimbusBadgeTrainhopEnabled) ?? prefs[PREF_WIDGETS_LISTS_BADGE_ENABLED] ?? false;
   const badgeLabel = (nimbusBadgeLabel || nimbusBadgeTrainhopLabel) ?? prefs[PREF_WIDGETS_LISTS_BADGE_LABEL] ?? "";
-
-  // @nova-cleanup(remove-pref): Remove pref check, always apply col-4 class after Nova ships
-  const novaEnabled = prefs[Lists_PREF_NOVA_ENABLED];
   return /*#__PURE__*/external_React_default().createElement("article", {
     className: `lists widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""}`,
     ref: el => {
@@ -12151,7 +12246,25 @@ function Lists({
   }), /*#__PURE__*/external_React_default().createElement("hr", null), /*#__PURE__*/external_React_default().createElement("panel-item", {
     "data-l10n-id": "newtab-widget-lists-menu-copy",
     onClick: () => handleCopyListToClipboard()
-  }), /*#__PURE__*/external_React_default().createElement("panel-item", {
+  }),
+  // @nova-cleanup(remove-conditional): Remove the novaEnabled check; always
+  // render the size submenu after Nova ships
+  novaEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
+    submenu: "lists-size-submenu",
+    "data-l10n-id": "newtab-widget-menu-change-size"
+  }, /*#__PURE__*/external_React_default().createElement("panel-list", {
+    ref: sizeSubmenuRef,
+    slot: "submenu",
+    id: "lists-size-submenu"
+  }, ["small", "medium", "large"].map(size => /*#__PURE__*/external_React_default().createElement("panel-item", Lists_extends({
+    key: size,
+    type: "checkbox",
+    checked: widgetSize === size || undefined,
+    "data-size": size,
+    "data-l10n-id": `newtab-widget-size-${size}`
+  }, size === "small" ? {
+    disabled: true
+  } : {}))))), /*#__PURE__*/external_React_default().createElement("panel-item", {
     "data-l10n-id": "newtab-widget-menu-hide",
     onClick: () => handleHideLists()
   }), /*#__PURE__*/external_React_default().createElement("panel-item", {
@@ -12401,6 +12514,7 @@ function FocusTimer_extends() { return FocusTimer_extends = Object.assign ? Obje
 
 
 const FocusTimer_USER_ACTION_TYPES = {
+  CHANGE_SIZE: "change_size",
   TIMER_SET: "timer_set",
   TIMER_PLAY: "timer_play",
   TIMER_PAUSE: "timer_pause",
@@ -12410,6 +12524,7 @@ const FocusTimer_USER_ACTION_TYPES = {
   TIMER_TOGGLE_BREAK: "timer_toggle_break"
 };
 const FocusTimer_PREF_NOVA_ENABLED = "nova.enabled";
+const PREF_FOCUS_TIMER_SIZE = "widgets.focusTimer.size";
 
 /**
  * Calculates the remaining time (in seconds) by subtracting elapsed time from the original duration
@@ -12515,7 +12630,16 @@ const FocusTimer = ({
     isRunning
   } = timerData[timerType];
   const initialTimerDuration = timerData[timerType].initialDuration;
-  const widgetSize = isMaximized ? "medium" : "small";
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  // @nova-cleanup(remove-pref): Remove novaEnabled and this check; always use prefs[PREF_FOCUS_TIMER_SIZE] directly after Nova ships
+  const novaEnabled = prefs[FocusTimer_PREF_NOVA_ENABLED];
+  const isSmallSize = novaEnabled ? false : !isMaximized && widgetsMayBeMaximized;
+  let widgetSize;
+  if (novaEnabled) {
+    widgetSize = prefs[PREF_FOCUS_TIMER_SIZE] || "large";
+  } else {
+    widgetSize = isSmallSize ? "small" : "medium";
+  }
   const handleTimerInteraction = (0,external_React_namespaceObject.useCallback)(() => handleUserInteraction("focusTimer"), [handleUserInteraction]);
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     if (impressionFired.current) {
@@ -12528,14 +12652,14 @@ const FocusTimer = ({
       }));
       const telemetryData = {
         widget_name: "focus_timer",
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.AlsoToMain({
         type: actionTypes.WIDGETS_IMPRESSION,
         data: telemetryData
       }));
     });
-  }, [dispatch, widgetsMayBeMaximized, widgetSize]);
+  }, [dispatch, widgetSize]);
   const timerRef = useIntersectionObserver(handleIntersection);
   const resetProgressCircle = (0,external_React_namespaceObject.useCallback)(() => {
     if (arcRef?.current) {
@@ -12545,7 +12669,6 @@ const FocusTimer = ({
     setProgress(0);
     handleTimerInteraction();
   }, [arcRef, handleTimerInteraction]);
-  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const showSystemNotifications = prefs["widgets.focusTimer.showSystemNotifications"];
   (0,external_React_namespaceObject.useEffect)(() => {
     // resets default values after timer ends
@@ -12581,7 +12704,7 @@ const FocusTimer = ({
               widget_name: "focus_timer",
               widget_source: "widget",
               user_action: FocusTimer_USER_ACTION_TYPES.TIMER_END,
-              widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+              widget_size: widgetSize
             };
             dispatch(actionCreators.OnlyToMain({
               type: actionTypes.WIDGETS_USER_EVENT,
@@ -12619,7 +12742,7 @@ const FocusTimer = ({
                   widget_name: "focus_timer",
                   widget_source: "widget",
                   user_action: userAction,
-                  widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+                  widget_size: widgetSize
                 };
                 dispatch(actionCreators.OnlyToMain({
                   type: actionTypes.WIDGETS_USER_EVENT,
@@ -12647,7 +12770,7 @@ const FocusTimer = ({
       setProgress(0);
     }
     return () => clearInterval(interval);
-  }, [isRunning, startTime, duration, initialDuration, dispatch, resetProgressCircle, timerType, initialTimerDuration, widgetSize, widgetsMayBeMaximized]);
+  }, [isRunning, startTime, duration, initialDuration, dispatch, resetProgressCircle, timerType, initialTimerDuration, widgetSize]);
 
   // Update the clip-path of the gradient circle to match the current progress value
   (0,external_React_namespaceObject.useEffect)(() => {
@@ -12694,7 +12817,7 @@ const FocusTimer = ({
           widget_name: "focus_timer",
           widget_source: "widget",
           user_action: FocusTimer_USER_ACTION_TYPES.TIMER_SET,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -12725,7 +12848,7 @@ const FocusTimer = ({
           widget_name: "focus_timer",
           widget_source: "widget",
           user_action: FocusTimer_USER_ACTION_TYPES.TIMER_PLAY,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -12753,7 +12876,7 @@ const FocusTimer = ({
           widget_name: "focus_timer",
           widget_source: "widget",
           user_action: FocusTimer_USER_ACTION_TYPES.TIMER_PAUSE,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -12785,7 +12908,7 @@ const FocusTimer = ({
         widget_name: "focus_timer",
         widget_source: "widget",
         user_action: FocusTimer_USER_ACTION_TYPES.TIMER_RESET,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -12820,7 +12943,7 @@ const FocusTimer = ({
         widget_name: "focus_timer",
         widget_source: "widget",
         user_action: FocusTimer_USER_ACTION_TYPES.TIMER_PAUSE,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -12845,7 +12968,7 @@ const FocusTimer = ({
         widget_name: "focus_timer",
         widget_source: "widget",
         user_action: toggleUserAction,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -12920,7 +13043,7 @@ const FocusTimer = ({
           widget_name: "focus_timer",
           widget_source: "widget",
           user_action: FocusTimer_USER_ACTION_TYPES.TIMER_PAUSE,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_USER_EVENT,
@@ -12959,9 +13082,46 @@ const FocusTimer = ({
     }));
     handleTimerInteraction();
   }
-
-  // @nova-cleanup(remove-pref): Remove pref check, always apply col-4 class after Nova ships
-  const novaEnabled = prefs[FocusTimer_PREF_NOVA_ENABLED];
+  const handleChangeSize = (0,external_React_namespaceObject.useCallback)(size => {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: PREF_FOCUS_TIMER_SIZE,
+          value: size
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "focus_timer",
+          widget_source: "context_menu",
+          user_action: FocusTimer_USER_ACTION_TYPES.CHANGE_SIZE,
+          action_value: size,
+          widget_size: size
+        }
+      }));
+    });
+  }, [dispatch]);
+  const sizeSubmenuRef = (0,external_React_namespaceObject.useRef)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const el = sizeSubmenuRef.current;
+    if (!el) {
+      return undefined;
+    }
+    // The size submenu panel-list is moved into the panel-item's shadow DOM by
+    // the panel-list custom element, so React's synthetic onClick doesn't reach
+    // inner items. We use composedPath() to find the clicked item across the
+    // shadow boundary via its data-size attribute.
+    const listener = e => {
+      const item = e.composedPath().find(node => node.dataset?.size);
+      if (item) {
+        handleChangeSize(item.dataset.size);
+      }
+    };
+    el.addEventListener("click", listener);
+    return () => el.removeEventListener("click", listener);
+  }, [handleChangeSize]);
   return timerData ? /*#__PURE__*/external_React_default().createElement("article", {
     className: `focus-timer widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""}`,
     ref: el => {
@@ -12985,7 +13145,25 @@ const FocusTimer = ({
     onClick: () => {
       handlePrefUpdate("widgets.focusTimer.showSystemNotifications", !showSystemNotifications);
     }
-  }), /*#__PURE__*/external_React_default().createElement("panel-item", {
+  }),
+  // @nova-cleanup(remove-conditional): Remove the novaEnabled check; always
+  // render the size submenu after Nova ships
+  novaEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
+    submenu: "focus-timer-size-submenu",
+    "data-l10n-id": "newtab-widget-menu-change-size"
+  }, /*#__PURE__*/external_React_default().createElement("panel-list", {
+    ref: sizeSubmenuRef,
+    slot: "submenu",
+    id: "focus-timer-size-submenu"
+  }, ["small", "medium", "large"].map(size => /*#__PURE__*/external_React_default().createElement("panel-item", FocusTimer_extends({
+    key: size,
+    type: "checkbox",
+    checked: widgetSize === size || undefined,
+    "data-size": size,
+    "data-l10n-id": `newtab-widget-size-${size}`
+  }, size === "small" ? {
+    disabled: true
+  } : {}))))), /*#__PURE__*/external_React_default().createElement("panel-item", {
     "data-l10n-id": "newtab-widget-menu-hide",
     onClick: () => {
       (0,external_ReactRedux_namespaceObject.batch)(() => {
@@ -12994,7 +13172,7 @@ const FocusTimer = ({
           widget_name: "focus_timer",
           widget_source: "context_menu",
           enabled: false,
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+          widget_size: widgetSize
         };
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_ENABLED,
@@ -13212,10 +13390,12 @@ const WeatherForecast_USER_ACTION_TYPES = {
   DETECT_LOCATION: "detect_location",
   CHANGE_TEMP_UNIT: "change_temperature_units",
   CHANGE_DISPLAY: "change_weather_display",
+  CHANGE_SIZE: "change_size",
   LEARN_MORE: "learn_more",
   PROVIDER_LINK_CLICK: "provider_link_click"
 };
 const WeatherForecast_PREF_NOVA_ENABLED = "nova.enabled";
+const PREF_WEATHER_SIZE = "widgets.weather.size";
 function WeatherForecast({
   dispatch,
   isMaximized,
@@ -13226,8 +13406,55 @@ function WeatherForecast({
   const impressionFired = (0,external_React_namespaceObject.useRef)(false);
   const errorTelemetrySent = (0,external_React_namespaceObject.useRef)(false);
   const errorRef = (0,external_React_namespaceObject.useRef)(null);
-  const isSmallSize = !isMaximized && widgetsMayBeMaximized;
-  const widgetSize = isSmallSize ? "small" : "medium";
+  // @nova-cleanup(remove-pref): Remove pref check, always apply col-4 class after Nova ships
+  const novaEnabled = prefs[WeatherForecast_PREF_NOVA_ENABLED];
+  const isSmallSize = novaEnabled ? (prefs[PREF_WEATHER_SIZE] || "large") !== "large" : !isMaximized && widgetsMayBeMaximized;
+  let widgetSize;
+  if (novaEnabled) {
+    widgetSize = prefs[PREF_WEATHER_SIZE] || "large";
+  } else {
+    widgetSize = isSmallSize ? "small" : "medium";
+  }
+  const handleChangeSize = (0,external_React_namespaceObject.useCallback)(size => {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: PREF_WEATHER_SIZE,
+          value: size
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: WeatherForecast_USER_ACTION_TYPES.CHANGE_SIZE,
+          action_value: size,
+          widget_size: size
+        }
+      }));
+    });
+  }, [dispatch]);
+  const sizeSubmenuRef = (0,external_React_namespaceObject.useRef)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const el = sizeSubmenuRef.current;
+    if (!el) {
+      return undefined;
+    }
+    // The size submenu panel-list is moved into the panel-item's shadow DOM by
+    // the panel-list custom element, so React's synthetic onClick doesn't reach
+    // inner items. We use composedPath() to find the clicked item across the
+    // shadow boundary via its data-size attribute.
+    const listener = e => {
+      const item = e.composedPath().find(node => node.dataset?.size);
+      if (item) {
+        handleChangeSize(item.dataset.size);
+      }
+    };
+    el.addEventListener("click", listener);
+    return () => el.removeEventListener("click", listener);
+  }, [handleChangeSize]);
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     if (impressionFired.current) {
       return;
@@ -13235,13 +13462,13 @@ function WeatherForecast({
     impressionFired.current = true;
     const telemetryData = {
       widget_name: "weather",
-      widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+      widget_size: widgetSize
     };
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.WIDGETS_IMPRESSION,
       data: telemetryData
     }));
-  }, [dispatch, widgetSize, widgetsMayBeMaximized]);
+  }, [dispatch, widgetSize]);
   const forecastRef = useIntersectionObserver(handleIntersection);
   const WEATHER_SUGGESTION = weatherData.suggestions?.[0];
   const HOURLY_FORECASTS = weatherData.hourlyForecasts ?? [];
@@ -13253,13 +13480,13 @@ function WeatherForecast({
         type: actionTypes.WIDGETS_ERROR,
         data: {
           widget_name: "weather",
-          widget_size: widgetsMayBeMaximized ? widgetSize : "medium",
+          widget_size: widgetSize,
           error_type: "load_error"
         }
       }));
       errorTelemetrySent.current = true;
     }
-  }, [dispatch, widgetSize, widgetsMayBeMaximized]);
+  }, [dispatch, widgetSize]);
   (0,external_React_namespaceObject.useEffect)(() => {
     if (errorRef.current && !errorTelemetrySent.current) {
       const observer = new IntersectionObserver(handleErrorIntersection);
@@ -13290,7 +13517,9 @@ function WeatherForecast({
   // - The weather forecast widget is enabled (system.weatherForecast.enabled)
   // Note that if the view is set to "detailed" but the weather forecast widget is not enabled,
   // then the mini weather widget will display with the "detailed" view
-  if (!showDetailedView || !weatherData?.initialized || !weatherForecastWidgetEnabled || !isWeatherEnabled) {
+  // @nova-cleanup(remove-conditional): Remove the !showDetailedView branch; after Nova
+  // ships only the size-based check remains, replace with `widgetSize === "small"`
+  if ((novaEnabled ? widgetSize === "small" : !showDetailedView) || !weatherData?.initialized || !weatherForecastWidgetEnabled || !isWeatherEnabled) {
     return null;
   }
   const weatherOptIn = prefs["system.showWeatherOptIn"];
@@ -13309,7 +13538,7 @@ function WeatherForecast({
         widget_name: "weather",
         widget_source: "context_menu",
         user_action: WeatherForecast_USER_ACTION_TYPES.CHANGE_LOCATION,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -13326,7 +13555,7 @@ function WeatherForecast({
         widget_name: "weather",
         widget_source: "context_menu",
         user_action: WeatherForecast_USER_ACTION_TYPES.DETECT_LOCATION,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -13347,7 +13576,7 @@ function WeatherForecast({
         widget_name: "weather",
         widget_source: "context_menu",
         user_action: WeatherForecast_USER_ACTION_TYPES.CHANGE_TEMP_UNIT,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium",
+        widget_size: widgetSize,
         action_value: unit
       };
       dispatch(actionCreators.OnlyToMain({
@@ -13370,7 +13599,7 @@ function WeatherForecast({
         widget_source: "context_menu",
         user_action: WeatherForecast_USER_ACTION_TYPES.CHANGE_DISPLAY,
         action_value: "switch_to_mini_widget",
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -13391,7 +13620,7 @@ function WeatherForecast({
         widget_name: "weather",
         widget_source: "context_menu",
         enabled: false,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_ENABLED,
@@ -13411,7 +13640,7 @@ function WeatherForecast({
         widget_name: "weather",
         widget_source: "context_menu",
         user_action: WeatherForecast_USER_ACTION_TYPES.LEARN_MORE,
-        widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+        widget_size: widgetSize
       };
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -13424,7 +13653,7 @@ function WeatherForecast({
       widget_name: "weather",
       widget_source: "widget",
       user_action: WeatherForecast_USER_ACTION_TYPES.PROVIDER_LINK_CLICK,
-      widget_size: widgetsMayBeMaximized ? widgetSize : "medium"
+      widget_size: widgetSize
     };
     dispatch(actionCreators.OnlyToMain({
       type: actionTypes.WIDGETS_USER_EVENT,
@@ -13455,13 +13684,32 @@ function WeatherForecast({
     }) : /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-change-temperature-units-fahrenheit",
       onClick: () => handleChangeTempUnit("f")
-    }), !showDetailedView ? /*#__PURE__*/external_React_default().createElement("panel-item", {
+    }),
+    // @nova-cleanup(remove-conditional): Remove this block; the simple/detailed
+    // display toggle is replaced by the size submenu after Nova ships
+    !novaEnabled && (!showDetailedView ? /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-change-weather-display-detailed",
       onClick: () => handleChangeDisplay("detailed")
     }) : /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-change-weather-display-simple",
       onClick: () => handleChangeDisplay("simple")
-    }), /*#__PURE__*/external_React_default().createElement("panel-item", {
+    })),
+    // @nova-cleanup(remove-conditional): Remove the novaEnabled check
+    // Always render the size submenu
+    novaEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
+      submenu: "weather-forecast-size-submenu",
+      "data-l10n-id": "newtab-widget-menu-change-size"
+    }, /*#__PURE__*/external_React_default().createElement("panel-list", {
+      ref: sizeSubmenuRef,
+      slot: "submenu",
+      id: "weather-forecast-size-submenu"
+    }, ["small", "medium", "large"].map(size => /*#__PURE__*/external_React_default().createElement("panel-item", {
+      key: size,
+      type: "checkbox",
+      checked: widgetSize === size || undefined,
+      "data-size": size,
+      "data-l10n-id": `newtab-widget-size-${size}`
+    })))), /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-widget-menu-hide",
       onClick: handleHideWeather
     }), /*#__PURE__*/external_React_default().createElement("panel-item", {
@@ -13469,9 +13717,6 @@ function WeatherForecast({
       onClick: handleLearnMore
     })));
   }
-
-  // @nova-cleanup(remove-pref): Remove pref check, always apply col-4 class after Nova ships
-  const novaEnabled = prefs[WeatherForecast_PREF_NOVA_ENABLED];
   return /*#__PURE__*/external_React_default().createElement("article", {
     className: `weather-forecast-widget widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""} ${isSmallSize ? " small-widget" : ""} ${hasError ? "forecast-error-state" : ""}`,
     ref: el => {
@@ -13618,6 +13863,7 @@ const CONTAINER_ACTION_TYPES = {
   FEEDBACK: "feedback"
 };
 const PREF_WIDGETS_ENABLED = "widgets.enabled";
+const Widgets_PREF_NOVA_ENABLED = "nova.enabled";
 const PREF_WIDGETS_LISTS_ENABLED = "widgets.lists.enabled";
 const PREF_WIDGETS_SYSTEM_LISTS_ENABLED = "widgets.system.lists.enabled";
 const PREF_WIDGETS_TIMER_ENABLED = "widgets.focusTimer.enabled";
@@ -13627,6 +13873,9 @@ const PREF_WIDGETS_MAXIMIZED = "widgets.maximized";
 const PREF_WIDGETS_SYSTEM_MAXIMIZED = "widgets.system.maximized";
 const PREF_WIDGETS_FEEDBACK_ENABLED = "widgets.feedback.enabled";
 const PREF_WIDGETS_HIDE_ALL_TOAST_ENABLED = "widgets.hideAllToast.enabled";
+const Widgets_PREF_LISTS_SIZE = "widgets.lists.size";
+const Widgets_PREF_FOCUS_TIMER_SIZE = "widgets.focusTimer.size";
+const Widgets_PREF_WEATHER_SIZE = "widgets.weather.size";
 const WIDGETS_FEEDBACK_URL = "https://connect.mozilla.org/t5/discussions/feedback-welcome-for-new-tab-widgets-now-available-via-firefox/td-p/108354";
 
 // resets timer to default values (exported for testing)
@@ -13667,6 +13916,7 @@ function Widgets() {
   const isMaximized = prefs[PREF_WIDGETS_MAXIMIZED];
   const widgetsMayBeMaximized = prefs[PREF_WIDGETS_SYSTEM_MAXIMIZED];
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
+  const novaEnabled = prefs[Widgets_PREF_NOVA_ENABLED];
   const nimbusListsEnabled = prefs.widgetsConfig?.listsEnabled;
   const nimbusTimerEnabled = prefs.widgetsConfig?.timerEnabled;
   const nimbusListsTrainhopEnabled = prefs.trainhopConfig?.widgets?.listsEnabled;
@@ -13799,6 +14049,22 @@ function Widgets() {
     const newWidgetSize = widgetsMayBeMaximized && !newMaximizedState ? "small" : "medium";
     (0,external_ReactRedux_namespaceObject.batch)(() => {
       dispatch(actionCreators.SetPref(PREF_WIDGETS_MAXIMIZED, newMaximizedState));
+
+      // When Nova is enabled, drive individual widget size prefs rather than
+      // the legacy maximized flag. Widgets pinned to "small" are left
+      // untouched so users who opted them down don't get unexpectedly resized.
+      if (novaEnabled) {
+        const targetSize = newMaximizedState ? "large" : "medium";
+        if (prefs[Widgets_PREF_LISTS_SIZE] !== "small") {
+          dispatch(actionCreators.SetPref(Widgets_PREF_LISTS_SIZE, targetSize));
+        }
+        if (prefs[Widgets_PREF_FOCUS_TIMER_SIZE] !== "small") {
+          dispatch(actionCreators.SetPref(Widgets_PREF_FOCUS_TIMER_SIZE, targetSize));
+        }
+        if (prefs[Widgets_PREF_WEATHER_SIZE] !== "small") {
+          dispatch(actionCreators.SetPref(Widgets_PREF_WEATHER_SIZE, targetSize));
+        }
+      }
       const telemetryData = {
         action_type: CONTAINER_ACTION_TYPES.CHANGE_SIZE_ALL,
         action_value: newMaximizedState ? "maximize_widgets" : "minimize_widgets",
@@ -16003,6 +16269,7 @@ class Search_Search extends (external_React_default()).PureComponent {
 const Weather_USER_ACTION_TYPES = {
   CHANGE_DISPLAY: "change_weather_display",
   CHANGE_LOCATION: "change_location",
+  CHANGE_SIZE: "change_size",
   CHANGE_TEMP_UNIT: "change_temperature_units",
   DETECT_LOCATION: "detect_location",
   LEARN_MORE: "learn_more",
@@ -16012,6 +16279,8 @@ const Weather_USER_ACTION_TYPES = {
 const Weather_VISIBLE = "visible";
 const Weather_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const PREF_SYSTEM_SHOW_WEATHER = "system.showWeather";
+const Weather_PREF_NOVA_ENABLED = "nova.enabled";
+const Weather_PREF_WEATHER_SIZE = "widgets.weather.size";
 function WeatherPlaceholder() {
   const [isSeen, setIsSeen] = (0,external_React_namespaceObject.useState)(false);
 
@@ -16053,9 +16322,29 @@ class _Weather extends (external_React_default()).PureComponent {
     this.setPanelRef = element => {
       this.panelElement = element;
     };
+    this.setSizeSubmenuRef = element => {
+      if (this.sizeSubmenuElement) {
+        this.sizeSubmenuElement.removeEventListener("click", this.onSizeSubmenuClick);
+      }
+      this.sizeSubmenuElement = element;
+      if (element) {
+        element.addEventListener("click", this.onSizeSubmenuClick);
+      }
+    };
+    this.onSizeSubmenuClick = this.onSizeSubmenuClick.bind(this);
     this.onProviderClick = this.onProviderClick.bind(this);
     this.onMenuButtonClick = this.onMenuButtonClick.bind(this);
     this.onMenuButtonKeyDown = this.onMenuButtonKeyDown.bind(this);
+  }
+  onSizeSubmenuClick(e) {
+    // The size submenu panel-list is moved into the panel-item's shadow DOM by
+    // the panel-list custom element, so React's synthetic onClick doesn't reach
+    // inner items. We use composedPath() to find the clicked item across the
+    // shadow boundary via its data-size attribute.
+    const item = e.composedPath().find(node => node.dataset?.size);
+    if (item) {
+      this.handleChangeSize(item.dataset.size);
+    }
   }
   componentDidMount() {
     const {
@@ -16254,6 +16543,30 @@ class _Weather extends (external_React_default()).PureComponent {
       }));
     });
   };
+  handleChangeSize = size => {
+    if (this.panelElement) {
+      this.panelElement.hide();
+    }
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: Weather_PREF_WEATHER_SIZE,
+          value: size
+        }
+      }));
+      this.props.dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: Weather_USER_ACTION_TYPES.CHANGE_SIZE,
+          action_value: size,
+          widget_size: "mini"
+        }
+      }));
+    });
+  };
   handleChangeDisplay = value => {
     const weatherForecastEnabled = this.props.Prefs.values["widgets.system.weatherForecast.enabled"];
     if (this.panelElement) {
@@ -16415,9 +16728,16 @@ class _Weather extends (external_React_default()).PureComponent {
     } = props;
     const WEATHER_SUGGESTION = Weather.suggestions?.[0];
     const showDetailedView = Prefs.values["weather.display"] === "detailed";
+    // @nova-cleanup(remove-pref): Remove this line and PREF_NOVA_ENABLED constant
+    const novaEnabled = Prefs.values[Weather_PREF_NOVA_ENABLED];
+    const currentWeatherSize = Prefs.values[Weather_PREF_WEATHER_SIZE] || "large";
     const nimbusWeatherForecastTrainhopEnabled = Prefs.values.trainhopConfig?.widgets?.weatherForecastEnabled;
     const weatherForecastWidgetEnabled = nimbusWeatherForecastTrainhopEnabled || Prefs.values["widgets.system.weatherForecast.enabled"];
-    if (showDetailedView && weatherForecastWidgetEnabled) {
+
+    // @nova-cleanup(remove-conditional): After Nova ships the mini weather widget is only
+    // shown when size is "small"; replace this condition with
+    // `currentWeatherSize !== "small" && weatherForecastWidgetEnabled`
+    if ((novaEnabled ? currentWeatherSize !== "small" : showDetailedView) && weatherForecastWidgetEnabled) {
       return null;
     }
     const outerClassName = ["weather", Weather.searchActive && "search"].filter(v => v).join(" ");
@@ -16479,7 +16799,10 @@ class _Weather extends (external_React_default()).PureComponent {
       id: "weather-menu-temp-fahrenheit",
       "data-l10n-id": "newtab-weather-menu-change-temperature-units-fahrenheit",
       onClick: () => this.handleChangeTempUnit("f")
-    }), isSimpleDisplay ? /*#__PURE__*/external_React_default().createElement("panel-item", {
+    }),
+    // @nova-cleanup(remove-conditional): Remove this block; the simple/detailed
+    // display toggle is replaced by the size submenu after Nova ships
+    !novaEnabled && (isSimpleDisplay ? /*#__PURE__*/external_React_default().createElement("panel-item", {
       id: "weather-menu-display-detailed",
       "data-l10n-id": "newtab-weather-menu-change-weather-display-detailed",
       onClick: () => this.handleChangeDisplay("detailed")
@@ -16487,7 +16810,23 @@ class _Weather extends (external_React_default()).PureComponent {
       id: "weather-menu-display-simple",
       "data-l10n-id": "newtab-weather-menu-change-weather-display-simple",
       onClick: () => this.handleChangeDisplay("simple")
-    }), /*#__PURE__*/external_React_default().createElement("panel-item", {
+    })),
+    // @nova-cleanup(remove-conditional): Remove the novaEnabled check
+    // Always render the size submenu
+    novaEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
+      submenu: "weather-size-submenu",
+      "data-l10n-id": "newtab-widget-menu-change-size"
+    }, /*#__PURE__*/external_React_default().createElement("panel-list", {
+      ref: this.setSizeSubmenuRef,
+      slot: "submenu",
+      id: "weather-size-submenu"
+    }, ["small", "medium", "large"].map(size => /*#__PURE__*/external_React_default().createElement("panel-item", {
+      key: size,
+      type: "checkbox",
+      checked: currentWeatherSize === size || undefined,
+      "data-size": size,
+      "data-l10n-id": `newtab-widget-size-${size}`
+    })))), /*#__PURE__*/external_React_default().createElement("panel-item", {
       id: "weather-menu-hide",
       "data-l10n-id": "newtab-widget-menu-hide",
       onClick: this.handleHideWeather

@@ -15,9 +15,9 @@ use crate::dom::{AttributeTracker, TElement};
 use crate::font_metrics::FontMetricsOrientation;
 use crate::logical_geometry::WritingMode;
 use crate::properties::{
-    property_counts, CSSWideKeyword, ComputedValues, DeclarationImportanceIterator, LonghandId,
+    CASCADE_PROPERTY, CSSWideKeyword, ComputedValues, DeclarationImportanceIterator, LonghandId,
     LonghandIdSet, PrioritaryPropertyId, PropertyDeclaration, PropertyDeclarationId, PropertyFlags,
-    ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
+    ShorthandsWithPropertyReferencesCache, StyleBuilder, property_counts,
 };
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_tree::{CascadeLevel, CascadeOrigin, RuleCascadeFlags, StrongRuleNode};
@@ -405,8 +405,6 @@ where
 
     cascade.finished_applying_properties(&mut context.builder);
 
-    std::mem::drop(cascade);
-
     context.builder.clear_modified_reset();
 
     if matches!(cascade_mode, CascadeMode::Unvisited { .. }) {
@@ -414,6 +412,7 @@ where
             layout_parent_style.unwrap_or(inherited_style),
             element,
             try_tactic,
+            &cascade.author_specified,
         );
     }
 
@@ -436,6 +435,7 @@ where
 /// This is a bit of a clunky way of achieving this.
 type DeclarationsToApplyUnlessOverriden = SmallVec<[PropertyDeclaration; 2]>;
 
+#[cfg(feature = "gecko")]
 fn is_base_appearance(context: &computed::Context) -> bool {
     use computed::Appearance;
     let box_style = context.builder.get_box();
@@ -715,18 +715,10 @@ impl<'b> Cascade<'b> {
             // declarations, but we don't have that information at this point,
             // and it doesn't seem like an important enough optimization to
             // warrant it.
-            match declaration.id {
-                LonghandId::Display => {
-                    context
-                        .builder
-                        .add_flags(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE);
-                },
-                LonghandId::Content => {
-                    context
-                        .builder
-                        .add_flags(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE);
-                },
-                _ => {},
+            if matches!(declaration.id, LonghandId::Display | LonghandId::Content) {
+                context
+                    .builder
+                    .add_flags(ComputedValueFlags::DISPLAY_OR_CONTENT_DEPEND_ON_INHERITED_STYLE);
             }
         }
 
@@ -814,7 +806,9 @@ impl<'b> Cascade<'b> {
             return;
         }
 
+        #[cfg(feature = "gecko")]
         apply!(MozDefaultAppearance);
+        #[cfg(feature = "gecko")]
         if apply!(Appearance) && is_base_appearance(&context) {
             context
                 .style()
@@ -1136,10 +1130,6 @@ impl<'b> Cascade<'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND);
         }
 
-        if self.author_specified.contains(LonghandId::FontFamily) {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY);
-        }
-
         if self.author_specified.contains(LonghandId::Color) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_TEXT_COLOR);
         }
@@ -1148,29 +1138,9 @@ impl<'b> Cascade<'b> {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_TEXT_SHADOW);
         }
 
-        if self.author_specified.contains(LonghandId::LetterSpacing) {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING);
+        if self.author_specified.contains(LonghandId::GridAutoFlow) {
+            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_GRID_AUTO_FLOW);
         }
-
-        if self.author_specified.contains(LonghandId::WordSpacing) {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_WORD_SPACING);
-        }
-
-        if self
-            .author_specified
-            .contains(LonghandId::FontSynthesisWeight)
-        {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_WEIGHT);
-        }
-
-        #[cfg(feature = "gecko")]
-        if self
-            .author_specified
-            .contains(LonghandId::FontSynthesisStyle)
-        {
-            builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE);
-        }
-
         #[cfg(feature = "servo")]
         {
             if let Some(font) = builder.get_font_if_mutated() {
@@ -1210,6 +1180,7 @@ impl<'b> Cascade<'b> {
         // would as well.  It matches the same rules, so it is the right thing
         // to do anyways, even if it's only used on inherited properties.
         let bits_to_copy = ComputedValueFlags::HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND
+            | ComputedValueFlags::HAS_AUTHOR_SPECIFIED_GRID_AUTO_FLOW
             | ComputedValueFlags::DEPENDS_ON_SELF_FONT_METRICS
             | ComputedValueFlags::DEPENDS_ON_INHERITED_FONT_METRICS
             | ComputedValueFlags::IS_IN_APPEARANCE_BASE_SUBTREE

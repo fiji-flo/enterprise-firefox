@@ -12058,7 +12058,7 @@ nsresult nsDocShell::OnLinkClick(
     return NS_OK;
   }
 
-  Document* ownerDoc = aContent->OwnerDoc();
+  RefPtr<Document> ownerDoc = aContent->OwnerDoc();
   if (nsContentUtils::IsExternalProtocol(aURI)) {
     ownerDoc->EnsureNotEnteringAndExitFullscreen();
   }

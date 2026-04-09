@@ -2897,6 +2897,10 @@ nsresult DocumentLoadListener::DoOnStartRequest(nsIRequest* aRequest) {
     // channels, which may have extra information (e.g. navigation timing) which
     // would be relevant to the content process.
     if (!httpChannel) {
+      // Resume the channel that was suspended above so that the pump
+      // can call OnStopRequest, which breaks the reference cycle between
+      // DocumentLoadListener and ParentChannelListener.
+      mChannel->Resume();
       DisconnectListeners(status, status);
       return NS_OK;
     }

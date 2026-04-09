@@ -192,7 +192,7 @@ add_task(async function test_IPPProxyManager_paused_shown() {
 
   Assert.ok(content.upgradeEl, "Paused upgrade content should be shown");
 
-  let pausedIcon = content.statusBoxEl?.querySelector('img[slot="icon"]');
+  let pausedIcon = content.statusBoxEl?.querySelector('img[slot="image"]');
   Assert.ok(pausedIcon, "Paused icon should show in the panel");
 
   let button = document.getElementById(IPProtectionWidget.WIDGET_ID);

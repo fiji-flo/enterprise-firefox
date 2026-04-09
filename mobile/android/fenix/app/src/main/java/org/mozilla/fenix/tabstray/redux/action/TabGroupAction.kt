@@ -47,9 +47,39 @@ sealed interface TabGroupAction : TabsTrayAction {
     data class TabGroupClicked(val group: TabsTrayItem.TabGroup) : TabGroupAction
 
     /**
+     * Fired when the user clicks delete on a Tab Group.
+     *
+     * @property group The clicked [TabsTrayItem.TabGroup].
+     */
+    data class DeleteClicked(val group: TabsTrayItem.TabGroup) : TabGroupAction
+
+    /**
+     * Fired when the user confirms to delete a Tab Group.
+     *
+     * @property group The clicked [TabsTrayItem.TabGroup].
+     */
+    data class DeleteConfirmed(val group: TabsTrayItem.TabGroup) : TabGroupAction, TabsStorageAction
+
+    /**
      * Invoked when the user changes the tab group theme.
      *
      * @property theme The theme of the tab group the user has selected.
      */
     data class ThemeChanged(val theme: TabGroupTheme) : TabGroupAction
+
+    /**
+     * Fired when the user performs an action to add the current collection of
+     * multiselected items to an existing Tab Group.
+     *
+     * @property groupId The ID of the group the tabs are being added into.
+     */
+    data class TabsAddedToGroup(val groupId: String) : TabGroupAction, TabsStorageAction
+
+    /**
+     * Fired when the user performs an action to add a single item to an existing Tab Group, such as a drag and drop.
+     *
+     * @property tabId The ID of the tab.
+     * @property groupId The ID of the group the tab is being added into.
+     */
+    data class TabAddedToGroup(val tabId: String, val groupId: String) : TabGroupAction, TabsStorageAction
 }

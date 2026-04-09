@@ -87,32 +87,28 @@
     <string name="preferences_sync_debug_permanent_auth_error_button_title">Simulate permanent account auth error</string>
     <!-- Label for enabling the Homepage Search Bar -->
     <string name="preferences_debug_settings_homepage_searchbar" translatable="false">Enable Homepage Search Bar</string>
-  <!-- Label for enabling Homepage as a New Tab -->
+    <!-- Label for enabling Homepage as a New Tab -->
     <string name="preferences_debug_settings_homepage_as_new_tab" translatable="false">Enable Homepage as a New Tab</string>
     <!-- Label for enabling Firefox Labs -->
     <string name="preferences_debug_settings_firefox_labs" translatable="false">Enable Firefox Labs</string>
+    <!-- Label for enabling Add Shortcuts improvement -->
+    <string name="preferences_debug_settings_add_shortcuts_improvement" translatable="false">Enable Add Shortcuts Improvement</string>
     <!-- Label for enabling Merino Client -->
     <string name="preferences_debug_settings_merino_client" translatable="false">Enable Merino Client</string>
+    <!-- Label for enabling Merino Manifest -->
+    <string name="preferences_debug_settings_merino_manifest" translatable="false">Enable Merino Manifest</string>
     <!-- Label for enabling Mozilla Ads Client -->
     <string name="preferences_debug_settings_mozilla_ads_client" translatable="false">Enable Mozilla Ads Client</string>
-    <!-- Label for enabling Discover more stories -->
-    <string name="preferences_debug_settings_discover_more_stories" translatable="false">Enable Discover More Stories</string>
     <!-- Label for enabling Privacy Report on homepage -->
     <string name="preferences_debug_settings_privacy_report" translatable="false">Enable Privacy Report</string>
     <!-- Label for enabling the custom tab extension -->
     <string name="preferences_debug_settings_custom_tab_extensions" translatable="false">Enable Custom Tab Extension List</string>
-    <!-- Label for a longer description of the custom tab extensions depending on the menu redesign or composable toolbar feature -->
-    <string name="preferences_debug_settings_custom_tab_extensions_summary" translatable="false">This needs the Menu Redesign or Composable Toolbar feature enabled</string>
     <!-- Label for enabling Firefox Suggest -->
     <string name="preferences_debug_settings_fxsuggest" translatable="false">Enable Firefox Suggest</string>
-    <!-- Label for enabling the composable toolbar -->
-    <string name="preferences_debug_settings_composable_toolbar" translatable="false">Enable Composable Toolbar</string>
     <!-- Label for enabling the redesigned toolbar options -->
     <string name="preferences_debug_settings_toolbar_redesign" translatable="false">Enable Redesigned Toolbar Options</string>
     <!-- Label for enabling the redesigned toolbar -->
     <string name="preferences_debug_settings_toolbar_customization">Enable Toolbar Customization</string>
-    <!-- Label for a longer description of the redesigned toolbar depending on the composable toolbar feature -->
-    <string name="preferences_debug_settings_toolbar_redesign_summary" translatable="false">This needs the Composable Toolbar feature enabled</string>
     <!-- Label for the option of using a minimal bottom tolbar while entering text in a website -->
     <string name="preferences_debug_settings_use_minimal_bottom_toolbar_while_entering_text" translatable="false">Use a minimal bottom toolbar while entering text in a website</string>
     <!-- Label for the option of using new scroll data for animating the dynamic toolbar -->
@@ -184,11 +180,11 @@
     <string name="preferences_debug_settings_isolated_process" translatable="false">Enable Isolated Content Process (requires restart)</string>
     <string name="preferences_debug_settings_app_zygote" translatable="false">Enable Isolated Processes with Zygote Preloading (requires restart)</string>
 
-  <!-- Label for the defaults section and reset action in secret settings. -->
-  <string name="preferences_debug_settings_reset_defaults" translatable="false">Reset switches to defaults</string>
-  <string name="preferences_debug_settings_reset_defaults_message" translatable="false">This will reset all toggle switches to their defaults. Custom Glean Server and Remote Settings Server are not affected.</string>
-  <string name="preferences_debug_settings_reset_defaults_confirm" translatable="false">Reset</string>
-  <string name="preferences_debug_settings_reset_defaults_cancel" translatable="false">Cancel</string>
+    <!-- Label for the defaults section and reset action in secret settings. -->
+    <string name="preferences_debug_settings_reset_defaults" translatable="false">Reset switches to defaults</string>
+    <string name="preferences_debug_settings_reset_defaults_message" translatable="false">This will reset all toggle switches to their defaults. Custom Glean Server and Remote Settings Server are not affected.</string>
+    <string name="preferences_debug_settings_reset_defaults_confirm" translatable="false">Reset</string>
+    <string name="preferences_debug_settings_reset_defaults_cancel" translatable="false">Cancel</string>
 
     <!-- A secret menu option in the tabs tray for making a tab inactive for testing. -->
     <string name="inactive_tabs_menu_item_2">Make tabs inactive</string>
@@ -382,19 +378,15 @@
     <!-- Title for the translations AI feature toggle -->
     <string name="ai_controls_translations_title">Translations</string>
     <!-- Description for the translations AI feature toggle -->
-    <string name="ai_controls_translations_description" tools:ignore="UnusedResources">All translations stay private on your device. </string>
+    <string name="ai_controls_translations_description">All translations stay private on your device. </string>
     <!-- Link text to navigate to more translations settings -->
     <string name="ai_controls_more_translations_settings" tools:ignore="UnusedResources">More translations settings</string>
-    <!-- Title for the page summaries AI feature toggle -->
-    <string name="ai_controls_page_summaries_title">Page summaries</string>
-    <!-- Description for the page summaries AI feature toggle -->
-    <string name="ai_controls_page_summaries_description" tools:ignore="UnusedResources">Pages and summaries are never stored.</string>
     <!-- Link text to navigate to more page summary settings -->
     <string name="ai_controls_more_page_summary_settings">More page summary settings</string>
     <!-- Title for the voice search AI feature toggle -->
     <string name="ai_controls_voice_search_title">Voice search</string>
     <!-- Description for the voice search AI feature toggle -->
-    <string name="ai_controls_voice_search_description" tools:ignore="UnusedResources">Audio is converted to text by Google Speech Services.</string>
+    <string name="ai_controls_voice_search_description">Audio is converted to text by Google Speech Services.</string>
     <!-- Title for the block AI enhancements confirmation dialog -->
     <string name="ai_controls_block_dialog_title">Block AI enhancements?</string>
     <!-- Body text for the block AI enhancements confirmation dialog. %1$s is the name of the app (for example "Firefox"). -->

@@ -266,7 +266,7 @@ events:
 
           We currently track: show_search_suggestions, remote_debugging, telemetry,
           tracking_protection, search_bookmarks, search_browsing_history, show_clipboard_suggestions,
-          show_search_shortcuts, open_links_in_a_private_tab, pref_key_sync_logins,
+          open_links_in_a_private_tab, pref_key_sync_logins,
           pref_key_sync_bookmarks, pref_key_sync_history, pref_key_show_voice_search,
           pref_key_show_search_suggestions_in_private, pref_key_show_trending_search_suggestions,
           pref_key_show_recent_search_suggestions.
@@ -2942,33 +2942,6 @@ custom_review_prompt:
       - android-probes@mozilla.com
     expires: never
 
-search_shortcuts:
-  selected:
-    type: event
-    description: |
-      A user selected a search shortcut engine to use
-    extra_keys:
-      engine:
-        type: string
-        description: |
-          The name of the built-in search engine the user selected as a string
-    bugs:
-      - https://github.com/mozilla-mobile/fenix/issues/793
-    data_reviews:
-      - https://github.com/mozilla-mobile/fenix/pull/1202#issuecomment-476870449
-      - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
-      - https://github.com/mozilla-mobile/fenix/pull/19924#issuecomment-861423789
-      - https://github.com/mozilla-mobile/fenix/pull/20517#pullrequestreview-718069041
-      - https://github.com/mozilla-mobile/fenix/pull/23453#issuecomment-1024694220
-      - https://github.com/mozilla-mobile/fenix/pull/28502
-      - https://github.com/mozilla-mobile/firefox-android/pull/4039
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    metadata:
-      tags:
-        - Search
-        - Shortcuts
 
 toolbar_settings:
   changed_position:
@@ -4560,31 +4533,6 @@ preferences:
     expires: never
     metadata:
       tags:
-        - Settings
-  search_shortcuts_enabled:
-    type: boolean
-    lifetime: application
-    description: |
-      Whether or not the user has enabled search shortcuts.
-      default: true
-    send_in_pings:
-      - metrics
-    bugs:
-      - https://github.com/mozilla-mobile/fenix/issues/11118
-    data_reviews:
-      - https://github.com/mozilla-mobile/fenix/pull/11211
-      - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
-      - https://github.com/mozilla-mobile/fenix/pull/19924#issuecomment-861423789
-      - https://github.com/mozilla-mobile/fenix/pull/20517#pullrequestreview-718069041
-      - https://github.com/mozilla-mobile/fenix/pull/23453#issuecomment-1024694220
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    metadata:
-      tags:
-        - Search
         - Settings
   signed_in_sync:
     type: boolean
@@ -10555,28 +10503,6 @@ perf.awesomebar:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
-  shortcuts_suggestions:
-    send_in_pings:
-      - metrics
-    type: timing_distribution
-    time_unit: millisecond
-    description: |
-      Duration of a shortcuts awesomebar suggestion query.
-    bugs:
-      - https://github.com/mozilla-mobile/android-components/issues/4992
-    data_reviews:
-      - https://github.com/mozilla-mobile/fenix/pull/10276#pullrequestreview-411101979
-      - https://github.com/mozilla-mobile/fenix/pull/19924#issuecomment-861423789
-      - https://github.com/mozilla-mobile/fenix/pull/21315#issuecomment-920848442
-      - https://github.com/mozilla-mobile/fenix/pull/27068#issuecomment-1251509973
-      - https://github.com/mozilla-mobile/firefox-android/pull/3319
-      - https://github.com/mozilla-mobile/firefox-android/pull/4039
-    data_sensitivity:
-      - technical
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
 
 autoplay:
   visited_setting:
@@ -13641,10 +13567,11 @@ customization_settings:
       item:
         description: |
           A string containing the name of the shortcut the user selected. These items include:
-          new_tab, share, bookmark, translate, homepage, back
+          new_tab, share, bookmark, translate, homepage, back, none.
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=2002636
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2020026
     data_reviews:
       - https://phabricator.services.mozilla.com/D274607
     data_sensitivity:
@@ -13743,6 +13670,8 @@ nimbus_system:
           type: string
         user_accepted_tou:
           type: boolean
+        user_disabled_ai:
+          type: boolean
         no_shortcuts_or_stories_opt_outs:
           type: boolean
         addon_ids:
@@ -13762,6 +13691,7 @@ nimbus_system:
       - 'https://bugzilla.mozilla.org/show_bug.cgi?id=1991528'
       - 'https://bugzilla.mozilla.org/show_bug.cgi?id=1993034'
       - 'https://bugzilla.mozilla.org/show_bug.cgi?id=1992306'
+      - 'https://bugzilla.mozilla.org/show_bug.cgi?id=2028993'
     data_reviews:
       - 'https://bugzilla.mozilla.org/show_bug.cgi?id=1898552#c3'
       - 'https://phabricator.services.mozilla.com/D258942'
@@ -13771,6 +13701,7 @@ nimbus_system:
       - 'https://phabricator.services.mozilla.com/D268391'
       - 'https://phabricator.services.mozilla.com/D268931'
       - 'https://phabricator.services.mozilla.com/D270859'
+      - 'https://phabricator.services.mozilla.com/D291861'
     data_sensitivity:
       - interaction
     notification_emails:

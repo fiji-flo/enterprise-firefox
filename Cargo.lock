@@ -325,7 +325,7 @@ dependencies = [
 [[package]]
 name = "audioipc2"
 version = "0.6.0"
-source = "git+https://github.com/mozilla/audioipc?rev=c484fc0404e5e010802da6554077c0ca063d2ccf#c484fc0404e5e010802da6554077c0ca063d2ccf"
+source = "git+https://github.com/mozilla/audioipc?rev=b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e#b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e"
 dependencies = [
  "arrayvec",
  "ashmem",
@@ -352,7 +352,7 @@ dependencies = [
 [[package]]
 name = "audioipc2-client"
 version = "0.6.0"
-source = "git+https://github.com/mozilla/audioipc?rev=c484fc0404e5e010802da6554077c0ca063d2ccf#c484fc0404e5e010802da6554077c0ca063d2ccf"
+source = "git+https://github.com/mozilla/audioipc?rev=b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e#b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e"
 dependencies = [
  "audio_thread_priority",
  "audioipc2",
@@ -363,7 +363,7 @@ dependencies = [
 [[package]]
 name = "audioipc2-server"
 version = "0.6.0"
-source = "git+https://github.com/mozilla/audioipc?rev=c484fc0404e5e010802da6554077c0ca063d2ccf#c484fc0404e5e010802da6554077c0ca063d2ccf"
+source = "git+https://github.com/mozilla/audioipc?rev=b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e#b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e"
 dependencies = [
  "audio_thread_priority",
  "audioipc2",
@@ -1436,9 +1436,9 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dae61cf9c0abb83bd659dab65b7e4e38d8236824c85f0f804f173567bda257d2"
+checksum = "8c9cdaae01d5ed7882b04d795e7f752f46ff52d2fa3b50a20d28c464510bba98"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
@@ -1449,9 +1449,9 @@ dependencies = [
 
 [[package]]
 name = "cssparser-macros"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
+checksum = "10a2a99df6e410a8ff4245aa2006499ea662245f967cc7c0a38c83ef8eb44dbf"
 dependencies = [
  "quote",
  "syn",
@@ -2856,9 +2856,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "67.1.0"
+version = "67.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dad1253e7c6c9056c3cd07e8dd896a7aec519a8d5c5f72b4c62f571c3d72480"
+checksum = "a2e80112f3dc5721d9c2833d60438c33f699d617c59be3aff658a4e647988f68"
 dependencies = [
  "crossbeam-channel",
  "glean-core",
@@ -2871,9 +2871,9 @@ dependencies = [
 
 [[package]]
 name = "glean-core"
-version = "67.1.0"
+version = "67.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dbb14b253c35609e7b8b5b20d22b8bb6c6553451746a421fb7f1e7b81f5bc33"
+checksum = "5619534488457c776f34f9c1cf66c0f53ad5453a0d5009b600a6729c5a665f22"
 dependencies = [
  "android_logger",
  "bincode",

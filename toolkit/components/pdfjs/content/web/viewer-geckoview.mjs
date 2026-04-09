@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 5.6.224
- * pdfjsBuild = e37709ea7
+ * pdfjsVersion = 5.7.73
+ * pdfjsBuild = dd8f0a327
  */
 /******/ // The require scope
 /******/ var __webpack_require__ = {};
@@ -832,10 +832,6 @@ const defaultOptions = {
   },
   iccUrl: {
     value: "resource://pdf.js/web/iccs/",
-    kind: OptionKind.API
-  },
-  isEvalSupported: {
-    value: true,
     kind: OptionKind.API
   },
   isOffscreenCanvasSupported: {
@@ -8629,7 +8625,7 @@ class PDFViewer {
   #savedPageViews = null;
   #deletedPageNumbers = null;
   constructor(options) {
-    const viewerVersion = "5.6.224";
+    const viewerVersion = "5.7.73";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }

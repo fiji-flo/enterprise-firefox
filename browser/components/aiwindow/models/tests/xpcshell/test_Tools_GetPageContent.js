@@ -8,10 +8,6 @@ const { GetPageContent } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/models/Tools.sys.mjs"
 );
 
-const { SecurityProperties } = ChromeUtils.importESModule(
-  "moz-src:///browser/components/aiwindow/models/SecurityProperties.sys.mjs"
-);
-
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -92,8 +88,7 @@ add_task(async function test_getPageContent_exact_url_match() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
 
     const result = result_array[0];
@@ -128,8 +123,7 @@ add_task(async function test_getPageContent_multiple_urls() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [url1, url2] },
-      new Set([url1, url2]),
-      new SecurityProperties()
+      makeConversation()
     );
 
     Assert.equal(result_array.length, 2, "Should return results for both URLs");
@@ -158,11 +152,9 @@ add_task(async function test_getPageContent_tab_not_found_with_allowed_url() {
 
     setupBrowserWindowTracker(sb, createFakeWindow(tabs));
 
-    const allowedUrls = new Set([targetUrl]);
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      allowedUrls,
-      new SecurityProperties()
+      makeConversation()
     );
 
     const result = result_array[0];
@@ -194,17 +186,14 @@ add_task(
 
       setupBrowserWindowTracker(sb, createFakeWindow(tabs));
 
-      const allowedUrls = new Set(["https://different.com"]);
-
-      const securityProperties = new SecurityProperties();
-      securityProperties.setPrivateData();
-      securityProperties.setUntrustedInput();
-      securityProperties.commit();
+      const conversation = makeConversation({
+        privateData: true,
+        untrustedInput: true,
+      });
 
       const result_array = await GetPageContent.getPageContent(
         { url_list: [targetUrl] },
-        allowedUrls,
-        securityProperties
+        conversation
       );
 
       const result = result_array[0];
@@ -231,8 +220,7 @@ add_task(async function test_getPageContent_no_browsing_context() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
     const result = result_array[0];
 
@@ -274,8 +262,7 @@ add_task(async function test_getPageContent_successful_extraction() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
 
     const result = result_array[0];
@@ -310,8 +297,7 @@ add_task(async function test_getPageContent_content_format() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
     const result = result_array[0];
 
@@ -346,8 +332,7 @@ add_task(async function test_getPageContent_empty_content() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
 
     const result = result_array[0];
@@ -382,8 +367,7 @@ add_task(async function test_getPageContent_extraction_error() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
 
     const result = result_array[0];
@@ -418,8 +402,7 @@ add_task(async function test_getPageContent_reader_mode_content() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
 
     const result = result_array[0];
@@ -445,8 +428,7 @@ add_task(async function test_getPageContent_invalid_url_format() {
 
     const result_array = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      new SecurityProperties()
+      makeConversation()
     );
     const result = result_array[0];
 
@@ -460,14 +442,13 @@ add_task(async function test_getPageContent_invalid_url_format() {
 });
 
 add_task(async function test_getPageContent_refuses_both_security_flags() {
-  const secProps = new SecurityProperties();
-  secProps.setPrivateData();
-  secProps.setUntrustedInput();
-  secProps.commit();
+  const conversation = makeConversation({
+    privateData: true,
+    untrustedInput: true,
+  });
   const result = await GetPageContent.getPageContent(
     { url_list: ["https://example.com"] },
-    new Set(),
-    secProps
+    conversation
   );
   Assert.equal(result.length, 1, "Should return one message");
   Assert.ok(
@@ -483,13 +464,10 @@ add_task(async function test_getPageContent_allows_untrusted_input_only() {
     const tabs = [createFakeTab(targetUrl, "Example Page")];
     setupBrowserWindowTracker(sb, createFakeWindow(tabs));
 
-    const secProps = new SecurityProperties();
-    secProps.setUntrustedInput();
-    secProps.commit();
+    const conversation = makeConversation({ untrustedInput: true });
     const result = await GetPageContent.getPageContent(
       { url_list: [targetUrl] },
-      new Set([targetUrl]),
-      secProps
+      conversation
     );
     Assert.equal(result.length, 1, "Should return one result");
     Assert.ok(

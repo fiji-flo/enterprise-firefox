@@ -107,6 +107,11 @@
         border-start-end-radius: var(--border-radius-medium);
       }
     }
+
+    :root[ai-window]:not([inDOMFullscreen]) & {
+      border-start-start-radius: var(--border-radius-medium);
+      border-start-end-radius: var(--border-radius-medium);
+    }
   }
 }
 

@@ -83,6 +83,21 @@ features:
         description: The drawable displayed in the app menu for Settings
         type: String
         default: mozac_ic_settings
+  gecko-nimbus-validation:
+    description: "Feature for validating Nimbus Gecko functionality"
+    variables:
+      test-preference:
+        description: "A test gecko preference"
+        type: Option<String>
+        gecko-pref:
+          pref: "gecko.nimbus.test"
+          branch: "default"
+      test-preference-2:
+        description: "A second test gecko preference"
+        type: Option<Int>
+        gecko-pref:
+          pref: "gecko.nimbus.test.two"
+          branch: "user"
   cookie-banners:
     description: Features for cookie banner handling.
     variables:
@@ -380,15 +395,6 @@ features:
       - channel: nightly
         value:
           enabled: true
-
-  composable-toolbar:
-    description: Use a composable toolbar instead of the View based one.
-    variables:
-      enabled:
-        description: >
-          When the feature is enabled the user will see a new composable toolbar instead the previous View based one.
-        type: Boolean
-        default: true
 
   minimal-addressbar:
     description: Show a smaller height bottom addressbar with just the URL.
@@ -1066,11 +1072,27 @@ features:
         type: Boolean
         default: false
 
+  add-shortcuts-improvement:
+    description: Feature to enable Add Shortcuts improvement for users on Firefox on Android.
+    variables:
+      enabled:
+        description: If true, Add Shortcuts improvement is enabled.
+        type: Boolean
+        default: false
+
   merino-client:
     description: Feature to enable the Merino Client for users on Firefox on Android.
     variables:
       enabled:
         description: If true, Merino Client is enabled.
+        type: Boolean
+        default: false
+
+  merino-manifest:
+    description: Feature to enable the Merino Manifest for users on Firefox on Android.
+    variables:
+      enabled:
+        description: If true, Merino Manifest is enabled.
         type: Boolean
         default: false
 
@@ -1096,6 +1118,13 @@ features:
         description: If true, Private Mode and Stories Entry Point Experiment is enabled.
         type: Boolean
         default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: true
 
   search-optimization-option:
     description: Feature to enable the Search Optimization cards for users on Firefox on Android.

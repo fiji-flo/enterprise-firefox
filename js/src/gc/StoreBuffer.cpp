@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -73,9 +71,7 @@ size_t StoreBuffer::MonoTypeBuffer<T>::sizeOfExcludingThis(
 StoreBuffer::WholeCellBuffer::WholeCellBuffer(WholeCellBuffer&& other)
     : storage_(std::move(other.storage_)),
       maxSize_(other.maxSize_),
-      sweepHead_(other.sweepHead_),
       last_(other.last_) {
-  other.sweepHead_ = nullptr;
   other.last_ = nullptr;
 }
 StoreBuffer::WholeCellBuffer& StoreBuffer::WholeCellBuffer::operator=(
@@ -88,8 +84,6 @@ StoreBuffer::WholeCellBuffer& StoreBuffer::WholeCellBuffer::operator=(
 }
 
 bool StoreBuffer::WholeCellBuffer::init() {
-  MOZ_ASSERT(!sweepHead_);
-
   if (!storage_) {
     storage_ = MakeUnique<LifoAlloc>(LifoAllocBlockSize, js::MallocArena);
     if (!storage_) {
@@ -116,13 +110,12 @@ bool StoreBuffer::WholeCellBuffer::isEmpty() const {
 }
 
 void StoreBuffer::WholeCellBuffer::clear() {
-  for (LifoAlloc::Enum e(*storage_); !e.empty();) {
-    ArenaCellSet* cellSet = e.read<ArenaCellSet>();
-    cellSet->arena->bufferedCells() = &ArenaCellSet::Empty;
-  }
-  sweepHead_ = nullptr;
-
   if (storage_) {
+    for (LifoAlloc::Enum e(*storage_); !e.empty();) {
+      ArenaCellSet* cellSet = e.read<ArenaCellSet>();
+      cellSet->arena->bufferedCells() = &ArenaCellSet::Empty;
+    }
+
     storage_->used() ? storage_->releaseAll() : storage_->freeAll();
   }
 

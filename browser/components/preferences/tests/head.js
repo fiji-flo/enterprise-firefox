@@ -444,7 +444,7 @@ async function waitForSettingControlChange(control) {
  */
 async function waitForPaneChange(
   paneId,
-  win = gBrowser.selectedBrowser.ownerGlobal
+  win = gBrowser.selectedBrowser.contentWindow
 ) {
   let event = await BrowserTestUtils.waitForEvent(win.document, "paneshown");
   let expectId = paneId.startsWith("pane")
@@ -462,7 +462,7 @@ async function waitForPaneChange(
  */
 function getSettingControl(
   settingId,
-  win = gBrowser.selectedBrowser.ownerGlobal
+  win = gBrowser.selectedBrowser.contentWindow
 ) {
   return win.document.getElementById(`setting-control-${settingId}`);
 }

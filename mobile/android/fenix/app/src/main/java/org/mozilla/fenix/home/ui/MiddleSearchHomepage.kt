@@ -128,7 +128,7 @@ internal fun MiddleSearchHomepage(
 
                             Spacer(modifier = Modifier.weight(1f))
 
-                            if (showPocketStories) {
+                            if (showPocketStoriesCarousel) {
                                 PocketSection(
                                     state = pocketState,
                                     cardBackgroundColor = cardBackgroundColor,
@@ -181,7 +181,7 @@ private fun MiddleSearchHomepagePreview() {
                 showRecentSyncedTab = false,
                 showBookmarks = false,
                 showRecentlyVisited = true,
-                showPocketStories = true,
+                showPocketStoriesCarousel = true,
                 showCollections = true,
                 showPrivacyReport = true,
                 trackersBlockedCount = 754,

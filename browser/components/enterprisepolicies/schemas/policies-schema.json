@@ -1707,14 +1707,12 @@
         }
       }
     },
-
     "IPProtectionAvailable": {
       "type": "boolean",
       "description": "",
       "x-category": "Network security",
       "examples": [true, false]
     },
-
     "LegacyProfiles": {
       "type": "boolean",
       "x-category": "Miscellaneous",
@@ -2586,7 +2584,10 @@
         {
           "Delete": ["A Device"]
         },
-        { "A Device": "/path/to/lib", "Another Device": "/path/to/another/lib" }
+        {
+          "A Device": "/path/to/lib",
+          "Another Device": "/path/to/another/lib"
+        }
       ],
       "patternProperties": {
         "^(?!Add$|Delete$)": {
@@ -2855,6 +2856,12 @@
       "type": "boolean",
       "x-category": "Authentication",
       "description": "Allow Windows single sign-on for Microsoft, work, and school accounts.",
+      "examples": [true, false]
+    },
+    "XSLTEnabled": {
+      "type": "boolean",
+      "x-category": "Content settings",
+      "description": "Enable or disable support for the XSLTProcessor JavaScript API and the XSLT processing instruction.",
       "examples": [true, false]
     }
   }

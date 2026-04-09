@@ -267,7 +267,6 @@ def make_job_description(config, jobs):
             task["priority"] = job["priority"]
 
         task.setdefault("fetches", {}).setdefault("toolchain", []).extend([
-            "linux64-7zz",
             "linux64-mar-tools",
             "linux64-zucchini-bin",
             "linux64-upx",
@@ -287,6 +286,10 @@ def make_job_description(config, jobs):
                 "linux64-node",
             ])
 
+        if build_platform.startswith("win"):
+            task.setdefault("fetches", {}).setdefault("toolchain", []).append(
+                "linux64-7zz"
+            )
         yield task
 
 

@@ -1087,6 +1087,10 @@ class TranslationsActionTest {
             state,
             TranslationsAction.SetSupportedLanguagesAction(supportedLanguages = supportedLanguages),
         )
+        state = BrowserStateReducer.reduce(
+            state,
+            TranslationsAction.SetEngineSupportedAction(isEngineSupported = true),
+        )
 
         // Set up populated session store state
         state = BrowserStateReducer.reduce(
@@ -1110,6 +1114,9 @@ class TranslationsActionTest {
         assertNull(state.translationEngine.languageModels)
         assertNull(state.translationEngine.languageSettings)
         assertNull(state.translationEngine.neverTranslateSites)
+
+        // isEngineSupported is kept
+        assertTrue(state.translationEngine.isEngineSupported!!)
 
         // Session store is cleared
         assertFalse(tabState().translationsState.isExpectedTranslate)

@@ -30,7 +30,7 @@ hr {
     --button-border-radius: var(--border-radius-small);
     --button-font-weight: var(--font-weight);
     --button-icon-fill: var(--icon-color);
-    --button-padding: var(--space-small) var(--space-medium);
+    --button-padding: var(--space-small);
     --focus-outline-offset: calc(-1 * var(--focus-outline-width));
     width: 100%;
   }
@@ -122,8 +122,8 @@ ipprotection-message-bar.vpn-top-content {
   }
 
   img {
-    height: var(--icon-size-large);
-    width: var(--icon-size-large);
+    height: var(--size-image-small);
+    width: var(--size-image-small);
     -moz-context-properties: fill;
     fill: var(--icon-color);
   }
@@ -160,8 +160,9 @@ ipprotection-message-bar.vpn-top-content {
 #site-exclusion-control {
   display: flex;
 
-  padding-inline: var(--space-medium);
-  padding-block: var(--space-medium);
+  margin-block-start: var(--space-small);
+  padding: var(--space-small);
+  padding-bottom: calc(var(--space-xsmall) + var(--space-small));
 
   &:has(+ .vpn-bottom-content) {
     border-bottom: var(--border-width) solid var(--card-border-color);

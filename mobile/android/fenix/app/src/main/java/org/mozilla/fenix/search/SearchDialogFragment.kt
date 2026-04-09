@@ -390,8 +390,6 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
 
         binding.awesomeBar.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
-        val showUnifiedSearchFeature = requireContext().settings().showUnifiedSearchFeature
-
         consumeFlow(requireComponents.core.store) { flow ->
             flow.map { state -> state.search }
                 .distinctUntilChanged()
@@ -399,7 +397,6 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                     store.dispatch(
                         SearchFragmentAction.UpdateSearchState(
                             search,
-                            showUnifiedSearchFeature,
                             isPrivate = requireComponents.appStore.state.mode.isPrivate,
                         ),
                     )
@@ -584,7 +581,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
          *  query as consumeFrom may run several times on fragment start due to state updates.
          * */
 
-        flow.map { state -> (state.url != state.query && state.query.isNotBlank()) || state.showSearchShortcuts }
+        flow.map { state -> state.url != state.query && state.query.isNotBlank() }
             .distinctUntilChanged()
             .collect { shouldShowAwesomebar ->
                 binding.awesomeBar.visibility = if (shouldShowAwesomebar) {
@@ -599,7 +596,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         flow.map { state ->
             val shouldShowView = state.showClipboardSuggestions &&
                 state.query.isEmpty() &&
-                state.clipboardHasUrl && !state.showSearchShortcuts
+                state.clipboardHasUrl
             Pair(shouldShowView, state.clipboardHasUrl)
         }
             .distinctUntilChanged()
@@ -826,9 +823,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
 
     private fun updateSearchSuggestionsHintVisibility(state: SearchFragmentState) {
         view?.apply {
-            val showHint = state.showSearchSuggestionsHint &&
-                !state.showSearchShortcuts &&
-                state.url != state.query
+            val showHint = state.showSearchSuggestionsHint && state.url != state.query
 
             binding.searchSuggestionsHint.isVisible = showHint
             binding.searchSuggestionsHintDivider.isVisible = showHint

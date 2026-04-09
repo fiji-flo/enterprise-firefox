@@ -48,6 +48,7 @@ import org.mozilla.fenix.compose.SwipeToDismissBox2
 import org.mozilla.fenix.compose.SwipeToDismissState2
 import org.mozilla.fenix.compose.TabThumbnail
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
+import org.mozilla.fenix.tabstray.browser.compose.TabItemInteractionState
 import org.mozilla.fenix.tabstray.data.TabsTrayItem
 import org.mozilla.fenix.tabstray.data.createTab
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -70,6 +71,7 @@ private val TabHeaderFaviconSize = 12.dp
  * @param onCloseClick Invoked when the close button is clicked.
  * @param onClick Invoked when the item is clicked.
  * @param onLongClick Invoked when the item is long clicked.
+ * @param interactionState The tab item's interaction state (hover, drag, etc)
  */
 @Composable
 fun TabGridTabItem(
@@ -86,6 +88,7 @@ fun TabGridTabItem(
     onCloseClick: (TabsTrayItem.Tab) -> Unit,
     onClick: (TabsTrayItem) -> Unit,
     onLongClick: ((TabsTrayItem) -> Unit)? = null,
+    interactionState: TabItemInteractionState,
 ) {
     SwipeToDismissBox2(
         modifier = modifier,
@@ -105,6 +108,7 @@ fun TabGridTabItem(
                 onLongClick = onLongClick,
             ),
             onCloseTabClick = onCloseClick,
+            interactionState = interactionState,
         )
     }
 }
@@ -117,6 +121,7 @@ fun TabGridTabItem(
  * @param selectionState: The tab's selection state - active, multi-selection, etc.
  * @param clickHandler: The tab's click handler,
  * @param onCloseTabClick: Invoked when a tab is closed.
+ * @param interactionState The tab item's interaction state (hover, drag, etc)
  */
 @Composable
 private fun TabContent(
@@ -130,10 +135,12 @@ private fun TabContent(
     ),
     clickHandler: TabsTrayItemClickHandler,
     onCloseTabClick: ((TabsTrayItem.Tab) -> Unit),
+    interactionState: TabItemInteractionState,
 ) {
     Box(
         modifier = modifier
             .wrapContentSize()
+            .tabItemInteractionAnimation(interactionState)
             .testTag(TabsTrayTestTag.TAB_ITEM_ROOT),
     ) {
         Card(
@@ -157,7 +164,7 @@ private fun TabContent(
                 },
             ),
         ) {
-            Column {
+            Column(modifier = Modifier.aspectRatio(gridItemAspectRatio)) {
                 Header(
                     tab = tab,
                     selectionState = selectionState,
@@ -168,8 +175,11 @@ private fun TabContent(
 
                 Card(
                     modifier = Modifier
-                        .aspectRatio(gridItemAspectRatio)
-                        .padding(horizontal = FirefoxTheme.layout.space.static50),
+                        .padding(
+                            start = FirefoxTheme.layout.space.static50,
+                            end = FirefoxTheme.layout.space.static50,
+                            bottom = FirefoxTheme.layout.space.static50,
+                        ),
                     shape = ThumbnailShape,
                 ) {
                     Thumbnail(
@@ -326,6 +336,7 @@ private data class TabGridItemPreviewState(
     val multiSelectionSelected: Boolean,
     val url: String = "www.mozilla.org",
     val title: String = "Mozilla Domain",
+    val interactionState: TabItemInteractionState = TabItemInteractionState(),
 )
 
 private val tabGridItemPreviewStateData: List<Pair<String, TabGridItemPreviewState>> = listOf(
@@ -387,6 +398,15 @@ private val tabGridItemPreviewStateData: List<Pair<String, TabGridItemPreviewSta
             title = "Super super super super super super super super long title",
         ),
     ),
+    Pair(
+        "Dragged tab item",
+        TabGridItemPreviewState(
+            isActive = false,
+            multiSelectionEnabled = false,
+            multiSelectionSelected = false,
+            interactionState = TabItemInteractionState(isDragged = true),
+        ),
+    ),
 )
 
 private class TabGridItemParameterProvider : ThemedValueProvider<TabGridItemPreviewState>(
@@ -413,6 +433,7 @@ private fun TabGridItemPreview(
             thumbnailSize = 108,
             clickHandler = TabsTrayItemClickHandler(onClick = {}, onCloseClick = {}),
             onCloseTabClick = {},
+            interactionState = tabGridItemState.value.interactionState,
         )
     }
 }

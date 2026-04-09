@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -220,12 +218,14 @@ bool WeakMap<K, V, AP>::markEntry(GCMarker* marker, gc::CellColor mapColor,
   MOZ_ASSERT(keyIsSymbol == (keyCell->getTraceKind() == JS::TraceKind::Symbol));
   if (keyIsSymbol && keyColor < markColor) {
     // For symbols, also check whether it it is referenced by an uncollected
-    // zone, and if so mark it now. There's no need to set |marked| as this
-    // would have been marked later anyway.
+    // zone, and if so mark it now.
     auto* sym = static_cast<JS::Symbol*>(keyCell);
     gc::GCRuntime* gc = &marker->runtime()->gc;
     if (gc->isSymbolReferencedByUncollectedZone(sym, marker->markColor())) {
       TraceEdge(trc, &key, "WeakMap symbol key");
+      MOZ_ASSERT(gc::detail::GetEffectiveColor(marker, key.get()) == markColor);
+      keyColor = markColor;
+      marked = true;
     }
   }
 

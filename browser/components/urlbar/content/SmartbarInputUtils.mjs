@@ -141,6 +141,16 @@ const getAnchorPos = (range, view) => {
 function setupContextMentionsButton(smartbarInput, panelList) {
   const contextButton = smartbarInput.querySelector("context-icon-button");
 
+  panelList.addEventListener("shown", () => {
+    if (panelList.getAttribute("data-triggered-by") === "context-mention") {
+      contextButton.setAttribute("active", "");
+    }
+  });
+
+  panelList.addEventListener("hidden", () => {
+    contextButton.removeAttribute("active");
+  });
+
   contextButton.addEventListener("aiwindow-context-button:on-click", () => {
     const contextMentionSearch = new lazy.SmartbarMentionsPanelSearch(
       // @ts-ignore topChromeWindow global

@@ -107,6 +107,7 @@ import org.mozilla.fenix.settings.deletebrowsingdata.DefaultDeleteBrowsingDataCo
 import org.mozilla.fenix.settings.deletebrowsingdata.DefaultDeleteBrowsingDataController.Stores
 import org.mozilla.fenix.settings.deletebrowsingdata.DeleteBrowsingDataController
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.translations.TranslationsEnabledSettings
 import org.mozilla.fenix.utils.DELAY_MS_MAIN_MENU
 import org.mozilla.fenix.utils.DELAY_MS_SUB_MENU
 import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
@@ -391,6 +392,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     store.stateFlow.map { state -> state.isMoreMenuExpanded }
                 }.collectAsState(initial = false)
 
+                val isTranslationsEnabled = TranslationsEnabledSettings.dataStore(requireContext())
+                    .isEnabled.collectAsState(true)
+
                 MenuDialogBottomSheet(
                     modifier = Modifier
                         .padding(top = 16.dp, bottom = 16.dp)
@@ -427,7 +431,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         browserStore.state.translationEngine.isEngineSupported ?: false
                     val isTranslationSupported =
                         isTranslationEngineSupported &&
-                            FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled
+                            FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled &&
+                            isTranslationsEnabled.value
                     val isPdf = selectedTab?.content?.isPdf ?: false
                     val isWebCompatEnabled by remember {
                         store.stateFlow.map { it.isWebCompatEnabled }

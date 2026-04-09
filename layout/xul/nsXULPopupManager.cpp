@@ -879,18 +879,19 @@ bool nsXULPopupManager::ShowMenuAsNativeMenu(nsIContent* aMenu,
   if (!frame) {
     return false;
   }
-  CSSIntRect rect = frame->GetScreenRect();
   PendingPopup pendingPopup(popup, nullptr);
 
   return ShowNativeMenuInternal(
       popup, pendingPopup,
-      [&](nsMenuPopupFrame* frame) {
+      [&](nsMenuPopupFrame* popupFrame) {
         nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
-        frame->InitializePopupAsNativeAnchoredMenu(
-            aMenu, triggerContent, aPosition, rect, parentIsContextMenu);
+        popupFrame->InitializePopupAsNativeAnchoredMenu(
+            aMenu, triggerContent, aPosition, frame->GetScreenRect(),
+            parentIsContextMenu);
       },
-      [&](NativeMenu* menu, nsMenuPopupFrame* frame) {
-        menu->ShowMenuAnchored(frame, rect, frame->GetAlignmentPosition());
+      [&](NativeMenu* menu, nsMenuPopupFrame* popupFrame) {
+        menu->ShowMenuAnchored(frame, popupFrame->GetScreenAnchorRect(),
+                               popupFrame->GetAlignmentPosition());
       });
 }
 
@@ -1239,7 +1240,7 @@ bool nsXULPopupManager::ShowPopupAsNativeAnchoredMenu(
         if (!frame) {
           frame = popupFrame->PresContext()->PresShell()->GetRootFrame();
         }
-        menu->ShowMenuAnchored(frame, aRect,
+        menu->ShowMenuAnchored(frame, popupFrame->GetScreenAnchorRect(),
                                popupFrame->GetAlignmentPosition());
       });
 }

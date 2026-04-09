@@ -143,19 +143,16 @@ class CustomizationFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFrag
         val shouldShowShortcutCategory = settings.shouldShowToolbarCustomization &&
                 settings.shouldUseComposableToolbar &&
                 settings.toolbarRedesignEnabled
+        val isAnyShortcutSelectedForSimpleToolbar = settings.toolbarSimpleShortcutKey != ShortcutType.NONE.value
 
         category.isVisible = shouldShowShortcutCategory
         if (shouldShowShortcutCategory) {
             val shortcutPreference = if (isExpandedToolbarEnabled) {
-                ToolbarExpandedShortcutPreference(requireContext()).apply {
-                    key = getString(R.string.pref_key_toolbar_expanded_shortcut)
-                    layoutResource = R.layout.preference_toolbar_shortcut
-                }
+                buildExpandedToolbarCustomButtonSetting()
+            } else if (isAnyShortcutSelectedForSimpleToolbar) {
+                buildSimpleToolbarWithCustomButtonSelectedSetting()
             } else {
-                ToolbarSimpleShortcutPreference(requireContext()).apply {
-                    key = getString(R.string.pref_key_toolbar_simple_shortcut)
-                    layoutResource = R.layout.preference_toolbar_shortcut
-                }
+                buildSimpleToolbarWithNoCustomButtonSelectedSetting()
             }
             category.apply {
                 removeAll()
@@ -165,6 +162,34 @@ class CustomizationFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFrag
             }
         }
     }
+
+    private fun buildExpandedToolbarCustomButtonSetting() =
+        ToolbarExpandedShortcutPreference(requireContext()).apply {
+            key = getString(R.string.pref_key_toolbar_expanded_shortcut)
+            layoutResource = R.layout.preference_toolbar_shortcut
+        }
+
+    private fun buildSimpleToolbarWithCustomButtonSelectedSetting() =
+        ToolbarSimpleShortcutPreference(requireContext()).apply {
+            key = getString(R.string.pref_key_toolbar_simple_shortcut)
+            layoutResource = R.layout.preference_toolbar_shortcut
+            optionChangedListener = { newOption ->
+                if (newOption == null || newOption.key.value == ShortcutType.NONE.value) {
+                    updateToolbarShortcut()
+                }
+            }
+        }
+
+    private fun buildSimpleToolbarWithNoCustomButtonSelectedSetting() =
+        ToolbarSimpleNoShortcutPreference(requireContext()).apply {
+            key = getString(R.string.pref_key_toolbar_simple_no_shortcut)
+            layoutResource = R.layout.preference_toolbar_shortcut
+            optionChangedListener = { newOption ->
+                if (newOption == null || newOption.key.value != ShortcutType.NONE.value) {
+                    updateToolbarShortcut()
+                }
+            }
+        }
 
     private fun setupRadioGroups() {
         addToRadioGroup(

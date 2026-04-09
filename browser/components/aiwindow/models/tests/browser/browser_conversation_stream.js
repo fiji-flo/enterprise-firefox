@@ -23,8 +23,6 @@ const { PlacesTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PlacesTestUtils.sys.mjs"
 );
 
-const DEFAULT_CONTEXT = { telemetry: { location: "home" } };
-
 function getLastAssistantResponse(conversation) {
   return conversation.messages
     .filter(m => m.role == MESSAGE_ROLE.ASSISTANT)
@@ -54,11 +52,7 @@ add_task(async function test_chat_streams_end_to_end() {
       // withServer sets up the mock HTTP server, so use the real engine
       const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
 
-      await Chat.fetchWithHistory(
-        conversation,
-        engineInstance,
-        DEFAULT_CONTEXT
-      );
+      await Chat.fetchWithHistory({ conversation, engineInstance });
 
       Assert.equal(
         getLastAssistantResponse(conversation).content.body,
@@ -147,11 +141,7 @@ add_task(async function test_chat_tool_call_get_open_tabs() {
         conversation.addUserMessage("List tabs", "https://example.com", 0);
         conversation.addAssistantMessage("text", "");
 
-        await Chat.fetchWithHistory(
-          conversation,
-          engineInstance,
-          DEFAULT_CONTEXT
-        );
+        await Chat.fetchWithHistory({ conversation, engineInstance });
 
         Assert.equal(
           getLastAssistantResponse(conversation).content.body,
@@ -217,11 +207,7 @@ add_task(async function test_chat_tool_call_search_browsing_history() {
 
         const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
 
-        await Chat.fetchWithHistory(
-          conversation,
-          engineInstance,
-          DEFAULT_CONTEXT
-        );
+        await Chat.fetchWithHistory({ conversation, engineInstance });
 
         Assert.equal(
           getLastAssistantResponse(conversation).content.body,
@@ -233,10 +219,10 @@ add_task(async function test_chat_tool_call_search_browsing_history() {
           message => message.role === MESSAGE_ROLE.TOOL
         );
         Assert.equal(toolMessages.length, 1, "Tool result recorded");
-        const parsed = JSON.parse(toolMessages[0].content.body);
-        info("got history: " + toolMessages[0].content.body);
+        const toolResult = toolMessages[0].content.body;
+        info("got history: " + JSON.stringify(toolResult));
         Assert.greaterOrEqual(
-          parsed.results.length,
+          toolResult.results.length,
           1,
           "History tool returns stored visits"
         );
@@ -273,11 +259,7 @@ add_task(async function test_chat_tool_call_get_page_content() {
 
         const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
 
-        await Chat.fetchWithHistory(
-          conversation,
-          engineInstance,
-          DEFAULT_CONTEXT
-        );
+        await Chat.fetchWithHistory({ conversation, engineInstance });
 
         Assert.equal(
           getLastAssistantResponse(conversation).content.body,
@@ -360,11 +342,7 @@ add_task(async function test_chat_tool_call_get_user_memories() {
 
         const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
 
-        await Chat.fetchWithHistory(
-          conversation,
-          engineInstance,
-          DEFAULT_CONTEXT
-        );
+        await Chat.fetchWithHistory({ conversation, engineInstance });
 
         Assert.equal(
           getLastAssistantResponse(conversation).content.body,

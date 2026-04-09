@@ -154,7 +154,7 @@ def test_push_to_try(repo, monkeypatch):
                 str(tool),
                 "--quiet",
                 "log",
-                "-G",
+                "--no-graph",
                 "-r",
                 "trunk()..@ ~ description(exact:'')",
                 "-T",

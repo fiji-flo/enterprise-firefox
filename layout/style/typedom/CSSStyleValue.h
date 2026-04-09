@@ -21,6 +21,7 @@ namespace mozilla {
 struct CSSPropertyId;
 class ErrorResult;
 struct StylePropertyTypedValueList;
+struct URLExtraData;
 
 namespace dom {
 
@@ -58,11 +59,13 @@ class CSSStyleValue : public nsISupports, public nsWrapperCache {
 
   // start of CSSStyleValue Web IDL declarations
 
+  // https://drafts.css-houdini.org/css-typed-om-1/#dom-cssstylevalue-parse
   [[nodiscard]] static RefPtr<CSSStyleValue> Parse(const GlobalObject& aGlobal,
                                                    const nsACString& aProperty,
                                                    const nsACString& aCssText,
                                                    ErrorResult& aRv);
 
+  // https://drafts.css-houdini.org/css-typed-om-1/#dom-cssstylevalue-parseall
   static void ParseAll(const GlobalObject& aGlobal, const nsACString& aProperty,
                        const nsACString& aCssText,
                        nsTArray<RefPtr<CSSStyleValue>>& aRetVal,
@@ -71,6 +74,11 @@ class CSSStyleValue : public nsISupports, public nsWrapperCache {
   void Stringify(nsACString& aRetVal) const;
 
   // end of CSSStyleValue Web IDL declarations
+
+  static RefPtr<CSSStyleValue> ParseStyleValue(
+      nsCOMPtr<nsISupports>, const nsACString& aProperty,
+      const nsACString& aCssText, URLExtraData* aURLExtraData,
+      nsTArray<RefPtr<CSSStyleValue>>* aStyleValues, ErrorResult& aRv);
 
   StyleValueType GetStyleValueType() const { return mStyleValueType; }
 

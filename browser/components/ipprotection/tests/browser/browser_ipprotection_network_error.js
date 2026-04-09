@@ -107,8 +107,8 @@ add_task(async function test_toolbar_button_icon_on_activation_failure() {
   );
 
   Assert.ok(
-    button.classList.contains("ipprotection-error"),
-    "Toolbar button should show error icon after panel activation failure"
+    button.classList.contains("ipprotection-network-error"),
+    "Toolbar button should show network error icon after panel activation failure"
   );
 
   // Back online
@@ -119,8 +119,8 @@ add_task(async function test_toolbar_button_icon_on_activation_failure() {
   await panelHiddenPromise;
 
   Assert.ok(
-    !button.classList.contains("ipprotection-error"),
-    "Toolbar button should clear error icon when panel closes"
+    !button.classList.contains("ipprotection-network-error"),
+    "Toolbar button should clear network error icon when panel closes"
   );
 
   cleanupService();

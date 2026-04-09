@@ -1008,6 +1008,12 @@ void nsMenuPopupFrame::InitializePopupAsNativeAnchoredMenu(
   mIsNativeMenu = true;
   mScreenRect = ToAppUnits(aRect, AppUnitsPerCSSPixel());
 
+  if (nsIFrame* anchorFrame = GetAnchorFrame()) {
+    if (nsPresContext* rootPresContext = PresContext()->GetRootPresContext()) {
+      mScreenRect = ComputeAnchorRect(rootPresContext, anchorFrame);
+    }
+  }
+
   // Native menus don't call PrepareWidget(), so if we have a widget
   // already (which generally should only be possible on tests, since
   // otherwise we shouldn't ever mix native / non-native for the same popup) we

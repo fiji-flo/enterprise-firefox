@@ -2486,6 +2486,10 @@ function createDefaultBrowserConfig({
     id: "isDefaultPane",
     l10nId: "is-default-browser-2",
     control: "moz-promo",
+    controlAttrs: {
+      imagesrc: "chrome://global/skin/illustrations/kit-happy.svg",
+      imagedisplay: "cover",
+    },
   };
 
   const isNotDefaultPane = {
@@ -2498,11 +2502,16 @@ function createDefaultBrowserConfig({
         l10nId: "set-as-my-default-browser-2",
         id: "setDefaultButton",
         slot: "actions",
+
         controlAttrs: {
           type: "primary",
         },
       },
     ],
+    controlAttrs: {
+      imagesrc: "chrome://global/skin/illustrations/kit-concerned.svg",
+      imagedisplay: "cover",
+    },
   };
 
   const items = includeIsDefaultPane
@@ -2664,6 +2673,8 @@ SettingGroupManager.registerGroups({
         controlAttrs: {
           imagesrc:
             "chrome://browser/content/preferences/spell-check-promo.svg",
+          imagewidth: "large",
+          imagedisplay: "cover",
         },
       },
     ],
@@ -3173,6 +3184,7 @@ SettingGroupManager.registerGroups({
         control: "moz-card",
         controlAttrs: {
           type: "accordion",
+          headinglevel: 2,
         },
         items: [
           {
@@ -3244,6 +3256,7 @@ SettingGroupManager.registerGroups({
           imagesrc:
             "chrome://browser/content/ipprotection/assets/vpn-settings-get-started.svg",
           imagealignment: "end",
+          imagewidth: "large",
         },
         items: [
           {
@@ -4376,6 +4389,8 @@ SettingGroupManager.registerGroups({
           ".imageAlignment": "end",
           ".imageSrc":
             "chrome://browser/content/preferences/etp-toggle-promo.svg",
+          ".imageWidth": "large",
+          ".imageDisplay": "cover",
         },
       },
       {

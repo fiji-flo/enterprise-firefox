@@ -4883,30 +4883,27 @@ fn parse_property_into(
     )
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Servo_ParseProperty(
-    property: &structs::CSSPropertyId,
+fn parse_property(
+    property_id: PropertyId,
     value: &nsACString,
-    data: *mut URLExtraData,
+    url_extra_data: &UrlExtraData,
     parsing_mode: ParsingMode,
-    quirks_mode: nsCompatibility,
-    loader: *mut Loader,
+    quirks_mode: QuirksMode,
     rule_type: CssRuleType,
+    reporter: Option<&dyn ParseErrorReporter>,
 ) -> Strong<LockedDeclarationBlock> {
-    let id = get_property_id_from_csspropertyid!(property, Strong::null());
     let mut declarations = SourcePropertyDeclaration::default();
-    let reporter = ErrorReporter::new(ptr::null_mut(), loader, data);
-    let data = UrlExtraData::from_ptr_ref(&data);
+
     let result = parse_property_into(
         &mut declarations,
-        id,
+        property_id,
         value,
         Origin::Author,
-        data,
+        url_extra_data,
         parsing_mode,
-        quirks_mode.into(),
+        quirks_mode,
         rule_type,
-        reporter.as_ref().map(|r| r as &dyn ParseErrorReporter),
+        reporter,
     );
 
     match result {
@@ -4918,6 +4915,31 @@ pub unsafe extern "C" fn Servo_ParseProperty(
         },
         Err(_) => Strong::null(),
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseProperty(
+    property: &structs::CSSPropertyId,
+    value: &nsACString,
+    data: *mut URLExtraData,
+    parsing_mode: ParsingMode,
+    quirks_mode: nsCompatibility,
+    loader: *mut Loader,
+    rule_type: CssRuleType,
+) -> Strong<LockedDeclarationBlock> {
+    let property_id = get_property_id_from_csspropertyid!(property, Strong::null());
+    let reporter = ErrorReporter::new(ptr::null_mut(), loader, data);
+    let data = unsafe { UrlExtraData::from_ptr_ref(&data) };
+
+    parse_property(
+        property_id,
+        value,
+        data,
+        parsing_mode,
+        quirks_mode.into(),
+        rule_type,
+        reporter.as_ref().map(|r| r as &dyn ParseErrorReporter),
+    )
 }
 
 #[no_mangle]
@@ -5504,6 +5526,49 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_SetPropertyById(
     )
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetPropertyTypedValue(
+    declarations: &LockedDeclarationBlock,
+    property_id: &structs::CSSPropertyId,
+    value: &nsACString,
+    url_extra_data: *mut URLExtraData,
+    before_change_closure: DeclarationBlockMutationClosure,
+    changed: &mut bool,
+) -> nsresult {
+    let property_id =
+        get_property_id_from_csspropertyid!(property_id, nsresult::NS_ERROR_INVALID_ARG);
+    let non_custom_property_id = property_id.non_custom_id();
+
+    let mut source_declarations = SourcePropertyDeclaration::default();
+
+    let result = parse_property_into(
+        &mut source_declarations,
+        property_id,
+        value,
+        Origin::Author,
+        unsafe { UrlExtraData::from_ptr_ref(&url_extra_data) },
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        CssRuleType::Style,
+        None,
+    );
+
+    match result {
+        Ok(()) => {
+            *changed = set_property_to_declarations(
+                non_custom_property_id,
+                declarations,
+                &mut source_declarations,
+                before_change_closure,
+                Importance::Normal,
+            );
+
+            nsresult::NS_OK
+        },
+        Err(_) => nsresult::NS_ERROR_DOM_SYNTAX_ERR,
+    }
+}
+
 fn remove_property(
     declarations: &LockedDeclarationBlock,
     property_id: PropertyId,
@@ -5549,6 +5614,26 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(
         declarations,
         get_property_id_from_noncustomcsspropertyid!(property, false),
         before_change_closure,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_Parse(
+    property_id: &structs::CSSPropertyId,
+    value: &nsACString,
+    url_extra_data: *mut URLExtraData,
+) -> Strong<LockedDeclarationBlock> {
+    let property_id = get_property_id_from_csspropertyid!(property_id, Strong::null());
+    let url_extra_data = unsafe { UrlExtraData::from_ptr_ref(&url_extra_data) };
+
+    parse_property(
+        property_id,
+        value,
+        url_extra_data,
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        CssRuleType::Style,
+        None,
     )
 }
 

@@ -39,12 +39,17 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * This middleware is for use with managing any states or resources required for translating a
  * webpage.
+ *
+ * @param automaticallyInitialize If true, translations state will be initialized automatically
+ * when [InitAction] is dispatched.
+ * @param isTranslationsEnabled The user preference for whether we should enable translations or not.
  */
 @Suppress("LargeClass")
 class TranslationsMiddleware(
     private val engine: Engine,
     private val scope: CoroutineScope,
     private val automaticallyInitialize: Boolean = true,
+    private val isTranslationsEnabled: suspend () -> Boolean,
 ) : Middleware<BrowserState, BrowserAction> {
     private val logger = Logger("TranslationsMiddleware")
 
@@ -71,7 +76,7 @@ class TranslationsMiddleware(
             is TranslationsAction.InitTranslationsBrowserState -> {
                 scope.launch {
                     val engineIsSupported = requestEngineSupport(store)
-                    if (engineIsSupported == true) {
+                    if (engineIsSupported == true && isTranslationsEnabled()) {
                         initializeBrowserStore(store)
                     }
                 }

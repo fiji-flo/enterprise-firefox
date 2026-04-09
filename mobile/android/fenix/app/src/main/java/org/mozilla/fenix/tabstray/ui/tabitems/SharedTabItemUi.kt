@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.tabstray.ui.tabitems
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,9 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.RadioCheckmark
 import mozilla.components.compose.base.RadioCheckmarkColors
@@ -41,6 +47,7 @@ import mozilla.components.compose.base.text.Text
 import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
+import org.mozilla.fenix.tabstray.browser.compose.TabItemInteractionState
 import org.mozilla.fenix.tabstray.data.TabsTrayItem
 import mozilla.components.ui.icons.R as iconsR
 
@@ -131,13 +138,13 @@ private val clickRipple: Indication
 
 /**
  * The width to height ratio of the tab grid item. In landscape mode, the width to height ratio is
- * 2:1 and in portrait mode, the width to height ratio is 4:5.
+ * 1:1 and in portrait mode, the width to height ratio is 4:5.
  */
 val gridItemAspectRatio: Float
     @Composable
     @ReadOnlyComposable
     get() = if (LocalContext.current.isLandscape()) {
-        2f
+        1f
     } else {
         0.8f
     }
@@ -146,11 +153,13 @@ val gridItemAspectRatio: Float
  * Renders the three dot button and its menu items for [org.mozilla.fenix.tabstray.data.TabsTrayItem.TabGroup] views.
  * @param modifier: The Modifier parameter
  * @param includeCloseOption: Whether to include the "Close" dropdown item in the menu item list.
+ * @param onDeleteTabGroup Invoked when the user clicks on delete tab group.
  */
 @Composable
 fun TabGroupMenuButton(
     modifier: Modifier = Modifier,
     includeCloseOption: Boolean = false,
+    onDeleteTabGroup: () -> Unit,
 ) {
     var showDropdownMenu by remember { mutableStateOf(false) }
     IconButton(
@@ -174,7 +183,7 @@ fun TabGroupMenuButton(
             menuItems = generateTabGroupMenuItems(
                 editTabGroup = {}, // handle edit
                 closeTabGroup = {}, // handle close
-                deleteTabGroup = {}, // handle delete
+                deleteTabGroup = onDeleteTabGroup,
                 includeCloseOption = includeCloseOption,
             ),
         )
@@ -207,7 +216,7 @@ private fun generateTabGroupMenuItems(
         testTag = TabsTrayTestTag.DELETE_TAB_GROUP,
         onClick = deleteTabGroup,
         level = MenuItem.FixedItem.Level.Critical,
-        enabled = false,
+        enabled = true,
     )
     return if (includeCloseOption) {
         listOf(editItem, closeItem, deleteItem)
@@ -246,3 +255,55 @@ fun tabItemConditionalBorder(selectionState: TabsTrayItemSelectionState): Border
 fun tabItemBorderFocused(): BorderStroke {
     return BorderStroke(width = 4.dp, color = MaterialTheme.colorScheme.tertiary)
 }
+
+/**
+ * Animates the tab item's alpha value to be slightly transparent when it is dragged.
+ */
+@Composable
+private fun tabItemAnimatedAlpha(interactionState: TabItemInteractionState): State<Float> {
+    return animateFloatAsState(
+        targetValue = if (interactionState.isDragged) { 0.7f } else { 1f },
+    )
+}
+
+/**
+ * Animates the tab item's size to be slightly reduced when it is dragged.
+ */
+@Composable
+private fun tabItemAnimatedScale(interactionState: TabItemInteractionState): State<Float> {
+    return animateFloatAsState(
+        targetValue = if (interactionState.isDragged) 0.75f else 1f,
+    )
+}
+
+/**
+ * Renders an animated scale and alpha transition for the tab item based on its interaction state.
+ * This happens at the graphics layer to avoid recomposition of the item.
+ * The semantics properties are provided so that the state can be evaluated, as evaluating the composable will not
+ * return the correct result, since these graphical animations occur at draw time.
+ */
+@Composable
+fun Modifier.tabItemInteractionAnimation(interactionState: TabItemInteractionState): Modifier {
+    val tabItemAlpha: Float by tabItemAnimatedAlpha(interactionState)
+    val tabItemScale: Float by tabItemAnimatedScale(interactionState)
+    return this
+        .graphicsLayer(alpha = tabItemAlpha, scaleX = tabItemScale, scaleY = tabItemScale)
+        .semantics {
+            scale = tabItemScale
+            alpha = tabItemAlpha
+        }
+}
+
+/**
+ * Semantic property for accessing a Composable item's current graphical scale property.
+ * This is intended to be applied evenly across X and Y and set and fetched as needed for verification.
+ */
+internal val ScaleKey = SemanticsPropertyKey<Float>("Scale")
+internal var SemanticsPropertyReceiver.scale by ScaleKey
+
+/**
+ * Semantic property for accessing a Composable item's alpha property.
+ * This is intended to be set and fetched as needed for verification.
+ */
+internal val AlphaKey = SemanticsPropertyKey<Float>("Alpha")
+internal var SemanticsPropertyReceiver.alpha by AlphaKey

@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
@@ -95,6 +96,7 @@ import mozilla.components.service.mars.NEW_TAB_TILE_1_PLACEMENT_KEY
 import mozilla.components.service.mars.NEW_TAB_TILE_2_PLACEMENT_KEY
 import mozilla.components.service.mars.Placement
 import mozilla.components.service.mars.contile.ContileTopSitesUpdater
+import mozilla.components.service.merino.manifest.MerinoManifestProvider
 import mozilla.components.service.pocket.ContentRecommendationsRequestConfig
 import mozilla.components.service.pocket.PocketStoriesConfig
 import mozilla.components.service.pocket.PocketStoriesService
@@ -146,6 +148,7 @@ import org.mozilla.fenix.summarization.onboarding.SummarizationFeatureDiscoveryC
 import org.mozilla.fenix.tabgroups.storage.redux.middleware.TabGroupMiddleware
 import org.mozilla.fenix.tabgroups.storage.repository.DefaultTabGroupRepository
 import org.mozilla.fenix.telemetry.TelemetryMiddleware
+import org.mozilla.fenix.translations.TranslationsEnabledSettings
 import org.mozilla.fenix.utils.Settings.DeleteDownloadBehavior
 import org.mozilla.fenix.utils.getUndoDelay
 import org.mozilla.geckoview.GeckoRuntime
@@ -404,7 +407,14 @@ class Core(
                 // We are disabling automatically initializing translations so that we can control when
                 // we start this process. For details, see:
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=1958042
-                TranslationsMiddleware(engine, MainScope(), false),
+                TranslationsMiddleware(
+                    engine = engine,
+                    scope = MainScope(),
+                    automaticallyInitialize = false,
+                    isTranslationsEnabled = {
+                        TranslationsEnabledSettings.dataStore(context).isEnabled.first()
+                    },
+                ),
                 StartupMiddleware(
                     applicationContext = context,
                     repository = DefaultHomepageAsANewTabPreferenceRepository(context.settings()),
@@ -508,11 +518,20 @@ class Core(
         ProtectionsStorage(context)
     }
 
+    val merinoManifestProvider by lazyMonitored {
+        MerinoManifestProvider(context.assets)
+    }
+
     /**
      * Icons component for loading, caching and processing website icons.
      */
     val icons by lazyMonitored {
-        BrowserIcons(context, client)
+        BrowserIcons(
+            context = context,
+            httpClient = client,
+            manifestProvider = merinoManifestProvider,
+            useMerinoManifest = context.settings().enableMerinoManifest,
+        )
     }
 
     val metrics by lazyMonitored {

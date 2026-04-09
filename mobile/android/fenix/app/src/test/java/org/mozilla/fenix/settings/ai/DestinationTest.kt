@@ -31,7 +31,7 @@ class DestinationTest {
     fun `unknown feature id returns null destination`() {
         val metadata = object : AIFeatureMetadata {
             override val id = AIFeatureMetadata.FeatureId("unknown.feature")
-            override val description = AIFeatureMetadata.Description(0, 0)
+            override val description = AIFeatureMetadata.Description(0, 0, 0)
         }
 
         assertNull(metadata.destination)

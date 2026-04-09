@@ -96,7 +96,7 @@ class TranslationsMiddlewareTest {
         )
         tabs = listOf(tab)
         state = BrowserState(tabs = tabs, selectedTabId = tab.id)
-        translationsMiddleware = TranslationsMiddleware(engine = engine, scope = scope)
+        translationsMiddleware = TranslationsMiddleware(engine = engine, scope = scope, isTranslationsEnabled = { true })
         store = BrowserStore(
             initialState = state,
             middleware = listOf(captureActionsMiddleware, translationsMiddleware),
@@ -214,11 +214,36 @@ class TranslationsMiddlewareTest {
     }
 
     @Test
+    fun `WHEN InitTranslationsBrowserState is dispatched AND isTranslationsEnabled is false THEN browser store is not initialized`() = runTest(testDispatcher) {
+        val middleware = TranslationsMiddleware(
+            engine = engine,
+            automaticallyInitialize = false,
+            scope = this,
+            isTranslationsEnabled = { false },
+        )
+
+        middleware.invoke(store = store, next = {}, action = TranslationsAction.InitTranslationsBrowserState)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val engineSupportedCallback = argumentCaptor<((Boolean) -> Unit)>()
+        verify(engine, atLeastOnce()).isTranslationsEngineSupported(
+            onSuccess = engineSupportedCallback.capture(),
+            onError = any(),
+        )
+        engineSupportedCallback.value.invoke(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // One of the calls made if we do a full initialization
+        verify(engine, never()).getSupportedTranslationLanguages(onSuccess = any(), onError = any())
+    }
+
+    @Test
     fun `GIVEN automaticallyInitialize is false WHEN InitAction is dispatched THEN do nothing`() = runTest(testDispatcher) {
         val middleware = TranslationsMiddleware(
             engine = engine,
             automaticallyInitialize = false,
             scope = this,
+            isTranslationsEnabled = { true },
         )
         captureActionsMiddleware.reset()
 
@@ -229,7 +254,7 @@ class TranslationsMiddlewareTest {
     }
 
     @Test
-    fun `WHEN InitTranslationsBrowserState is dispatched AND the engine is supported THEN SetSupportedLanguagesAction is also dispatched`() = runTest(testDispatcher) {
+    fun `WHEN InitTranslationsBrowserState is dispatched AND the engine is supported AND isTranslationsEnabled is true THEN SetSupportedLanguagesAction is also dispatched`() = runTest(testDispatcher) {
         // Send Action
         translationsMiddleware.invoke(store = store, next = {}, action = TranslationsAction.InitTranslationsBrowserState)
         testDispatcher.scheduler.advanceUntilIdle()

@@ -4841,9 +4841,7 @@ static void NotifyEditableStateChange(Document& aDoc) {
 #endif
   for (nsIContent* node = aDoc.GetNextNode(&aDoc); node;
        node = node->GetNextNode(&aDoc)) {
-    if (auto* element = Element::FromNode(node)) {
-      element->UpdateEditableState(true);
-    }
+    node->UpdateEditableState(true);
   }
   MOZ_DIAGNOSTIC_ASSERT(!g.Mutated(0));
 }
@@ -13508,7 +13506,23 @@ bool Document::HasBeenScrolledSince(
 }
 
 bool Document::CanRewriteURL(nsIURI* aTargetURL, bool aReportErrors) const {
-  if (nsContentUtils::URIIsLocalFile(aTargetURL)) {
+  // Cannot rewrite URL such that it changes the scheme.
+  nsAutoCString scheme;
+  nsresult rv = mDocumentURI->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (!aTargetURL->SchemeIs(scheme.get())) {
+    return false;
+  }
+
+  // If the URI only differs in the fragment, it is allowed for all schemes.
+  bool equal = false;
+  rv = mDocumentURI->EqualsExceptRef(aTargetURL, &equal);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (equal) {
+    return true;
+  }
+
+  if (scheme == "file"_ns) {
     // It's a file:// URI
     nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
     if (aReportErrors) {
@@ -13516,6 +13530,14 @@ bool Document::CanRewriteURL(nsIURI* aTargetURL, bool aReportErrors) const {
           aTargetURL, false, InnerWindowID()));
     }
     return NS_SUCCEEDED(principal->CheckMayLoad(aTargetURL, false));
+  }
+
+  // If the URI isn't allowed to change path with pushState, we know it doesn't
+  // match (as we checked EqualsExceptRef above), so return immediately.
+  if (scheme != "http"_ns && scheme != "https"_ns &&
+      scheme != "moz-extension"_ns && scheme != "chrome"_ns &&
+      scheme != "resource"_ns) {
+    return false;
   }
 
   nsCOMPtr<nsIScriptSecurityManager> secMan =

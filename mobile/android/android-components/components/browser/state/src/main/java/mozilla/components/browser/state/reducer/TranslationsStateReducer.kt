@@ -477,7 +477,10 @@ internal object TranslationsStateReducer {
                 )
             } else {
                 state.copy(
-                    translationEngine = TranslationsBrowserState(isTranslationsEnabled = false),
+                    translationEngine = TranslationsBrowserState(
+                        isTranslationsEnabled = false,
+                        isEngineSupported = state.translationEngine.isEngineSupported,
+                    ),
                     // Clear the state on all tab sessions
                     tabs = state.tabs.map { it.copy(translationsState = TranslationsState()) },
                     customTabs = state.customTabs.map { it.copy(translationsState = TranslationsState()) },

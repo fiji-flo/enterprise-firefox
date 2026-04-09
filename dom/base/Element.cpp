@@ -449,7 +449,7 @@ void nsIContent::UpdateEditableState(bool aNotify) {
     }
   }
 
-  nsIContent* parent = GetParent();
+  nsINode* parent = GetParentNode();
   SetEditableFlag(parent && parent->HasFlag(NODE_IS_EDITABLE));
 }
 
@@ -6255,8 +6255,7 @@ StylePropertyMapReadOnly* Element::ComputedStyleMap() {
   nsDOMSlots* slots = DOMSlots();
 
   if (!slots->mComputedStyleMap) {
-    slots->mComputedStyleMap =
-        MakeRefPtr<StylePropertyMapReadOnly>(this, /* aComputed */ true);
+    slots->mComputedStyleMap = MakeRefPtr<StylePropertyMapReadOnly>(this);
   }
 
   return slots->mComputedStyleMap;

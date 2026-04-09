@@ -1235,8 +1235,7 @@ const MESSAGES = () => {
       targeting:
         "'browser.profiles.profile-name.updated' | preferenceValue == true && userPrefs.cfrFeatures",
       trigger: {
-        id: "preferenceObserver",
-        params: ["browser.profiles.profile-name.updated"],
+        id: "selectableProfileCreated",
       },
       frequency: {
         lifetime: 1,

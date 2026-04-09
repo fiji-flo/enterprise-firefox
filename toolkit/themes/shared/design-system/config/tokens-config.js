@@ -542,6 +542,7 @@ function formatTokens({
     outputReferences: false,
     formatting: {
       indentation,
+      commentPosition: "above",
     },
     componentName,
   });
@@ -716,11 +717,12 @@ function formatVariables({
     let sectionParts = [];
 
     remainingTokens = remainingTokens.filter(token => {
+      const normalizedName = formatBaseTokenNames(token.name);
       if (
         sectionMatchers.some(m =>
           m.test
-            ? m.test(token.name)
-            : token.name.startsWith(`${m}-`) || token.name === m
+            ? m.test(normalizedName)
+            : normalizedName.startsWith(`${m}-`) || normalizedName === m
         )
       ) {
         sectionParts.push(token);

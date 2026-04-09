@@ -287,6 +287,9 @@ fun TabsTray(
                             onTabDragStart = {
                                 tabsTrayStore.dispatch(TabsTrayAction.ExitSelectMode)
                             },
+                            onDeleteTabGroup = { group ->
+                                tabsTrayStore.dispatch(TabGroupAction.DeleteClicked(group))
+                            },
                         )
                     }
 
@@ -414,15 +417,15 @@ private fun TabsTrayPreview(
 
                     is TabsTrayState.Mode.Select -> {
                         if (tabsTrayStore.state.mode.selectedTabs.contains(tab)) {
-                            tabsTrayStore.dispatch(TabsTrayAction.RemoveSelectTab(tab))
+                            tabsTrayStore.dispatch(TabsTrayAction.RemoveSelectTabItem(tab))
                         } else {
-                            tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
+                            tabsTrayStore.dispatch(TabsTrayAction.AddSelectTabItem(tab))
                         }
                     }
                 }
             },
             onItemLongClick = { tab ->
-                tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
+                tabsTrayStore.dispatch(TabsTrayAction.AddSelectTabItem(tab))
             },
             onInactiveTabsHeaderClick = { expanded ->
                 tabsTrayStore.dispatch(TabsTrayAction.UpdateInactiveExpanded(expanded))

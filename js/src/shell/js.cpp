@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -907,7 +905,7 @@ enum class ShellGlobalKind {
   WindowProxy,
 };
 
-static void SetStandardRealmOptions(JS::RealmOptions& options);
+static void SetStandardRealmOptions(JSContext* cx, JS::RealmOptions& options);
 static JSObject* NewGlobalObject(JSContext* cx, JS::RealmOptions& options,
                                  JSPrincipals* principals, ShellGlobalKind kind,
                                  bool immutablePrototype);
@@ -1196,6 +1194,19 @@ static bool ShellInterruptCallback(JSContext* cx) {
       result = JS_CallFunctionValue(cx, nullptr, sc->interruptFunc,
                                     JS::HandleValueArray::empty(), &rval);
     } else {
+      // A recurring problem when fuzzing the shell is that setInterruptCallback
+      // gives power that our actual interrupt handlers in the browser don't
+      // use. In particular, we insert interrupt checks in potentially
+      // long-running code (eg ArrayJoinKernel) with the expectation that the
+      // interrupt handler will not reach into the interrupted realm and modify
+      // the contents of the array. As a compromise, when fuzzing, we instead
+      // require a string argument, and evaluate that string in a fresh global.
+      // This prevents the interrupt handler from directly mutating the
+      // interrupted code, but still allows it to do interesting things (get a
+      // backtrace, trigger a GC, etc). Clever ways of circumventing this
+      // sandbox are only interesting to the extent that they correspond with
+      // things that happen in real interrupt handlers in the browser.
+
       RootedString str(cx, sc->interruptFunc.toString());
 
       Maybe<AutoReportException> are;
@@ -1203,8 +1214,17 @@ static bool ShellInterruptCallback(JSContext* cx) {
         are.emplace(cx);
       }
 
+      // Disable the Debugger API in the new global and hide this global from
+      // onNewGlobal hooks, to prevent interrupt callbacks from accessing other
+      // globals with --fuzzing-safe.
+      bool wasDebuggerDisabled = sc->disableDebuggerForNewGlobal;
+      sc->disableDebuggerForNewGlobal = true;
+      auto restore = MakeScopeExit(
+          [&]() { sc->disableDebuggerForNewGlobal = wasDebuggerDisabled; });
+
       JS::RealmOptions options;
-      SetStandardRealmOptions(options);
+      SetStandardRealmOptions(cx, options);
+
       RootedObject glob(cx, NewGlobalObject(cx, options, nullptr,
                                             ShellGlobalKind::WindowProxy,
                                             /* immutablePrototype = */ true));
@@ -4465,11 +4485,15 @@ static const JSClass sandbox_class = {
     &sandbox_classOps,
 };
 
-static void SetStandardRealmOptions(JS::RealmOptions& options) {
+static void SetStandardRealmOptions(JSContext* cx, JS::RealmOptions& options) {
   options.creationOptions()
       .setSharedMemoryAndAtomicsEnabled(enableSharedMemory)
       .setCoopAndCoepEnabled(false)
       .setToSourceEnabled(enableToSource);
+
+  if (GetShellContext(cx)->disableDebuggerForNewGlobal) {
+    options.creationOptions().setInvisibleToDebugger(true);
+  }
 }
 
 [[nodiscard]] static bool CheckRealmOptions(JSContext* cx,
@@ -4507,7 +4531,7 @@ static void SetStandardRealmOptions(JS::RealmOptions& options) {
 
 static JSObject* NewSandbox(JSContext* cx, bool lazy) {
   JS::RealmOptions options;
-  SetStandardRealmOptions(options);
+  SetStandardRealmOptions(cx, options);
 
   if (defaultToSameCompartment) {
     options.creationOptions().setExistingCompartment(cx->global());
@@ -4692,7 +4716,7 @@ static void WorkerMain(UniquePtr<WorkerInput> input) {
 
   do {
     JS::RealmOptions realmOptions;
-    SetStandardRealmOptions(realmOptions);
+    SetStandardRealmOptions(cx, realmOptions);
 
     RootedObject global(cx, NewGlobalObject(cx, realmOptions, nullptr,
                                             ShellGlobalKind::WindowProxy,
@@ -7350,7 +7374,7 @@ static bool NewGlobal(JSContext* cx, unsigned argc, Value* vp) {
   ShellGlobalKind kind = ShellGlobalKind::WindowProxy;
   bool immutablePrototype = true;
 
-  SetStandardRealmOptions(options);
+  SetStandardRealmOptions(cx, options);
 
   // Default to creating the global in the current compartment unless
   // --more-compartments is used.
@@ -7373,7 +7397,7 @@ static bool NewGlobal(JSContext* cx, unsigned argc, Value* vp) {
     if (!JS_GetProperty(cx, opts, "invisibleToDebugger", &v)) {
       return false;
     }
-    if (v.isBoolean()) {
+    if (v.isBoolean() && !GetShellContext(cx)->disableDebuggerForNewGlobal) {
       creationOptions.setInvisibleToDebugger(v.toBoolean());
     }
 
@@ -11829,8 +11853,10 @@ static JSObject* NewGlobalObject(JSContext* cx, JS::RealmOptions& options,
     if (!JS_InitReflectParse(cx, glob)) {
       return nullptr;
     }
-    if (!JS_DefineDebuggerObject(cx, glob)) {
-      return nullptr;
+    if (!GetShellContext(cx)->disableDebuggerForNewGlobal) {
+      if (!JS_DefineDebuggerObject(cx, glob)) {
+        return nullptr;
+      }
     }
     if (!JS_DefineFunctionsWithHelp(cx, glob, shell_functions) ||
         !JS_DefineProfilingFunctions(cx, glob)) {
@@ -12355,7 +12381,7 @@ static int Shell(JSContext* cx, OptionParser* op) {
   int result = EXIT_SUCCESS;
   do {
     JS::RealmOptions options;
-    SetStandardRealmOptions(options);
+    SetStandardRealmOptions(cx, options);
     RootedObject glob(
         cx, NewGlobalObject(cx, options, nullptr, ShellGlobalKind::WindowProxy,
                             /* immutablePrototype = */ true));

@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,45 +54,63 @@ private const val NEWS_BUTTON_ANIMATION_DELAY = 500L
 /**
  * Homepage header for the entry points experiment.
  *
- * @param wordmarkTextColor color for the wordmark.
- * @param showNewsAnimation Whether to animate the news label on the stories button.
- * @param onPrivateModeTapped callback for when the private mode button is tapped.
- * @param onStoriesTapped callback for when the stories button is tapped.
- * @param onNewsAnimationShown callback invoked when the news button animation starts playing.
- * @param onLogoClicked callback for when the logo is clicked
+ * @param wordmarkTextColor [Color] for the wordmark.
+ * @param showStoriesButton Whether to show the stories button or not.
+ * @param showButtonAnimation Whether to animate the news label on the stories button.
+ * @param onPrivateModeTapped Callback for when the private mode button is tapped.
+ * @param onStoriesTapped Callback for when the stories button is tapped.
+ * @param onNewsAnimationShown Callback invoked when the news button animation starts playing.
+ * @param onLogoClicked Callback for when the logo is clicked.
  */
 @Composable
 fun ExperimentalHomepageHeader(
     wordmarkTextColor: Color?,
-    showNewsAnimation: Boolean,
+    showStoriesButton: Boolean,
+    showButtonAnimation: Boolean,
     onPrivateModeTapped: () -> Unit,
     onStoriesTapped: () -> Unit,
     onNewsAnimationShown: () -> Unit,
     onLogoClicked: () -> Unit,
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .padding(all = 16.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(bottom = 16.dp),
     ) {
-        PrivateModeButton(onPrivateModeTapped)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(all = 16.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            PrivateModeButton(onPrivateModeTapped)
 
-        Column {
+            if (showStoriesButton) {
+                StoriesButton(
+                    onClick = onStoriesTapped,
+                    showNewsAnimation = showButtonAnimation,
+                    onNewsAnimationShown = onNewsAnimationShown,
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(all = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Spacer(modifier = Modifier.height(28.dp))
+
             WordmarkAndLogo(
                 wordmarkTextColor = wordmarkTextColor,
                 onLogoClicked = onLogoClicked,
             )
         }
-
-        StoriesButton(
-            onClick = onStoriesTapped,
-            showNewsAnimation = showNewsAnimation,
-            onNewsAnimationShown = onNewsAnimationShown,
-        )
     }
 }
 
@@ -164,10 +183,7 @@ private fun StoriesButton(
     }
 
     RightChevronPillButton(onClick = onClick) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(FirefoxTheme.layout.space.static50),
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 painter = painterResource(iconsR.drawable.mozac_ic_reading_list_24),
                 contentDescription = stringResource(R.string.homepage_all_stories),
@@ -210,7 +226,8 @@ private fun HomepageHeaderPreview(
         Surface {
             ExperimentalHomepageHeader(
                 wordmarkTextColor = null,
-                showNewsAnimation = false,
+                showStoriesButton = true,
+                showButtonAnimation = false,
                 onPrivateModeTapped = {},
                 onStoriesTapped = {},
                 onNewsAnimationShown = {},

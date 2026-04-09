@@ -147,6 +147,10 @@ class IPPProxyManagerSingleton extends EventTarget {
 
   #rotationTimer = 0;
   #usageRefreshAbortController = null;
+  /** @type {string | null} */
+  #errorType = null;
+  #refreshUsageAbortController = null;
+  #rotateProxyPassAbortController = null;
 
   constructor() {
     super();
@@ -253,6 +257,10 @@ class IPPProxyManagerSingleton extends EventTarget {
 
   get state() {
     return this.#state;
+  }
+
+  get errorType() {
+    return this.#errorType;
   }
 
   /**
@@ -461,6 +469,9 @@ class IPPProxyManagerSingleton extends EventTarget {
    * Stop any connections and reset the pass and usage if the user has changed.
    */
   async reset() {
+    this.#refreshUsageAbortController?.abort();
+    this.#rotateProxyPassAbortController?.abort();
+
     this.#pass = null;
     this.#usage = null;
     if (this.#usageRefreshAbortController) {
@@ -474,8 +485,7 @@ class IPPProxyManagerSingleton extends EventTarget {
       this.#state === IPPProxyStates.PAUSED ||
       this.#state === IPPProxyStates.ERROR
     ) {
-      // Stop as a user action to reset userEnabled and record the correct metrics.
-      await this.stop(true /* userAction */);
+      await this.stop();
     }
   }
 
@@ -587,14 +597,18 @@ class IPPProxyManagerSingleton extends EventTarget {
     if (this.#rotateProxyPassPromise) {
       return this.#rotateProxyPassPromise;
     }
+    this.#rotateProxyPassAbortController = new AbortController();
     let { promise, resolve } = Promise.withResolvers();
     using scopeGuard = new DisposableStack();
     scopeGuard.defer(() => {
       resolve();
       this.#rotateProxyPassPromise = null;
+      this.#rotateProxyPassAbortController = null;
     });
     this.#rotateProxyPassPromise = promise;
-    const { pass, usage, error } = await this.#getPassAndUsage();
+    const { pass, usage, error } = await this.#getPassAndUsage(
+      this.#rotateProxyPassAbortController.signal
+    );
     if (usage) {
       this.#setUsage(usage);
       if (this.#usage.remaining <= 0) {
@@ -634,11 +648,17 @@ class IPPProxyManagerSingleton extends EventTarget {
    * @return {Promise<void>}
    */
   async refreshUsage() {
+    this.#refreshUsageAbortController?.abort();
+    this.#refreshUsageAbortController = new AbortController();
+    const { signal } = this.#refreshUsageAbortController;
     let newUsage;
     try {
-      newUsage = await lazy.IPProtectionService.guardian.fetchProxyUsage();
+      newUsage =
+        await lazy.IPProtectionService.guardian.fetchProxyUsage(signal);
     } catch (error) {
       lazy.logConsole.error("Error refreshing usage:", error);
+    } finally {
+      this.#refreshUsageAbortController = null;
     }
     if (!newUsage) {
       lazy.logConsole.debug("Failed to refresh usage info!");
@@ -677,6 +697,8 @@ class IPPProxyManagerSingleton extends EventTarget {
       return;
     }
 
+    this.#errorType = null;
+
     if (lazy.IPProtectionService.state !== lazy.IPProtectionStates.READY) {
       this.#setState(IPPProxyStates.NOT_READY);
       return;
@@ -702,6 +724,7 @@ class IPPProxyManagerSingleton extends EventTarget {
    * @param {string} error - the error message that occurred.
    */
   #setErrorState(error) {
+    this.#errorType = error;
     if (this.#state === IPPProxyStates.ACTIVE) {
       // If the proxy is active, switch to the error state.
       // Stop will need to be called to move out of the error state.

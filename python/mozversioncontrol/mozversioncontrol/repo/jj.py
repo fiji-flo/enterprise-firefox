@@ -509,7 +509,7 @@ class JujutsuRepository(Repository):
         print(
             self._run(
                 "log",
-                "-G",
+                "--no-graph",
                 "-r",
                 "trunk()..@ ~ description(exact:'')",
                 "-T",

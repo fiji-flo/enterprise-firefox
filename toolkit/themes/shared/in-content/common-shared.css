@@ -969,7 +969,7 @@ input[type="text"][warning]:enabled:not(:focus) {
   background: var(--background-color-box);
   /* Needed for high-contrast where the border will appear. */
   border: 1px solid var(--card-border-color);
-  border-radius: var(--border-radius-small);
+  border-radius: var(--card-border-radius);
   box-shadow: var(--card-box-shadow);
   margin: 0 0 8px;
   /* Remove the border from the overall padding. */

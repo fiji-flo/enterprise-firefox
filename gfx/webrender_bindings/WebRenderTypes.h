@@ -511,18 +511,23 @@ static inline wr::BorderRadius ToBorderRadius(
       LayoutDeviceSize::FromUnknownSize(aRadii.BottomRight()));
 }
 
+static inline wr::BorderRadius ToBorderRadius(const nsRectCornerRadii& aRadii,
+                                              int32_t aAppUnitsPerDevPixel) {
+  return ToBorderRadius(
+      LayoutDeviceSize::FromAppUnits(aRadii.TopLeft(), aAppUnitsPerDevPixel),
+      LayoutDeviceSize::FromAppUnits(aRadii.TopRight(), aAppUnitsPerDevPixel),
+      LayoutDeviceSize::FromAppUnits(aRadii.BottomLeft(), aAppUnitsPerDevPixel),
+      LayoutDeviceSize::FromAppUnits(aRadii.BottomRight(),
+                                     aAppUnitsPerDevPixel));
+}
+
 static inline wr::ComplexClipRegion ToComplexClipRegion(
     const nsRect& aRect, const nsRectCornerRadii& aRadii,
     int32_t aAppUnitsPerDevPixel) {
   wr::ComplexClipRegion ret;
   ret.rect =
       ToLayoutRect(LayoutDeviceRect::FromAppUnits(aRect, aAppUnitsPerDevPixel));
-  ret.radii = ToBorderRadius(
-      LayoutDeviceSize::FromAppUnits(aRadii.TopLeft(), aAppUnitsPerDevPixel),
-      LayoutDeviceSize::FromAppUnits(aRadii.TopRight(), aAppUnitsPerDevPixel),
-      LayoutDeviceSize::FromAppUnits(aRadii.BottomLeft(), aAppUnitsPerDevPixel),
-      LayoutDeviceSize::FromAppUnits(aRadii.BottomRight(),
-                                     aAppUnitsPerDevPixel));
+  ret.radii = ToBorderRadius(aRadii, aAppUnitsPerDevPixel);
   ret.mode = ClipMode::Clip;
   return ret;
 }

@@ -32,12 +32,15 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.base.theme.acornPrivateColorScheme
 import mozilla.components.compose.base.theme.information
@@ -48,6 +51,7 @@ import mozilla.components.compose.browser.awesomebar.internal.utils.FlightSugges
 import mozilla.components.compose.browser.awesomebar.internal.utils.FlightSuggestionPreviewModel
 import mozilla.components.concept.awesomebar.optimizedsuggestions.FlightData
 import mozilla.components.concept.awesomebar.optimizedsuggestions.FlightSuggestionStatus
+import kotlin.math.roundToInt
 import mozilla.components.ui.icons.R as iconsR
 
 @Composable
@@ -180,11 +184,22 @@ private fun FlightPath(progress: Float, modifier: Modifier = Modifier) {
     val airplaneIconPainter = painterResource(iconsR.drawable.mozac_ic_airplane)
     val errorColor = MaterialTheme.colorScheme.error
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val isFlightEnRoute = progress > 0f && progress < 1f
+    val progressPercent = (progress * 100).roundToInt()
+    val flightPathContentDescription = stringResource(
+        R.string.mozac_browser_awesomebar_flight_suggestion_progress,
+        progressPercent,
+    )
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(20.dp),
+            .height(20.dp)
+            .thenConditional(
+                Modifier.clearAndSetSemantics {
+                    contentDescription = flightPathContentDescription
+                },
+            ) { isFlightEnRoute },
     ) {
         val iconIntrinsicSize = airplaneIconPainter.intrinsicSize
         val iconStartPosition = when (progress) {
@@ -266,6 +281,12 @@ private fun FlightInfo(
     horizontalAlignment: Alignment.Horizontal,
     modifier: Modifier = Modifier,
 ) {
+    val flightSchedule = "${flightData.time} · ${flightData.date}"
+    val cancelledScheduleContentDescription = stringResource(
+        R.string.mozac_browser_awesomebar_flight_suggestion_canceled_schedule,
+        flightData.time,
+        flightData.date,
+    )
     Column(modifier = modifier, horizontalAlignment = horizontalAlignment) {
         Text(
             text = flightData.airportCity,
@@ -282,7 +303,7 @@ private fun FlightInfo(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "${flightData.time} · ${flightData.date}",
+            text = flightSchedule,
             overflow = TextOverflow.Ellipsis,
             maxLines = 2,
             style = AcornTheme.typography.subtitle2,
@@ -291,6 +312,13 @@ private fun FlightInfo(
                 TextDecoration.LineThrough
             } else {
                 null
+            },
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = if (flightStatus == FlightSuggestionStatus.CANCELLED) {
+                    cancelledScheduleContentDescription
+                } else {
+                    flightSchedule
+                }
             },
         )
     }

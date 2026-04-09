@@ -281,6 +281,7 @@ export class GuardianClient {
       await lazy.IPProtectionService.authProvider.getToken(abortSignal);
     const response = await fetch(this.#tokenURL, {
       method: "HEAD",
+      cache: "no-cache",
       signal: abortSignal,
       headers: {
         Authorization: `Bearer ${tokenHandle.token}`,

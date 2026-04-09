@@ -287,6 +287,12 @@ std::pair<double, double> ScrollTimeline::IntervalForAttachmentRange(
           computeRangeEdgeAsPercentage(aStyleRange.mEnd)};
 };
 
+void ScrollTimeline::AutoAlignStartTime() {
+  for (Animation* animation : mAnimations) {
+    animation->AutoAlignStartTime();
+  }
+}
+
 Maybe<ScrollTimeline::ComputedTimelineData>
 ScrollTimeline::ComputeTimelineData() const {
   return mCachedCurrentTime

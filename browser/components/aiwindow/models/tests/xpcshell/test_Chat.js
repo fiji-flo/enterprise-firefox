@@ -12,6 +12,9 @@ const { SYSTEM_PROMPT_TYPE, MESSAGE_ROLE } = ChromeUtils.importESModule(
 const { Chat } = ChromeUtils.importESModule(
   "moz-src:///browser/components/aiwindow/models/Chat.sys.mjs"
 );
+const { RunSearch, GetPageContent, toolFns } = ChromeUtils.importESModule(
+  "moz-src:///browser/components/aiwindow/models/Tools.sys.mjs"
+);
 const { MODEL_FEATURES, openAIEngine, FEATURE_MAJOR_VERSIONS } =
   ChromeUtils.importESModule(
     "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs"
@@ -25,8 +28,6 @@ function getVersionForFeature(feature) {
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
-
-const DEFAULT_CONTEXT = { telemetry: { location: "home" } };
 
 // Prefs for aiwindow
 const PREF_API_KEY = "browser.smartwindow.apiKey";
@@ -49,39 +50,31 @@ function getLastAssistantResponse(conversation) {
     .at(-1);
 }
 
-function makeConversation(messages = []) {
-  const conversation = new ChatConversation({
-    title: "test",
-    description: "test",
-    pageUrl: new URL("https://www.firefox.com"),
-    pageMeta: {},
-  });
-  for (const msg of messages) {
-    conversation.messages.push(msg);
-  }
-  return conversation;
-}
-
 add_task(async function test_Chat_real_tools_are_registered() {
   Assert.strictEqual(
-    typeof Chat.toolMap.get_open_tabs,
+    typeof toolFns.getOpenTabs,
     "function",
-    "get_open_tabs should be registered in toolMap"
+    "getOpenTabs should be a function"
   );
   Assert.strictEqual(
-    typeof Chat.toolMap.search_browsing_history,
+    typeof toolFns.searchBrowsingHistory,
     "function",
-    "search_browsing_history should be registered in toolMap"
+    "searchBrowsingHistory should be a function"
   );
   Assert.strictEqual(
-    typeof Chat.toolMap.get_page_content,
+    typeof GetPageContent.getPageContent,
     "function",
-    "get_page_content should be registered in toolMap"
+    "GetPageContent.getPageContent should be a function"
   );
   Assert.strictEqual(
-    typeof Chat.toolMap.get_user_memories,
+    typeof toolFns.getUserMemories,
     "function",
-    "get_user_memories should be registered in the toolMap"
+    "getUserMemories should be a function"
+  );
+  Assert.strictEqual(
+    typeof RunSearch.runSearch,
+    "function",
+    "RunSearch.runSearch should be a function"
   );
 });
 
@@ -178,7 +171,7 @@ add_task(async function test_Chat_fetchWithHistory_streams_and_forwards_args() {
     // Build engine
     const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
 
-    await Chat.fetchWithHistory(conversation, engineInstance, DEFAULT_CONTEXT);
+    await Chat.fetchWithHistory({ conversation, engineInstance });
 
     Assert.equal(
       getLastAssistantResponse(conversation).content.body,
@@ -216,8 +209,8 @@ add_task(async function test_Chat_fetchWithHistory_handles_tool_calls() {
                 {
                   id: "call_123",
                   function: {
-                    name: "test_tool",
-                    arguments: JSON.stringify({ param: "value" }),
+                    name: "search_browsing_history",
+                    arguments: JSON.stringify({ searchTerm: "hello" }),
                   },
                 },
               ],
@@ -234,8 +227,9 @@ add_task(async function test_Chat_fetchWithHistory_handles_tool_calls() {
       },
     };
 
-    // Mock tool function
-    Chat.toolMap.test_tool = sb.stub().resolves("tool result");
+    const toolStub = sb
+      .stub(toolFns, "searchBrowsingHistory")
+      .resolves("tool result");
 
     sb.stub(openAIEngine, "build").resolves(fakeEngine);
     sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
@@ -255,7 +249,7 @@ add_task(async function test_Chat_fetchWithHistory_handles_tool_calls() {
 
     // Build engine
     const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
-    await Chat.fetchWithHistory(conversation, engineInstance, DEFAULT_CONTEXT);
+    await Chat.fetchWithHistory({ conversation, engineInstance });
 
     const toolCalls = conversation.messages.filter(
       message =>
@@ -271,14 +265,14 @@ add_task(async function test_Chat_fetchWithHistory_handles_tool_calls() {
     Assert.equal(toolCalls.length, 1, "Should have one tool call");
     Assert.ok(
       toolCalls[0].content.body.tool_calls[0].function.name.includes(
-        "test_tool"
+        "search_browsing_history"
       ),
       "Tool call log should mention tool name"
     );
-    Assert.ok(Chat.toolMap.test_tool.calledOnce, "Tool should be called once");
+    Assert.ok(toolStub.calledOnce, "Tool should be called once");
     Assert.deepEqual(
-      Chat.toolMap.test_tool.firstCall.args[0],
-      { param: "value" },
+      toolStub.firstCall.args[0],
+      { searchTerm: "hello" },
       "Tool should receive correct parameters"
     );
     Assert.equal(
@@ -288,7 +282,6 @@ add_task(async function test_Chat_fetchWithHistory_handles_tool_calls() {
     );
   } finally {
     sb.restore();
-    delete Chat.toolMap.test_tool;
   }
 });
 
@@ -321,11 +314,7 @@ add_task(
       // Build engine
       const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
       const consume = async () => {
-        await Chat.fetchWithHistory(
-          conversation,
-          engineInstance,
-          DEFAULT_CONTEXT
-        );
+        await Chat.fetchWithHistory({ conversation, engineInstance });
       };
 
       await Assert.rejects(
@@ -356,7 +345,7 @@ add_task(
                   {
                     id: "call_456",
                     function: {
-                      name: "test_tool",
+                      name: "search_browsing_history",
                       arguments: "invalid json {",
                     },
                   },
@@ -374,7 +363,9 @@ add_task(
         },
       };
 
-      Chat.toolMap.test_tool = sb.stub().resolves("should not be called");
+      const toolStub = sb
+        .stub(toolFns, "searchBrowsingHistory")
+        .resolves("should not be called");
 
       sb.stub(openAIEngine, "build").resolves(fakeEngine);
       sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
@@ -393,11 +384,7 @@ add_task(
       conversation.addAssistantMessage("text", "");
 
       const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
-      await Chat.fetchWithHistory(
-        conversation,
-        engineInstance,
-        DEFAULT_CONTEXT
-      );
+      await Chat.fetchWithHistory({ conversation, engineInstance });
 
       Assert.equal(
         getLastAssistantResponse(conversation).content.body,
@@ -405,12 +392,11 @@ add_task(
         "Should yield text from both calls"
       );
       Assert.ok(
-        Chat.toolMap.test_tool.notCalled,
+        toolStub.notCalled,
         "Tool should not be called with invalid JSON"
       );
     } finally {
       sb.restore();
-      delete Chat.toolMap.test_tool;
     }
   }
 );
@@ -450,7 +436,7 @@ add_task(
         },
       };
 
-      sb.stub(Chat.toolMap, "get_open_tabs").resolves([]);
+      sb.stub(toolFns, "getOpenTabs").resolves([]);
       sb.stub(openAIEngine, "build").resolves(fakeEngine);
       sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
 
@@ -468,11 +454,7 @@ add_task(
       conversation.addAssistantMessage("text", "");
 
       const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
-      await Chat.fetchWithHistory(
-        conversation,
-        engineInstance,
-        DEFAULT_CONTEXT
-      );
+      await Chat.fetchWithHistory({ conversation, engineInstance });
 
       // Find the assistant message with tool_calls
       const assistantToolCallMessage = conversation.messages.find(
@@ -492,8 +474,8 @@ add_task(
         "Empty arguments string should be converted to '{}'"
       );
       Assert.ok(
-        Chat.toolMap.get_open_tabs.calledTwice,
-        "Tool should be called twice: once by _collectInitialAllowedUrls, once by the tool call"
+        toolFns.getOpenTabs.calledOnce,
+        "Tool should be called once by the tool call"
       );
       Assert.equal(
         getLastAssistantResponse(conversation).content.body,
@@ -580,8 +562,9 @@ add_task(
       };
 
       const getPageContentStub = sb
-        .stub(Chat.toolMap, "get_page_content")
-        .callsFake(async (_params, _allowedUrls, secProps = {}) => {
+        .stub(GetPageContent, "getPageContent")
+        .callsFake(async (_params, conversation) => {
+          const secProps = conversation.securityProperties;
           if (secProps.untrustedInput && secProps.privateData) {
             return [
               `get_page_content is not available for ${_params?.url} when the conversation involves both untrusted input and private data.`,
@@ -608,11 +591,7 @@ add_task(
       conversation.addAssistantMessage("text", "");
 
       const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
-      await Chat.fetchWithHistory(
-        conversation,
-        engineInstance,
-        DEFAULT_CONTEXT
-      );
+      await Chat.fetchWithHistory({ conversation, engineInstance });
 
       Assert.strictEqual(
         conversation.securityProperties.untrustedInput,
@@ -700,7 +679,7 @@ add_task(async function test_Chat_fetchWithHistory_uses_modelId_from_pref() {
     conversation.addAssistantMessage("text", "");
 
     const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
-    await Chat.fetchWithHistory(conversation, engineInstance, DEFAULT_CONTEXT);
+    await Chat.fetchWithHistory({ conversation, engineInstance });
 
     Assert.ok(
       createEngineStub.calledOnce,
@@ -765,7 +744,7 @@ add_task(
       };
 
       const runSearchStub = sb
-        .stub(Chat.toolMap, "run_search")
+        .stub(RunSearch, "runSearch")
         .resolves("search result");
       sb.stub(openAIEngine, "build").resolves(fakeEngine);
       sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
@@ -805,7 +784,11 @@ add_task(
       };
 
       const engineInstance = await openAIEngine.build(MODEL_FEATURES.CHAT);
-      await Chat.fetchWithHistory(conversation, engineInstance, context);
+      await Chat.fetchWithHistory({
+        conversation,
+        engineInstance,
+        browsingContext: context.browsingContext,
+      });
 
       Assert.ok(
         runSearchStub.calledOnce,
@@ -817,7 +800,11 @@ add_task(
       // execution and the model continues generating text.
       callCount = 1;
       conversation.addAssistantMessage("text", "");
-      await Chat.fetchWithHistory(conversation, engineInstance, context);
+      await Chat.fetchWithHistory({
+        conversation,
+        engineInstance,
+        browsingContext: context.browsingContext,
+      });
 
       Assert.ok(
         runSearchStub.calledOnce,
@@ -842,7 +829,11 @@ add_task(
       conversation.addUserMessage("Go ahead", "https://www.firefox.com", 0);
       conversation.addAssistantMessage("text", "");
       callCount = 0;
-      await Chat.fetchWithHistory(conversation, engineInstance, context);
+      await Chat.fetchWithHistory({
+        conversation,
+        engineInstance,
+        browsingContext: context.browsingContext,
+      });
 
       Assert.ok(
         runSearchStub.calledTwice,
@@ -855,87 +846,6 @@ add_task(
     }
   }
 );
-
-add_task(
-  async function test_collectInitialAllowedUrls_adds_open_tabs_and_mentions() {
-    const sb = sinon.createSandbox();
-    try {
-      sb.stub(Chat.toolMap, "get_open_tabs").resolves([
-        { url: "https://example.com/page1", title: "Page 1" },
-        { url: "https://example.com/page2", title: "Page 2" },
-      ]);
-
-      const conversation = makeConversation([
-        {
-          role: "user",
-          content: {
-            body: "Check these",
-            contextMentions: [
-              { url: "https://mentioned.example.com/article" },
-              { url: "https://mentioned.example.com/docs" },
-            ],
-          },
-        },
-      ]);
-
-      const allowedUrls = new Set();
-      await Chat._collectInitialAllowedUrls(
-        conversation,
-        allowedUrls,
-        conversation.securityProperties
-      );
-
-      Assert.equal(allowedUrls.size, 4, "Should have 2 tab + 2 mention URLs");
-      Assert.ok(allowedUrls.has("https://example.com/page1"));
-      Assert.ok(allowedUrls.has("https://example.com/page2"));
-      Assert.ok(allowedUrls.has("https://mentioned.example.com/article"));
-      Assert.ok(allowedUrls.has("https://mentioned.example.com/docs"));
-    } finally {
-      sb.restore();
-    }
-  }
-);
-
-add_task(
-  async function test_collectInitialAllowedUrls_empty_when_no_tabs_or_mentions() {
-    const sb = sinon.createSandbox();
-    try {
-      sb.stub(Chat.toolMap, "get_open_tabs").resolves([]);
-
-      const conversation = makeConversation([
-        { role: "user", content: { body: "Hello" } },
-      ]);
-
-      const allowedUrls = new Set();
-      await Chat._collectInitialAllowedUrls(
-        conversation,
-        allowedUrls,
-        conversation.securityProperties
-      );
-
-      Assert.equal(allowedUrls.size, 0, "Should be empty");
-    } finally {
-      sb.restore();
-    }
-  }
-);
-
-add_task(async function test_collectAllowedUrlsFromToolCall_get_open_tabs() {
-  const allowedUrls = new Set();
-
-  Chat._collectAllowedUrlsFromToolCall(
-    "get_open_tabs",
-    [
-      { url: "https://tab1.example.com", title: "Tab 1" },
-      { url: "https://tab2.example.com", title: "Tab 2" },
-    ],
-    allowedUrls
-  );
-
-  Assert.equal(allowedUrls.size, 2);
-  Assert.ok(allowedUrls.has("https://tab1.example.com"));
-  Assert.ok(allowedUrls.has("https://tab2.example.com"));
-});
 
 add_task(
   async function test_Chat_fetchWithHistory_get_user_memories_called_when_memories_enabled() {
@@ -969,9 +879,7 @@ add_task(
         },
       };
 
-      const getUserMemoriesStub = sb
-        .stub(Chat.toolMap, "get_user_memories")
-        .resolves("list of memories");
+      sb.stub(toolFns, "getUserMemories").resolves("list of memories");
       sb.stub(openAIEngine, "build").resolves(fakeEngine);
       sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
 
@@ -990,14 +898,10 @@ add_task(
       );
       conversation.addAssistantMessage("text", "");
 
-      await Chat.fetchWithHistory(
-        conversation,
-        engineInstance,
-        DEFAULT_CONTEXT
-      );
+      await Chat.fetchWithHistory({ conversation, engineInstance });
 
       Assert.ok(
-        getUserMemoriesStub.calledOnce,
+        toolFns.getUserMemories.calledOnce,
         "get_user_memories should be called exactly once"
       );
 
@@ -1050,9 +954,7 @@ add_task(
         },
       };
 
-      const getUserMemoriesStub = sb
-        .stub(Chat.toolMap, "get_user_memories")
-        .resolves("list of memories");
+      sb.stub(toolFns, "getUserMemories").resolves("list of memories");
       sb.stub(openAIEngine, "build").resolves(fakeEngine);
       sb.stub(openAIEngine, "getFxAccountToken").resolves("mock_token");
 
@@ -1071,14 +973,10 @@ add_task(
       );
       conversation.addAssistantMessage("text", "");
 
-      await Chat.fetchWithHistory(
-        conversation,
-        engineInstance,
-        DEFAULT_CONTEXT
-      );
+      await Chat.fetchWithHistory({ conversation, engineInstance });
 
       Assert.ok(
-        !getUserMemoriesStub.calledOnce,
+        !toolFns.getUserMemories.calledOnce,
         "get_user_memories should not be called when memories are disabled"
       );
 

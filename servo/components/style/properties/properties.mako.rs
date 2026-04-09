@@ -1649,8 +1649,8 @@ pub struct ComputedValues {
 impl ComputedValues {
     /// Returns the pseudo-element that this style represents.
     #[cfg(feature = "servo")]
-    pub fn pseudo(&self) -> Option<&PseudoElement> {
-        self.pseudo.as_ref()
+    pub fn pseudo(&self) -> Option<PseudoElement> {
+        self.pseudo
     }
 
     /// Returns true if this is the style for a pseudo-element.
@@ -1677,11 +1677,6 @@ impl ComputedValues {
     /// Gets a reference to the custom properties map (if one exists).
     pub fn custom_properties(&self) -> &crate::custom_properties::ComputedCustomProperties {
         &self.custom_properties
-    }
-
-    /// Returns whether we have the same custom properties as another style.
-    pub fn custom_properties_equal(&self, other: &Self) -> bool {
-      self.custom_properties() == other.custom_properties()
     }
 
 % for prop in data.longhands:
@@ -1986,6 +1981,25 @@ impl ops::DerefMut for ComputedValues {
 
 #[cfg(feature = "servo")]
 impl ComputedValuesInner {
+    /// Share ComputedValues but with different flags.
+    pub fn clone_with_flags(&self, flags: ComputedValueFlags, pseudo: Option<&PseudoElement>) -> Arc<ComputedValues> {
+        Arc::new(ComputedValues {
+            inner: Self {
+                custom_properties: self.custom_properties.clone(),
+                attribute_references: self.attribute_references.clone(),
+                writing_mode: self.writing_mode.clone(),
+                rules: self.rules.clone(),
+                visited_style: self.visited_style.clone(),
+                flags,
+                effective_zoom: self.effective_zoom.clone(),
+                % for style_struct in data.active_style_structs():
+                ${style_struct.ident}: self.${style_struct.ident}.clone(),
+                % endfor
+            },
+            pseudo: pseudo.cloned(),
+        })
+    }
+
     /// Returns the visited style, if any.
     pub fn visited_style(&self) -> Option<&ComputedValues> {
         self.visited_style.as_deref()
@@ -2026,12 +2040,6 @@ impl ComputedValuesInner {
             Content::Normal | Content::None => true,
             Content::Items(ref items) => items.items.is_empty()
         }
-    }
-
-    /// Whether the current style or any of its ancestors is multicolumn.
-    #[inline]
-    pub fn can_be_fragmented(&self) -> bool {
-        self.flags.contains(ComputedValueFlags::CAN_BE_FRAGMENTED)
     }
 
     /// Whether the current style is multicolumn.
@@ -2435,12 +2443,8 @@ impl<'a> StyleBuilder<'a> {
         self.modified_reset = true;
         self.add_flags(ComputedValueFlags::INHERITS_RESET_STYLE);
 
-        % if property.ident == "content":
-        self.add_flags(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE);
-        % endif
-
-        % if property.ident == "display":
-        self.add_flags(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE);
+        % if property.ident == "content" or property.ident == "display":
+        self.add_flags(ComputedValueFlags::DISPLAY_OR_CONTENT_DEPEND_ON_INHERITED_STYLE);
         % endif
 
         if self.${property.style_struct.ident}.ptr_eq(inherited_struct) {
@@ -2859,7 +2863,7 @@ macro_rules! longhand_properties_idents {
 
 // Large pages generate tens of thousands of ComputedValues.
 #[cfg(feature = "gecko")]
-size_of_test!(ComputedValues, 256);
+size_of_test!(ComputedValues, 248);
 #[cfg(feature = "servo")]
 size_of_test!(ComputedValues, 224);
 

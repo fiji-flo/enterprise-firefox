@@ -1064,7 +1064,7 @@ export const PREFS_CONFIG = new Map([
     "widgets.enabled",
     {
       title: "Allows users to toggle all widgets on and off at once",
-      value: false,
+      value: true,
     },
   ],
   [
@@ -1121,8 +1121,9 @@ export const PREFS_CONFIG = new Map([
   [
     "widgets.maximized",
     {
-      title: "Toggles maximized state for all widgets in the widgets section",
-      value: false,
+      title:
+        "Toggles maximized state for all widgets in the widgets section. It defaults to true as the default widget size is large",
+      value: true,
     },
   ],
   [
@@ -1181,6 +1182,27 @@ export const PREFS_CONFIG = new Map([
       title:
         "Boolean flag for determining if a user has interacted with the weather forecast widget",
       value: false,
+    },
+  ],
+  [
+    "widgets.weather.size",
+    {
+      title: "Size of the weather forecast widget (small, medium, or large)",
+      value: "large",
+    },
+  ],
+  [
+    "widgets.lists.size",
+    {
+      title: "Size of the lists widget (medium or large)",
+      value: "large",
+    },
+  ],
+  [
+    "widgets.focusTimer.size",
+    {
+      title: "Size of the focus timer widget (medium or large)",
+      value: "large",
     },
   ],
   [

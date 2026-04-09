@@ -142,7 +142,8 @@ internal fun Homepage(
 
                     ExperimentalHomepageHeader(
                         wordmarkTextColor = headerState.wordmarkTextColor,
-                        showNewsAnimation = headerState.showNewsAnimation,
+                        showStoriesButton = headerState.showStoriesButton,
+                        showButtonAnimation = headerState.showButtonAnimation,
                         onPrivateModeTapped = { browsingModeChanged(BrowsingMode.Private) },
                         onStoriesTapped = { interactor.onDiscoverMoreClicked() },
                         onNewsAnimationShown = { components.settings.recordNewsButtonAnimationShown() },
@@ -251,7 +252,7 @@ internal fun Homepage(
                                 )
                             }
 
-                            if (showPocketStories) {
+                            if (showPocketStoriesCarousel) {
                                 Spacer(
                                     modifier = if (isMinimalLayout()) {
                                         Modifier.weight(1f)
@@ -531,7 +532,7 @@ private fun HomepagePreview() {
                     showRecentSyncedTab = true,
                     showBookmarks = true,
                     showRecentlyVisited = true,
-                    showPocketStories = true,
+                    showPocketStoriesCarousel = true,
                     showCollections = true,
                     showPrivacyReport = true,
                     trackersBlockedCount = 754,
@@ -584,7 +585,7 @@ private fun HomepageBannerPreview() {
                     showRecentSyncedTab = true,
                     showBookmarks = true,
                     showRecentlyVisited = true,
-                    showPocketStories = true,
+                    showPocketStoriesCarousel = true,
                     showCollections = true,
                     showPrivacyReport = true,
                     trackersBlockedCount = 754,
@@ -637,7 +638,7 @@ private fun HomepagePreviewCollections() {
                     showRecentSyncedTab = false,
                     showBookmarks = false,
                     showRecentlyVisited = true,
-                    showPocketStories = true,
+                    showPocketStoriesCarousel = true,
                     showCollections = true,
                     showPrivacyReport = true,
                     trackersBlockedCount = 754,
@@ -690,7 +691,7 @@ private fun MinimalHomepagePreview() {
                     showRecentSyncedTab = false,
                     showBookmarks = false,
                     showRecentlyVisited = false,
-                    showPocketStories = true,
+                    showPocketStoriesCarousel = true,
                     showCollections = false,
                     showPrivacyReport = true,
                     trackersBlockedCount = 754,

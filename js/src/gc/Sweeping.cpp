@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -863,6 +861,11 @@ bool Zone::findSweepGroupEdges(Zone* atomsZone) {
     }
   }
 
+  if (gcFinalizationRegistriesMayHaveSymbolRegistrations_ &&
+      !atomsZone->addSweepGroupEdgeTo(this)) {
+    return false;
+  }
+
   return WeakMapBase::findSweepGroupEdgesForZone(atomsZone, this);
 }
 
@@ -1541,6 +1544,12 @@ void GCRuntime::sweepDebuggerOnMainThread(JS::GCContext* gcx) {
 
 void GCRuntime::sweepJitDataOnMainThread(JS::GCContext* gcx) {
   SweepingTracer trc(rt);
+
+  // Allow sweeping currently unmarked symbols that might be marked later by
+  // following a reference in another zone. We only really care about references
+  // in the current zone and anything swept here is not observable.
+  trc.setAllowSweepingSymbolsEarly(true);
+
   {
     gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_JIT_DATA);
 

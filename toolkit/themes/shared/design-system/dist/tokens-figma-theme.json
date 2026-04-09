@@ -103,13 +103,13 @@
     "forcedColors": "transparent"
   },
   "box-shadow/color/lighter/layer-1": {
-    "light": "rgba(0, 0, 0, 0.05)",
-    "dark": "rgba(0, 0, 0, 0.2)",
+    "light": "rgba(0, 0, 0, 0.03)",
+    "dark": "rgba(0, 0, 0, 0.15)",
     "forcedColors": "transparent"
   },
   "box-shadow/color/lighter/layer-2": {
-    "light": "rgba(0, 0, 0, 0.1)",
-    "dark": "rgba(0, 0, 0, 0.4)",
+    "light": "rgba(0, 0, 0, 0.05)",
+    "dark": "rgba(0, 0, 0, 0.2)",
     "forcedColors": "transparent"
   },
   "color/accent/primary": {
@@ -536,7 +536,7 @@
   },
   "card/border/color": {
     "light": "color-mix(in srgb, currentColor 10%, transparent)",
-    "dark": "color-mix(in srgb, currentColor 10%, transparent)",
+    "dark": "color-mix(in srgb, currentColor 6%, transparent)",
     "forcedColors": "{HCM Theme$CanvasText}"
   },
   "icon/color": {

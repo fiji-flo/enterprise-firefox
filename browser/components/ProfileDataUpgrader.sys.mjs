@@ -979,8 +979,8 @@ export let ProfileDataUpgrader = {
       } catch (e) {}
     }
 
-    // Updating from 161 to 167 to trigger re-migrations of the Rusts store.
-    if (existingDataVersion < 167) {
+    // Updating from 167 to 168 to trigger re-migrations of the Rusts store.
+    if (existingDataVersion < 168) {
       // Force all logins to be re-migrated to the rust store.
       Services.prefs.setBoolPref("signon.rustMirror.migrationNeeded", true);
     }

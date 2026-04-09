@@ -15,6 +15,15 @@
   --font-size-heading-large: var(--font-size-large);
   --font-size-heading-medium: var(--font-size-medium);
   --select-max-width: 20rem;
+
+  --card-padding-inline: var(--space-xlarge);
+  --card-padding-block: var(--card-padding-inline);
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("browser.settings-redesign.enabled") {
+    --background-color-canvas: light-dark(var(--color-gray-05), var(--color-gray-90));
+  }
+
   user-select: text;
 }
 
@@ -74,8 +83,11 @@
   z-index: 2;
   background-color: var(--background-color-canvas);
   padding-top: 40px;
-  padding-bottom: var(--space-large);
+  padding-bottom: var(--search-container-padding);
   padding-inline: var(--focus-outline-offset);
+  /* Ensure focus indicators on elements below the search container
+     aren't obscured. */
+  margin-bottom: var(--search-container-margin);
 }
 
 #searchInput {
@@ -89,13 +101,16 @@
 }
 
 .main-content {
+  --search-container-padding: var(--space-small);
+  --search-container-margin: calc(var(--focus-outline-width) + var(--focus-outline-offset));
+
   contain: inline-size;
   /* 72px matches moz-page-nav's --page-nav-margin-top, minus the 40px
      padding-top already set in common-shared.css. */
   margin-top: 32px;
   padding-top: 0;
   padding-inline-end: 42px;
-  scroll-padding-top: calc(40px + var(--space-large) + 40px);
+  scroll-padding-top: calc(40px + var(--search-container-padding) + var(--search-container-margin) + 40px);
 
   @media (max-width: 830px) {
     padding-inline: var(--space-medium);
@@ -118,7 +133,7 @@
 html|div[data-category],
 groupbox[data-category],
 setting-group[data-category] {
-  margin: 0 0 32px;
+  margin: 0 0 var(--space-xlarge);
 }
 
 /* Bug 2002963 - payments and addresses are in a groupbox together, but they probably shouldn't be */
@@ -129,7 +144,7 @@ setting-group[data-category] {
 }
 
 html|h1 {
-  margin: 0 0 var(--space-small);
+  margin: 0 0 var(--space-large);
 }
 
 html|h2 {
@@ -251,15 +266,15 @@ setting-group:has(> moz-card).spotlight {
   display: flex;
 }
 
-/* Subcategory title */
+/* stylelint-disable-next-line media-query-no-invalid */
+@media not -moz-pref("browser.settings-redesign.enabled") {
+  /* Subcategory title */
 
-/**
- * The first subcategory title for each category should not have margin-top.
- */
-
-.subcategory:not([hidden]) ~ .subcategory {
-  padding-top: var(--space-xxlarge);
-  border-top: 1px solid var(--border-color);
+  /* The first subcategory title for each category should not have margin-top. */
+  .subcategory:not([hidden]) ~ .subcategory {
+    padding-top: var(--space-xxlarge);
+    border-top: 1px solid var(--border-color);
+  }
 }
 
 /* All panes */
@@ -623,7 +638,7 @@ html|dialog,
 }
 
 .dialogBox {
-  background-color: var(--background-color-canvas);
+  background-color: var(--background-color-box);
   background-clip: content-box;
   color: var(--text-color);
   /* `transparent` will use the dialogText color in high-contrast themes and

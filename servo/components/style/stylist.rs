@@ -69,8 +69,8 @@ use crate::values::specified::position::PositionTryFallbacksItem;
 use crate::values::specified::position::PositionTryFallbacksTryTactic;
 use crate::values::{computed, AtomIdent, Parser, SourceLocation};
 use crate::AllocErr;
-use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use crate::ArcSlice;
+use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded, WeakAtom};
 use cssparser::ParserInput;
 use dom::{DocumentState, ElementState};
 #[cfg(feature = "gecko")]
@@ -2075,9 +2075,8 @@ impl Stylist {
         use RegisterCustomPropertyResult::*;
 
         // If name is not a custom property name string, throw a SyntaxError and exit this algorithm.
-        let name = match parse_name(name) {
-            Ok(n) => Atom::from(n),
-            Err(()) => return InvalidName,
+        let Ok(name) = parse_name(name).map(Atom::from) else {
+            return InvalidName;
         };
 
         // If property set already contains an entry with name as its property name (compared
@@ -2092,8 +2091,8 @@ impl Stylist {
         };
 
         let initial_value = match initial_value {
-            Some(v) => {
-                let mut input = ParserInput::new(v);
+            Some(value) => {
+                let mut input = ParserInput::new(value);
                 let parsed = Parser::new(&mut input)
                     .parse_entirely(|input| {
                         input.skip_whitespace();

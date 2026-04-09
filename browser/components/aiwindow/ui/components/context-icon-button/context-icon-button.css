@@ -4,5 +4,4 @@
 
 moz-button.context-icon-button {
   --button-icon-fill: var(--smartbar-cta-icon-fill, var(--icon-color));
-  --button-background-color-ghost-selected: transparent;
 }

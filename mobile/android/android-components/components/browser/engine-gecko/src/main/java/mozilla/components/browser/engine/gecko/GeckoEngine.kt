@@ -1844,29 +1844,41 @@ class GeckoEngine(
 
         @ExperimentalAndroidComponentsApi
         override var safeBrowsingRealTimeSimulationEnabled: Boolean?
+            @OptIn(ExperimentalGeckoViewApi::class)
             get() = runtime.settings.contentBlocking.safeBrowsingRealTimeSimulationEnabled
+
+            @OptIn(ExperimentalGeckoViewApi::class)
             set(value) {
                 value?.let { runtime.settings.contentBlocking.setSafeBrowsingRealTimeSimulationEnabled(it) }
             }
 
         @ExperimentalAndroidComponentsApi
         override var safeBrowsingRealTimeSimulationHitProbability: Int?
+            @OptIn(ExperimentalGeckoViewApi::class)
             get() = runtime.settings.contentBlocking.safeBrowsingRealTimeSimulationHitProbability
+
+            @OptIn(ExperimentalGeckoViewApi::class)
             set(value) {
                 value?.let { runtime.settings.contentBlocking.setSafeBrowsingRealTimeSimulationHitProbability(it) }
             }
 
         @ExperimentalAndroidComponentsApi
         override var safeBrowsingRealTimeSimulationCacheTTLSec: Int?
+            @OptIn(ExperimentalGeckoViewApi::class)
             get() = runtime.settings.contentBlocking.safeBrowsingRealTimeSimulationCacheTTLSec
+
+            @OptIn(ExperimentalGeckoViewApi::class)
             set(value) {
                 value?.let { runtime.settings.contentBlocking.setSafeBrowsingRealTimeSimulationCacheTTLSec(it) }
             }
 
         @ExperimentalAndroidComponentsApi
         override var safeBrowsingRealTimeSimulationNegativeCacheEnabled: Boolean?
+            @OptIn(ExperimentalGeckoViewApi::class)
             get() =
               runtime.settings.contentBlocking.safeBrowsingRealTimeSimulationNegativeCacheEnabled
+
+            @OptIn(ExperimentalGeckoViewApi::class)
             set(value) {
                 value?.let {
                     runtime.settings.contentBlocking.setSafeBrowsingRealTimeSimulationNegativeCacheEnabled(it)
@@ -1875,7 +1887,10 @@ class GeckoEngine(
 
         @ExperimentalAndroidComponentsApi
         override var safeBrowsingRealTimeSimulationNegativeCacheTTLSec: Int?
+            @OptIn(ExperimentalGeckoViewApi::class)
             get() = runtime.settings.contentBlocking.safeBrowsingRealTimeSimulationNegativeCacheTTLSec
+
+            @OptIn(ExperimentalGeckoViewApi::class)
             set(value) {
                 value?.let { runtime.settings.contentBlocking.setSafeBrowsingRealTimeSimulationNegativeCacheTTLSec(it) }
             }

@@ -107,6 +107,7 @@
   "button/padding/icon": 0,
   "button/size/icon": "{Primitives$button/min/height}",
   "button/size/icon/small": "{Primitives$button/min/height/small}",
+  "card/border/radius": "{Primitives$border/radius/large}",
   "checkbox/margin/inline": "{Primitives$space/small}",
   "checkbox/size": "{Primitives$size/item/small}",
   "icon/size": "{Primitives$icon/size/small}",

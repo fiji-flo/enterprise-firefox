@@ -15,8 +15,20 @@ cargo_target_flag := --target=$(RUST_TARGET)
 
 # Permit users to pass flags to cargo from their mozconfigs (e.g. --color=always).
 cargo_build_flags = $(CARGOFLAGS)
+
+# Megazord libraries use a custom profile with panic=unwind for parity with
+# how app-services is currently built.
+# Other libraries use --release (or default dev profile for debug builds).
+ifneq (,$(findstring megazord,$(RUST_LIBRARY_FILE)))
+ifdef MOZ_DEBUG_RUST
+cargo_build_flags += --profile dev-megazord
+else
+cargo_build_flags += --profile release-megazord
+endif
+else
 ifndef MOZ_DEBUG_RUST
 cargo_build_flags += --release
+endif
 endif
 
 # Megazord Cargo.toml specifies both staticlib and cdylib crate-types for

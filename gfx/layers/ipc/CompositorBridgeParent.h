@@ -167,7 +167,7 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
   virtual PTextureParent* AllocPTextureParent(
       const SurfaceDescriptor& aSharedData, ReadLockDescriptor& aReadLock,
       const LayersBackend& aBackend, const TextureFlags& aTextureFlags,
-      const LayersId& id, const uint64_t& aSerial,
+      const uint64_t& aSerial,
       const MaybeExternalImageId& aExternalImageId) = 0;
   virtual bool DeallocPTextureParent(PTextureParent* aActor) = 0;
 
@@ -341,7 +341,7 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   PTextureParent* AllocPTextureParent(
       const SurfaceDescriptor& aSharedData, ReadLockDescriptor& aReadLock,
       const LayersBackend& aLayersBackend, const TextureFlags& aFlags,
-      const LayersId& aId, const uint64_t& aSerial,
+      const uint64_t& aSerial,
       const wr::MaybeExternalImageId& aExternalImageId) override;
   bool DeallocPTextureParent(PTextureParent* actor) override;
 
@@ -442,19 +442,19 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
    * exists.  Otherwise null is returned.  This must only be called on
    * the compositor thread.
    */
-  static LayerTreeState* GetIndirectShadowTree(LayersId aId);
+  static LayerTreeState* GetLayerTreeState(LayersId aId);
 
   /**
    * If a shadow tree exists for the given id |aId|, return true.  Otherwise
    * return false.
    */
-  static bool HasIndirectShadowTree(LayersId aId);
+  static bool HasLayerTreeState(LayersId aId);
 
   /**
    * Lookup the indirect shadow tree for |aId|, call the function object and
    * return true if found. If not found, return false.
    */
-  static bool CallWithIndirectShadowTree(
+  static bool CallWithLayerTreeState(
       LayersId aId, const std::function<void(LayerTreeState&)>& aFunc);
 
   /**
@@ -548,7 +548,7 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
    * Lookup the indirect shadow tree for |aId| and return it if it
    * exists.  Otherwise null is returned.
    */
-  static LayerTreeState* GetIndirectShadowTreeInternal(LayersId aId);
+  static LayerTreeState* GetLayerTreeStateInternal(LayersId aId);
 
   void Initialize();
 

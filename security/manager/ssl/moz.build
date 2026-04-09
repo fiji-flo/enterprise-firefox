@@ -132,7 +132,6 @@ UNIFIED_SOURCES += [
     "PKCS11Module.cpp",
     "PKCS11ModuleDB.cpp",
     "PKCS11Slot.cpp",
-    "PSMRunnable.cpp",
     "PublicKeyPinningService.cpp",
     "QWACs.cpp",
     "QWACTrustDomain.cpp",

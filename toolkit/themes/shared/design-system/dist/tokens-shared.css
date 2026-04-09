@@ -35,8 +35,8 @@
     /** box-shadow **/
     --box-shadow-color-darker-layer-1: light-dark(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.2));
     --box-shadow-color-darker-layer-2: light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
-    --box-shadow-color-lighter-layer-1: light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2));
-    --box-shadow-color-lighter-layer-2: light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4));
+    --box-shadow-color-lighter-layer-1: light-dark(rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.15));
+    --box-shadow-color-lighter-layer-2: light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2));
     --box-shadow-level-1: 0 0 1px var(--box-shadow-color-darker-layer-1), 0 1px 2px var(--box-shadow-color-darker-layer-2);
     --box-shadow-level-2: 0 0.25px 0.75px var(--box-shadow-color-lighter-layer-1), 0 2px 6px var(--box-shadow-color-lighter-layer-2);
     --box-shadow-level-3: 0 0.375px 1.5px var(--box-shadow-color-lighter-layer-1), 0 3px 12px var(--box-shadow-color-lighter-layer-2);
@@ -123,13 +123,15 @@
     --button-text-color-selected: var(--button-text-color-active);
 
     /** card **/
-    --card-border-color: color-mix(in srgb, currentColor 10%, transparent);
+    --card-border-color: light-dark(color-mix(in srgb, currentColor 10%, transparent), color-mix(in srgb, currentColor 6%, transparent));
+    --card-border-radius: var(--border-radius-large);
     --card-box-shadow: var(--box-shadow-level-2);
     --card-box-shadow-hover: var(--box-shadow-level-4);
 
     /** checkbox **/
     --checkbox-margin-inline: var(--space-small);
-    --checkbox-size: var(--size-item-small); /* TODO Bug 1876537: Make this em-based, probably? */
+    /* TODO Bug 1876537: Make this em-based, probably? */
+    --checkbox-size: var(--size-item-small);
 
     /** color **/
     --color-black: #000000;
@@ -371,13 +373,20 @@
     --size-sidebar-narrow: 118px;
 
     /** space **/
-    --space-xxsmall: var(--dimension-relative-0125); /* 0.125rem */
-    --space-xsmall: var(--dimension-relative-025); /* 0.25rem */
-    --space-small: var(--dimension-relative-050); /* 0.5rem */
-    --space-medium: var(--dimension-relative-075); /* 0.75rem */
-    --space-large: var(--dimension-relative-100); /* 1rem */
-    --space-xlarge: var(--dimension-relative-150); /* 1.5rem */
-    --space-xxlarge: var(--dimension-relative-200); /* 2rem */
+    /* 0.125rem */
+    --space-xxsmall: var(--dimension-relative-0125);
+    /* 0.25rem */
+    --space-xsmall: var(--dimension-relative-025);
+    /* 0.5rem */
+    --space-small: var(--dimension-relative-050);
+    /* 0.75rem */
+    --space-medium: var(--dimension-relative-075);
+    /* 1rem */
+    --space-large: var(--dimension-relative-100);
+    /* 1.5rem */
+    --space-xlarge: var(--dimension-relative-150);
+    /* 2rem */
+    --space-xxlarge: var(--dimension-relative-200);
 
     /** table **/
     --table-background-color: light-dark(#f8f8fa, rgb(35, 34, 43));
@@ -458,7 +467,8 @@
       --border-color-selected: SelectedItem;
 
       /** button **/
-      --button-background-color: ButtonFace; /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      --button-background-color: ButtonFace;
       --button-background-color-hover: SelectedItemText;
       --button-background-color-active: SelectedItemText;
       --button-background-color-disabled: ButtonFace;
@@ -519,7 +529,8 @@
       --table-border-color: CanvasText;
       --table-header-background-color: AccentColor;
       --table-header-text-color: AccentColorText;
-      --table-row-background-color-alternate: var(--background-color-canvas); /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      --table-row-background-color-alternate: var(--background-color-canvas);
 
       /** text-color **/
       --text-color-disabled: GrayText;
@@ -533,6 +544,15 @@
   @layer tokens-foundation-nova {
     :root,
     :host(.anonymous-content-host) {
+      /** background-color **/
+      --background-color-box: light-dark(var(--color-white), var(--color-neutral-70));
+      --background-color-box-info: light-dark(var(--color-neutral-20), var(--color-neutral-80));
+      --background-color-canvas: light-dark(var(--color-violet-desaturated-0), var(--color-neutral-90));
+      --background-color-critical: light-dark(var(--color-red-0), var(--color-red-80));
+      --background-color-information: light-dark(var(--color-blue-0), var(--color-blue-80));
+      --background-color-success: light-dark(var(--color-green-0), var(--color-green-80));
+      --background-color-warning: light-dark(var(--color-yellow-0), var(--color-yellow-80));
+
       /** border **/
       --border-color: light-dark(var(--color-neutral-20), var(--color-neutral-50));
       --border-color-deemphasized: light-dark(var(--color-neutral-30), var(--color-neutral-70));
@@ -716,6 +736,13 @@
       /** table **/
       --table-row-background-color: var(--background-color-canvas);
       --table-row-background-color-alternate: light-dark(#f0f0f4, var(--color-neutral-80)); /* TODO Bug 1821203 - Gray use needs to be consolidated */
+
+      /** text-color **/
+      --text-color: light-dark(var(--color-violet-desaturated-90), var(--color-violet-desaturated-0));
+      --text-color-disabled: light-dark(rgba(21, 20, 26, 0.4), rgba(251, 251, 254, 0.4));
+      --text-color-accent-primary-selected: light-dark(var(--color-white), var(--color-neutral-90));
+      --text-color-deemphasized: light-dark(rgba(20, 9, 43, 0.7), rgba(242, 240, 248, 0.7));
+      --text-color-error: light-dark(var(--color-red-50), var(--color-red-20));
     }
   }
 
@@ -725,6 +752,15 @@
     @media (forced-colors) {
       :root,
       :host(.anonymous-content-host) {
+        /** background-color **/
+        --background-color-box: var(--background-color-canvas);
+        --background-color-box-info: var(--background-color-canvas);
+        --background-color-canvas: Canvas;
+        --background-color-critical: var(--background-color-canvas);
+        --background-color-information: var(--background-color-canvas);
+        --background-color-success: var(--background-color-canvas);
+        --background-color-warning: var(--background-color-canvas);
+
         /** border **/
         --border-color: CanvasText;
         --border-color-deemphasized: ButtonText;
@@ -782,6 +818,13 @@
 
         /** table **/
         --table-row-background-color-alternate: var(--background-color-canvas); /* TODO Bug 1821203 - Gray use needs to be consolidated */
+
+        /** text-color **/
+        --text-color: CanvasText;
+        --text-color-disabled: GrayText;
+        --text-color-accent-primary-selected: SelectedItemText;
+        --text-color-deemphasized: CanvasText;
+        --text-color-error: CanvasText;
       }
     }
   }

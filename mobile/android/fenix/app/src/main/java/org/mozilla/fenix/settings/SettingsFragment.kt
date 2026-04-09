@@ -153,7 +153,6 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment 
                 getString(R.string.pref_key_search_bookmarks),
                 getString(R.string.pref_key_search_browsing_history),
                 getString(R.string.pref_key_show_clipboard_suggestions),
-                getString(R.string.pref_key_show_search_engine_shortcuts),
                 getString(R.string.pref_key_open_links_in_a_private_tab),
                 getString(R.string.pref_key_sync_logins),
                 getString(R.string.pref_key_sync_bookmarks),

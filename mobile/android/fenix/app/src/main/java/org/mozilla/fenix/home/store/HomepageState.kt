@@ -83,7 +83,7 @@ internal sealed class HomepageState {
      * @property showRecentSyncedTab Whether to show recent synced tab or not.
      * @property showBookmarks Whether to show bookmarks.
      * @property showRecentlyVisited Whether to show recent history section.
-     * @property showPocketStories Whether to show the pocket stories section.
+     * @property showPocketStoriesCarousel Whether to show the pocket stories section.
      * @property showCollections Whether to show the collections section.
      * @property showPrivacyReport Whether to show the privacy report section.
      * @property trackersBlockedCount The number of trackers blocked for the privacy report.
@@ -115,7 +115,7 @@ internal sealed class HomepageState {
         val showRecentSyncedTab: Boolean,
         val showBookmarks: Boolean,
         val showRecentlyVisited: Boolean,
-        val showPocketStories: Boolean,
+        val showPocketStoriesCarousel: Boolean,
         val showCollections: Boolean,
         val showPrivacyReport: Boolean,
         val trackersBlockedCount: Int,
@@ -234,15 +234,15 @@ internal sealed class HomepageState {
                     browserState = components.core.store.state,
                     browsingModeManager = browsingModeManager,
                 ),
-                pocketState = PocketState.build(appState = appState, settings = settings),
+                pocketState = PocketState.build(appState = appState),
                 showTopSites = settings.showTopSitesFeature && topSites.isNotEmpty(),
                 showTopSitesHeader = !(settings.privateModeAndStoriesEntryPointEnabled && topSites.size <= 8),
                 showRecentTabs = shouldShowRecentTabs(settings),
                 showBookmarks = settings.showBookmarksHomeFeature && bookmarks.isNotEmpty(),
                 showRecentSyncedTab = shouldShowRecentSyncedTabs() && settings.showSyncedTabs,
                 showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
-                showPocketStories = settings.showPocketRecommendationsFeature &&
-                    recommendationState.pocketStories.isNotEmpty(),
+                showPocketStoriesCarousel = settings.showPocketRecommendationsFeature &&
+                    recommendationState.pocketStories.isNotEmpty() && !settings.privateModeAndStoriesEntryPointEnabled,
                 showCollections = settings.collections,
                 showPrivacyReport = settings.showPrivacyReportSectionToggle &&
                     settings.showPrivacyReportFeature,
@@ -282,7 +282,8 @@ private fun buildHeaderState(
     return if (settings.privateModeAndStoriesEntryPointEnabled) {
         HeaderState.Experimental.Normal(
             wordmarkTextColor = textColor,
-            showNewsAnimation = settings.shouldShowNewsButtonAnimation(),
+            showButtonAnimation = settings.shouldShowNewsButtonAnimation(),
+            showStoriesButton = settings.showPocketRecommendationsFeature,
         )
     } else {
         HeaderState.Normal(
@@ -333,11 +334,13 @@ internal sealed class HeaderState {
          * Represents the header in normal mode for the entry points experiment.
          *
          * @property wordmarkTextColor Color for the wordmark.
-         * @property showNewsAnimation Whether to animate the news button label.
+         * @property showStoriesButton Whether to show the stories button.
+         * @property showButtonAnimation Whether to animate the news button label.
          */
         data class Normal(
             val wordmarkTextColor: Color?,
-            val showNewsAnimation: Boolean,
+            val showStoriesButton: Boolean,
+            val showButtonAnimation: Boolean,
         ) : Experimental()
 
         /**

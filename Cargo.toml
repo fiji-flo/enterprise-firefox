@@ -74,7 +74,7 @@ uniffi_pipeline = "0.31"
 # Shared across multiple application-services consumers.
 rusqlite = "0.37"
 # Shared across multiple glean consumers.
-glean = "=67.1.0"
+glean = "=67.2.0"
 
 # Explicitly specify what our profiles use.  The opt-level setting here is
 # a total fiction; see the setup of MOZ_RUST_DEFAULT_FLAGS for what the
@@ -106,6 +106,16 @@ opt-level = 2
 
 [profile.release.package.glsl]
 opt-level = 2
+
+# Megazord profiles: same as dev/release but with panic=unwind for parity with
+# how app-services is currently built.
+[profile.dev-megazord]
+inherits = "dev"
+panic = "unwind"
+
+[profile.release-megazord]
+inherits = "release"
+panic = "unwind"
 
 [patch.crates-io]
 # The build system doesn't want those to be used, but they are pulled anyways (because

@@ -8,6 +8,7 @@
 
 dictionary RTCEncodedAudioFrameMetadata : RTCEncodedFrameMetadata{
     short sequenceNumber;
+    double audioLevel;
 };
 
 dictionary RTCEncodedAudioFrameOptions {

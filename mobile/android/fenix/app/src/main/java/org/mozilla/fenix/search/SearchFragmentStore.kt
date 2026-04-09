@@ -11,7 +11,6 @@ import androidx.navigation.NavController
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.SearchState
-import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.awesomebar.AwesomeBar.GroupedSuggestion
@@ -124,11 +123,6 @@ sealed class SearchEngineSource {
  * @property showSearchSuggestionsFromCurrentEngine Whether or not to show search suggestions from
  * the search engine in the AwesomeBar.
  * @property showSearchSuggestionsHint Whether or not to show search suggestions in private hint panel.
- * @property showSearchShortcuts Whether or not to show search shortcuts in the AwesomeBar.
- * @property areShortcutsAvailable Whether or not there are >=2 search engines installed
- * so to know to present users with certain options or not.
- * @property showSearchShortcutsSetting Whether the setting for showing search shortcuts is enabled
- * or disabled.
  * @property showClipboardSuggestions Whether or not to show clipboard suggestion in the AwesomeBar.
  * @property showSearchTermHistory Whether or not to show suggestions based on the previously used search terms
  * with the currently selected search engine.
@@ -152,6 +146,8 @@ sealed class SearchEngineSource {
  * in the AwesomeBar.
  * @property showSportsSuggestions Whether or not to show the optimized search suggestion sports cards
  * in the AwesomeBar.
+ * @property showFlightsSuggestions Whether or not to show the optimized search suggestion flight cards
+ * in the AwesomeBar.
  * @property showTrendingSearches Whether the setting for showing trending searches is enabled or disabled.
  * @property showRecentSearches Whether the setting for showing recent searches is enabled or disabled.
  * @property showQrButton Whether or not to show the QR button.
@@ -173,9 +169,6 @@ data class SearchFragmentState(
     val shouldShowSearchSuggestions: Boolean,
     val showSearchSuggestionsFromCurrentEngine: Boolean,
     val showSearchSuggestionsHint: Boolean,
-    val showSearchShortcuts: Boolean,
-    val areShortcutsAvailable: Boolean,
-    val showSearchShortcutsSetting: Boolean,
     val showClipboardSuggestions: Boolean,
     val showSearchTermHistory: Boolean,
     val showHistorySuggestionsForCurrentEngine: Boolean,
@@ -190,6 +183,7 @@ data class SearchFragmentState(
     val showNonSponsoredSuggestions: Boolean,
     val showStocksSuggestions: Boolean,
     val showSportsSuggestions: Boolean,
+    val showFlightsSuggestions: Boolean,
     val showTrendingSearches: Boolean,
     val showRecentSearches: Boolean,
     val showQrButton: Boolean,
@@ -218,9 +212,6 @@ data class SearchFragmentState(
             shouldShowSearchSuggestions = false,
             showSearchSuggestionsFromCurrentEngine = false,
             showSearchSuggestionsHint = false,
-            showSearchShortcuts = false,
-            areShortcutsAvailable = false,
-            showSearchShortcutsSetting = false,
             showClipboardSuggestions = false,
             showSearchTermHistory = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -235,6 +226,7 @@ data class SearchFragmentState(
             showNonSponsoredSuggestions = false,
             showStocksSuggestions = false,
             showSportsSuggestions = false,
+            showFlightsSuggestions = false,
             showTrendingSearches = false,
             showRecentSearches = false,
             showQrButton = false,
@@ -285,11 +277,8 @@ fun createInitialSearchFragmentState(
             settings = settings,
         ),
         showSearchSuggestionsHint = false,
-        showSearchShortcuts = false,
-        areShortcutsAvailable = false,
-        showSearchShortcutsSetting = settings.shouldShowSearchShortcuts,
         showClipboardSuggestions = settings.shouldShowClipboardSuggestions,
-        showSearchTermHistory = settings.showUnifiedSearchFeature && settings.shouldShowHistorySuggestions,
+        showSearchTermHistory = settings.shouldShowHistorySuggestions,
         showHistorySuggestionsForCurrentEngine = false,
         showAllHistorySuggestions = settings.shouldShowHistorySuggestions,
         showBookmarksSuggestionsForCurrentEngine = false,
@@ -306,6 +295,8 @@ fun createInitialSearchFragmentState(
                 settings.shouldShowSearchOptimizationStockCard,
         showSportsSuggestions = shouldShowCardSuggestions(settings) &&
                 settings.shouldShowSearchOptimizationSportCard,
+        showFlightsSuggestions = shouldShowCardSuggestions(settings) &&
+                settings.shouldShowSearchOptimizationFlightCard,
         showTrendingSearches = shouldShowTrendingSearchSuggestions(
             browsingMode = browsingMode,
             settings = settings,
@@ -425,11 +416,9 @@ sealed class SearchFragmentAction : Action {
 
     /**
      * Updates the local `SearchFragmentState` from the global `SearchState` in `BrowserStore`.
-     * If the unified search is enabled, then search shortcuts should not be shown.
      */
     data class UpdateSearchState(
         val search: SearchState,
-        val isUnifiedSearchEnabled: Boolean,
         val isPrivate: Boolean = false,
     ) : SearchFragmentAction()
 
@@ -483,11 +472,8 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 searchEngineSource = SearchEngineSource.Default(action.engine),
                 showSearchSuggestionsFromCurrentEngine =
                     shouldShowSearchSuggestions(action.browsingMode, action.settings),
-                showSearchShortcuts = action.settings.shouldShowSearchShortcuts &&
-                    !action.settings.showUnifiedSearchFeature,
                 showClipboardSuggestions = action.settings.shouldShowClipboardSuggestions,
-                showSearchTermHistory = action.settings.showUnifiedSearchFeature &&
-                    action.settings.shouldShowHistorySuggestions,
+                showSearchTermHistory = action.settings.shouldShowHistorySuggestions,
                 showHistorySuggestionsForCurrentEngine = false, // we'll show all history
                 showAllHistorySuggestions = action.settings.shouldShowHistorySuggestions,
                 showBookmarksSuggestionsForCurrentEngine = false, // we'll show all bookmarks
@@ -503,6 +489,8 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                         action.settings.shouldShowSearchOptimizationStockCard,
                 showSportsSuggestions = shouldShowCardSuggestions(action.settings) &&
                         action.settings.shouldShowSearchOptimizationSportCard,
+                showFlightsSuggestions = shouldShowCardSuggestions(action.settings) &&
+                        action.settings.shouldShowSearchOptimizationFlightCard,
                 showAllSessionSuggestions = true,
                 showTrendingSearches = shouldShowTrendingSearchSuggestions(
                     browsingMode = action.browsingMode,
@@ -516,41 +504,24 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 searchEngineSource = SearchEngineSource.Shortcut(action.engine),
                 showSearchSuggestionsFromCurrentEngine =
                     shouldShowSearchSuggestions(action.browsingMode, action.settings),
-                showSearchShortcuts = when (action.settings.showUnifiedSearchFeature) {
-                    true -> false
-                    false -> action.settings.shouldShowSearchShortcuts
-                },
                 showClipboardSuggestions = action.settings.shouldShowClipboardSuggestions,
-                showSearchTermHistory = action.settings.showUnifiedSearchFeature &&
-                    action.settings.shouldShowHistorySuggestions,
-                showHistorySuggestionsForCurrentEngine = action.settings.showUnifiedSearchFeature &&
+                showSearchTermHistory = action.settings.shouldShowHistorySuggestions,
+                showHistorySuggestionsForCurrentEngine =
                     action.settings.shouldShowHistorySuggestions && !action.engine.isGeneral,
-                showAllHistorySuggestions = when (action.settings.showUnifiedSearchFeature) {
-                    true -> false
-                    false -> action.settings.shouldShowHistorySuggestions
-                },
-                showBookmarksSuggestionsForCurrentEngine = action.settings.showUnifiedSearchFeature &&
+                showAllHistorySuggestions = false,
+                showBookmarksSuggestionsForCurrentEngine =
                     action.settings.shouldShowBookmarkSuggestions && !action.engine.isGeneral,
-                showAllBookmarkSuggestions = when (action.settings.showUnifiedSearchFeature) {
-                    true -> false
-                    false -> action.settings.shouldShowBookmarkSuggestions
-                },
-                showSyncedTabsSuggestionsForCurrentEngine = action.settings.showUnifiedSearchFeature &&
+                showAllBookmarkSuggestions = false,
+                showSyncedTabsSuggestionsForCurrentEngine =
                     action.settings.shouldShowSyncedTabsSuggestions && !action.engine.isGeneral,
-                showAllSyncedTabsSuggestions = when (action.settings.showUnifiedSearchFeature) {
-                    true -> false
-                    false -> action.settings.shouldShowSyncedTabsSuggestions
-                },
-                showSessionSuggestionsForCurrentEngine = action.settings.showUnifiedSearchFeature &&
-                    !action.engine.isGeneral,
-                showAllSessionSuggestions = when (action.settings.showUnifiedSearchFeature) {
-                    true -> false
-                    false -> true
-                },
+                showAllSyncedTabsSuggestions = false,
+                showSessionSuggestionsForCurrentEngine = !action.engine.isGeneral,
+                showAllSessionSuggestions = false,
                 showSponsoredSuggestions = false,
                 showNonSponsoredSuggestions = false,
                 showStocksSuggestions = false,
                 showSportsSuggestions = false,
+                showFlightsSuggestions = false,
                 showTrendingSearches = shouldShowTrendingSearchSuggestions(
                     browsingMode = action.browsingMode,
                     settings = action.settings,
@@ -562,7 +533,6 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             state.copy(
                 searchEngineSource = SearchEngineSource.History(action.engine),
                 showSearchSuggestionsFromCurrentEngine = false,
-                showSearchShortcuts = false,
                 showClipboardSuggestions = false,
                 showSearchTermHistory = false,
                 showHistorySuggestionsForCurrentEngine = false,
@@ -577,6 +547,7 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showNonSponsoredSuggestions = false,
                 showStocksSuggestions = false,
                 showSportsSuggestions = false,
+                showFlightsSuggestions = false,
                 showTrendingSearches = false,
                 showRecentSearches = false,
             )
@@ -584,7 +555,6 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             state.copy(
                 searchEngineSource = SearchEngineSource.Bookmarks(action.engine),
                 showSearchSuggestionsFromCurrentEngine = false,
-                showSearchShortcuts = false,
                 showClipboardSuggestions = false,
                 showSearchTermHistory = false,
                 showHistorySuggestionsForCurrentEngine = false,
@@ -599,6 +569,7 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showNonSponsoredSuggestions = false,
                 showStocksSuggestions = false,
                 showSportsSuggestions = false,
+                showFlightsSuggestions = false,
                 showTrendingSearches = false,
                 showRecentSearches = false,
             )
@@ -606,7 +577,6 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             state.copy(
                 searchEngineSource = SearchEngineSource.Tabs(action.engine),
                 showSearchSuggestionsFromCurrentEngine = false,
-                showSearchShortcuts = false,
                 showClipboardSuggestions = false,
                 showSearchTermHistory = false,
                 showHistorySuggestionsForCurrentEngine = false,
@@ -621,6 +591,7 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
                 showNonSponsoredSuggestions = false,
                 showStocksSuggestions = false,
                 showSportsSuggestions = false,
+                showFlightsSuggestions = false,
                 showTrendingSearches = false,
                 showRecentSearches = false,
             )
@@ -636,11 +607,6 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             )
             state.copy(
                 defaultEngine = resolvedEngine,
-                areShortcutsAvailable = action.search.searchEngines.size > 1,
-                showSearchShortcuts = !action.isUnifiedSearchEnabled &&
-                    state.url.isEmpty() &&
-                    state.showSearchShortcutsSetting &&
-                    action.search.searchEngines.size > 1,
                 searchEngineSource = when (state.searchEngineSource) {
                     is SearchEngineSource.Default, is SearchEngineSource.None -> {
                         resolvedEngine?.let { SearchEngineSource.Default(it) }

@@ -215,6 +215,8 @@ class ScrollTimeline : public AnimationTimeline,
   virtual std::pair<double, double> IntervalForAttachmentRange(
       const AnimationRange& aStyleRange) const;
 
+  void AutoAlignStartTime();
+
  protected:
   virtual ~ScrollTimeline();
   ScrollTimeline() = delete;

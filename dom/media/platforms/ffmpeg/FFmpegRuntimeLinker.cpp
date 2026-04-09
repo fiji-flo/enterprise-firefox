@@ -10,6 +10,7 @@
 
 namespace mozilla {
 
+StaticMutex FFmpegRuntimeLinker::sMutex;
 FFmpegRuntimeLinker::LinkStatus FFmpegRuntimeLinker::sLinkStatus =
     LinkStatus_INIT;
 const char* FFmpegRuntimeLinker::sLinkStatusLibraryName = "";
@@ -73,6 +74,7 @@ void FFmpegRuntimeLinker::PrefCallbackLogLevel(const char* aPref, void* aData) {
 
 /* static */
 bool FFmpegRuntimeLinker::Init() {
+  StaticMutexAutoLock lock(sMutex);
   if (sLinkStatus != LinkStatus_INIT) {
     return sLinkStatus == LinkStatus_SUCCEEDED;
   }
@@ -274,6 +276,7 @@ already_AddRefed<PlatformEncoderModule> FFmpegRuntimeLinker::CreateEncoder() {
 }
 
 /* static */ const char* FFmpegRuntimeLinker::LinkStatusString() {
+  StaticMutexAutoLock lock(sMutex);
   switch (sLinkStatus) {
     case LinkStatus_INIT:
       return "Libavcodec not initialized yet";

@@ -10,7 +10,6 @@
 #include "mozilla/AbsoluteContainingBlock.h"
 
 #include "AnchorPositioningUtils.h"
-#include "fmt/format.h"
 #include "mozilla/CSSAlignUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PresShell.h"
@@ -28,6 +27,7 @@
 #include "nsPresContextInlines.h"
 
 #ifdef DEBUG
+#  include "fmt/format.h"
 #  include "nsBlockFrame.h"
 #endif
 

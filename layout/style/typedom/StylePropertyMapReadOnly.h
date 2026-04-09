@@ -17,6 +17,7 @@
 #include "nsTArrayForwardDeclare.h"
 #include "nsWrapperCache.h"
 
+class nsStyledElement;
 template <class T>
 class RefPtr;
 
@@ -25,6 +26,7 @@ namespace mozilla {
 struct CSSPropertyId;
 class ErrorResult;
 struct StylePropertyTypedValueList;
+struct URLExtraData;
 
 namespace dom {
 
@@ -34,7 +36,10 @@ class OwningUndefinedOrCSSStyleValue;
 
 class StylePropertyMapReadOnly : public nsISupports, public nsWrapperCache {
  public:
-  StylePropertyMapReadOnly(Element* aElement, bool aComputed);
+  explicit StylePropertyMapReadOnly(nsStyledElement* aStyledElement);
+
+  explicit StylePropertyMapReadOnly(Element* aElement);
+
   explicit StylePropertyMapReadOnly(CSSStyleRule* aRule);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -80,9 +85,11 @@ class StylePropertyMapReadOnly : public nsISupports, public nsWrapperCache {
       Computed,
       Rule,
     };
-    Declarations(Element* aElement, bool aComputed)
-        : mElement(aElement),
-          mKind(aComputed ? Kind::Computed : Kind::Inline) {}
+    explicit Declarations(nsStyledElement* aStyledElement)
+        : mStyledElement(aStyledElement), mKind(Kind::Inline) {}
+
+    explicit Declarations(Element* aElement)
+        : mElement(aElement), mKind(Kind::Computed) {}
 
     explicit Declarations(CSSStyleRule* aRule)
         : mRule(aRule), mKind(Kind::Rule) {}
@@ -90,10 +97,17 @@ class StylePropertyMapReadOnly : public nsISupports, public nsWrapperCache {
     StylePropertyTypedValueList GetAll(const CSSPropertyId& aPropertyId,
                                        ErrorResult& aRv) const;
 
+    // Defined in StylePropertyMap.cpp
+    void Set(const CSSPropertyId& aPropertyId, const nsACString& aValue,
+             ErrorResult& aRv);
+
+    URLExtraData* GetURLExtraData() const;
+
     void Unlink();
 
    private:
     union {
+      nsStyledElement* mStyledElement;
       Element* mElement;
       CSSStyleRule* mRule;
     };

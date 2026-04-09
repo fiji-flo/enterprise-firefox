@@ -4,10 +4,10 @@
 
 package org.mozilla.fenix.tabstray.navigation
 
-import org.mozilla.fenix.tabgroups.EditTabGroup
 import org.mozilla.fenix.tabstray.data.TabsTrayItem
 import org.mozilla.fenix.tabstray.ui.tabsearch.TabSearchScreen
 import org.mozilla.fenix.tabstray.ui.tabstray.TabsTray
+import org.mozilla.fenix.tabgroups.EditTabGroup as EditTabGroupSheet
 import org.mozilla.fenix.tabgroups.ExpandedTabGroup as ExpandedTabGroupScreen
 
 /**
@@ -27,7 +27,7 @@ sealed interface TabManagerNavDestination {
     data object TabSearch : TabManagerNavDestination
 
     /**
-     * [TabManagerNavDestination] representing the [EditTabGroup].
+     * [TabManagerNavDestination] representing the [EditTabGroupSheet].
      */
     data object EditTabGroup : TabManagerNavDestination
 
@@ -42,4 +42,11 @@ sealed interface TabManagerNavDestination {
      * @property group The displayed [TabsTrayItem.TabGroup].
      */
     data class ExpandedTabGroup(val group: TabsTrayItem.TabGroup) : TabManagerNavDestination
+
+    /**
+     * [TabManagerNavDestination] representing the [DeleteTabGroupConfirmationDialog].
+     *
+     * @property group The tab group to be deleted.
+     */
+    data class DeleteTabGroupConfirmationDialog(val group: TabsTrayItem.TabGroup) : TabManagerNavDestination
 }

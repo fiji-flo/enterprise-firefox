@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/** @import {SettingPaneConfig, SettingPane} from "chrome://browser/content/preferences/widgets/setting-pane.mjs" */
+/** @import {SettingPaneConfig, SettingPaneFullConfig, SettingPaneId, SettingPane} from "chrome://browser/content/preferences/widgets/setting-pane.mjs" */
 
 /**
  * Converts a friendly category name to internal pane name.
@@ -20,7 +20,7 @@ export function friendlyPrefCategoryNameToInternalName(categoryName) {
 }
 
 export const SettingPaneManager = {
-  /** @type {Map<string, SettingPaneConfig>} */
+  /** @type {Map<string, SettingPaneFullConfig>} */
   _data: new Map(),
 
   /**
@@ -35,6 +35,28 @@ export const SettingPaneManager = {
 
   /**
    * @param {string} id
+   */
+  getWithParents(id) {
+    let configs = [this.get(id)];
+    while (configs[0].parent) {
+      configs.unshift(this.get(configs[0].parent));
+    }
+    return configs;
+  },
+
+  /**
+   * @param {string} id
+   */
+  importPane(id) {
+    for (let config of this.getWithParents(id)) {
+      if (config.module) {
+        ChromeUtils.importESModule(config.module, { global: "current" });
+      }
+    }
+  },
+
+  /**
+   * @param {SettingPaneId} id
    * @param {SettingPaneConfig} config
    */
   registerPane(id, config) {
@@ -42,7 +64,11 @@ export const SettingPaneManager = {
       throw new Error(`Setting pane "${id}" already registered`);
     }
     let fullConfig = { ...config, id };
-    this._data.set(id, config);
+    this._data.set(id, fullConfig);
+    if (!fullConfig.groupIds.length) {
+      // If we don't have groupIds then we're just registering the l10nId.
+      return;
+    }
     let subPane = friendlyPrefCategoryNameToInternalName(id);
     let settingPane = /** @type {SettingPane} */ (
       document.createElement("setting-pane")

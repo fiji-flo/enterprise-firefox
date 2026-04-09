@@ -83,9 +83,7 @@ const MOCK_MINIDUMP_EXTRA: &str = r#"{
         "ReleaseChannel": "release",
         "BuildID": "1234",
         "AsyncShutdownTimeout": "{}",
-        "StackTraces": {
-            "status": "OK"
-        },
+        "StackTraces": {},
         "Version": "100.0",
         "ServerURL": "https://reports.example.com",
         "TelemetryServerURL": "https://telemetry.example.com",
@@ -104,9 +102,7 @@ static MOCK_MINIDUMP_EXTRA_EXPECTED: std::sync::LazyLock<String> = std::sync::La
         "ReleaseChannel": "release",
         "BuildID": "1234",
         "AsyncShutdownTimeout": "{{}}",
-        "StackTraces": {{
-            "status": "OK"
-        }},
+        "StackTraces": {{}},
         "Version": "100.0",
         "ServerURL": "https://reports.example.com",
         "TelemetryServerURL": "https://telemetry.example.com",
@@ -567,9 +563,7 @@ fn no_restart_with_windows_error_reporting() {
             "ProductName": "Bar",
             "ReleaseChannel": "release",
             "BuildID": "1234",
-            "StackTraces": {{
-                "status": "OK"
-            }},
+            "StackTraces": {{}},
             "Version": "100.0",
             "ServerURL": "https://reports.example.com",
             "TelemetryServerURL": "https://telemetry.example.com",
@@ -729,7 +723,7 @@ fn ping_and_event_files() {
                 serde_json::json! {{
                     "foo": "bar",
                     "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
-                    "StackTraces": { "status": "OK" }
+                    "StackTraces": {}
                 }}
             ),
         );
@@ -771,7 +765,7 @@ fn network_failure() {
                 serde_json::json! {{
                     "foo": "bar",
                     "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
-                    "StackTraces": { "status": "OK" }
+                    "StackTraces": {}
                 }}
             ),
         );
@@ -809,7 +803,7 @@ fn pingsender_failure() {
                     "foo": "bar",
                     "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
                     // No crash ping UUID since pingsender fails
-                    "StackTraces": { "status": "OK" }
+                    "StackTraces": {}
                 }}
             ),
         );

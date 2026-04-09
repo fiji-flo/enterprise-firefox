@@ -284,6 +284,7 @@ treeherder:
         'feature-findinpage': 'feature-findinpage'
         'feature-fxsuggest': 'feature-fxsuggest'
         'feature-intent': 'feature-intent'
+        'feature-ipprotection': 'feature-ipprotection'
         'feature-logins': 'feature-logins'
         'feature-media': 'feature-media'
         'feature-privatemode': 'feature-privatemode'

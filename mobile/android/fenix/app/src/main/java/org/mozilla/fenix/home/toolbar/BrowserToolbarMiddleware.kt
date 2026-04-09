@@ -561,6 +561,7 @@ class BrowserToolbarMiddleware(
             ShortcutType.TRANSLATE -> HomeToolbarAction.FakeTranslate
             ShortcutType.HOMEPAGE -> HomeToolbarAction.FakeHomepage
             ShortcutType.BACK -> HomeToolbarAction.FakeBack
+            ShortcutType.NONE -> null
         }
     }
 }

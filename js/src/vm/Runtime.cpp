@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sts=2 et sw=2 tw=80:
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -731,6 +729,10 @@ void JSRuntime::commitPendingWrapperPreservations(JS::Zone* zone) {
     bool success = preserveWrapperCallback(mainContextFromOwnThread(), rooted);
     MOZ_RELEASE_ASSERT(success);
   }
+
+  // The callback must not cause more wrappers to be preserved or they will
+  // overwrite the buffer we're processing in the loop above.
+  MOZ_ASSERT(!zone->hasPendingWrapperPreservations());
 }
 
 void JSRuntime::incrementNumDebuggeeRealms() {

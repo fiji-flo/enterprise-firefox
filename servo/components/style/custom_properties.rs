@@ -7,6 +7,7 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use crate::applicable_declarations::{CascadePriority, RevertKind};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::custom_properties_map::{AllSubstitutionFunctions, CustomPropertiesMap, OwnMap};
 use crate::device::Device;
 use crate::dom::AttributeTracker;
@@ -1121,7 +1122,7 @@ fn parse_attribute_value(
     #[cfg(feature = "gecko")]
     let local_name = LocalName::cast(name);
     #[cfg(feature = "servo")]
-    let local_name = LocalName::from(name.as_ref());
+    let local_name = &LocalName::from(name.as_ref());
     let namespace = match attribute_data.namespace {
         ParsedNamespace::Known(ref ns) => ns,
         ParsedNamespace::Unknown => return Err(()),
@@ -1315,6 +1316,9 @@ impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
                     CSSWideKeyword::Inherit => {
                         // For inherited custom properties, 'inherit' was handled in value_may_affect_style.
                         debug_assert!(!registration.inherits(), "Should've been handled earlier");
+                        self.computed_context
+                            .style()
+                            .add_flags(ComputedValueFlags::INHERITS_RESET_STYLE);
                         if let Some(inherited_value) = self
                             .computed_context
                             .inherited_custom_properties()

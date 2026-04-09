@@ -1044,6 +1044,9 @@ pwmgr:
       form_action_origin:
         type: string
         description: Raw form_action_origin string of the login entry
+      error_message:
+        type: string
+        description: The error message from the failure
       time_created:
         type: string
         description: Time when login was created (rounded to month)

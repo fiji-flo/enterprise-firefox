@@ -346,15 +346,11 @@ tasks.register("lint") {
     group = "verification"
     description = "Runs lint on all android-components subprojects."
 
-    // We use `dependsOn` over string task names to ensure this is all lazy
-    // until the `lint` task is actually selected. This aggregates over all
-    // components listed in the buildconfig instead of relying on what is
-    // currently configured by Gradle and avoiding configuration-on-demand
-    // issues. Each component is required to implement a `lint` task though it
-    // can be empty.
+    // The closure form of `dependsOn` is evaluated lazily at task graph resolution
+    // time, not at configuration time. Each component is required to implement a
+    // `lint` task though it can be empty.
     dependsOn {
-        def allComponents = rootProject.ext.buildConfig.projects
-        allComponents.collect { ":${it.key}:lint" }
+        findProject(":components").subprojects.collect { "${it.path}:lint" }
     }
 }
 

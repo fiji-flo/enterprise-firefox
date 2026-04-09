@@ -52,6 +52,7 @@ add_task(function test_parseConversationRow() {
     updated_date: now,
     status: "a status",
     security_properties: '{"privateData": false, "untrustedInput": true}',
+    seen_urls: '["https://example.com/page1"]',
   });
 
   const conversation = parseConversationRow(testRow);
@@ -75,6 +76,10 @@ add_task(function test_parseConversationRow() {
     soft.ok(
       !conversation.securityProperties.privateData,
       "privateData should be false"
+    );
+    soft.ok(
+      conversation.seenUrls.has("https://example.com/page1"),
+      "seenUrls should contain the persisted URL"
     );
   });
 });

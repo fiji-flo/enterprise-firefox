@@ -48,6 +48,17 @@ RTCEncodedAudioFrame::RTCEncodedAudioFrame(
   if (const auto optionalSeqNum = audioFrame.SequenceNumber()) {
     mMetadata.mSequenceNumber.Construct(*optionalSeqNum);
   }
+  if (const auto optionalAudioLevel = audioFrame.AudioLevel()) {
+    // Audio level is in dBov with a range [0, 127] and needs to be converted.
+    // See
+    // https://w3c.github.io/webrtc-encoded-transform/#dom-rtcencodedaudioframemetadata-audiolevel
+    if (optionalAudioLevel >= 127u) {
+      mMetadata.mAudioLevel.Construct(0.0);
+    } else {
+      mMetadata.mAudioLevel.Construct(
+          std::pow(10.0, -static_cast<double>(*optionalAudioLevel) / 20.0));
+    }
+  }
 }
 
 RTCEncodedAudioFrame::RTCEncodedAudioFrame(nsIGlobalObject* aGlobal,
@@ -89,6 +100,7 @@ already_AddRefed<RTCEncodedAudioFrame> RTCEncodedAudioFrame::Constructor(
     set_if(dst.mRtpTimestamp, src.mRtpTimestamp);
     set_if(dst.mContributingSources, src.mContributingSources);
     set_if(dst.mSequenceNumber, src.mSequenceNumber);
+    set_if(dst.mAudioLevel, src.mAudioLevel);
   }
   return frame.forget();
 }

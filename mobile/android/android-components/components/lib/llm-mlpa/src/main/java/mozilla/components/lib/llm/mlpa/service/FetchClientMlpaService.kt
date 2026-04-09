@@ -60,12 +60,13 @@ class FetchClientMlpaService(
             )
 
             return@withContext Result.runCatching {
-                val httpResponse = client.fetch(fetchRequest)
-                if (httpResponse.isClientError) {
-                    throw VerificationServiceFailed("Received status code ${httpResponse.status}")
-                }
+                client.fetch(fetchRequest).use { httpResponse ->
+                    if (httpResponse.isClientError) {
+                        throw VerificationServiceFailed("Received status code ${httpResponse.status}")
+                    }
 
-                json.decodeFromString(httpResponse.bodyString)
+                    json.decodeFromString(httpResponse.body.string(Charsets.UTF_8))
+                }
             }
         }
 
@@ -98,14 +99,14 @@ class FetchClientMlpaService(
         )
 
         return flow {
-            val httpResponse = client.fetch(fetchRequest)
+            client.fetch(fetchRequest).use { httpResponse ->
+                httpResponse.error?.also { throw it }
 
-            httpResponse.error?.also { throw it }
-
-            if (request.stream) {
-                emitAll(httpResponse.contentFlow)
-            } else {
-                emit(httpResponse.nonStreamedResponse)
+                if (request.stream) {
+                    emitAll(httpResponse.contentFlow)
+                } else {
+                    emit(httpResponse.nonStreamedResponse)
+                }
             }
         }.flowOn(dispatcher)
     }

@@ -128,8 +128,11 @@ export class UrlbarInput extends HTMLElement {
                      native="false">
             <menucaption class="searchmode-switcher-popup-description"
                          role="heading" />
-            <menuseparator/>
-            <menuseparator class="searchmode-switcher-popup-footer-separator"/>
+${
+  lazy.UrlbarPrefs.get("nova.featureGate")
+    ? '<menuseparator class="searchmode-switcher-popup-installed-engine-separator" /><menuseparator class="searchmode-switcher-popup-footer-separator"/>'
+    : '<menuseparator/><menuseparator class="searchmode-switcher-popup-installed-engine-separator searchmode-switcher-popup-footer-separator"/>'
+}
             <menuitem class="searchmode-switcher-popup-search-settings-button menuitem-iconic"
                       data-action="openpreferences"
                       image="chrome://global/skin/icons/settings.svg"
@@ -352,11 +355,12 @@ export class UrlbarInput extends HTMLElement {
     let searchModeSwitcherDescription = this.querySelector(
       ".searchmode-switcher-popup-description"
     );
+
     searchModeSwitcherDescription.setAttribute(
       "data-l10n-id",
-      this.#isAddressbar
-        ? "urlbar-searchmode-popup-description-menucaption"
-        : "urlbar-searchmode-popup-sticky-description-menucaption"
+      this.#isAddressbar && !lazy.UrlbarPrefs.get("nova.featureGate")
+        ? "urlbar-searchmode-popup-one-off-description-menucaption"
+        : "urlbar-searchmode-popup-header-menucaption"
     );
 
     // The event bufferer can be used to defer events that may affect users
@@ -4909,12 +4913,18 @@ export class UrlbarInput extends HTMLElement {
   }
 
   /**
+   * Used to indicate if the input already has focus when a click is made, and
+   * if so, then we shouldn't select all the text.
+   */
+  #preventClickSelectsAll = false;
+
+  /**
    * Determines if we should select all the text in the Urlbar based on the
    *  Urlbar state, and whether the selection is empty.
    */
   #maybeSelectAll() {
     if (
-      !this._preventClickSelectsAll &&
+      !this.#preventClickSelectsAll &&
       this.#compositionState != lazy.UrlbarUtils.COMPOSITION.COMPOSING &&
       this.focused &&
       this.inputField.selectionStart == this.inputField.selectionEnd
@@ -4956,6 +4966,9 @@ export class UrlbarInput extends HTMLElement {
     this._handoffSession = undefined;
     this._isHandoffSession = false;
     this.removeAttribute("focused");
+    // Reset this, so that it doesn't cause issues with different tests
+    // when they focus and select the address bar.
+    this.#preventClickSelectsAll = false;
 
     if (this._autofillPlaceholder && this.userTypedValue) {
       // If we were autofilling, remove the autofilled portion, by restoring
@@ -5145,7 +5158,7 @@ export class UrlbarInput extends HTMLElement {
         }
 
         this.focusedViaMousedown = !this.focused;
-        this._preventClickSelectsAll = this.focused;
+        this.#preventClickSelectsAll = this.focused;
 
         // Keep the focus status, since the attribute may be changed
         // upon calling this.focus().
@@ -5181,7 +5194,7 @@ export class UrlbarInput extends HTMLElement {
         }
         // Don't close the view when clicking on a tab; we may want to keep the
         // view open on tab switch, and the TabSelect event arrived earlier.
-        if (event.target.closest("tab")) {
+        if (event.target.closest?.("tab")) {
           break;
         }
 

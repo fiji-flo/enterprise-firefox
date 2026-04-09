@@ -19,6 +19,7 @@ use log::Level::Trace;
 use selectors::matching::{
     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags, VisitedHandlingMode,
 };
+#[cfg(feature = "gecko")]
 use selectors::parser::PseudoElement as PseudoElementTrait;
 use servo_arc::Arc;
 
@@ -149,23 +150,14 @@ fn eager_pseudo_is_definitely_not_generated(
         return false;
     }
 
-    if !style
+    if style
         .flags
-        .intersects(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE)
-        && style.get_box().clone_display() == Display::None
+        .intersects(ComputedValueFlags::DISPLAY_OR_CONTENT_DEPEND_ON_INHERITED_STYLE)
     {
-        return true;
+        return false;
     }
 
-    if !style
-        .flags
-        .intersects(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE)
-        && style.ineffective_content_property()
-    {
-        return true;
-    }
-
-    false
+    style.get_box().clone_display() == Display::None || style.ineffective_content_property()
 }
 
 impl<'a, 'ctx, 'le, E> StyleResolverForElement<'a, 'ctx, 'le, E>

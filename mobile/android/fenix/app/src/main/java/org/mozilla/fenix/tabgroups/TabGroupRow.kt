@@ -21,7 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,8 +36,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 private val THUMBNAIL_WIDTH = 78.dp
 private val THUMBNAIL_HEIGHT = 68.dp
-private val GRID_THUMBNAIL_WIDTH = 37.dp
-private val TAB_GROUP_LIST_ASPECT_RATIO = THUMBNAIL_WIDTH / THUMBNAIL_HEIGHT
 
 /**
  * A Tab Group presented as a clickable item in a row or list.
@@ -105,8 +102,6 @@ private fun TabGroupListThumbnail(
     thumbnails: List<TabThumbnailImageData>,
     modifier: Modifier = Modifier,
 ) {
-    val thumbnailSizePx = LocalDensity.current.run { GRID_THUMBNAIL_WIDTH.roundToPx() }
-
     Card(
         modifier = modifier,
         shape = ROUNDED_CORNER_SHAPE,
@@ -116,8 +111,6 @@ private fun TabGroupListThumbnail(
     ) {
         ThumbnailsGridView(
             thumbnails = thumbnails,
-            thumbnailSizePx = thumbnailSizePx,
-            aspectRatio = TAB_GROUP_LIST_ASPECT_RATIO,
         )
     }
 }

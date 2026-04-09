@@ -117,13 +117,11 @@ class AwesomeBarComposable(
             state.showClipboardSuggestions,
             state.query,
             state.clipboardHasUrl,
-            state.showSearchShortcuts,
         ) {
             derivedStateOf {
                 state.showClipboardSuggestions &&
                         state.query.isEmpty() &&
-                        state.clipboardHasUrl &&
-                        !state.showSearchShortcuts
+                        state.clipboardHasUrl
             }
         }
         val view = LocalView.current

@@ -760,7 +760,7 @@ void CompositorBridgeParent::NotifyJankedAnimations(
       // It unlikely happens multiple processes have janked animations at same
       // time, so it should be fine with enumerating sIndirectLayerTrees every
       // time.
-    } else if (const LayerTreeState* state = GetIndirectShadowTree(layersId)) {
+    } else if (const LayerTreeState* state = GetLayerTreeState(layersId)) {
       if (ContentCompositorBridgeParent* cpcp =
               state->mContentCompositorBridgeParent) {
         (void)cpcp->SendNotifyJankedAnimations(layersId, animations);
@@ -1664,7 +1664,7 @@ CompositorBridgeParent::GetAsyncImagePipelineManager() const {
 }
 
 /* static */ CompositorBridgeParent::LayerTreeState*
-CompositorBridgeParent::GetIndirectShadowTreeInternal(LayersId aId) {
+CompositorBridgeParent::GetLayerTreeStateInternal(LayersId aId) {
   StaticMonitorAutoLock lock(sIndirectLayerTreesLock);
   LayerTreeMap::iterator cit = sIndirectLayerTrees.find(aId);
   if (sIndirectLayerTrees.end() == cit) {
@@ -1674,20 +1674,20 @@ CompositorBridgeParent::GetIndirectShadowTreeInternal(LayersId aId) {
 }
 
 /* static */
-bool CompositorBridgeParent::HasIndirectShadowTree(LayersId aId) {
-  return GetIndirectShadowTreeInternal(aId) != nullptr;
+bool CompositorBridgeParent::HasLayerTreeState(LayersId aId) {
+  return GetLayerTreeStateInternal(aId) != nullptr;
 }
 
 /* static */ CompositorBridgeParent::LayerTreeState*
-CompositorBridgeParent::GetIndirectShadowTree(LayersId aId) {
+CompositorBridgeParent::GetLayerTreeState(LayersId aId) {
   // Only the compositor thread should use this method variant
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
 
-  return GetIndirectShadowTreeInternal(aId);
+  return GetLayerTreeStateInternal(aId);
 }
 
 /* static */
-bool CompositorBridgeParent::CallWithIndirectShadowTree(
+bool CompositorBridgeParent::CallWithLayerTreeState(
     LayersId aId,
     const std::function<void(CompositorBridgeParent::LayerTreeState&)>& aFunc) {
   // Note that this does not make things universally threadsafe just because the
@@ -1764,8 +1764,7 @@ CompositorBridgeParent::GetGeckoContentControllerForRoot(
 PTextureParent* CompositorBridgeParent::AllocPTextureParent(
     const SurfaceDescriptor& aSharedData, ReadLockDescriptor& aReadLock,
     const LayersBackend& aLayersBackend, const TextureFlags& aFlags,
-    const LayersId& aId, const uint64_t& aSerial,
-    const wr::MaybeExternalImageId& aExternalImageId) {
+    const uint64_t& aSerial, const wr::MaybeExternalImageId& aExternalImageId) {
   return TextureHost::CreateIPDLActor(
       this, aSharedData, std::move(aReadLock), aLayersBackend, aFlags,
       mCompositorManager->GetContentId(), aSerial, aExternalImageId);

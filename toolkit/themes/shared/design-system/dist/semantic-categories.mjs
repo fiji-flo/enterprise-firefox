@@ -550,9 +550,12 @@ export const tokensTable = {
     },
     {
       value: {
-        default: "color-mix(in srgb, currentColor 10%, transparent)",
+        light: "color-mix(in srgb, currentColor 10%, transparent)",
+        dark: "color-mix(in srgb, currentColor 6%, transparent)",
         prefersContrast: "color-mix(in srgb, currentColor 41%, transparent)",
         forcedColors: "CanvasText",
+        default:
+          "light-dark(color-mix(in srgb, currentColor 10%, transparent), color-mix(in srgb, currentColor 6%, transparent))",
       },
       name: "--card-border-color",
     },
@@ -596,6 +599,7 @@ export const tokensTable = {
     { value: "8px", name: "--border-radius-medium" },
     { value: "16px", name: "--border-radius-large" },
     { value: "var(--border-radius-medium)", name: "--button-border-radius" },
+    { value: "var(--border-radius-large)", name: "--card-border-radius" },
     { value: "var(--border-radius-small)", name: "--badge-border-radius" },
     { value: "var(--border-radius-circle)", name: "--toggle-border-radius" },
     {
@@ -647,17 +651,17 @@ export const tokensTable = {
     },
     {
       value: {
-        light: "rgba(0, 0, 0, 0.05)",
-        dark: "rgba(0, 0, 0, 0.2)",
-        default: "light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2))",
+        light: "rgba(0, 0, 0, 0.03)",
+        dark: "rgba(0, 0, 0, 0.15)",
+        default: "light-dark(rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.15))",
       },
       name: "--box-shadow-color-lighter-layer-1",
     },
     {
       value: {
-        light: "rgba(0, 0, 0, 0.1)",
-        dark: "rgba(0, 0, 0, 0.4)",
-        default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
+        light: "rgba(0, 0, 0, 0.05)",
+        dark: "rgba(0, 0, 0, 0.2)",
+        default: "light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2))",
       },
       name: "--box-shadow-color-lighter-layer-2",
     },
@@ -1595,14 +1599,14 @@ export const variableLookupTable = {
     default: "light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4))",
   },
   "box-shadow-color-lighter-layer-1": {
+    light: "rgba(0, 0, 0, 0.03)",
+    dark: "rgba(0, 0, 0, 0.15)",
+    default: "light-dark(rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.15))",
+  },
+  "box-shadow-color-lighter-layer-2": {
     light: "rgba(0, 0, 0, 0.05)",
     dark: "rgba(0, 0, 0, 0.2)",
     default: "light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.2))",
-  },
-  "box-shadow-color-lighter-layer-2": {
-    light: "rgba(0, 0, 0, 0.1)",
-    dark: "rgba(0, 0, 0, 0.4)",
-    default: "light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4))",
   },
   "color-gray-20": "#f0f0f4",
   "color-gray-30": "#bac2ca",
@@ -2183,10 +2187,14 @@ export const variableLookupTable = {
   "button-text-color-selected": "var(--button-text-color-active)",
   "button-attention-dot-color": "var(--color-accent-attention)",
   "card-border-color": {
-    default: "color-mix(in srgb, currentColor 10%, transparent)",
+    light: "color-mix(in srgb, currentColor 10%, transparent)",
+    dark: "color-mix(in srgb, currentColor 6%, transparent)",
     prefersContrast: "color-mix(in srgb, currentColor 41%, transparent)",
     forcedColors: "CanvasText",
+    default:
+      "light-dark(color-mix(in srgb, currentColor 10%, transparent), color-mix(in srgb, currentColor 6%, transparent))",
   },
+  "card-border-radius": "var(--border-radius-large)",
   "card-box-shadow": "var(--box-shadow-level-2)",
   "card-box-shadow-hover": "var(--box-shadow-level-4)",
   "checkbox-margin-inline": "var(--space-small)",

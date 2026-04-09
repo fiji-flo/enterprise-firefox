@@ -893,6 +893,8 @@ class XPCShellTestThread(Thread):
             self.keep_going = True
             return
 
+        self.log.test_start(name, group=group)
+
         # Check for known-fail tests
         expect_pass = self.test_object["expected"] == "pass"
 
@@ -989,7 +991,6 @@ class XPCShellTestThread(Thread):
         process_output = None
 
         try:
-            self.log.test_start(name, group=group)
             if self.verbose:
                 self.logCommand(name, self.command, test_dir)
 

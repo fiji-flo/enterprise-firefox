@@ -2,7 +2,7 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+<resources>
     <!-- Description for the sport suggestion card when the game is live. -->
     <string name="mozac_browser_awesomebar_sport_suggestion_live" translatable="false">LIVE</string>
     <!-- Description for the sport suggestion card when the game is scheduled. -->
@@ -43,4 +43,15 @@
     <string name="mozac_browser_awesomebar_flight_suggestion_in_flight" translatable="false">IN FLIGHT</string>
     <!-- Description for the flight suggestion card when the flight has arrived. -->
     <string name="mozac_browser_awesomebar_flight_suggestion_arrived" translatable="false">ARRIVED</string>
+    <!--
+      The description for the flight suggestion card to be read by talkback when a flight is en route.
+      %s is a placeholder that will be replaced by the flight progress percentage.
+    -->
+    <string name="mozac_browser_awesomebar_flight_suggestion_progress" translatable="false">%s percent complete</string>
+    <!--
+      The description for the flight schedule to be read by talkback when a flight is canceled and the text is struck through.
+      %1$s is a placeholder that will be replaced by the flight time e.g. 5:00 PM or 17:00 depending on the locale.
+      %2$s is a placeholder that will be replaced by the flight date.
+    -->
+    <string name="mozac_browser_awesomebar_flight_suggestion_canceled_schedule" translatable="false">Strike-through on %1$s and %2$s</string>
 </resources>

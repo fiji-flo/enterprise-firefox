@@ -26,12 +26,8 @@ export class AIChatContent extends MozLitElement {
     errorObj: { type: Object },
     isSearching: { type: Boolean },
     tokens: { type: Object },
-    /**
-     * Trusted URLs for link validation, pushed from parent via child actor.
-     * Passed down to ai-chat-message for synchronous validation during render.
-     * Array type for Xray wrapper compatibility.
-     */
-    trustedUrls: { type: Array, attribute: false },
+    seenUrls: { type: Object },
+    conversationId: { type: String },
   };
 
   #lastScrollReq = null;
@@ -44,7 +40,21 @@ export class AIChatContent extends MozLitElement {
     this.followUpSuggestions = [];
     this.errorObj = null;
     this.isSearching = false;
-    this.trustedUrls = null;
+
+    /**
+     * The set of URLs that have been seen by the conversation. Used for determining
+     * if a URL will be unfurled or not.
+     *
+     * @type {Set<string>}
+     */
+    this.seenUrls = new Set();
+
+    /**
+     * The current conversationId for the seenUrls.
+     *
+     * @type {null | string}
+     */
+    this.conversationId = null;
   }
 
   connectedCallback() {
@@ -98,8 +108,8 @@ export class AIChatContent extends MozLitElement {
     );
 
     this.addEventListener(
-      "aiChatContentActor:trustedUrlsUpdated",
-      this.#handleTrustedUrlsUpdated.bind(this)
+      "aiChatContentActor:seen-urls",
+      this.#handleSeenUrls.bind(this)
     );
 
     this.addEventListener(
@@ -198,9 +208,21 @@ export class AIChatContent extends MozLitElement {
     );
   }
 
-  #handleTrustedUrlsUpdated(event) {
-    const { trustedUrls } = event.detail;
-    this.trustedUrls = Array.isArray(trustedUrls) ? [...trustedUrls] : [];
+  /**
+   * Add new seen URLs to the current conversation.
+   *
+   * @param {object} event
+   * @param {object} event.detail
+   * @param {string} event.detail.conversationId
+   * @param {Set<string>} event.detail.seenUrls
+   */
+  #handleSeenUrls({ detail: { conversationId, seenUrls } }) {
+    if (this.conversationId == conversationId) {
+      this.seenUrls = this.seenUrls.union(seenUrls);
+    } else {
+      this.conversationId = conversationId;
+      this.seenUrls = seenUrls;
+    }
   }
 
   messageEvent(event) {
@@ -212,10 +234,10 @@ export class AIChatContent extends MozLitElement {
     }
 
     this.errorObj = null;
-    this.#checkConversationState(message);
 
     switch (message.role) {
       case "loading":
+        this.#checkConversationState(message);
         this.handleLoadingEvent(event);
         break;
       case "assistant":
@@ -226,10 +248,26 @@ export class AIChatContent extends MozLitElement {
         this.#checkConversationState(message);
         this.handleUserPromptEvent(event);
         break;
+      case "assistant-message-complete":
+        this.#setMessageCompleteAttr(message);
+        break;
       // Used to clear the conversation state via side effects ( new conv id )
       case "clear-conversation":
         this.#checkConversationState(message);
     }
+  }
+
+  #setMessageCompleteAttr(message) {
+    const assistantLastMessage = this.conversationState.findLast(
+      msg => msg?.messageId === message.content.id
+    );
+
+    if (!assistantLastMessage) {
+      return;
+    }
+
+    assistantLastMessage.isLastChunk = true;
+    this.requestUpdate();
   }
 
   /**
@@ -336,6 +374,7 @@ export class AIChatContent extends MozLitElement {
       showMemoriesCallout,
       webSearchQueries,
       followUpSuggestions = [],
+      isPreviousMessage,
     } = event.detail;
 
     if (typeof content.body !== "string" || !content.body) {
@@ -355,6 +394,7 @@ export class AIChatContent extends MozLitElement {
       appliedMemories: memoriesApplied ?? [],
       showCallout: showMemoriesCallout ?? false,
       searchTokens: webSearchQueries ?? [],
+      isLastChunk: !!isPreviousMessage,
     };
 
     this.requestUpdate();
@@ -478,9 +518,10 @@ export class AIChatContent extends MozLitElement {
           .role=${msg.role}
           .messageId=${msg.messageId}
           .searchTokens=${msg.searchTokens || []}
-          .trustedUrls=${this.trustedUrls}
+          .conversationId=${this.conversationId}
+          .seenUrls=${this.seenUrls}
         ></ai-chat-message>
-        ${msg.role === "assistant"
+        ${msg.role === "assistant" && msg.isLastChunk
           ? html`
               <assistant-message-footer
                 .messageId=${msg.messageId}

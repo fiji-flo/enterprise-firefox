@@ -286,10 +286,11 @@ class WakeLockTopic {
   // If we fail to uninhibit DBus screensaver just disable
   // it completelly.
   int mUninhibitAttempts = 5;
+#endif
+
   // Track which wake lock type was used for the current inhibit,
   // so we uninhibit with the same type even if the global type changed.
   int mWakeLockType = Initial;
-#endif
 
   std::queue<WakeLockState> mStateQueue;
 

@@ -23,6 +23,7 @@ interface AIFeatureMetadata {
     data class Description(
         val titleRes: Int,
         val descriptionRes: Int,
+        val iconRes: Int,
     )
 
     val id: FeatureId
@@ -46,7 +47,7 @@ interface AIControllableFeature : AIFeatureMetadata {
          */
         fun inMemory(
             id: AIFeatureMetadata.FeatureId = AIFeatureMetadata.FeatureId("inMemory"),
-            description: AIFeatureMetadata.Description = AIFeatureMetadata.Description(0, 0),
+            description: AIFeatureMetadata.Description = AIFeatureMetadata.Description(0, 0, 0),
             initialEnabled: Boolean = false,
         ): AIControllableFeature = InMemoryAIControllableFeature(id, description, initialEnabled)
     }

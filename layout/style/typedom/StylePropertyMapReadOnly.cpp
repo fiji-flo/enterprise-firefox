@@ -11,14 +11,17 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ServoStyleConsts.h"
+#include "mozilla/StyleSheet.h"
 #include "mozilla/dom/CSSStyleRule.h"
 #include "mozilla/dom/CSSStyleValue.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/StylePropertyMapReadOnlyBinding.h"
 #include "nsCSSProps.h"
 #include "nsComputedDOMStyle.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsReadableUtils.h"
+#include "nsStyledElement.h"
 
 namespace mozilla::dom {
 
@@ -32,14 +35,15 @@ struct InlineStyleDeclarations {};
 
 template <>
 struct DeclarationTraits<InlineStyleDeclarations> {
-  static StylePropertyTypedValueList GetAll(Element* aElement,
+  static StylePropertyTypedValueList GetAll(nsStyledElement* aStyledElement,
                                             const CSSPropertyId& aPropertyId,
                                             ErrorResult& aRv) {
-    MOZ_ASSERT(aElement);
+    MOZ_ASSERT(aStyledElement);
 
     auto valueList = StylePropertyTypedValueList::None();
 
-    RefPtr<DeclarationBlock> block = aElement->GetInlineStyleDeclaration();
+    RefPtr<DeclarationBlock> block =
+        aStyledElement->GetInlineStyleDeclaration();
     if (!block) {
       return valueList;
     }
@@ -50,6 +54,12 @@ struct DeclarationTraits<InlineStyleDeclarations> {
     }
 
     return valueList;
+  }
+
+  static URLExtraData* GetURLExtraData(nsStyledElement* aStyledElement) {
+    MOZ_ASSERT(aStyledElement);
+
+    return aStyledElement->OwnerDoc()->DefaultStyleAttrURLData();
   }
 };
 
@@ -78,6 +88,12 @@ struct DeclarationTraits<ComputedStyleDeclarations> {
 
     return valueList;
   }
+
+  static URLExtraData* GetURLExtraData(Element* aElement) {
+    MOZ_ASSERT(aElement);
+
+    return aElement->OwnerDoc()->DefaultStyleAttrURLData();
+  }
 };
 
 // Specialization for style rule
@@ -100,13 +116,29 @@ struct DeclarationTraits<StyleRuleDeclarations> {
 
     return valueList;
   }
+
+  static URLExtraData* GetURLExtraData(const CSSStyleRule* aRule) {
+    MOZ_ASSERT(aRule);
+
+    StyleSheet* sheet = aRule->GetStyleSheet();
+    if (!sheet) {
+      return nullptr;
+    }
+
+    return sheet->URLData();
+  }
 };
 
 }  // namespace
 
-StylePropertyMapReadOnly::StylePropertyMapReadOnly(Element* aElement,
-                                                   bool aComputed)
-    : mParent(aElement), mDeclarations(aElement, aComputed) {
+StylePropertyMapReadOnly::StylePropertyMapReadOnly(
+    nsStyledElement* aStyledElement)
+    : mParent(aStyledElement), mDeclarations(aStyledElement) {
+  MOZ_ASSERT(mParent);
+}
+
+StylePropertyMapReadOnly::StylePropertyMapReadOnly(Element* aElement)
+    : mParent(aElement), mDeclarations(aElement) {
   MOZ_ASSERT(mParent);
 }
 
@@ -255,7 +287,7 @@ StylePropertyTypedValueList StylePropertyMapReadOnly::Declarations::GetAll(
   switch (mKind) {
     case Kind::Inline:
       return DeclarationTraits<InlineStyleDeclarations>::GetAll(
-          mElement, aPropertyId, aRv);
+          mStyledElement, aPropertyId, aRv);
 
     case Kind::Computed:
       return DeclarationTraits<ComputedStyleDeclarations>::GetAll(
@@ -268,9 +300,28 @@ StylePropertyTypedValueList StylePropertyMapReadOnly::Declarations::GetAll(
   MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Bad kind value!");
 }
 
+URLExtraData* StylePropertyMapReadOnly::Declarations::GetURLExtraData() const {
+  switch (mKind) {
+    case Kind::Inline:
+      return DeclarationTraits<InlineStyleDeclarations>::GetURLExtraData(
+          mStyledElement);
+
+    case Kind::Computed:
+      return DeclarationTraits<ComputedStyleDeclarations>::GetURLExtraData(
+          mElement);
+
+    case Kind::Rule:
+      return DeclarationTraits<StyleRuleDeclarations>::GetURLExtraData(mRule);
+  }
+  MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Bad kind value!");
+}
+
 void StylePropertyMapReadOnly::Declarations::Unlink() {
   switch (mKind) {
     case Kind::Inline:
+      mStyledElement = nullptr;
+      break;
+
     case Kind::Computed:
       mElement = nullptr;
       break;

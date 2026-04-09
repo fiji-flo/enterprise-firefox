@@ -514,8 +514,14 @@ def read_lint_report(config, subdir, tasks=[], **lintargs):
             results.append(result.from_config(config, **err))
         return results
     except FileNotFoundError:
-        print("Could not read lint report from ", subdir)
-        return []
+        err = {
+            "level": "error",
+            "rule": "build-failure",
+            "message": f"Lint reports were not generated for {subdir} - Please check logs for more information",
+            "path": os.path.join(topsrcdir, subdir),
+            "lineno": 0,
+        }
+        return [result.from_config(config, **err)]
 
 
 def _parse_checkstyle_output(config, topsrcdir=None, report_path=None):

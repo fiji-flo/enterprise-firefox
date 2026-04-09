@@ -172,6 +172,8 @@ import org.mozilla.fenix.tabhistory.TabHistoryDialogFragment
 import org.mozilla.fenix.theme.DefaultThemeManager
 import org.mozilla.fenix.theme.StatusBarColorManager
 import org.mozilla.fenix.theme.ThemeManager
+import org.mozilla.fenix.translations.TranslationsAIControllableFeatureRegistrar
+import org.mozilla.fenix.translations.TranslationsEnabledSettings
 import org.mozilla.fenix.utils.AccessibilityUtils.announcePrivateModeForAccessibility
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.changeAppLauncherIcon
@@ -228,6 +230,17 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
                 }
             },
         )
+    }
+
+    private val translationsAIControllableFeatureRegistrar by lazy {
+        with(components) {
+            TranslationsAIControllableFeatureRegistrar(
+                aiRegistry = aiFeatureRegistry,
+                browserStore = core.store,
+                translationsEnabledSettings = TranslationsEnabledSettings.dataStore(this@HomeActivity),
+                scope = lifecycleScope,
+            )
+        }
     }
 
     private val defaultTopSitesBinding by lazy {
@@ -572,6 +585,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
             externalAppLinkStatusBinding,
             summarizeToolbarHighlightBinding,
             components.core.summarizationSettings,
+            translationsAIControllableFeatureRegistrar,
         )
 
         if (!isCustomTabIntent(intent)) {
