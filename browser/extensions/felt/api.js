@@ -234,7 +234,9 @@ this.felt = class extends ExtensionAPI {
 
         lazy.ConsoleClient.performServerSignout()
           .catch(err => {
-            console.error(`FeltExtension: Failed to post signout on exit: ${err}`);
+            console.error(
+              `FeltExtension: Failed to post signout on exit: ${err}`
+            );
           })
           .finally(() => {
             Services.felt.clearTokens();

@@ -715,8 +715,6 @@ export class FeltProcessParent extends JSProcessActorParent {
 
   /**
    * Perform all the logout operations on FELT side.
-   *
-   * @param {string} logoutType - One of the logout type payload strings from the IPC message.
    */
   logoutFirefox() {
     if (!Services.felt.isFeltUI()) {

@@ -469,7 +469,7 @@ export const ConsoleClient = {
     this._feltRefreshPromise = (async () => {
       const refreshToken = Services.felt.getRefreshToken();
       if (!refreshToken) {
-        throw new ReauthRequiredError(
+        const e = new ReauthRequiredError(
           "No refresh token available",
           "MISSING_REFRESH_TOKEN"
         );
