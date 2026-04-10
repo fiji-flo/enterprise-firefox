@@ -257,6 +257,12 @@ export class FeltProcessParent extends JSProcessActorParent {
             console.debug(
               `FeltExtension: ParentProcess: Trigger a token refresh in FELT.`
             );
+            if (gFeltProcessParentInstance.logoutReported) {
+              console.debug(
+                "FeltExtension: ParentProcess: logout in progress, skipping token refresh."
+              );
+              break;
+            }
             const client = lazy.ConsoleClient;
             client
               .refreshTokens()
