@@ -10,7 +10,6 @@ import time
 from copy import deepcopy
 from enum import Enum
 
-from marionette_driver import errors
 from marionette_driver.marionette import Marionette
 from marionette_driver.wait import Wait
 from marionette_harness import MarionetteTestCase
