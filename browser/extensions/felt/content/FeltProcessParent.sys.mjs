@@ -721,6 +721,13 @@ export class FeltProcessParent extends JSProcessActorParent {
       throw new Error("Logout handling should only happen on FELT side.");
     }
 
+    if (gFeltProcessParentInstance.logoutReported) {
+      console.debug(
+        "FeltExtension: logoutFirefox: logout already in progress, skipping."
+      );
+      return;
+    }
+
     console.debug(
       `FeltExtension: Logout, waiting on process ${gFeltProcessParentInstance.proc.pid}`
     );
