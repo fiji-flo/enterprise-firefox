@@ -534,7 +534,7 @@ export const ConsoleClient = {
   },
 
   /**
-   * Refreshes the session by asking FELT to do a fetch an updated token.
+   * Refreshes the session by asking FELT to fetch an updated token.
    * Serializes concurrent refresh calls via an internal promise.
    * This should only be called from the browser context.
    *
