@@ -554,7 +554,7 @@ export const ConsoleClient = {
       return this._refreshPromise;
     }
 
-    // Notify FELT to refresh the token. The refresh will be done asynchronously by Felt,
+    // Ask FELT to refresh the token. The refresh will be done asynchronously by Felt,
     // eventually either coming back successfully and resolving the promise
     // or we get logged out / killed by a failure to refresh the token.
     //
