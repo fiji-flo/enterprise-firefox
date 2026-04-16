@@ -73,7 +73,13 @@ class BaseBrowserSignout(FeltTests):
 
         self._waiter(self._child_driver).until(wait_for_and_accept_alert)
 
-        self._child_driver.set_context("content")
+        try:
+            self._child_driver.set_context("content")
+        except Exception:
+            # The child browser quits immediately after the signout dialog is
+            # accepted, so the connection may already be closed by the time we
+            # reset its context. _child_driver is not used after this point.
+            pass
 
         # This is not true but it will make sure the harness does not try to
         # cleanup the browser and we can then make sure that our self-closing
