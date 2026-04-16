@@ -36,8 +36,6 @@ run-if = [
   "os == 'mac'",
 ]
 
-["test_felt_browser_reauth_required.py"]
-
 ["test_felt_browser_restart_is_quit.py"]
 
 ["test_felt_browser_restart_works.py"]
