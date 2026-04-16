@@ -474,6 +474,7 @@ rtc_library("peer_connection_interface") {
     "../rtc_base:ssl",
     "../rtc_base:ssl_adapter",
     "../rtc_base:threading",
+    "../rtc_base/system:plan_b_only",
     "../rtc_base/system:rtc_export",
     "adaptation:resource_adaptation_api",
     "audio:audio_device",
@@ -652,6 +653,7 @@ if (!build_with_mozilla) {
     "../rtc_base:ssl_adapter",
     "../rtc_base:stringutils",
     "../rtc_base/system:no_unique_address",
+    "../rtc_base/system:plan_b_only",
     "adaptation:resource_adaptation_api",
     "audio:audio_device",
     "audio:audio_frame_processor",
@@ -709,6 +711,7 @@ rtc_library("frame_transformer_interface") {
   deps = [
     ":array_view",
     ":make_ref_counted",
+    ":payload_type",
     ":ref_count",
     ":scoped_refptr",
     "../rtc_base:checks",
@@ -755,6 +758,7 @@ rtc_source_set("packet_socket_factory") {
   deps = [
     ":async_dns_resolver",
     "../rtc_base:async_packet_socket",
+    "../rtc_base:checks",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
     "../rtc_base/system:rtc_export",
@@ -834,6 +838,15 @@ rtc_source_set("track_id_stream_info_map") {
 rtc_source_set("rtp_transceiver_direction") {
   visibility = [ "*" ]
   sources = [ "rtp_transceiver_direction.h" ]
+}
+
+rtc_source_set("payload_type") {
+  visibility = [ "*" ]
+  sources = [ "payload_type.h" ]
+  deps = [
+    "../rtc_base:strong_alias",
+    "//third_party/abseil-cpp/absl/strings:str_format",
+  ]
 }
 
 rtc_library("priority") {
@@ -1270,10 +1283,6 @@ rtc_source_set("network_state_predictor_api") {
 rtc_source_set("array_view") {
   visibility = [ "*" ]
   sources = [ "array_view.h" ]
-  deps = [
-    "../rtc_base:checks",
-    "../rtc_base:type_traits",
-  ]
 }
 
 rtc_source_set("refcountedbase") {
@@ -1715,6 +1724,7 @@ if (rtc_include_tests) {
     deps = [
       ":array_view",
       ":frame_transformer_interface",
+      ":payload_type",
       "../test:test_support",
       "units:time_delta",
       "units:timestamp",
@@ -1789,6 +1799,7 @@ if (rtc_include_tests) {
     deps = [
       ":array_view",
       ":frame_transformer_interface",
+      ":payload_type",
       "../api/units:timestamp",
       "../test:test_support",
       "units:time_delta",
@@ -1803,6 +1814,7 @@ if (rtc_include_tests) {
     deps = [
       ":array_view",
       ":frame_transformer_interface",
+      ":payload_type",
       "../test:test_support",
       "units:time_delta",
       "units:timestamp",

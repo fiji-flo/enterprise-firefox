@@ -59,6 +59,15 @@
   }
 }
 
+.catastrophic-error {
+  background-color: var(--background-color-critical);
+
+  ::slotted([slot="image"]) {
+    -moz-context-properties: fill;
+    fill: var(--icon-color-critical);
+  }
+}
+
 #content-container {
   display: flex;
   flex-direction: column;

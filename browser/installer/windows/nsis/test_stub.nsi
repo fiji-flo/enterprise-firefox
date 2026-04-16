@@ -122,8 +122,19 @@ Var MockLocalAppDataFolder
 !macroend
 !define GetLocalAppDataFolder "!insertmacro MockGetLocalAppDataFolder"
 
+!define GenerateUUID "Push 'THIS_IS_A_UNIQUE_ID_FOR_TESTING'"
+
 !include stub.nsh
 !include get_installation_type.nsh
+!include install_dir_helpers.nsh
+
+Var MockCommandLine
+!macro MockGetRawCommandLine Result
+  StrCpy $${Result} $MockCommandLine
+!macroend
+!define /redef GetRawCommandLine "!insertmacro MockGetRawCommandLine"
+
+!include test_telemetry.nsh
 
 ; .onInit is responsible for running the tests
 Function .onInit
@@ -171,6 +182,14 @@ Function .onInit
     ${UnitTest} TestSetDlsourceFieldInPostSigningData
     ${UnitTest} TestUpdateInstalledPostSigningDataFileFailure
     ${UnitTest} TestUpdateInstalledPostSigningDataFileSuccess
+
+    ${UnitTest} TestUseExistingInstallPathIfNoInstallDirArg
+    ${UnitTest} TestUseExistingInstallPathIfNoInstallDirArgWithExistingInRegister
+    ${UnitTest} TestUseExistingInstallPathIfNoInstallDirArgWithPathArg
+    ${UnitTest} TestUseExistingInstallPathIfNoInstallDirArgWithNameArg
+    ${UnitTest} TestUseExistingInstallPathIfNoInstallDirArgWithDArg
+
+    Call TelemetryTests
 
     ${If} $TestFailureCount = 0
         ; On success, write the success metric and jump to the end
@@ -691,6 +710,46 @@ Function TestUpdateInstalledPostSigningDataFileSuccess
   Delete "$INSTDIR\postSigningData"
   RMDir $INSTDIR
   Pop $INSTDIR
+FunctionEnd
+
+Function TestUseExistingInstallPathIfNoInstallDirArg
+  StrCpy $MockParameters ""
+  StrCpy $INSTDIR "C:\Default"
+  ${UseExistingInstallPathIfNoInstallDirArg} "C:\Existing"
+  ${AssertEqual} INSTDIR "C:\Existing"
+FunctionEnd
+
+Function TestUseExistingInstallPathIfNoInstallDirArgWithExistingInRegister
+  StrCpy $MockParameters ""
+  StrCpy $INSTDIR "C:\Default"
+  Push $0
+  StrCpy $0 "C:\Existing"
+  ${UseExistingInstallPathIfNoInstallDirArg} $0
+  ${AssertEqual} INSTDIR "C:\Existing"
+  Pop $0
+FunctionEnd
+
+Function TestUseExistingInstallPathIfNoInstallDirArgWithPathArg
+  StrCpy $MockParameters "/InstallDirectoryPath=C:\Test"
+  StrCpy $INSTDIR "C:\Default"
+  ${UseExistingInstallPathIfNoInstallDirArg} "C:\Existing"
+  ${AssertEqual} INSTDIR "C:\Default"
+FunctionEnd
+
+Function TestUseExistingInstallPathIfNoInstallDirArgWithNameArg
+  StrCpy $MockParameters "/InstallDirectoryName=Test"
+  StrCpy $INSTDIR "C:\Default"
+  ${UseExistingInstallPathIfNoInstallDirArg} "C:\Existing"
+  ${AssertEqual} INSTDIR "C:\Default"
+FunctionEnd
+
+Function TestUseExistingInstallPathIfNoInstallDirArgWithDArg
+  Push $MockCommandLine
+  StrCpy $MockCommandLine "setup.exe /D=C:\Test"
+  StrCpy $INSTDIR "C:\Default"
+  ${UseExistingInstallPathIfNoInstallDirArg} "C:\Existing"
+  ${AssertEqual} INSTDIR "C:\Default"
+  Pop $MockCommandLine
 FunctionEnd
 
 Section

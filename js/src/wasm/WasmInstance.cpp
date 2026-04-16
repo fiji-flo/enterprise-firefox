@@ -1073,6 +1073,10 @@ bool Instance::iterElemsFunctions(const ModuleElemSegment& seg,
       if (import.callable->is<JSFunction>()) {
         JSFunction* fun = &import.callable->as<JSFunction>();
         if (!codeMeta().funcImportsAreJS && fun->isWasm()) {
+          // Unwrapped Function.prototype.call.bind imports should not be used
+          // when the unwrapped function is a wasm function.
+          MOZ_ASSERT(!import.isFunctionCallBind);
+
           // This element is a wasm function imported from another
           // instance. To preserve the === function identity required by
           // the JS embedding spec, we must get the imported function's
@@ -2437,6 +2441,9 @@ JSObject* MaybeOptimizeFunctionCallBind(const wasm::FuncType& funcType,
     return nullptr;
   }
 
+  // The bound `this` must not be a wasm function, or else we'll need to update
+  // all the users of FuncImportInstanceData::callable so they don't mistake
+  // the unwrapped import for originally being a wasm function.
   if (boundThis.toObject().is<JSFunction>() &&
       boundThis.toObject().as<JSFunction>().isWasm()) {
     return nullptr;
@@ -3875,6 +3882,9 @@ bool Instance::getExportedFunction(JSContext* cx, uint32_t funcIndex,
     if (import.callable->is<JSFunction>()) {
       JSFunction* fun = &import.callable->as<JSFunction>();
       if (!codeMeta().funcImportsAreJS && fun->isWasm()) {
+        // Unwrapped Function.prototype.call.bind imports should not be used
+        // when the unwrapped function is a wasm function.
+        MOZ_ASSERT(!import.isFunctionCallBind);
         instanceData.func = fun;
         result.set(fun);
         return true;

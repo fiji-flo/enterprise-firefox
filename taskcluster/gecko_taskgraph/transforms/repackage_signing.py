@@ -92,7 +92,8 @@ def make_repackage_signing_description(config, jobs):
 
         if "enterprise-repack" in dep_job.label:
             repack_id = (
-                dep_job.task.get("extra")
+                dep_job.task
+                .get("extra")
                 .get("treeherder")
                 .get("symbol")
                 .replace("/", "_")

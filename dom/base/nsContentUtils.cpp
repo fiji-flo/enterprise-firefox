@@ -7114,6 +7114,10 @@ void nsContentUtils::TriggerLinkMouseOver(nsIContent* aContent,
   }
 
   docShell->OnOverLink(aContent, aLinkURI, aTargetSpec);
+
+  if (nsPresContext* pc = aContent->OwnerDoc()->GetPresContext()) {
+    pc->EventStateManager()->SetLinkOverFrame(aContent->GetPrimaryFrame());
+  }
 }
 
 /* static */
@@ -10978,6 +10982,10 @@ static bool StartSerializingShadowDOM(
   if (shadow->Clonable()) {
     aBuilder.Append(u" shadowrootclonable=\"\"");
   }
+  if (StaticPrefs::dom_shadowdom_shadowRootSlotAssignment_enabled() &&
+      shadow->SlotAssignment() == SlotAssignmentMode::Manual) {
+    aBuilder.Append(u" shadowrootslotassignment=\"manual\"");
+  }
 
   aBuilder.Append(u">");
 
@@ -11787,7 +11795,7 @@ nsContentUtils::ExtractFormAssociatedCustomElementValue(
 
           case IPCFormDataValue::TBlobImpl: {
             auto blobImpl = item.value().get_BlobImpl();
-            auto* blob = Blob::Create(aGlobal, blobImpl);
+            RefPtr<Blob> blob = Blob::Create(aGlobal, blobImpl);
             formData->AddNameBlobPair(item.name(), blob);
           } break;
 
@@ -13099,7 +13107,7 @@ int32_t nsContentUtils::CompareTreePosition(const nsINode* aNode1,
 nsIContent* nsContentUtils::AttachDeclarativeShadowRoot(
     nsIContent* aHost, ShadowRootMode aMode, bool aIsClonable,
     bool aIsSerializable, bool aDelegatesFocus, bool aCustomElementRegistry,
-    const nsAString& aReferenceTarget) {
+    SlotAssignmentMode aSlotAssignment, const nsAString& aReferenceTarget) {
   RefPtr<Element> host = mozilla::dom::Element::FromNodeOrNull(aHost);
   if (!host || host->GetShadowRoot()) {
     // https://html.spec.whatwg.org/#parsing-main-inhead:shadow-host
@@ -13109,7 +13117,7 @@ nsIContent* nsContentUtils::AttachDeclarativeShadowRoot(
   ShadowRootInit init;
   init.mMode = aMode;
   init.mDelegatesFocus = aDelegatesFocus;
-  init.mSlotAssignment = SlotAssignmentMode::Named;
+  init.mSlotAssignment = aSlotAssignment;
   init.mClonable = aIsClonable;
   init.mSerializable = aIsSerializable;
 

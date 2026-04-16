@@ -4555,6 +4555,43 @@ void PermissionManager::ForwardBrowserPermissionToChild(
   }
 }
 
+void PermissionManager::TransmitBrowserPermissionsForPrincipal(
+    dom::ContentParent* aContentParent, nsIPrincipal* aPrincipal,
+    uint64_t aBrowserId) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!aBrowserId) {
+    return;
+  }
+
+  nsTArray<RefPtr<nsIPermission>> perms;
+  nsresult rv = GetAllForBrowser(aPrincipal, aBrowserId, perms);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  for (const auto& perm : perms) {
+    nsAutoCString origin;
+    nsCOMPtr<nsIPrincipal> permPrincipal;
+    perm->GetPrincipal(getter_AddRefs(permPrincipal));
+    if (!permPrincipal || NS_FAILED(permPrincipal->GetOrigin(origin))) {
+      continue;
+    }
+
+    nsAutoCString type;
+    perm->GetType(type);
+
+    uint32_t action;
+    perm->GetCapability(&action);
+
+    if (!aContentParent->SendSetBrowserPermission(origin, type, action,
+                                                  aBrowserId, false)) {
+      NS_WARNING("Failed to send SetBrowserPermission to child");
+    }
+  }
+}
+
 void PermissionManager::SetBrowserPermissionFromIPC(nsIPrincipal* aPrincipal,
                                                     const nsACString& aType,
                                                     uint32_t aAction,

@@ -11,10 +11,35 @@
 #ifndef windowsdefaultbrowser_h_
 #define windowsdefaultbrowser_h_
 
+#include <utility>
+#include <windows.h>
+
+#include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
+
+struct IUIAutomationElement;
+using UIElement = RefPtr<IUIAutomationElement>;
+using UIWindowElement = std::pair<HWND, UIElement>;
 
 bool GetAppRegName(mozilla::UniquePtr<wchar_t[]>& aAppRegName);
 bool LaunchControlPanelDefaultPrograms();
 bool LaunchModernSettingsDialogDefaultApps();
+
+/*
+ * Focus an element on a window.
+ *
+ * @param aWindow  Window that contains aElement.
+ * @param aElement Element to focus.
+ */
+void FocusElement(HWND aWindow, const UIElement& aElement);
+
+/*
+ * Find the set default browser button in Windows Settings.
+ *
+ * Open Windows Settings beforehand via LaunchModernSettingsDialogDefaultApps().
+ *
+ * @return The window and button element, or null values on failure.
+ */
+[[nodiscard]] UIWindowElement FindSetDefaultBrowserButton();
 
 #endif  // windowsdefaultbrowser_h_

@@ -358,6 +358,10 @@ class MOZ_STACK_CLASS JSONReviveHandler : public JSONFullParseHandler<CharT> {
                                            std::forward<SourceT&&>(source))) {
       return false;
     }
+    // Property names don't need parse records.
+    if constexpr (ST == JSONStringType::PropertyName) {
+      return true;
+    }
     return finishPrimitiveParseRecord(this->v, source);
   }
 
@@ -366,6 +370,10 @@ class MOZ_STACK_CLASS JSONReviveHandler : public JSONFullParseHandler<CharT> {
     if (!Base::template setStringValue<ST>(builder,
                                            std::forward<SourceT&&>(source))) {
       return false;
+    }
+    // Property names don't need parse records.
+    if constexpr (ST == JSONStringType::PropertyName) {
+      return true;
     }
     return finishPrimitiveParseRecord(this->v, source);
   }

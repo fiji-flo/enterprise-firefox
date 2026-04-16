@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2026-04-02T17:59:02.014303+00:00'
+updated_at: '2026-04-13T15:42:58.632917+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -941,10 +941,6 @@ people:
     bmo_id: 5630
     name: ''
     nick: rbs
-  - &relud
-    bmo_id: 444787
-    name: Daniel Thorn
-    nick: relud
   - &rhamoui
     bmo_id: 690143
     name: Reem Hamoui
@@ -3330,6 +3326,7 @@ modules:
       group: dev-platform
       components:
         - 'Core::Widget: Win32'
+      review_group: win-reviewers
     owners:
       - *cmartin
     peers:
@@ -3559,6 +3556,7 @@ modules:
           - *adw
         peers:
           - *daisuke
+          - *daleharvey
           - *dao
           - *jteow
           - *mak
@@ -3695,6 +3693,8 @@ modules:
         meta:
           owners_emeritus:
             - Michael Cooper
+          peers_emeritus:
+            - Daniel Thorn
           components:
             - Firefox::Normandy
             - Firefox::Nimbus Desktop Client
@@ -3706,7 +3706,6 @@ modules:
           - *Gijs
           - *emcminn
           - *charlie
-          - *relud
         machine_name: normandy
 
       - machine_name: firefox_view
@@ -4756,5 +4755,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: f068c5e2b2faa1f61fb51d2ea1f43a1e32806561
-  export: f1a8e33331930c7e04b6ca9c85c4df74c9ecc5f2
+  config: 52e640ee3f784c3b5b10a5efc6edeeeb294829d9
+  export: 0032a1e2290ce3a7e59b3d872a526767c9be8aaf

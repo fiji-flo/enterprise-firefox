@@ -291,9 +291,11 @@ export class AIChatContent extends MozLitElement {
     if (convIdChanged || isReloadingSameConvo) {
       this.conversationState = [];
       this.followUpSuggestions = [];
-      this.shadowRoot
-        ?.querySelector(".chat-inner-wrapper")
-        ?.style.removeProperty("--content-height");
+      if (convIdChanged) {
+        this.shadowRoot
+          ?.querySelector(".chat-inner-wrapper")
+          ?.style.removeProperty("--content-height");
+      }
       this.requestUpdate();
     }
   }
@@ -409,16 +411,14 @@ export class AIChatContent extends MozLitElement {
         return;
       }
       let lastMessage = msgs[msgs.length - 1];
-      let haveMultipleMessages = msgs.length > 1;
       requestAnimationFrame(() => {
         if (scrollReq !== this.#lastScrollReq) {
           return;
         }
         let elTop = lastMessage.offsetTop;
-        let spacer = haveMultipleMessages ? "small" : "large";
         lastMessage.parentNode.style.setProperty(
           "--content-height",
-          `calc(${elTop}px + 100% - var(--space-${spacer}) - var(--space-xsmall))`
+          `calc(${elTop}px + 100% - var(--smart-window-top-spacing-chat))`
         );
 
         requestAnimationFrame(() => {

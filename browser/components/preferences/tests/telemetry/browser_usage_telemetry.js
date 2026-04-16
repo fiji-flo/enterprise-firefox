@@ -156,8 +156,12 @@ add_task(async function testSettingGroupTelemetry() {
       EventUtils.synthesizeMouseAtCenter(select.inputEl, {}, win);
       let popup = await popupShown;
       let popupHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
-      EventUtils.synthesizeKey("KEY_ArrowDown", {}, win);
-      EventUtils.synthesizeKey("KEY_Enter", {}, win);
+      if (nativeSelectEnabled()) {
+        popup.activateItem(popup.childNodes[1]);
+      } else {
+        EventUtils.synthesizeKey("KEY_ArrowDown", {}, win);
+        EventUtils.synthesizeKey("KEY_Enter", {}, win);
+      }
       await popupHidden;
 
       // Focus the visual picker via the keyboard.

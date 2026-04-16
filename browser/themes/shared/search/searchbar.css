@@ -169,7 +169,7 @@
 
 @media (-moz-platform: windows) {
   #PopupSearchAutoComplete {
-    --panel-border-radius: var(--arrowpanel-border-radius);
+    --panel-border-radius: inherit;
   }
 }
 

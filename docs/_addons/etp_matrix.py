@@ -140,12 +140,6 @@ OTHER_PRIVACY_PREFS = {
             "Shows cookie banner reduction controls in Firefox settings.",
         ),
         (
-            "Network State Partitioning",
-            "privacy.partition.network_state",
-            None,
-            "Partitions HTTP cache, connection pools, and other network state by top-level site.",
-        ),
-        (
             "Strip on Share",
             "privacy.query_stripping.strip_on_share.enabled",
             None,

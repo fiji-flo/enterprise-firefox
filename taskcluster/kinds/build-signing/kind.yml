@@ -12,6 +12,7 @@ transforms:
     - gecko_taskgraph.transforms.task
 
 kind-dependencies:
+    - artifact-build
     - build
     - build-fat-aar
 

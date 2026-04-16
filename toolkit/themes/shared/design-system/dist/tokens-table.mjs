@@ -279,6 +279,10 @@ export const tokensTable = {
       name: "--badge-background-color-filled",
     },
     {
+      value: "var(--background-color-information)",
+      name: "--message-bar-background-color",
+    },
+    {
       value: "var(--button-background-color)",
       name: "--toggle-background-color",
     },
@@ -553,6 +557,13 @@ export const tokensTable = {
       },
       name: "--badge-border-color-filled",
     },
+    {
+      value: {
+        default: "oklch(from var(--message-bar-icon-color) l c h / 20%)",
+        prefersContrast: "var(--border-color)",
+      },
+      name: "--message-bar-border-color",
+    },
     { value: "var(--border-color-interactive)", name: "--toggle-border-color" },
     {
       value: {
@@ -578,6 +589,10 @@ export const tokensTable = {
     { value: "var(--border-radius-medium)", name: "--button-border-radius" },
     { value: "var(--border-radius-large)", name: "--card-border-radius" },
     { value: "var(--border-radius-small)", name: "--badge-border-radius" },
+    {
+      value: "var(--border-radius-medium)",
+      name: "--message-bar-border-radius",
+    },
     { value: "var(--border-radius-circle)", name: "--toggle-border-radius" },
     {
       value: "var(--toolbarbutton-border-radius)",
@@ -587,6 +602,7 @@ export const tokensTable = {
   "border-width": [
     { value: "1px", name: "--border-width" },
     { value: "1px", name: "--badge-border-width" },
+    { value: "var(--border-width)", name: "--message-bar-border-width" },
     { value: "var(--border-width)", name: "--toggle-border-width" },
   ],
   "box-shadow": [
@@ -1023,6 +1039,10 @@ export const tokensTable = {
       value: { brand: { default: "664px" } },
       name: "--page-main-content-width",
     },
+    {
+      value: "var(--size-item-large)",
+      name: "--message-bar-container-min-height",
+    },
     { value: "var(--size-item-small)", name: "--toggle-height" },
     { value: "var(--size-item-large)", name: "--toggle-width" },
     {
@@ -1343,6 +1363,7 @@ export const tokensTable = {
       },
       name: "--badge-text-color-filled",
     },
+    { value: "var(--text-color)", name: "--message-bar-text-color" },
   ],
   border: [
     {
@@ -1398,6 +1419,10 @@ export const tokensTable = {
       },
       name: "--icon-color-critical",
     },
+    {
+      value: "var(--icon-color-information)",
+      name: "--message-bar-icon-color",
+    },
     { value: "var(--color-blue-50)", name: "--tab-loading-fill" },
   ],
   opacity: [
@@ -1413,6 +1438,7 @@ export const tokensTable = {
     { value: "var(--dimension-20)", name: "--icon-size-medium" },
     { value: "var(--dimension-24)", name: "--icon-size-large" },
     { value: "var(--dimension-32)", name: "--icon-size-xlarge" },
+    { value: "var(--icon-size)", name: "--message-bar-icon-size" },
   ],
   "table-background": [
     {
@@ -2324,6 +2350,17 @@ export const variableLookupTable = {
   },
   "badge-border-radius": "var(--border-radius-small)",
   "badge-border-width": "1px",
+  "message-bar-background-color": "var(--background-color-information)",
+  "message-bar-border-color": {
+    default: "oklch(from var(--message-bar-icon-color) l c h / 20%)",
+    prefersContrast: "var(--border-color)",
+  },
+  "message-bar-border-radius": "var(--border-radius-medium)",
+  "message-bar-border-width": "var(--border-width)",
+  "message-bar-container-min-height": "var(--size-item-large)",
+  "message-bar-icon-color": "var(--icon-color-information)",
+  "message-bar-icon-size": "var(--icon-size)",
+  "message-bar-text-color": "var(--text-color)",
   "toggle-background-color": "var(--button-background-color)",
   "toggle-background-color-hover": "var(--button-background-color-hover)",
   "toggle-background-color-active": "var(--button-background-color-active)",

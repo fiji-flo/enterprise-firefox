@@ -28,8 +28,10 @@ class FeltStartsBrowser(FeltTests):
 
         expected_cookie = list(
             filter(
-                lambda x: x["name"] == self.cookie_name.value
-                and x["value"] == self.cookie_value.value,
+                lambda x: (
+                    x["name"] == self.cookie_name.value
+                    and x["value"] == self.cookie_value.value
+                ),
                 self._child_driver.get_cookies(),
             )
         )

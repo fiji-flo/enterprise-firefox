@@ -388,7 +388,14 @@ bool ContentSecurityPolicyAllows(
   bool reportViolation = false;
   if (OffThreadCSPContext* ctx = impl->GetCSPContext()) {
     if (aKind == JS::RuntimeCode::JS) {
-      *aOutCanCompileStrings = ctx->IsEvalAllowed(reportViolation);
+      if (ctx->CSPInfo().requireTrustedTypesForDirectiveState() ==
+          RequireTrustedTypesForDirectiveState::ENFORCE) {
+        // The TrustedTypePolicyFactory is not exposed to Worklets, so there is
+        // no way to define a policy that would allow scripts.
+        *aOutCanCompileStrings = false;
+      } else {
+        *aOutCanCompileStrings = ctx->IsEvalAllowed(reportViolation);
+      }
     } else {
       *aOutCanCompileStrings = ctx->IsWasmEvalAllowed(reportViolation);
     }

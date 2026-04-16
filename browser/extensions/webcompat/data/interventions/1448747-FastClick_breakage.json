@@ -17,10 +17,6 @@
       "issue": "broken-interactive-elements",
       "matches": ["*://*.franmar.com/*"]
     },
-    "1944015": {
-      "issue": "broken-interactive-elements",
-      "matches": ["*://*.lawnmowerpartsworld.com/*"]
-    },
     "1944019": {
       "issue": "broken-interactive-elements",
       "matches": ["*://*.themusiclab.org/*"]
@@ -40,10 +36,6 @@
     "1944026": {
       "issue": "broken-interactive-elements",
       "matches": ["*://renewd.com.au/*"]
-    },
-    "1944027": {
-      "issue": "broken-interactive-elements",
-      "matches": ["*://rutamayacoffee.com/*"]
     },
     "1968640": {
       "issue": "broken-interactive-elements",

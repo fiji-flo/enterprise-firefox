@@ -69,6 +69,7 @@
         android:supportsRtl="true"
         android:theme="@style/NormalTheme"
         android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:enableOnBackInvokedCallback="@bool/enableOnBackInvokedCallback"
         tools:ignore="UnusedAttribute">
 
@@ -772,6 +773,16 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Developer tool: Shows notification during performance profiling" />
         </service>
+
+        <provider
+            android:name=".components.LensFileProvider"
+            android:authorities="${applicationId}.lens.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
 
         <provider
             android:name=".perf.ProfilerProvider"

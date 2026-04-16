@@ -137,6 +137,24 @@ dictionary ConnStatusDict {
   DOMString status = "";
 };
 
+[GenerateConversionToJS]
+dictionary AltSvcMappingElement {
+  DOMString originHost = "";
+  unsigned long originPort = 0;
+  DOMString alternateHost = "";
+  unsigned long alternatePort = 0;
+  DOMString alpn = "";
+  boolean https = false;
+  boolean validated = false;
+  long ttl = 0;
+  DOMString originAttributesSuffix = "";
+};
+
+[GenerateConversionToJS]
+dictionary AltSvcCacheDict {
+  sequence<AltSvcMappingElement> entries;
+};
+
 dictionary Http3ConnStats {
   unsigned long long packetsRx = 0;
   unsigned long long dupsRx = 0;

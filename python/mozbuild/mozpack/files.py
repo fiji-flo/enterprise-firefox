@@ -369,7 +369,9 @@ class AbsoluteSymlinkFile(File):
         # so we replace with a proper symlink.
         if st and stat.S_ISLNK(st.st_mode):
             link = os.readlink(dest)
-            if link == self.path:
+            if mozpath.strip_extended_length_prefix(
+                link
+            ) == mozpath.strip_extended_length_prefix(self.path):
                 return False
 
             os.remove(dest)

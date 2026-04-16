@@ -24,6 +24,7 @@ const gRequestNetworkingData = {
   sockets: gDashboard.requestSockets,
   dns: gDashboard.requestDNSInfo,
   websockets: gDashboard.requestWebsocketConnections,
+  altsvc: gDashboard.requestAltSvcCache,
   dnslookuptool: () => {},
   networkid: displayNetworkID,
 };
@@ -32,6 +33,7 @@ const gDashboardCallbacks = {
   sockets: displaySockets,
   dns: displayDns,
   websockets: displayWebsockets,
+  altsvc: displayAltSvc,
 };
 
 const REFRESH_INTERVAL_MS = 3000;
@@ -154,6 +156,52 @@ function displayWebsockets(data) {
     row.appendChild(col(data.websockets[i].msgreceived));
     row.appendChild(col(data.websockets[i].sentsize));
     row.appendChild(col(data.websockets[i].receivedsize));
+    new_cont.appendChild(row);
+  }
+
+  parent.replaceChild(new_cont, cont);
+}
+
+function formatTTL(seconds) {
+  if (seconds <= 0) {
+    return "expired";
+  }
+  let parts = [];
+  let d = Math.floor(seconds / 86400);
+  if (d) {
+    parts.push(`${d}d`);
+  }
+  let h = Math.floor((seconds % 86400) / 3600);
+  if (h) {
+    parts.push(`${h}h`);
+  }
+  let m = Math.floor((seconds % 3600) / 60);
+  if (m) {
+    parts.push(`${m}m`);
+  }
+  let s = seconds % 60;
+  if (s || !parts.length) {
+    parts.push(`${s}s`);
+  }
+  return parts.join(" ");
+}
+
+function displayAltSvc(data) {
+  let cont = document.getElementById("altsvc_content");
+  let parent = cont.parentNode;
+  let new_cont = document.createElement("tbody");
+  new_cont.setAttribute("id", "altsvc_content");
+
+  for (let i = 0; i < data.entries.length; i++) {
+    let entry = data.entries[i];
+    let row = document.createElement("tr");
+    let scheme = entry.https ? "https" : "http";
+    row.appendChild(col(`${scheme}://${entry.originHost}:${entry.originPort}`));
+    row.appendChild(col(`${entry.alternateHost}:${entry.alternatePort}`));
+    row.appendChild(col(entry.alpn));
+    row.appendChild(col(entry.validated));
+    row.appendChild(col(formatTTL(entry.ttl)));
+    row.appendChild(col(entry.originAttributesSuffix));
     new_cont.appendChild(row);
   }
 

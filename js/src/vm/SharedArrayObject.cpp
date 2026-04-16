@@ -430,8 +430,12 @@ bool SharedArrayBufferObject::growImpl(JSContext* cx, const CallArgs& args) {
 
     Pages newPages =
         Pages::fromByteLengthExact(newByteLength, buffer->wasmPageSize());
-    return buffer->rawWasmBufferObject()->wasmGrowToPagesInPlace(
-        *lock, buffer->wasmAddressType(), newPages);
+    if (!buffer->rawWasmBufferObject()->wasmGrowToPagesInPlace(
+            *lock, buffer->wasmAddressType(), newPages)) {
+      return false;
+    }
+    args.rval().setUndefined();
+    return true;
   }
 
   if (!buffer->rawBufferObject()->growJS(newByteLength)) {

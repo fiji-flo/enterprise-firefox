@@ -196,6 +196,7 @@
 .smartbar-button-container {
   padding: 0 var(--space-large) var(--space-medium);
   position: relative;
+  display: flex;
 }
 
 .smartbar-button-container input-cta {

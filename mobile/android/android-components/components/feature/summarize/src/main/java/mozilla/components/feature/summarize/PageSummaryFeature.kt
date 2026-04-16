@@ -26,12 +26,12 @@ class PageSummaryFeature(
     }
 
     companion object : AIFeatureMetadata {
-        override val id = AIFeatureMetadata.FeatureId("ai.summarize.page")
+        override val id = AIFeatureMetadata.FeatureId("pageSummaries")
 
         override val description = AIFeatureMetadata.Description(
             titleRes = R.string.mozac_ai_controls_page_summary_title,
             descriptionRes = R.string.mozac_ai_controls_page_summary_description,
-            iconRes = iconsR.drawable.mozac_ic_translate_24,
+            iconRes = iconsR.drawable.mozac_ic_lightning_24,
         )
     }
 }

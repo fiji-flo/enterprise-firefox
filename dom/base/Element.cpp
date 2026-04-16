@@ -917,8 +917,8 @@ void Element::ScrollIntoView(const ScrollIntoViewOptions& aOptions) {
   }
 
   presShell->ScrollContentIntoView(
-      this, ScrollAxis(block, WhenToScroll::Always),
-      ScrollAxis(inline_, WhenToScroll::Always), scrollFlags);
+      this, AxisScrollParams(block, WhenToScroll::Always),
+      AxisScrollParams(inline_, WhenToScroll::Always), scrollFlags);
 }
 
 void Element::ScrollTo(double aXScroll, double aYScroll) {
@@ -3432,6 +3432,7 @@ nsresult Element::LeaveLink(nsPresContext* aPresContext) {
   if (!shell) {
     return NS_OK;
   }
+  aPresContext->EventStateManager()->SetLinkOverFrame(nullptr);
   return nsDocShell::Cast(shell)->OnLeaveLink();
 }
 
@@ -5780,6 +5781,21 @@ void Element::SetCustomElementData(UniquePtr<CustomElementData> aData) {
   }
 #endif
   slots->mCustomElementData = std::move(aData);
+}
+
+void Element::ClearCustomElementData() {
+  MOZ_ASSERT(HasCustomElementData());
+
+  ClearHasCustomElementData();
+
+  // This is correct for something like <div is="custom-div">, because
+  // after "removing" the custom elements data, this is again a known
+  // built-in and thus defined element.
+  SetDefined(!nsContentUtils::IsCustomElementName(NodeInfo()->NameAtom(),
+                                                  NodeInfo()->NamespaceID()));
+
+  nsExtendedDOMSlots* slots = ExtendedDOMSlots();
+  slots->mCustomElementData = nullptr;
 }
 
 nsTArray<RefPtr<nsAtom>>& Element::EnsureCustomStates() {

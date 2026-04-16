@@ -21,6 +21,8 @@
     <string name="pref_key_translation" translatable="false">pref_key_translation</string>
     <string name="pref_key_ai_controls" translatable="false">pref_key_ai_controls</string>
     <string name="pref_key_enable_ai_controls" translatable="false">pref_key_enable_ai_controls</string>
+    <string name="pref_key_enable_ip_protection" translatable="false">pref_key_enable_ip_protection</string>
+    <string name="pref_key_ip_protection_settings" translatable="false">pref_key_ip_protection_settings</string>
     <string name="pref_key_data_choices" translatable="false">pref_key_data_choices</string>
     <string name="pref_key_delete_browsing_data" translatable="false">pref_key_delete_browsing_data</string>
     <string name="pref_key_delete_browsing_data_on_quit_preference" translatable="false">pref_key_delete_browsing_data_on_quit_preference</string>
@@ -105,6 +107,13 @@
     <string name="pref_key_privacy_notice_banner_last_displayed_time" translatable="false">pref_key_privacy_notice_banner_last_displayed_time</string>
     <string name="pref_cfr_popups_enabled" translatable="false">pref_cfr_popups_enabled</string>
     <string name="pref_in_app_messages_enabled" translatable="false">pref_in_app_messages_enabled</string>
+    <string name="pref_key_onboarding_completed_timestamp" translatable="false">pref_key_onboarding_completed_timestamp</string>
+
+    <!-- Continuous onboarding -->
+    <string name="pref_key_continuous_onboarding_enabled" translatable="false">pref_key_continuous_onboarding_enabled</string>
+    <string name="pref_key_continuous_onboarding_day_two_completed_timestamp" translatable="false">pref_key_continuous_onboarding_day_two_completed_timestamp</string>
+    <string name="pref_key_continuous_onboarding_day_three_completed_timestamp" translatable="false">pref_key_continuous_onboarding_day_three_completed_timestamp</string>
+    <string name="pref_key_continuous_onboarding_day_seven_completed_timestamp" translatable="false">pref_key_continuous_onboarding_day_seven_completed_timestamp</string>
 
     <!-- Data Choices -->
     <string name="pref_key_telemetry" translatable="false">pref_key_telemetry</string>
@@ -454,6 +463,7 @@
     <string name="pref_key_enable_merino_client" translatable="false">pref_key_enable_merino_client</string>
     <string name="pref_key_enable_merino_manifest" translatable="false">pref_key_enable_merino_manifest</string>
     <string name="pref_key_enable_unified_trust_panel" translatable="false">pref_key_enable_unified_trust_panel</string>
+    <string name="pref_key_enable_compose_wallpaper" translatable="false">pref_key_enable_compose_wallpaper</string>
     <string name="pref_key_use_minimal_bottom_toolbar_while_entering_text" translatable="false">pref_key_use_minimal_bottom_toolbar_while_entering_text</string>"
     <string name="pref_key_enable_toolbar_redesign" translatable="false">pref_key_enable_toolbar_redesign</string>"
     <string name="pref_key_enable_address_sync" translatable="false">pref_key_enable_address_sync</string>"
@@ -578,6 +588,7 @@
 
     <!-- Tab Groups -->
     <string name="pref_key_tab_groups" translatable="false">pref_key_tab_groups_feature</string>
+    <string name="pref_key_tab_groups_drag_and_drop" translatable="false">pref_key_tab_groups_drag_and_drop</string>
 
     <!-- Native Share Sheet -->
     <string name="pref_key_native_share_sheet" translatable="false">pref_key_native_share_sheet</string>
@@ -585,6 +596,8 @@
     <!-- Longfox -->
     <string name="pref_key_enable_longfox" translatable="false">pref_key_enable_longfox</string>
 
+    <!-- Google Lens Integration -->
+    <string name="pref_key_google_lens_integration" translatable="false">pref_key_google_lens_integration</string>
     <!--  Search Optimization Cards  -->
     <string name="pref_key_search_optimization" translatable="false">pref_key_search_optimization</string>
     <string name="pref_key_search_optimization_feature" translatable="false">pref_key_search_optimization_feature</string>

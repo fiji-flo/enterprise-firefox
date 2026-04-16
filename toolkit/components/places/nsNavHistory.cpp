@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -686,7 +684,7 @@ nsNavHistory::ExecuteQuery(nsINavHistoryQuery* aQuery,
 
 // determine from our nsNavHistoryQuery array and nsNavHistoryQueryOptions
 // if this is the place query from the history menu.
-// from browser-menubar.inc, our history menu query is:
+// from browser-menubar.inc.xhtml, our history menu query is:
 // place:sort=4&maxResults=10
 // note, any maxResult > 0 will still be considered a history menu query
 // or if this is the place query from the old "Most Visited" item in some

@@ -60,6 +60,10 @@ android {
     compileSdk { version = release(config.compileSdkMajorVersion) { minorApiLevel = config.compileSdkMinorVersion } }
 
     defaultConfig {
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas".toString())
+        }
+
         applicationId "org.mozilla"
         minSdk config.minSdkVersion
         targetSdk config.targetSdkVersion
@@ -709,6 +713,7 @@ dependencies {
     testImplementation libs.androidx.compose.ui.test
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
+    testImplementation libs.androidx.test.runner
     testImplementation libs.androidx.work.testing
     testImplementation libs.kotlin.test
     testImplementation libs.kotlinx.coroutines.test

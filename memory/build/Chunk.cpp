@@ -220,14 +220,14 @@ static void* pages_map(void* aAddr, size_t aSize, ShouldCommit should_commit) {
   }
 }
 
-static void pages_unmap(void* aAddr, size_t aSize) {
+void pages_unmap(void* aAddr, size_t aSize) {
   if (VirtualFree(aAddr, 0, MEM_RELEASE) == 0) {
     _malloc_message(_getprogname(), ": (malloc) Error in VirtualFree()\n");
   }
 }
 #else
 
-static void pages_unmap(void* aAddr, size_t aSize) {
+void pages_unmap(void* aAddr, size_t aSize) {
   if (munmap(aAddr, aSize) == -1) {
     char buf[64];
 
@@ -541,8 +541,6 @@ void chunk_assert_zero(void* aPtr, size_t aSize) {
 #endif
 
 static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
-  extent_node_t key;
-
   if (aType != ZEROED_CHUNK) {
     if (pages_purge(aChunk, aSize, aType == HUGE_CHUNK)) {
       aType = ZEROED_CHUNK;
@@ -553,17 +551,17 @@ static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
   // be needed, because TypedBaseAlloc::alloc() may cause a new base chunk to
   // be allocated, which could cause deadlock if chunks_mtx were already
   // held.
-  UniqueBaseNode xnode(ExtentAlloc::alloc());
+  UniqueBaseNode xnode(new (fallible) extent_node_t());
   // Use xprev to implement conditional deferred deallocation of prev.
   UniqueBaseNode xprev;
 
   // RAII deallocates xnode and xprev defined above after unlocking
   // in order to avoid potential dead-locks
   MutexAutoLock lock(chunks_mtx);
-  key.mAddr = (void*)((uintptr_t)aChunk + aSize);
-  extent_node_t* node = gChunksByAddress.SearchOrNext(&key);
+  void* addr = (void*)((uintptr_t)aChunk + aSize);
+  extent_node_t* node = gChunksByAddress.SearchOrNext(addr);
   // Try to coalesce forward.
-  if (node && node->mAddr == key.mAddr) {
+  if (node && node->mAddr == addr) {
     // Coalesce chunk with the following address range.  This does
     // not change the position within gChunksByAddress, so only
     // remove/insert from/into gChunksBySize.
@@ -652,17 +650,13 @@ void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
 }
 
 static void* chunk_recycle(size_t aSize, size_t aAlignment) {
-  extent_node_t key;
-
   size_t alloc_size = aSize + aAlignment - kChunkSize;
   // Beware size_t wrap-around.
   if (alloc_size < aSize) {
     return nullptr;
   }
-  key.mAddr = nullptr;
-  key.mSize = alloc_size;
   chunks_mtx.Lock();
-  extent_node_t* node = gChunksBySize.SearchOrNext(&key);
+  extent_node_t* node = gChunksBySize.SearchOrNext(alloc_size);
   if (!node) {
     chunks_mtx.Unlock();
     return nullptr;
@@ -690,13 +684,12 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment) {
   if (trailsize != 0) {
     // Insert the trailing space as a smaller chunk.
     if (!node) {
-      // An additional node is required, but
-      // TypedBaseAlloc::alloc() can cause a new base chunk to be
-      // allocated.  Drop chunks_mtx in order to avoid
-      // deadlock, and if node allocation fails, deallocate
-      // the result before returning an error.
+      // An additional node is required, but BaseAlloc::alloc() may cause a
+      // new base chunk to be allocated.  Drop chunks_mtx in order to avoid
+      // deadlock, and if node allocation fails, deallocate the result
+      // before returning an error.
       chunks_mtx.Unlock();
-      node = ExtentAlloc::alloc();
+      node = new (fallible) extent_node_t();
       if (!node) {
         chunk_dealloc(ret, aSize, ZEROED_CHUNK);
         return nullptr;
@@ -716,7 +709,7 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment) {
   chunks_mtx.Unlock();
 
   if (node) {
-    ExtentAlloc::dealloc(node);
+    delete node;
   }
   if (!pages_commit(ret, aSize)) {
     return nullptr;
@@ -757,11 +750,6 @@ void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase) {
   MOZ_ASSERT(GetChunkOffsetForPtr(ret) == 0);
   return ret;
 }
-
-// This would be all alone in an Extent.cpp file, instead put it here where
-// it is used.
-template <>
-extent_node_t* ExtentAlloc::sFirstFree = nullptr;
 
 arena_chunk_t::arena_chunk_t(arena_t* aArena)
     : mArena(aArena), mDirtyRunHint(gChunkHeaderNumPages) {}

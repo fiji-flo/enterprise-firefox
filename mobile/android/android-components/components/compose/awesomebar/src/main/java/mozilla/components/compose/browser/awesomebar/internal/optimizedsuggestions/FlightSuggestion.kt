@@ -19,9 +19,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -30,6 +32,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -39,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.theme.AcornTheme
@@ -190,11 +194,13 @@ private fun FlightPath(progress: Float, modifier: Modifier = Modifier) {
         R.string.mozac_browser_awesomebar_flight_suggestion_progress,
         progressPercent,
     )
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(20.dp)
+            .scale(scaleX = if (isRtl) -1f else 1f, scaleY = 1f)
             .thenConditional(
                 Modifier.clearAndSetSemantics {
                     contentDescription = flightPathContentDescription
@@ -302,25 +308,27 @@ private fun FlightInfo(
             style = AcornTheme.typography.body1,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
-            text = flightSchedule,
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 2,
-            style = AcornTheme.typography.subtitle2,
-            color = dateColor,
-            textDecoration = if (flightStatus == FlightSuggestionStatus.CANCELLED) {
-                TextDecoration.LineThrough
-            } else {
-                null
-            },
-            modifier = Modifier.clearAndSetSemantics {
-                contentDescription = if (flightStatus == FlightSuggestionStatus.CANCELLED) {
-                    cancelledScheduleContentDescription
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Text(
+                text = flightSchedule,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+                style = AcornTheme.typography.subtitle2,
+                color = dateColor,
+                textDecoration = if (flightStatus == FlightSuggestionStatus.CANCELLED) {
+                    TextDecoration.LineThrough
                 } else {
-                    flightSchedule
-                }
-            },
-        )
+                    null
+                },
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = if (flightStatus == FlightSuggestionStatus.CANCELLED) {
+                        cancelledScheduleContentDescription
+                    } else {
+                        flightSchedule
+                    }
+                },
+            )
+        }
     }
 }
 

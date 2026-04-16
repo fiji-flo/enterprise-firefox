@@ -8594,19 +8594,6 @@ class MRoundToDouble : public MUnaryInstruction,
   ALLOW_CLONE(MRoundToDouble)
 };
 
-class MGetIteratorCache : public MUnaryInstruction,
-                          public BoxExceptPolicy<0, MIRType::Object>::Data {
-  explicit MGetIteratorCache(MDefinition* val)
-      : MUnaryInstruction(classOpcode, val) {
-    setResultType(MIRType::Object);
-  }
-
- public:
-  INSTRUCTION_HEADER(GetIteratorCache)
-  TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, value))
-};
-
 // Implementation for 'in' operator using instruction cache
 class MInCache : public MBinaryInstruction,
                  public MixPolicy<CacheIdPolicy<0>, ObjectPolicy<1>>::Data {
@@ -8689,20 +8676,6 @@ class MHasOwnCache : public MBinaryInstruction,
   INSTRUCTION_HEADER(HasOwnCache)
   TRIVIAL_NEW_WRAPPERS
   NAMED_OPERANDS((0, value), (1, idval))
-};
-
-// Implementation for instanceof operator with specific rhs.
-class MInstanceOf : public MBinaryInstruction,
-                    public MixPolicy<BoxExceptPolicy<0, MIRType::Object>,
-                                     ObjectPolicy<1>>::Data {
-  MInstanceOf(MDefinition* obj, MDefinition* proto)
-      : MBinaryInstruction(classOpcode, obj, proto) {
-    setResultType(MIRType::Boolean);
-  }
-
- public:
-  INSTRUCTION_HEADER(InstanceOf)
-  TRIVIAL_NEW_WRAPPERS
 };
 
 // Given a value being written to another object, update the generational store
@@ -8981,29 +8954,6 @@ class MResumePoint final : public MNode
 #endif
 };
 
-class MIsCallable : public MUnaryInstruction,
-                    public BoxExceptPolicy<0, MIRType::Object>::Data {
-  explicit MIsCallable(MDefinition* object)
-      : MUnaryInstruction(classOpcode, object) {
-    setResultType(MIRType::Boolean);
-    setMovable();
-  }
-
- public:
-  INSTRUCTION_HEADER(IsCallable)
-  TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, object))
-
-  bool congruentTo(const MDefinition* ins) const override {
-    return congruentIfOperandsEqual(ins);
-  }
-
-  MDefinition* foldsTo(TempAllocator& alloc) override;
-  AliasSet getAliasSet() const override {
-    return AliasSet::Load(AliasSet::ObjectFields);
-  }
-};
-
 class MHasClass : public MUnaryInstruction, public SingleObjectPolicy::Data {
   const JSClass* class_;
 
@@ -9097,29 +9047,15 @@ class MGuardToFunction : public MUnaryInstruction,
   NAMED_OPERANDS((0, object))
 
   MDefinition* foldsTo(TempAllocator& alloc) override;
-  AliasSet getAliasSet() const override { return AliasSet::None(); }
+  AliasSet getAliasSet() const override {
+    return AliasSet::Load(AliasSet::ObjectFields);
+  }
   bool congruentTo(const MDefinition* ins) const override {
     if (!ins->isGuardToFunction()) {
       return false;
     }
     return congruentIfOperandsEqual(ins);
   }
-};
-
-// Note: we might call a proxy trap, so this instruction is effectful.
-class MIsArray : public MUnaryInstruction,
-                 public BoxExceptPolicy<0, MIRType::Object>::Data {
-  explicit MIsArray(MDefinition* value)
-      : MUnaryInstruction(classOpcode, value) {
-    setResultType(MIRType::Boolean);
-  }
-
- public:
-  INSTRUCTION_HEADER(IsArray)
-  TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, value))
-
-  MDefinition* foldsTo(TempAllocator& alloc) override;
 };
 
 class MIsTypedArray : public MUnaryInstruction,

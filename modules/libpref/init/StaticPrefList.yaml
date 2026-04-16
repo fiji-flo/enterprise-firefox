@@ -3106,6 +3106,13 @@
   value: 256
   mirror: always
 
+# Whether to validate that a fetch request's principal is compatible with the
+# remote type of the process it originates from.
+- name: dom.fetch.validatePrincipalForRemoteType
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 - name: dom.fetchObserver.enabled
   type: RelaxedAtomicBool
   value: false
@@ -3975,6 +3982,13 @@
   value: true
   mirror: always
 
+# Whether to opt out of system permission check for navigator.permissions.query on testing.
+# This is because we cannot control the system permission state on CI.
+- name: dom.permissions.testing.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Is support for Element.requestPointerLock enabled?
 # This is added for accessibility purpose. When user has no way to exit
 # pointer lock (e.g. no keyboard available), they can use this pref to
@@ -4576,7 +4590,7 @@
 # For testing purposes only: Cache stencil across navigation
 - name: dom.script_loader.experimental.navigation_cache
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # Set to false to avoid clearing the navigation cache, to get the deterministic
@@ -5697,14 +5711,6 @@
   value: true
   mirror: always
 
-# Whether allowing selection across the boundary
-# between shadow DOM and light DOM.
-# This is based on https://github.com/mfreed7/shadow-dom-selection
-- name: dom.shadowdom.selection_across_boundary.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # If true, when user selects a range, `Selection` will split the range to
 # exclude unselectable content from the range.
 - name: dom.selection.exclude_non_selectable_nodes
@@ -5731,6 +5737,11 @@
 
 - name: dom.shadowdom.referenceTarget.enabled
   type: bool
+  value: false
+  mirror: always
+
+- name: dom.shadowdom.shadowRootSlotAssignment.enabled
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 
@@ -5872,6 +5883,24 @@
 - name: dom.webmidi.gated
   type: bool
   value: true
+  mirror: always
+
+# Whether the WebSerial API is enabled
+- name: dom.webserial.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Whether the WebSerial API is addon-gated
+- name: dom.webserial.gated
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# whether to use the TestSerialPlatformService
+- name: dom.webserial.testing.enabled
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
 
 - name: dom.webnotifications.allowcrossoriginiframe
@@ -10240,7 +10269,7 @@
 # Whether style() container queries are enabled
 - name: layout.css.style-queries.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
@@ -11460,7 +11489,7 @@
 # fragmentation consistently even if the actual pref value changes.
 - name: layout.abspos.fragmentainer-aware-positioning.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -13490,6 +13519,13 @@
   value: 500
   mirror: always
 
+# This timeout (ms) needs to be long enough to allow for the
+# possibility of DMD reports and/or running on a low-end phone.
+- name: memory.reporter.timeout
+  type: uint32_t
+  value: 180000
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "middlemouse."
 #---------------------------------------------------------------------------
@@ -14974,6 +15010,11 @@
 #endif
   mirror: always
 
+- name: network.proxy.fast_path_system_direct
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # If all non-direct proxies have failed, we retry all of them in case they
 # are online now.
 - name: network.proxy.retry_failed_proxies
@@ -15041,13 +15082,19 @@
 # Capacity of the above cache, in kilobytes.
 - name: network.ssl_tokens_cache_capacity
   type: RelaxedAtomicUint32
-  value: 2048
+  value: 8192
   mirror: always
 
 # How many records we store per entry
 - name: network.ssl_tokens_cache_records_per_entry
   type: RelaxedAtomicUint32
   value: 10
+  mirror: always
+
+# Enable persistence of the SSL tokens cache to disk
+- name: network.ssl_tokens_cache_persistence
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
 
 # The maximum allowed length for a URL - 1MB default.
@@ -16177,7 +16224,7 @@
 # Set to * to allow all schemes.
 - name: network.http_index_format.allowed_schemes
   type: String
-  value: "file,moz-gio"
+  value: "file"
   mirror: never
 
 # Enable off-main-thread decompression of network streams
@@ -17194,11 +17241,6 @@
   value: true
   mirror: always
 
-- name: privacy.partition.network_state
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # Partition the OCSP cache by the partitionKey.
 - name: privacy.partition.network_state.ocsp_cache
   type: RelaxedAtomicBool
@@ -17323,12 +17365,6 @@
 - name: privacy.bounceTrackingProtection.bounceTrackingPurgeTimerPeriodSec
   type: uint32_t
   value: 3600
-  mirror: always
-
-# Whether only bounces that access storage should be considered trackers.
-- name: privacy.bounceTrackingProtection.requireStatefulBounces
-  type: bool
-  value: false
   mirror: always
 
 # To be used in automated test environments to enable observer messages.

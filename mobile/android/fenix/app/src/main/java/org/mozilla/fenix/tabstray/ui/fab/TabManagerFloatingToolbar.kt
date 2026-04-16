@@ -39,7 +39,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.button.ExtendedFloatingActionButton
+import mozilla.components.compose.base.button.FloatingActionButton
 import mozilla.components.compose.base.button.FloatingActionButtonDefaults
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.compose.base.menu.DropdownMenu
@@ -65,8 +65,6 @@ import mozilla.components.ui.icons.R as iconsR
  * @param tabsTrayStore [TabsTrayStore] used to listen for changes to [TabsTrayState].
  * @param isSignedIn Whether the user is signed into their Firefox account.
  * @param modifier The [Modifier] to be applied to this FAB.
- * @param expanded Controls the expansion state of this FAB. In an expanded state, the FAB will
- * show both the icon and text. In a collapsed state, the FAB will show only the icon.
  * @param pbmLocked Whether the private browsing mode is currently locked.
  * @param onOpenNewNormalTabClicked Invoked when the fab is clicked in [Page.NormalTabs].
  * @param onOpenNewPrivateTabClicked Invoked when the fab is clicked in [Page.PrivateTabs].
@@ -82,7 +80,6 @@ internal fun TabManagerFloatingToolbar(
     tabsTrayStore: TabsTrayStore,
     isSignedIn: Boolean,
     modifier: Modifier = Modifier,
-    expanded: Boolean = true,
     pbmLocked: Boolean = false,
     onOpenNewNormalTabClicked: () -> Unit,
     onOpenNewPrivateTabClicked: () -> Unit,
@@ -94,9 +91,10 @@ internal fun TabManagerFloatingToolbar(
 ) {
     val state by tabsTrayStore.stateFlow.collectAsState()
     val privateTabsLocked = pbmLocked && state.selectedPage == Page.PrivateTabs
+    val tabGroupsPageSelected = state.config.tabGroupsEnabled && state.selectedPage == Page.TabGroups
 
     AnimatedVisibility(
-        visible = state.mode is Mode.Normal && !privateTabsLocked,
+        visible = state.mode is Mode.Normal && !privateTabsLocked && !tabGroupsPageSelected,
         modifier = modifier,
         enter = fadeIn(),
         exit = fadeOut(),
@@ -135,7 +133,6 @@ internal fun TabManagerFloatingToolbar(
             ) {
                 FloatingToolbarFAB(
                     state = state,
-                    expanded = expanded,
                     isSignedIn = isSignedIn,
                     onOpenNewNormalTabClicked = onOpenNewNormalTabClicked,
                     onOpenNewPrivateTabClicked = onOpenNewPrivateTabClicked,
@@ -233,7 +230,6 @@ private fun FloatingToolbarActions(
 @Composable
 private fun FloatingToolbarFAB(
     state: TabsTrayState,
-    expanded: Boolean,
     isSignedIn: Boolean,
     onOpenNewNormalTabClicked: () -> Unit,
     onOpenNewPrivateTabClicked: () -> Unit,
@@ -241,34 +237,29 @@ private fun FloatingToolbarFAB(
 ) {
     @DrawableRes val icon: Int
     val contentDescription: String
-    val label: String
     var colors = FloatingActionButtonDefaults.colorsPrimary()
     var elevation = M3FloatingActionButtonDefaults.elevation()
     val onClick: () -> Unit
     var iconModifier: Modifier = Modifier
+
     when (state.selectedPage) {
         Page.NormalTabs -> {
             icon = iconsR.drawable.mozac_ic_plus_24
             contentDescription = stringResource(id = R.string.add_tab)
-            label = stringResource(id = R.string.tab_manager_floating_action_button_new_normal_tab)
             onClick = onOpenNewNormalTabClicked
         }
 
         Page.PrivateTabs -> {
             icon = iconsR.drawable.mozac_ic_plus_24
             contentDescription = stringResource(id = R.string.add_private_tab)
-            label = stringResource(id = R.string.tab_manager_floating_action_button_new_private_tab)
             onClick = onOpenNewPrivateTabClicked
         }
+
+        Page.TabGroups -> return
 
         Page.SyncedTabs -> {
             icon = iconsR.drawable.mozac_ic_sync_24
             contentDescription = stringResource(id = R.string.resync_button_content_description)
-            label = if (state.sync.isSyncing) {
-                stringResource(id = R.string.sync_syncing_in_progress)
-            } else {
-                stringResource(id = R.string.tab_manager_floating_action_button_sync_tabs)
-            }
             onClick = {
                 if (isSignedIn) {
                     onSyncedTabsFabClicked()
@@ -287,20 +278,16 @@ private fun FloatingToolbarFAB(
         }
     }
 
-    ExtendedFloatingActionButton(
-        label = label,
-        onClick = onClick,
-        modifier = Modifier.testTag(TabsTrayTestTag.FAB),
-        expanded = expanded,
+    FloatingActionButton(
+        icon = painterResource(id = icon),
+        modifier = Modifier
+            .testTag(TabsTrayTestTag.FAB)
+            .then(iconModifier),
+        contentDescription = contentDescription,
         colors = colors,
         elevation = elevation,
-    ) {
-        Icon(
-            painter = painterResource(id = icon),
-            contentDescription = contentDescription,
-            modifier = iconModifier,
-        )
-    }
+        onClick = onClick,
+    )
 }
 
 /**
@@ -417,7 +404,6 @@ private fun generateMenuItems(
 
 private data class TabManagerFloatingToolbarPreviewModel(
     val state: TabsTrayState,
-    val expanded: Boolean,
     val isSignedIn: Boolean = true,
 )
 
@@ -433,37 +419,6 @@ private class TabManagerFloatingToolbarParameterProvider :
                     ),
                     normalTabs = listOf(createTab(url = "url")),
                 ),
-                expanded = false,
-            ),
-            TabManagerFloatingToolbarPreviewModel(
-                state = TabsTrayState(
-                    selectedPage = Page.NormalTabs,
-                    config = TabsTrayState.TabsTrayConfig(
-                        tabSearchEnabled = false,
-                    ),
-                    normalTabs = listOf(createTab(url = "url")),
-                ),
-                expanded = true,
-            ),
-            TabManagerFloatingToolbarPreviewModel(
-                state = TabsTrayState(
-                    selectedPage = Page.NormalTabs,
-                    config = TabsTrayState.TabsTrayConfig(
-                        tabSearchEnabled = false,
-                    ),
-                    normalTabs = listOf(createTab(url = "url")),
-                ),
-                expanded = false,
-            ),
-            TabManagerFloatingToolbarPreviewModel(
-                state = TabsTrayState(
-                    selectedPage = Page.NormalTabs,
-                    config = TabsTrayState.TabsTrayConfig(
-                        tabSearchEnabled = false,
-                    ),
-                    normalTabs = listOf(createTab(url = "url")),
-                ),
-                expanded = true,
             ),
             TabManagerFloatingToolbarPreviewModel(
                 state = TabsTrayState(
@@ -473,7 +428,6 @@ private class TabManagerFloatingToolbarParameterProvider :
                     ),
                     normalTabs = emptyList(),
                 ),
-                expanded = true,
             ),
             TabManagerFloatingToolbarPreviewModel(
                 state = TabsTrayState(
@@ -485,19 +439,6 @@ private class TabManagerFloatingToolbarParameterProvider :
                         tabs = listOf(createTab(url = "url")),
                     ),
                 ),
-                expanded = false,
-            ),
-            TabManagerFloatingToolbarPreviewModel(
-                state = TabsTrayState(
-                    selectedPage = Page.PrivateTabs,
-                    config = TabsTrayState.TabsTrayConfig(
-                        tabSearchEnabled = true,
-                    ),
-                    privateBrowsing = TabsTrayState.PrivateBrowsingState(
-                        tabs = listOf(createTab(url = "url")),
-                    ),
-                ),
-                expanded = true,
             ),
             TabManagerFloatingToolbarPreviewModel(
                 state = TabsTrayState(
@@ -509,7 +450,6 @@ private class TabManagerFloatingToolbarParameterProvider :
                         tabs = emptyList(),
                     ),
                 ),
-                expanded = true,
             ),
             TabManagerFloatingToolbarPreviewModel(
                 state = TabsTrayState(
@@ -518,7 +458,6 @@ private class TabManagerFloatingToolbarParameterProvider :
                         tabSearchEnabled = true,
                     ),
                 ),
-                expanded = false,
                 isSignedIn = true,
             ),
             TabManagerFloatingToolbarPreviewModel(
@@ -528,27 +467,6 @@ private class TabManagerFloatingToolbarParameterProvider :
                         tabSearchEnabled = true,
                     ),
                 ),
-                expanded = true,
-                isSignedIn = true,
-            ),
-            TabManagerFloatingToolbarPreviewModel(
-                state = TabsTrayState(
-                    selectedPage = Page.SyncedTabs,
-                    config = TabsTrayState.TabsTrayConfig(
-                        tabSearchEnabled = true,
-                    ),
-                ),
-                expanded = false,
-                isSignedIn = false,
-            ),
-            TabManagerFloatingToolbarPreviewModel(
-                state = TabsTrayState(
-                    selectedPage = Page.SyncedTabs,
-                    config = TabsTrayState.TabsTrayConfig(
-                        tabSearchEnabled = true,
-                    ),
-                ),
-                expanded = true,
                 isSignedIn = false,
             ),
         )
@@ -564,7 +482,6 @@ private fun TabManagerFloatingToolbarPreview(
         Surface {
             TabManagerFloatingToolbar(
                 tabsTrayStore = remember { TabsTrayStore(initialState = previewDataModel.state) },
-                expanded = previewDataModel.expanded,
                 isSignedIn = previewDataModel.isSignedIn,
                 pbmLocked = false,
                 modifier = Modifier.padding(all = 16.dp),

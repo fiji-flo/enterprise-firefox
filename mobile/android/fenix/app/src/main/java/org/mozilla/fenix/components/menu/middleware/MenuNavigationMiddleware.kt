@@ -348,6 +348,13 @@ class MenuNavigationMiddleware(
                     }
                 }
 
+                is MenuAction.Navigate.IPProtectionSettings -> {
+                    navController.nav(
+                        id = R.id.menuDialogFragment,
+                        directions = MenuDialogFragmentDirections.actionMenuDialogFragmentToIpProtectionFragment(),
+                    )
+                }
+
                 else -> Unit
             }
         }

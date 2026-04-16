@@ -1402,10 +1402,10 @@ bool LeaveWith(JSContext* cx, BaselineFrame* frame) {
   return true;
 }
 
-bool InitBaselineFrameForOsr(BaselineFrame* frame,
+void InitBaselineFrameForOsr(BaselineFrame* frame,
                              InterpreterFrame* interpFrame,
                              uint32_t numStackValues) {
-  return frame->initForOsr(interpFrame, numStackValues);
+  frame->initForOsr(interpFrame, numStackValues);
 }
 
 JSString* StringReplace(JSContext* cx, HandleString string,
@@ -1551,11 +1551,6 @@ JSObject* ObjectKeysFromIterator(JSContext* cx, HandleObject iterObj) {
   }
 
   return array;
-}
-
-bool ObjectKeysLength(JSContext* cx, HandleObject obj, int32_t* length) {
-  MOZ_ASSERT(!obj->is<ProxyObject>());
-  return js::obj_keys_length(cx, obj, *length);
 }
 
 void JitValuePreWriteBarrier(JSRuntime* rt, Value* vp) {

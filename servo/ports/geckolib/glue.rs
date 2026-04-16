@@ -3503,6 +3503,45 @@ pub extern "C" fn Servo_ContainerRule_QueryContainerFor(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_ContainerRule_QueryConditionMatchesElement(
+    rule: &ContainerRule,
+    element: &RawGeckoElement,
+    condition_index: usize,
+    per_doc_data: &PerDocumentStyleData,
+) -> bool {
+    let Some(condition) = rule.conditions.0.get(condition_index) else {
+        return false;
+    };
+
+    let stylist = &per_doc_data.borrow().stylist;
+    let quirks_mode = stylist.quirks_mode();
+    let mut selector_caches = SelectorCaches::default();
+    let mut context: MatchingContext<'_, style::selector_parser::SelectorImpl> =
+        MatchingContext::new(
+            MatchingMode::Normal,
+            /* bloom_filter = */ None,
+            &mut selector_caches,
+            quirks_mode,
+            NeedsSelectorFlags::No,
+            MatchingForInvalidation::No,
+        );
+
+    condition
+        .matches(
+            stylist,
+            GeckoElement(element),
+            context.extra_data.originating_element_style,
+            &mut context.extra_data.cascade_input_flags,
+        )
+        .to_bool(
+            // Consider unknown as false so we're consistent with that's done in
+            // CascadeData::container_condition_matches and won't indicate unsupported
+            // functions/idents as supported (see https://drafts.csswg.org/mediaqueries/#typedef-general-enclosed)
+            false,
+        )
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DocumentRule_GetConditionText(
     rule: &DocumentRule,
     result: &mut nsACString,
@@ -7000,7 +7039,6 @@ fn create_context_for_animation<'a>(
     per_doc_data: &'a PerDocumentStyleDataImpl,
     style: &'a ComputedValues,
     parent_style: Option<&'a ComputedValues>,
-    for_smil_animation: bool,
     rule_cache_conditions: &'a mut RuleCacheConditions,
     container_size_query: ContainerSizeQuery<'a>,
 ) -> Context<'a> {
@@ -7011,7 +7049,6 @@ fn create_context_for_animation<'a>(
             style,
             parent_style,
         ),
-        for_smil_animation,
         per_doc_data.stylist.quirks_mode(),
         rule_cache_conditions,
         container_size_query,
@@ -7104,7 +7141,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
         &data,
         &style,
         parent_style,
-        /* for_smil_animation = */ false,
         &mut conditions,
         container_size_query,
     );
@@ -7242,7 +7278,6 @@ pub extern "C" fn Servo_GetAnimationValues(
         &data,
         &style,
         parent_style,
-        /* for_smil_animation = */ true,
         &mut conditions,
         container_size_query,
     );
@@ -7288,7 +7323,6 @@ pub extern "C" fn Servo_AnimationValue_Compute(
         &data,
         style,
         parent_style,
-        /* for_smil_animation = */ false,
         &mut conditions,
         container_size_query,
     );
@@ -9992,13 +10026,7 @@ pub extern "C" fn Servo_SlowRgbToNearestColorName(
 pub extern "C" fn Servo_ColorNameToRgb(name: &nsACString, out: &mut structs::nscolor) -> bool {
     match cssparser::color::parse_named_color(unsafe { name.as_str_unchecked() }) {
         Ok((r, g, b)) => {
-            *out = AbsoluteColor::new(
-                ColorSpace::Srgb,
-                r,
-                g,
-                b,
-                1.0,
-            ).to_nscolor();
+            *out = AbsoluteColor::new(ColorSpace::Srgb, r, g, b, 1.0).to_nscolor();
             true
         },
         _ => false,

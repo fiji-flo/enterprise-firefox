@@ -374,10 +374,29 @@ Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
   return Nothing();
 }
 
-bool wasm::ImportMatchesBuiltinModuleFunc(mozilla::Span<const char> importName,
-                                          BuiltinModuleId module,
-                                          const BuiltinModuleFunc** matchedFunc,
-                                          BuiltinModuleFuncId* matchedFuncId) {
+Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
+    const Import& import, const BuiltinModuleIds& enabledBuiltins) {
+  Maybe<BuiltinModuleId> builtinModule =
+      ImportMatchesBuiltinModule(import.module.utf8Bytes(), enabledBuiltins);
+  if (builtinModule &&
+      !ImportFieldMatchesBuiltinModuleDefinition(import.field.utf8Bytes(),
+                                                 *builtinModule, import.kind)) {
+    return Nothing();
+  }
+  return builtinModule;
+}
+
+bool wasm::ImportFieldMatchesBuiltinModuleDefinition(
+    mozilla::Span<const char> importName, BuiltinModuleId module,
+    DefinitionKind kind, const BuiltinModuleFunc** matchedFunc,
+    BuiltinModuleFuncId* matchedFuncId) {
+  if (kind != DefinitionKind::Function) {
+    // JSStringConstants accepts all global imports; other builtin modules only
+    // define functions.
+    return module == BuiltinModuleId::JSStringConstants &&
+           kind == DefinitionKind::Global;
+  }
+
   // Imported string constants don't define any functions
   if (module == BuiltinModuleId::JSStringConstants) {
     return false;
@@ -388,8 +407,12 @@ bool wasm::ImportMatchesBuiltinModuleFunc(mozilla::Span<const char> importName,
     for (BuiltinModuleFuncId funcId : IntGemmFuncs) {
       const BuiltinModuleFunc& func = BuiltinModuleFuncs::getFromId(funcId);
       if (importName == mozilla::MakeStringSpan(func.exportName())) {
-        *matchedFunc = &func;
-        *matchedFuncId = funcId;
+        if (matchedFunc) {
+          *matchedFunc = &func;
+        }
+        if (matchedFuncId) {
+          *matchedFuncId = funcId;
+        }
         return true;
       }
     }
@@ -403,8 +426,12 @@ bool wasm::ImportMatchesBuiltinModuleFunc(mozilla::Span<const char> importName,
   for (BuiltinModuleFuncId funcId : JSStringFuncs) {
     const BuiltinModuleFunc& func = BuiltinModuleFuncs::getFromId(funcId);
     if (importName == mozilla::MakeStringSpan(func.exportName())) {
-      *matchedFunc = &func;
-      *matchedFuncId = funcId;
+      if (matchedFunc) {
+        *matchedFunc = &func;
+      }
+      if (matchedFuncId) {
+        *matchedFuncId = funcId;
+      }
       return true;
     }
   }

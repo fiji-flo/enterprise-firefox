@@ -8,104 +8,10 @@ Please note that some targeting attributes require stricter controls on the tele
 
 ## Available attributes
 
-* [activeNotifications](#activenotifications)
-* [addonsInfo](#addonsinfo)
-* [addressesSaved](#addressessaved)
-* [alltabsButtonAreaType](#alltabsButtonAreaType)
-* [archBits](#archbits)
-* [attachedFxAOAuthClients](#attachedfxaoauthclients)
-* [attributionData](#attributiondata)
-* [backgroundTaskName](#backgroundtaskname)
-* [backupsInfo](#backupsinfo)
-* [backupArchiveEnabled](#backuparchiveenabled)
-* [backupRestoreEnabled](#backuprestoreenabled)
-* [blockedCountByType](#blockedcountbytype)
-* [browserIsSelected](#browserisselected)
-* [browserSettings](#browsersettings)
-* [buildId](#buildId)
-* [canCreateSelectableProfiles](#cancreateselectableprofiles)
-* [creditCardsSaved](#creditcardssaved)
-* [currentDate](#currentdate)
-* [currentTabGroups](#currenttabgroups)
-* [currentTabInstalledAsWebApp](#currenttabinstalledaswebapp)
-* [currentProfileId](#currentprofileid)
-* [profileGroupProfileCount](#profileGroupProfileCount)
-* [defaultPDFHandler](#defaultpdfhandler)
-* [devToolsOpenedCount](#devtoolsopenedcount)
-* [distributionId](#distributionid)
-* [doesAppNeedPin](#doesappneedpin)
-* [doesAppNeedPinUncached](#doesappneedpinuncached)
-* [doesAppNeedPrivatePin](#doesappneedprivatepin)
-* [firefoxVersion](#firefoxversion)
-* [fxViewButtonAreaType](#fxviewbuttonareatype)
-* [hasAccessedFxAPanel](#hasaccessedfxapanel)
-* [hasActiveEnterprisePolicies](#hasactiveenterprisepolicies)
-* [hasMigratedBookmarks](#hasmigratedbookmarks)
-* [hasMigratedCSVPasswords](#hasmigratedcsvpasswords)
-* [hasMigratedHistory](#hasmigratedhistory)
-* [hasMigratedPasswords](#hasmigratedpasswords)
-* [hasPinnedTabs](#haspinnedtabs)
-* [hasSelectableProfiles](#hasselectableprofiles)
-* [homePageSettings](#homepagesettings)
-* [isBackgroundTaskMode](#isbackgroundtaskmode)
-* [isAIWindow](#isaiwindow)
-* [isChinaRepack](#ischinarepack)
-* [isDefaultBrowser](#isdefaultbrowser)
-* [isDefaultBrowserUncached](#isdefaultbrowseruncached)
-* [isDefaultHandler](#isdefaulthandler)
-* [isDeviceMigration](#isdevicemigration)
-* [isEncryptedBackup](#isEncryptedBackup)
-* [isFirstRun](#isfirstrun)
-* [isFirstStartup](#isfirststartup)
-* [isFxAEnabled](#isfxaenabled)
-* [isFxASignedIn](#isfxasignedin)
-* [isMajorUpgrade](#ismajorupgrade)
-* [isMSIX](#ismsix)
-* [isPrivateWindow](#isprivatewindow)
-* [isRTAMO](#isrtamo)
-* [isSmartWindowOnboarding](#issmartwindowonboarding)
-* [unhandledCampaignAction](#unhandledCampaignAction)
-* [launchOnLoginEnabled](#launchonloginenabled)
-* [locale](#locale)
-* [localeLanguageCode](#localelanguagecode)
-* [memoryMB](#memorymb)
-* [messageImpressions](#messageimpressions)
-* [needsUpdate](#needsupdate)
-* [newtabAddonVersion](#newtabaddonversion)
-* [newtabSettings](#newtabsettings)
-* [packageFamilyName](#packagefamilyname)
-* [pinnedSites](#pinnedsites)
-* [platformName](#platformname)
-* [previousSessionEnd](#previoussessionend)
-* [primaryResolution](#primaryresolution)
-* [profileAgeCreated](#profileagecreated)
-* [profileAgeReset](#profileagereset)
-* [profileGroupId](#profilegroupid)
-* [profileRestartCount](#profilerestartcount)
-* [providerCohorts](#providercohorts)
-* [recentBookmarks](#recentbookmarks)
-* [region](#region)
-* [savedTabGroups](#savedtabgroups)
-* [screenImpressions](#screenimpressions)
-* [searchEngines](#searchengines)
-* [sync](#sync)
-* [systemArch](#systemarch)
-* [tabNotesCount](#tabnotescount)
-* [topFrecentSites](#topfrecentsites)
-* [totalBlockedCount](#totalblockedcount)
-* [totalBookmarksCount](#totalbookmarkscount)
-* [userActiveDaysWithHundredPlusSites](#userActiveDaysWithHundredPlusSites)
-* [userId](#userid)
-* [userMonthlyActivity](#usermonthlyactivity)
-* [userPrefersReducedMotion](#userprefersreducedmotion)
-* [useEmbeddedMigrationWizard](#useembeddedmigrationwizard)
-* [userPrefs](#userprefs)
-* [userWeekdaysActiveInLastMonth](#userWeekdaysActiveInLastMonth)
-* [usesFirefoxSync](#usesfirefoxsync)
-* [xpinstallEnabled](#xpinstallenabled)
-* [totalSearches](#totalsearches)
-
-## Detailed usage
+```{contents}
+:local:
+:depth: 1
+```
 
 ### `addonsInfo`
 Provides information about the add-ons the user has installed.
@@ -1213,7 +1119,23 @@ A boolean. `true` when [RTAMO](first-run.md#return-to-amo-rtamo) has been used t
 
 ### `isPrivateWindow`
 
-A boolean. `true` when the current active content window is in Private Browsing Mode; `false` otherwise.
+A boolean. `true` when the top window is in Private Browsing Mode; `false` otherwise.
+
+### `isTaskbarTabWindow`
+
+A boolean. `true` when the top window is a taskbar tab; `false` otherwise.
+
+### `canRestoreLastSession`
+
+A boolean. `true` when the user has a previous session saved that can be
+restored; `false` otherwise. Typically false when the previous session has
+already been restored, when the user has configured the browser to not save
+sessions, or on first run.
+
+### `autoRestoreSessionEnabled`
+
+A boolean. `true` when the user has configured the browser to automatically
+restore the previous session on startup; `false` otherwise.
 
 ### `canCreateSelectableProfiles`
 
@@ -1355,3 +1277,6 @@ declare const isFirstStartup: boolean;
 ```
 
 [Source](https://searchfox.org/mozilla-central/source/toolkit/components/nimbus/lib/ExperimentManager.sys.mjs#233)
+### `experimentsLoaded`
+
+Boolean that's true once Nimbus has loaded remote experiments from Remote Settings at least once. Returns true if experiments are disabled. This generally shouldn't be used outside of the splash screen.

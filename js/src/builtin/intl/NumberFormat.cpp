@@ -1502,12 +1502,29 @@ static bool ResolveLocale(JSContext* cx,
   }
   numberFormat->setLocale(locale);
 
-  auto nu = resolved.extension(UnicodeExtensionKey::NumberingSystem);
-  MOZ_ASSERT(nu, "resolved numbering system is non-null");
-  numberFormat->setNumberingSystem(nu);
+  if (auto nu = resolved.extension(UnicodeExtensionKey::NumberingSystem)) {
+    numberFormat->setNumberingSystem(nu);
+  } else {
+    numberFormat->setNumberingSystem(cx->names().default_);
+  }
 
   MOZ_ASSERT(numberFormat->isLocaleResolved(), "locale successfully resolved");
   return true;
+}
+
+static JSLinearString* ResolveNumberingSystem(
+    JSContext* cx, Handle<NumberFormatObject*> numberFormat) {
+  MOZ_ASSERT(numberFormat->isLocaleResolved());
+
+  auto* numberingSystem = numberFormat->getNumberingSystem();
+  if (numberingSystem == cx->names().default_) {
+    numberingSystem = DefaultNumberingSystem(cx, numberFormat->getLocale());
+    if (!numberingSystem) {
+      return nullptr;
+    }
+    numberFormat->setNumberingSystem(numberingSystem);
+  }
+  return numberingSystem;
 }
 
 static UniqueChars NumberFormatLocale(
@@ -1515,10 +1532,17 @@ static UniqueChars NumberFormatLocale(
   MOZ_ASSERT(numberFormat->isLocaleResolved());
 
   // ICU expects numberingSystem as a Unicode locale extensions on locale.
+  //
+  // We don't add any Unicode extension keywords when the default values can be
+  // used, because ICU optimizes for this case.
 
   JS::RootedVector<UnicodeExtensionKeyword> keywords(cx);
-  if (!keywords.emplaceBack("nu", numberFormat->getNumberingSystem())) {
-    return nullptr;
+
+  auto* numberingSystem = numberFormat->getNumberingSystem();
+  if (numberingSystem != cx->names().default_) {
+    if (!keywords.emplaceBack("nu", numberingSystem)) {
+      return nullptr;
+    }
   }
 
   Rooted<JSLinearString*> locale(cx, numberFormat->getLocale());
@@ -2645,8 +2669,12 @@ static bool numberFormat_resolvedOptions(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
+  auto* numberingSystem = ResolveNumberingSystem(cx, numberFormat);
+  if (!numberingSystem) {
+    return false;
+  }
   if (!options.emplaceBack(NameToId(cx->names().numberingSystem),
-                           StringValue(numberFormat->getNumberingSystem()))) {
+                           StringValue(numberingSystem))) {
     return false;
   }
 

@@ -722,10 +722,20 @@ class StyleRuleActor extends Actor {
       } else if (ruleClassName === "CSSContainerRule") {
         ancestorData.push({
           type,
-          // Send containerName and containerQuery separately (instead of conditionText)
+          // send the array of conditions (e.g. their name and query instead of conditionText)
           // so the client has more flexibility to display the information.
-          containerName: rawRule.containerName,
-          containerQuery: rawRule.containerQuery,
+          conditions: Array.from(rawRule.conditions).map((condition, i) => ({
+            containerName: condition.name,
+            containerQuery: condition.query,
+            matched: rawRule.queryConditionMatchesElement(
+              this.currentlySelectedElement,
+              i
+            ),
+            hasContainer: !!rawRule.queryContainerFor(
+              this.currentlySelectedElement,
+              i
+            ),
+          })),
         });
       } else if (ruleClassName === "CSSSupportsRule") {
         ancestorData.push({
@@ -1417,14 +1427,17 @@ class StyleRuleActor extends Actor {
    *
    * @param {number} ancestorRuleIndex: The index of the @container rule in this.ancestorRules
    * @param {NodeActor} nodeActor: The nodeActor for which we want to retrieve the query container
+   * @param {number} conditionIndex: The index of <container-condition> in the @container rule
    * @returns {object} An object with the following properties:
    *          - node: {NodeActor|null} The nodeActor representing the query container,
    *            null if none were found
+   *          - containerName: {string} The computed `containerType` value of the query container
+   *            when there's one, or the rule's condition `name`.
    *          - containerType: {string} The computed `containerType` value of the query container
    *          - inlineSize: {string} The computed `inlineSize` value of the query container (e.g. `120px`)
    *          - blockSize: {string} The computed `blockSize` value of the query container (e.g. `812px`)
    */
-  getQueryContainerForNode(ancestorRuleIndex, nodeActor) {
+  getQueryContainerForNode(ancestorRuleIndex, nodeActor, conditionIndex) {
     const ancestorRule = this.ancestorRules[ancestorRuleIndex];
     if (!ancestorRule) {
       console.error(
@@ -1435,20 +1448,26 @@ class StyleRuleActor extends Actor {
 
     const containerEl = ancestorRule.rawRule.queryContainerFor(
       nodeActor.rawNode,
-      0
+      conditionIndex
     );
 
-    // queryContainerFor returns null when the container name wasn't find in any ancestor.
-    // In practice this shouldn't happen, as if the rule is applied, it means that an
-    // elligible container was found.
+    // queryContainerFor returns null when the container name wasn't find in any ancestor,
+    // which can happen for rules with multiple conditions.
     if (!containerEl) {
-      return { node: null };
+      return {
+        node: null,
+        containerName: ancestorRule.rawRule.conditions[conditionIndex]?.name,
+      };
     }
 
     const computedStyle = CssLogic.getComputedStyle(containerEl);
     return {
       node: this.pageStyle.walker.getNode(containerEl),
       containerType: computedStyle.containerType,
+      containerName:
+        computedStyle.containerName !== "none"
+          ? computedStyle.containerName
+          : null,
       inlineSize: computedStyle.inlineSize,
       blockSize: computedStyle.blockSize,
     };

@@ -690,6 +690,13 @@
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
         <action
+            android:id="@+id/action_settingsFragment_to_ipProtectionFragment"
+            app:destination="@id/ipProtectionFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
             android:id="@+id/action_settingsFragment_to_trackingProtectionFragment"
             app:destination="@id/trackingProtectionFragment"
             app:enterAnim="@anim/slide_in_right"
@@ -874,6 +881,10 @@
         android:id="@+id/wallpaperSettingsFragment"
         android:name="org.mozilla.fenix.settings.wallpaper.WallpaperSettingsFragment"
         android:label="@string/customize_wallpapers"/>
+    <fragment
+        android:id="@+id/ipProtectionFragment"
+        android:name="org.mozilla.fenix.settings.IPProtectionFragment"
+        android:label="@string/preferences_ip_protection_title" />
     <fragment
         android:id="@+id/aiControlsFragment"
         android:name="org.mozilla.fenix.settings.ai.AIControlsFragment"
@@ -1737,7 +1748,7 @@
         app:startDestination="@id/translationSettingsFragment">
         <fragment
             android:id="@+id/translationSettingsFragment"
-            android:name="org.mozilla.fenix.translations.TranslationSettingsFragment">
+            android:name="org.mozilla.fenix.translations.settings.TranslationSettingsFragment">
             <action
                 android:id="@+id/action_translationSettingsFragment_to_translationsDialogFragment"
                 app:destination="@id/translationsDialogFragment"
@@ -1866,6 +1877,9 @@
             <action
                 android:id="@+id/action_menuDialogFragment_to_installedAddonDetailsFragment"
                 app:destination="@id/installedAddonDetailsFragment" />
+            <action
+                android:id="@+id/action_menuDialogFragment_to_ipProtectionFragment"
+                app:destination="@id/ipProtectionFragment" />
         </dialog>
     </navigation>
 

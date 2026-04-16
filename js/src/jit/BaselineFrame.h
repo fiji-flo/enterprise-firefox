@@ -90,7 +90,7 @@ class BaselineFrame {
   uint32_t hiReturnValue_;
 
  public:
-  [[nodiscard]] bool initForOsr(InterpreterFrame* fp, uint32_t numStackValues);
+  void initForOsr(InterpreterFrame* fp, uint32_t numStackValues);
 
 #ifdef DEBUG
   uint32_t debugFrameSize() const { return debugFrameSize_; }

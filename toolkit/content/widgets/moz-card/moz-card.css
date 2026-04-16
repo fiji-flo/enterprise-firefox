@@ -46,6 +46,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--card-article-gap);
+  overflow-wrap: anywhere;
 }
 
 #moz-card-details {

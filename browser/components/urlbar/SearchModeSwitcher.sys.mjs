@@ -556,27 +556,28 @@ export class SearchModeSwitcher {
       this.closePanel();
     }
 
-    let search = "";
-    /** @type {Parameters<UrlbarInput["search"]>[1]} */
-    let opts = null;
-    if (engine) {
-      search = this.#input.value;
-      opts = {
-        searchEngine: engine,
-        searchModeEntry: "searchbutton",
-      };
-    } else if (restrict) {
-      search = restrict + " " + this.#input.value;
-      opts = { searchModeEntry: "searchbutton" };
-    }
+    let opts = { searchEngine: engine, searchModeEntry: "searchbutton" };
 
-    if (whereToOpenSerp) {
-      this.#input.openEngineHomePage(search, {
-        searchEngine: opts.searchEngine,
-        where: whereToOpenSerp,
-      });
-    } else {
+    if (restrict || (!this.#input.userTypedValue && !whereToOpenSerp)) {
+      let search = restrict ? restrict + " " + this.#input.userTypedValue : "";
       this.#input.search(search, opts);
+    } else {
+      if (engine && !whereToOpenSerp) {
+        this.#input.value = this.#input.userTypedValue;
+        this.#input.setSearchMode(
+          {
+            engineName: engine.name,
+            entry: "searchbutton",
+            source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+            isPreview: false,
+          },
+          this.#input.window.gBrowser.selectedBrowser
+        );
+      }
+      if (whereToOpenSerp) {
+        opts.where = whereToOpenSerp;
+      }
+      this.#input.openEngineHomePage(this.#input.userTypedValue || "", opts);
     }
 
     if (engine) {

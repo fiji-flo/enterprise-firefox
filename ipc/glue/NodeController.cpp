@@ -734,7 +734,8 @@ void NodeController::OnAcceptInvite(const NodeName& aFromNode,
     return;
   }
 
-  if (aRealName == mojo::core::ports::kInvalidNodeName ||
+  if (aRealName == kBrokerNodeName ||
+      aRealName == mojo::core::ports::kInvalidNodeName ||
       aInitialPort == mojo::core::ports::kInvalidPortName) {
     NODECONTROLLER_WARNING("Invalid name in AcceptInvite message");
     DropPeer(aFromNode);

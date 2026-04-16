@@ -3,31 +3,23 @@
 const server = createHttpServer({ hosts: ["example.com"] });
 const BASE_URL = "http://example.com";
 
-server.registerPathHandler("/dummy", (request, response) => {
-  response.setStatusLine(request.httpVersion, 200, "OK");
-  response.write("OK");
+// 307 preserves the PUT method through the redirect (302 would change it to GET).
+server.registerPathHandler("/start-307", (request, response) => {
+  response.setStatusLine(request.httpVersion, 307, "Temporary Redirect");
+  response.setHeader("Location", `${BASE_URL}/put-redirect-target`);
 });
-server.registerPathHandler("/start", (request, response) => {
-  response.setStatusLine(request.httpVersion, 302, "Found");
-  response.setHeader("Location", `${BASE_URL}/end`);
+// Close the connection without sending any HTTP response. For a PUT request,
+// nsHttpTransaction::ParseHead() returns an ignored error without setting
+// mHaveAllHeaders, so nsHttpTransaction::Close() completes with mStatus=NS_OK
+// and mResponseHead=null. This is the edge case ChannelWrapper::
+// ActivityErrorFallbackCheck() detects, firing NS_ERROR_NET_ON_RECEIVING_FROM.
+// See also: test_ext_webRequest_error_no_response.js
+server.registerPathHandler("/put-redirect-target", (request, response) => {
+  response.seizePower();
+  response.finish();
 });
 
 add_task(async function test_error_occurred_after_redirect() {
-  // Cancel the redirect-target channel before it connects. Without the
-  // needOpening fix that adds onErrorOccurred to http-on-modify-request,
-  // no ChannelWrapper would be created for the redirect-target channel and
-  // onErrorOccurred would never fire (the test would time out).
-  const observer = channel => {
-    if (
-      channel instanceof Ci.nsIHttpChannel &&
-      channel.URI.spec === `${BASE_URL}/end`
-    ) {
-      Services.obs.removeObserver(observer, "http-on-before-connect");
-      Promise.resolve().then(() => channel.cancel(Cr.NS_BINDING_ABORTED));
-    }
-  };
-  Services.obs.addObserver(observer, "http-on-before-connect");
-
   const extension = ExtensionTestUtils.loadExtension({
     manifest: { permissions: ["webRequest", `${BASE_URL}/`] },
     background() {
@@ -35,25 +27,34 @@ add_task(async function test_error_occurred_after_redirect() {
         details => browser.test.sendMessage("error-occurred", details),
         { urls: ["<all_urls>"] }
       );
+      browser.test.onMessage.addListener(async url => {
+        try {
+          await fetch(url, { method: "PUT", body: "test" });
+        } catch (e) {
+          // Expected: server closes without sending a response.
+        }
+      });
     },
   });
 
   await extension.startup();
-  await ExtensionTestUtils.fetch(
-    `${BASE_URL}/dummy`,
-    `${BASE_URL}/start`
-  ).catch(() => {});
+  extension.sendMessage(`${BASE_URL}/start-307`);
 
   const { url, error } = await extension.awaitMessage("error-occurred");
   equal(
     url,
-    `${BASE_URL}/end`,
+    `${BASE_URL}/put-redirect-target`,
     "onErrorOccurred fires for redirect target, not original URL"
   );
+  // See test_ext_webRequest_error_no_response.js for the explanation of why
+  // the expected error differs between OOP and in-process mode.
+  const expectedError = WebExtensionPolicy.useRemoteWebExtensions
+    ? "NS_ERROR_NET_ON_RECEIVING_FROM"
+    : "NS_ERROR_NOT_AVAILABLE";
   equal(
     error,
-    "NS_BINDING_ABORTED",
-    "onErrorOccurred carries the expected error"
+    expectedError,
+    "ActivityErrorFallbackCheck fires the expected error after redirect"
   );
 
   await extension.unload();

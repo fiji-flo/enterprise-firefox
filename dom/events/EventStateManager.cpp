@@ -4742,8 +4742,21 @@ void EventStateManager::SetPresContext(nsPresContext* aPresContext) {
 }
 
 void EventStateManager::ClearFrameRefs(nsIFrame* aFrame) {
-  if (aFrame && aFrame == mCurrentTarget) {
+  if (!aFrame) {
+    return;
+  }
+
+  if (aFrame == mCurrentTarget) {
     mCurrentTargetContent = aFrame->GetContent();
+  }
+
+  // If the element currently shown in the status bar has lost its
+  // frame, clear the status bar.
+  if (aFrame == mLinkOverFrame.GetFrame()) {
+    nsIContent* content = aFrame->GetContent();
+    if (content && content->IsElement()) {
+      content->AsElement()->LeaveLink(mPresContext);
+    }
   }
 }
 

@@ -88,9 +88,11 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Addons
 import org.mozilla.fenix.GleanMetrics.Addresses
 import org.mozilla.fenix.GleanMetrics.AndroidAutofill
+import org.mozilla.fenix.GleanMetrics.Browser
 import org.mozilla.fenix.GleanMetrics.CreditCards
 import org.mozilla.fenix.GleanMetrics.CustomizeHome
 import org.mozilla.fenix.GleanMetrics.Events.marketingNotificationAllowed
+import org.mozilla.fenix.GleanMetrics.GenaiAiControls
 import org.mozilla.fenix.GleanMetrics.Integrity
 import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.GleanMetrics.Metrics
@@ -1013,6 +1015,11 @@ open class FenixApplication : Application(), Provider, ThemeProvider {
         UserAiSummarize.summarizationEnabled.set(summarizeSettings.getFeatureEnabledUserStatus().first())
         UserAiSummarize.gestureEnabled.set(summarizeSettings.getGestureEnabledUserStatus().first())
         UserAiSummarize.summarizationConsented.set(summarizeSettings.getHasConsentedToShake().first())
+
+        Browser.globalAiControlIsBlocking.set(components.aiControlsFeatureBlock.isBlocked.first())
+        components.aiFeatureRegistry.getFeatures().forEach { feature ->
+            GenaiAiControls.featuresBlocked[feature.id.value].set(!feature.isEnabled.first())
+        }
 
         browserStore.waitForSelectedOrDefaultSearchEngine { searchEngine ->
             searchEngine?.let {

@@ -25,9 +25,9 @@ import mozilla.components.feature.awesomebar.provider.SportsOnlineSuggestionProv
 import mozilla.components.feature.awesomebar.provider.StocksOnlineSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.TrendingSearchProvider
 import mozilla.components.feature.fxsuggest.FxSuggestSuggestionProvider
-import mozilla.components.feature.fxsuggest.MockedFlightsSuggestionDataSource
-import mozilla.components.feature.fxsuggest.MockedSportsSuggestionDataSource
-import mozilla.components.feature.fxsuggest.MockedStocksSuggestionDataSource
+import mozilla.components.feature.fxsuggest.datasource.MockedFlightsSuggestionDataSource
+import mozilla.components.feature.fxsuggest.datasource.MockedSportsSuggestionDataSource
+import mozilla.components.feature.fxsuggest.datasource.MockedStocksSuggestionDataSource
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases.LoadUrlUseCase
 import mozilla.components.feature.syncedtabs.DeviceIndicators

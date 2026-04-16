@@ -66,7 +66,6 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame {
 #endif
 
   void ElementStateChanged(mozilla::dom::ElementState aStates) final;
-  bool ShouldPropagateComputedBSizeToScrolledContent() const final;
 
   // for accessibility purposes
 #ifdef ACCESSIBILITY

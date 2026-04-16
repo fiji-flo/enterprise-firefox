@@ -281,9 +281,6 @@ skip-if = [
 ["browser_bootstrapped_custom_toolbar.js"]
 
 ["browser_check_tooltips_in_navbar.js"]
-skip-if = [
-  "os == 'win' && standalone", # Bug 2028647
-]
 
 ["browser_create_button_widget.js"]
 

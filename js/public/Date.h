@@ -231,11 +231,6 @@ JS_PUBLIC_API void SetReduceMicrosecondTimePrecisionCallback(
 JS_PUBLIC_API ReduceMicrosecondTimePrecisionCallback
 GetReduceMicrosecondTimePrecisionCallback();
 
-// Sets the time resolution for fingerprinting protection, and whether jitter
-// should occur. If resolution is set to zero, then no rounding or jitter will
-// occur. This is used if the callback above is not specified.
-JS_PUBLIC_API void SetTimeResolutionUsec(uint32_t resolution, bool jitter);
-
 // Returns whether a given string follows the Date Time String Format.
 JS_PUBLIC_API bool IsISOStyleDate(JSContext* cx, const JS::Latin1Chars& str);
 

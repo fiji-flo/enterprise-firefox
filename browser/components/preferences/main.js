@@ -3991,6 +3991,8 @@ SettingGroupManager.registerGroups({
   },
   dnsOverHttps: {
     l10nId: "dns-over-https-group2",
+    supportPage: "dns-over-https",
+    subcategory: "doh",
     headingLevel: 1,
     inProgress: true,
     items: [
@@ -4009,95 +4011,6 @@ SettingGroupManager.registerGroups({
             control: "moz-box-button",
           },
         ],
-      },
-    ],
-  },
-  defaultEngine: {
-    l10nId: "search-engine-group",
-    headingLevel: 2,
-    items: [
-      {
-        id: "defaultEngineNormal",
-        l10nId: "search-default-engine",
-        control: "moz-select",
-      },
-      {
-        id: "searchShowSearchTermCheckbox",
-        l10nId: "search-show-search-term-option-2",
-      },
-      {
-        id: "browserSeparateDefaultEngine",
-        l10nId: "search-separate-default-engine-2",
-        items: [
-          {
-            id: "defaultPrivateEngine",
-            l10nId: "search-separate-default-engine-dropdown",
-            control: "moz-select",
-          },
-        ],
-      },
-    ],
-  },
-  searchSuggestions: {
-    l10nId: "search-suggestions-header-2",
-    headingLevel: 2,
-    items: [
-      {
-        id: "suggestionsInSearchFieldsCheckbox",
-        l10nId: "search-show-suggestions-option",
-        items: [
-          {
-            id: "urlBarSuggestionCheckbox",
-            l10nId: "search-show-suggestions-url-bar-option",
-          },
-          {
-            id: "showSearchSuggestionsFirstCheckbox",
-            l10nId: "search-show-suggestions-above-history-option-2",
-          },
-          {
-            id: "showSearchSuggestionsPrivateWindowsCheckbox",
-            l10nId: "search-show-suggestions-private-windows-2",
-          },
-          {
-            id: "showTrendingSuggestionsCheckbox",
-            l10nId: "addressbar-locbar-showtrendingsuggestions-option-2",
-            supportPage: "google-trending-searches-on-awesomebar",
-          },
-          {
-            id: "urlBarSuggestionPermanentPBMessage",
-            l10nId: "search-suggestions-cant-show-2",
-            control: "moz-message-bar",
-          },
-        ],
-      },
-    ],
-  },
-  searchShortcuts: {
-    inProgress: true,
-    l10nId: "search-one-click-header-3",
-    headingLevel: 2,
-    items: [
-      {
-        id: "updateSearchEngineSuccess",
-        l10nId: "update-search-engine-success",
-        control: "moz-message-bar",
-        controlAttrs: {
-          type: "success",
-          dismissable: true,
-        },
-      },
-      {
-        id: "addEngineButton",
-        l10nId: "search-add-engine-2",
-        control: "moz-button",
-        iconSrc: "chrome://global/skin/icons/plus.svg",
-      },
-      {
-        id: "engineList",
-        control: "moz-box-group",
-        controlAttrs: {
-          type: "reorderable-list",
-        },
       },
     ],
   },
@@ -4745,88 +4658,6 @@ SettingGroupManager.registerGroups({
             controlAttrs: {
               class: "description-deemphasized",
             },
-          },
-        ],
-      },
-    ],
-  },
-  firefoxSuggest: {
-    id: "locationBarGroup",
-    items: [
-      {
-        id: "locationBarGroupHeader",
-        l10nId: "addressbar-header-1",
-        supportPage: "firefox-suggest",
-        control: "moz-fieldset",
-        controlAttrs: {
-          headinglevel: 2,
-        },
-        items: [
-          {
-            id: "historySuggestion",
-            l10nId: "addressbar-locbar-history-option",
-          },
-          {
-            id: "bookmarkSuggestion",
-            l10nId: "addressbar-locbar-bookmarks-option",
-          },
-          {
-            id: "clipboardSuggestion",
-            l10nId: "addressbar-locbar-clipboard-option",
-          },
-          {
-            id: "openpageSuggestion",
-            l10nId: "addressbar-locbar-openpage-option",
-          },
-          {
-            id: "topSitesSuggestion",
-            l10nId: "addressbar-locbar-shortcuts-option",
-          },
-          {
-            id: "enableRecentSearches",
-            l10nId: "addressbar-locbar-showrecentsearches-option-2",
-          },
-          {
-            id: "enginesSuggestion",
-            l10nId: "addressbar-locbar-engines-option-1",
-          },
-          {
-            id: "enableQuickActions",
-            l10nId: "addressbar-locbar-quickactions-option",
-            supportPage: "quick-actions-firefox-search-bar",
-          },
-          {
-            id: "firefoxSuggestAll",
-            l10nId: "addressbar-locbar-suggest-all-option-2",
-            items: [
-              {
-                id: "firefoxSuggestSponsored",
-                l10nId: "addressbar-locbar-suggest-sponsored-option-2",
-              },
-              {
-                id: "firefoxSuggestOnlineEnabledToggle",
-                l10nId: "addressbar-firefox-suggest-online",
-                supportPage: "firefox-suggest",
-                subcategory: "w_what-is-firefox-suggest",
-              },
-            ],
-          },
-          {
-            id: "dismissedSuggestionsDescription",
-            l10nId: "addressbar-dismissed-suggestions-label-2",
-            control: "moz-fieldset",
-            controlAttrs: {
-              headinglevel: 3,
-            },
-            items: [
-              {
-                id: "restoreDismissedSuggestions",
-                l10nId: "addressbar-restore-dismissed-suggestions-button-2",
-                control: "moz-button",
-                iconSrc:
-                  "chrome://global/skin/icons/arrow-counterclockwise-16.svg",
-              },
-            ],
           },
         ],
       },
@@ -7808,7 +7639,7 @@ const ApplicationsHandler = (function () {
         aHandlerApp => {
           // If the user picked a new app from the menu, select it.
           if (aHandlerApp) {
-            // Rebuild menu items so that newly-selected app shows up in options.
+            // Rebuild menu items so that newly-selected app shows up in options so it can be evaluated below and selected as the option.
             handlerItem.buildActionsMenu();
 
             let actionsMenu = handlerItem.actionsMenu;
@@ -7845,7 +7676,7 @@ const ApplicationsHandler = (function () {
         params.filename = null;
         params.handlerApp = null;
 
-        let onAppSelected = () => {
+        let onAppPickerClose = () => {
           if (this.isValidHandlerApp(params.handlerApp)) {
             handlerApp = params.handlerApp;
 
@@ -7854,11 +7685,15 @@ const ApplicationsHandler = (function () {
           }
 
           chooseAppCallback(handlerApp);
+          // rebuild menu items to either
+          // 1. revert action menu back to original value if dialog was closed without selecting an app or
+          // 2. to update the menu if a new app (or same app as current) was selected
+          handlerItem.buildActionsMenu();
         };
 
         gSubDialog.open(
           "chrome://global/content/appPicker.xhtml",
-          { closingCallback: onAppSelected },
+          { closingCallback: onAppPickerClose },
           params
         );
       } else {
@@ -7885,6 +7720,9 @@ const ApplicationsHandler = (function () {
             handler.addPossibleApplicationHandler(handlerApp);
 
             chooseAppCallback(handlerApp);
+          } else {
+            // closed the dialog without choosing an app... so rebuild menu items to revert back to original value
+            handlerItem.buildActionsMenu();
           }
         };
 

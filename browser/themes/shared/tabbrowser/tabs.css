@@ -16,6 +16,7 @@
     --tab-label-height: 2.8em;
     --tab-min-height: 41px;
   }
+  --split-view-padding-block: 2px;
   --tabstrip-min-height: calc(var(--tab-min-height) + 2 * var(--tab-block-margin));
   --tab-group-label-height: max(1.5em, var(--tab-min-height) - 14px);
   --tab-group-label-padding: 4px;
@@ -1176,16 +1177,13 @@ tab-group > tab-split-view-wrapper {
       }
     }
 
-    &[last-tab-or-split-view] > .tabbrowser-tab .tab-group-line {
-      inset-block-start: calc(var(--space-xsmall) * -2);
-    }
-
     > .tabbrowser-tab {
       overflow: visible;
 
       .tab-group-line {
         inset-inline-start: calc(var(--space-medium) * -1) !important;
-        inset-block: calc(var(--space-xsmall) * -1);
+        inset-block-start: calc(var(--space-xsmall) * -2);
+        inset-block-end: calc(var(--space-xsmall) * -1);
       }
 
       &:last-child {
@@ -1206,7 +1204,7 @@ tab-group > tab-split-view-wrapper {
   margin-inline: 0;
   align-items: flex-end;
   flex: 100 100;
-  padding: 2px 0;
+  padding: var(--split-view-padding-block) 0;
   min-width: calc(var(--tab-min-width-pref, var(--tab-min-width)) * 2 + 6px);
   max-width: var(--tab-max-width);
   transition: var(--tab-width-transition);
@@ -1230,14 +1228,16 @@ tab-group > tab-split-view-wrapper {
 
   .tabbrowser-tab {
     padding-inline: 2px;
+
     .tab-background {
       min-height: calc(var(--tab-min-height) - 4px); /* exclude the 4px padding normally added */
 
       .tab-group-line {
-        inset-block-end: calc(((var(--tab-block-margin) / 2) + var(--space-xsmall)) * -1);
+        inset-block-end: calc(var(--tab-group-line-toolbar-border-distance) - var(--tab-block-margin) - var(--split-view-padding-block));
         inset-inline-start: calc(var(--space-small) * -2);
       }
     }
+
     .tab-label-container {
       /* Nip and tuck: we can't subtract all the padding and margin added for the
          split-view-wrapper without potentially regressing secondarytext labels but
@@ -1247,6 +1247,21 @@ tab-group > tab-split-view-wrapper {
 
     tab-group & {
       overflow: visible;
+    }
+
+    .tab-content[attention]:not(selected) {
+      background-position-y: bottom 0.5px !important;
+      background-position-x: left calc(var(--tab-inline-padding) + var(--icon-size) - 7px) !important;
+      &:-moz-locale-dir(rtl) {
+        background-position-x: right calc(var(--tab-inline-padding) + var(--icon-size) - 7px) !important;
+      }
+
+      @media not (-moz-platform: linux) {
+        background-position-x: left calc(var(--tab-inline-padding) + var(--icon-size) - 10px) !important;
+        &:-moz-locale-dir(rtl) {
+          background-position-x: right calc(var(--tab-inline-padding) + var(--icon-size) - 10px) !important;
+        }
+      }
     }
 
     /* prettier-ignore */
@@ -1303,6 +1318,11 @@ tab-group > tab-split-view-wrapper {
 
     .tab-content {
       padding-inline: var(--space-medium);
+      background-position-y: 4px !important;
+      background-position-x: left calc(var(--tab-inline-padding) + var(--icon-size) - 7px) !important;
+      &:-moz-locale-dir(rtl) {
+        background-position-x: right calc(var(--tab-inline-padding) + var(--icon-size) - 7px) !important;
+      }
 
       @media (forced-colors) {
         #tabbrowser-tabs tab-split-view-wrapper[hasactivetab] .tabbrowser-tab:not([selected]) & {
@@ -1399,12 +1419,10 @@ tab-group > tab-split-view-wrapper {
 
   /* Allow close button to overflow the split view wrapper */
   .tabbrowser-tab {
-    min-width: 0;
     overflow: visible;
 
     .tab-background {
       width: 100%;
-      max-width: none;
       margin-inline: 0;
       margin-block: 0;
     }
@@ -1412,6 +1430,18 @@ tab-group > tab-split-view-wrapper {
     .tab-content {
       padding-inline: unset;
       justify-content: center;
+      background-position-y: 4px !important;
+      background-position-x: left calc(var(--tab-inline-padding) + var(--icon-size) - 10px) !important;
+      &:-moz-locale-dir(rtl) {
+        background-position-x: right calc(var(--tab-inline-padding) + var(--icon-size) - 10px) !important;
+      }
+
+      @media not (-moz-platform: linux) {
+        background-position-x: left calc(var(--tab-inline-padding) + var(--icon-size) - 7px) !important;
+        &:-moz-locale-dir(rtl) {
+          background-position-x: right calc(var(--tab-inline-padding) + var(--icon-size) - 7px) !important;
+        }
+      }
     }
   }
 
@@ -1863,8 +1893,8 @@ tab-group {
   .tab-group-editor-name {
     display: flex;
     flex-direction: column;
-    margin: var(--arrowpanel-menuitem-margin);
-    padding-top: var(--arrowpanel-menuitem-padding-block);
+    margin: var(--panel-menuitem-margin);
+    padding-top: var(--panel-menuitem-padding-block);
 
     > label {
       margin-inline: 0;
@@ -1879,8 +1909,8 @@ tab-group {
     display: flex;
     flex-flow: row nowrap;
     justify-content: space-between;
-    margin: var(--arrowpanel-menuitem-margin);
-    padding-block: var(--arrowpanel-menuitem-padding-block);
+    margin: var(--panel-menuitem-margin);
+    padding-block: var(--panel-menuitem-padding-block);
   }
 
   input[name="tab-group-color"] {
@@ -1930,6 +1960,10 @@ tab-group {
   --panel-width: 300px;
   font: menu;
 
+  > .panel-header[hidden] {
+    display: none;
+  }
+
   > toolbarseparator {
     padding-inline: var(--panel-padding);
   }
@@ -1942,8 +1976,13 @@ tab-group {
   > .panel-action-row {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: var(--space-large);
   }
+}
+
+#tab-note-editor-button-delete {
+  color: var(--icon-color-critical);
 }
 
 #tab-note-text {
@@ -2546,12 +2585,12 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 .all-tabs-item {
-  border-radius: var(--arrowpanel-menuitem-border-radius);
-  margin-inline: var(--arrowpanel-menuitem-margin-inline);
+  border-radius: var(--panel-menuitem-border-radius);
+  margin-inline: var(--panel-menuitem-margin-inline);
 
   &.grouped {
-    /* Indent further by the size of a favicon and the favicon's end margin. */
-    margin-inline-start: calc(var(--arrowpanel-menuitem-margin-inline) + 16px + 8px);
+    /* Indent further by the size of a favicon and the favicon's padding-inline-start. */
+    margin-inline-start: calc(var(--panel-menuitem-margin-inline) + var(--icon-size) + var(--dimension-8));
   }
 
   &[selected] {
@@ -2779,7 +2818,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
 #tab-group-suggestions-container,
 #tab-group-suggestions-optin-container {
-  margin: var(--arrowpanel-menuitem-margin);
+  margin: var(--panel-menuitem-margin);
 }
 
 .tab-group-suggestions-loading-header,

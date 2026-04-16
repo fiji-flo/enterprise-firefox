@@ -7,13 +7,12 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ConsoleClient: "resource:///modules/enterprise/ConsoleClient.sys.mjs",
   EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+  createEnterpriseLogger:
+    "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
-  return console.createInstance({
-    prefix: "EnterpriseAccountStorage",
-    maxLogLevelPref: lazy.EnterpriseCommon.ENTERPRISE_LOGLEVEL_PREF,
-  });
+  return lazy.createEnterpriseLogger("EnterpriseAccountStorage");
 });
 
 /**
@@ -43,9 +42,7 @@ export class EnterpriseStorageManager {
     // unhandled exception when it is GCd - so add an empty .catch handler here
     // to prevent this.
     this.#getAccountDataPromise.catch(() => {});
-    this.#getAccountDataPromise = Services.felt.isFeltUI()
-      ? Promise.resolve(null) // Felt has no signed-in user on startup; avoid guaranteed 401 from FxA
-      : lazy.ConsoleClient.getFxAccountData();
+    this.#getAccountDataPromise = lazy.ConsoleClient.getFxAccountData();
   }
 
   /**
@@ -61,7 +58,18 @@ export class EnterpriseStorageManager {
    * @returns {Promise<object|null>} Promise which resolves to the cached account data.
    */
   async getAccountData(fieldNames = null) {
-    const data = await this.#getAccountDataPromise;
+    let data;
+    try {
+      data = await this.#getAccountDataPromise;
+    } catch (e) {
+      if (Services.felt.isFeltBrowser()) {
+        lazy.log.error("Critical! We're not signed into the console?");
+      } else {
+        // We're in felt or we're running m-c tests,
+        // hence we expect to not be signed-in to the console
+      }
+      return null;
+    }
 
     if (fieldNames) {
       if (!Array.isArray(fieldNames)) {

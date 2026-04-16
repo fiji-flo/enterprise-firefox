@@ -98,6 +98,60 @@ features:
         gecko-pref:
           pref: "gecko.nimbus.test.two"
           branch: "user"
+  nimbus-qa-string-default:
+    description: "A feature for testing string pref-setting on the default branch."
+    variables:
+      value:
+        description: "The value to set for the pref."
+        type: Option<String>
+        gecko-pref:
+          pref: "nimbus.qa.pref-string-default"
+          branch: "default"
+  nimbus-qa-string-user:
+    description: "A feature for testing string pref-setting on the user branch."
+    variables:
+      value:
+        description: "The value to set for the pref."
+        type: Option<String>
+        gecko-pref:
+          pref: "nimbus.qa.pref-string-user"
+          branch: "user"
+  nimbus-qa-int-default:
+    description: "A feature for testing int pref-setting on the default branch."
+    variables:
+      value:
+        description: "The value to set for the pref."
+        type: Option<Int>
+        gecko-pref:
+          pref: "nimbus.qa.pref-int-default"
+          branch: "default"
+  nimbus-qa-int-user:
+    description: "A feature for testing int pref-setting on the user branch."
+    variables:
+      value:
+        description: "The value to set for the pref."
+        type: Option<Int>
+        gecko-pref:
+          pref: "nimbus.qa.pref-int-user"
+          branch: "user"
+  nimbus-qa-bool-default:
+    description: "A feature for testing boolean pref-setting on the default branch."
+    variables:
+      value:
+        description: "The value to set for the pref."
+        type: Option<Boolean>
+        gecko-pref:
+          pref: "nimbus.qa.pref-bool-default"
+          branch: "default"
+  nimbus-qa-bool-user:
+    description: "A feature for testing boolean pref-setting on the user branch."
+    variables:
+      value:
+        description: "The value to set for the pref."
+        type: Option<Boolean>
+        gecko-pref:
+          pref: "nimbus.qa.pref-bool-user"
+          branch: "user"
   cookie-banners:
     description: Features for cookie banner handling.
     variables:
@@ -266,6 +320,16 @@ features:
         type: Boolean
         description: If true, shake to summarize will be enabled
         default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: true
+      - channel: beta
+        value:
+          enabled: true
 
   setup-checklist:
     description: A feature on the home page that allows the user to track onboarding setup progress.
@@ -936,6 +1000,15 @@ features:
         description: >
           Whether or not to enable the tab search feature.
         type: Boolean
+        default: true
+
+  tab-groups:
+    description: Control the visibility of the tab groups feature.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable the tab groups feature.
+        type: Boolean
         default: false
     defaults:
       - channel: release
@@ -946,14 +1019,13 @@ features:
           enabled: false
       - channel: nightly
         value:
-          enabled: true
-
-  tab-groups:
-    description: Control the visibility of the tab groups feature.
+          enabled: false
+  tab-groups-drag-and-drop:
+    description: Control the visibility of drag and drop for tab groups.
     variables:
       enabled:
         description: >
-          Whether or not to enable the tab groups feature.
+          Whether or not to enable drag and drop for tab groups.
         type: Boolean
         default: false
     defaults:
@@ -1064,6 +1136,14 @@ features:
         value:
           enabled: true
 
+  ip-protection:
+    description: Feature to enable IP Protection (VPN) for users on Firefox on Android.
+    variables:
+      enabled:
+        description: If true, IP Protection feature is enabled.
+        type: Boolean
+        default: false
+
   native-share-sheet:
     description: Feature to enable the Native Share Sheet for users on Firefox on Android.
     variables:
@@ -1158,6 +1238,21 @@ features:
     variables:
       enabled:
         description: If true, custom download location is enabled.
+        type: Boolean
+        default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: true
+
+  google-lens-integration:
+    description: A feature that enables Google Lens integration for users on Firefox on Android.
+    variables:
+      enabled:
+        description: If true, Google Lens integration is enabled.
         type: Boolean
         default: false
     defaults:

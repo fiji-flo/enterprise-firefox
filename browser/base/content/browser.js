@@ -2208,6 +2208,8 @@ var XULBrowserWindow = {
       (location == "about:blank" &&
         BrowserUIUtils.checkEmptyPageOrigin(gBrowser.selectedBrowser)) ||
       location == "" ||
+      (location == "about:newtab" && !this.newTabPageEnabled) ||
+      location == "chrome://browser/content/blanktab.html" ||
       window.browsingContext.isDocumentPiP
     ) {
       // Second condition is for new tabs, otherwise
@@ -2610,6 +2612,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   XULBrowserWindow,
   "spinCursorWhileBusy",
   "browser.spin_cursor_while_busy"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  XULBrowserWindow,
+  "newTabPageEnabled",
+  "browser.newtabpage.enabled",
+  true
 );
 
 var LinkTargetDisplay = {

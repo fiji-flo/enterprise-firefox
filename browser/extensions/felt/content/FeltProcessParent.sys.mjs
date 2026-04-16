@@ -9,11 +9,15 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ConsoleClient: "resource:///modules/enterprise/ConsoleClient.sys.mjs",
   CONSOLE_ADDRESS_PREF: "resource:///modules/enterprise/ConsoleClient.sys.mjs",
   isTesting: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+  createEnterpriseLogger:
+    "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   FeltCommon: "chrome://felt/content/FeltCommon.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
 });
 
-console.debug(`FeltExtension: FeltParentProcess.sys.mjs`);
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  return lazy.createEnterpriseLogger("FeltProcessParent");
+});
 
 const PROCESS_START_REASON = {
   INITIAL_START: "initial-start",
@@ -69,7 +73,7 @@ function notifyFirefoxReady() {
     return;
   }
   gFeltFirefoxReadyNotified = true;
-  console.debug("FeltExtension: Notifying felt-firefox-window-ready");
+  lazy.log.debug("FeltExtension: Notifying felt-firefox-window-ready");
   Services.obs.notifyObservers(null, "felt-firefox-window-ready");
 }
 
@@ -99,7 +103,7 @@ let gObserversRegistered = false;
  */
 export class FeltProcessParent extends JSProcessActorParent {
   constructor() {
-    console.debug(
+    lazy.log.debug(
       `FeltExtension: FeltParentProcess.sys.mjs: FeltProcessParent`
     );
     super();
@@ -136,7 +140,7 @@ export class FeltProcessParent extends JSProcessActorParent {
 
     this.browserObserver = {
       observe(aSubject, aTopic, aData) {
-        console.debug(`FeltExtension: ParentProcess: Received ${aTopic}`);
+        lazy.log.debug(`FeltExtension: ParentProcess: Received ${aTopic}`);
         switch (aTopic) {
           case "felt-firefox-exiting": {
             gFeltProcessParentInstance.exitReported = true;
@@ -169,12 +173,12 @@ export class FeltProcessParent extends JSProcessActorParent {
                 return pendingUpdate;
               })
               .catch(err => {
-                console.debug(
+                lazy.log.debug(
                   `FeltExtension: ParentProcess: getReadyUpdate failed: ${err}`
                 );
               })
               .then(pendingUpdate => {
-                console.debug(
+                lazy.log.debug(
                   `FeltExtension: ParentProcess: restart notification, restartDisabled=${restartDisabled}`
                 );
                 // Kill Firefox directly instead of broadcasting to receiveMessage()
@@ -182,25 +186,25 @@ export class FeltProcessParent extends JSProcessActorParent {
                 if (gFeltProcessParentInstance?.proc) {
                   gFeltProcessParentInstance.restartReported = true;
                   gFeltProcessParentInstance.firefox = null;
-                  console.debug(
+                  lazy.log.debug(
                     `FeltExtension: ParentProcess: Killing Firefox PID=${gFeltProcessParentInstance.proc.pid}`
                   );
                   gFeltProcessParentInstance.proc
                     .kill()
                     .then(() => {
-                      console.debug(
+                      lazy.log.debug(
                         `FeltExtension: ParentProcess: Killed Firefox, restartDisabled=${restartDisabled}`
                       );
 
                       if (!restartDisabled && !pendingUpdate) {
-                        console.debug(
+                        lazy.log.debug(
                           `FeltExtension: ParentProcess: Starting new Firefox`
                         );
                         gFeltProcessParentInstance.startFirefox(
                           PROCESS_START_REASON.RESTART
                         );
                       } else if (pendingUpdate) {
-                        console.debug(
+                        lazy.log.debug(
                           `FeltExtension: ParentProcess: Restart requested and pending update, restarting FELT UI`
                         );
                         Services.cpmm.sendAsyncMessage(
@@ -208,7 +212,7 @@ export class FeltProcessParent extends JSProcessActorParent {
                           {}
                         );
                       } else {
-                        console.debug(
+                        lazy.log.debug(
                           `FeltExtension: ParentProcess: Restart disabled, sending normal exit to restore FELT UI`
                         );
                         Services.cpmm.sendAsyncMessage(
@@ -218,12 +222,12 @@ export class FeltProcessParent extends JSProcessActorParent {
                       }
                     })
                     .catch(err => {
-                      console.debug(
+                      lazy.log.debug(
                         `FeltExtension: ParentProcess: Kill failed: ${err}`
                       );
                     });
                 } else {
-                  console.debug(
+                  lazy.log.debug(
                     `FeltExtension: ParentProcess: No proc to kill!`
                   );
                 }
@@ -313,7 +317,7 @@ export class FeltProcessParent extends JSProcessActorParent {
           }
 
           default:
-            console.debug(`FeltExtension: ParentProcess: Unhandled ${aTopic}`);
+            lazy.log.debug(`FeltExtension: ParentProcess: Unhandled ${aTopic}`);
             break;
         }
       },
@@ -347,7 +351,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     } = await lazy.ConsoleClient.getFirefoxConfigs();
 
     if (learn_more_url === null) {
-      console.error("No learn_more_url in Firefox configuration");
+      lazy.log.error("No learn_more_url in Firefox configuration");
     } else {
       Services.felt.sendStringPreference(
         "enterprise.configs.learn_more_url",
@@ -356,7 +360,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     if (company_logo_url === null) {
-      console.error("No company_logo_url in Firefox configuration");
+      lazy.log.error("No company_logo_url in Firefox configuration");
     } else {
       Services.felt.sendStringPreference(
         "enterprise.configs.company_logo_url",
@@ -365,7 +369,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     if (polling_frequency === null) {
-      console.error("No polling_frequency in Firefox configuration");
+      lazy.log.error("No polling_frequency in Firefox configuration");
     } else {
       Services.felt.sendIntPreference(
         "browser.policies.live_polling.frequency",
@@ -374,7 +378,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     if (tokenserver_url === null) {
-      console.error("No tokenserver_url in Firefox configuration");
+      lazy.log.error("No tokenserver_url in Firefox configuration");
     } else {
       Services.felt.sendStringPreference(
         "identity.sync.tokenserver.uri",
@@ -383,7 +387,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     if (remote_settings_url === null) {
-      console.error("No remote_settings_url in Firefox configuration");
+      lazy.log.error("No remote_settings_url in Firefox configuration");
     } else {
       Services.felt.sendStringPreference(
         "services.settings.server",
@@ -392,7 +396,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     if (push_url === null) {
-      console.error("No push_url in Firefox configuration");
+      lazy.log.error("No push_url in Firefox configuration");
     } else {
       Services.felt.sendStringPreference("dom.push.serverURL", push_url);
     }
@@ -410,7 +414,7 @@ export class FeltProcessParent extends JSProcessActorParent {
   _setPrefInFirefox(pref) {
     const name = pref[0];
     const value = pref[1];
-    console.debug(
+    lazy.log.debug(
       `Sending preference ${name} with value ${value} from Felt to Firefox`
     );
 
@@ -428,7 +432,7 @@ export class FeltProcessParent extends JSProcessActorParent {
         break;
 
       default:
-        console.warn(`Unsupported pref type for ${name}:`, value);
+        lazy.log.warn(`Unsupported pref type for ${name}:`, value);
     }
   }
 
@@ -477,7 +481,7 @@ export class FeltProcessParent extends JSProcessActorParent {
         notifyFirefoxReady();
       })
       .then(() => {
-        console.debug(
+        lazy.log.debug(
           `firefox: waiting on proc PID ${this.proc.pid}`,
           this.proc
         );
@@ -509,11 +513,11 @@ export class FeltProcessParent extends JSProcessActorParent {
    * again or to inform the user of the set of crashes.
    */
   handleRestartAfterAbnormalExit() {
-    console.debug(
+    lazy.log.debug(
       `Firefox: handleRestartAfterAbnormalExit: this.exitReported=${this.exitReported}`
     );
     if (this.exitReported) {
-      console.debug("Abort restarting Firefox, crash was shutdown crash.");
+      lazy.log.debug("Abort restarting Firefox, crash was shutdown crash.");
       Services.cpmm.sendAsyncMessage("FeltParent:FirefoxNormalExit", {});
       return;
     }
@@ -525,12 +529,12 @@ export class FeltProcessParent extends JSProcessActorParent {
     this.abnormalExitCounter += 1;
 
     if (this.shouldAbortRestarting()) {
-      console.debug(
+      lazy.log.debug(
         "Abort restarting Firefox and inform the user of the crashes."
       );
       Services.cpmm.sendAsyncMessage("FeltParent:FirefoxAbnormalExit", {});
     } else {
-      console.debug("Trying to restart Firefox again.");
+      lazy.log.debug("Trying to restart Firefox again.");
       this.startFirefox(PROCESS_START_REASON.CRASH);
     }
   }
@@ -542,7 +546,7 @@ export class FeltProcessParent extends JSProcessActorParent {
    * @returns {boolean} Whether these "abnormal" thresholds are exceeded.
    */
   shouldAbortRestarting() {
-    console.debug(
+    lazy.log.debug(
       `Firefox AbnormalExit abnormalExitLimit=${this.abnormalExitLimit} abnormalExitCounter=${this.abnormalExitCounter} ; firstTime=${this.abnormalExitFirstTime} abnormalExitPeriod=${this.abnormalExitPeriod}`
     );
     // Have we reached the limit of allowed crashes ?
@@ -554,7 +558,7 @@ export class FeltProcessParent extends JSProcessActorParent {
       this.abnormalExitFirstTime;
     // Is the time since first crash too recent ?
     const isWithinCrashPeriod = timeSinceFirstCrash <= this.abnormalExitPeriod;
-    console.debug(
+    lazy.log.debug(
       `Firefox AbnormalExit crashLimitHit=${isExceedingCrashCounterLimit} timeSinceFirstCrash=${timeSinceFirstCrash} crashedNotLongAgoEnough=${isWithinCrashPeriod}`
     );
     return isExceedingCrashCounterLimit && isWithinCrashPeriod;
@@ -591,14 +595,14 @@ export class FeltProcessParent extends JSProcessActorParent {
         for (let profile of profileService.profiles) {
           if (profile.name === legacyProfileName) {
             foundProfile = profile;
-            console.warn("using legacy profile");
+            lazy.log.warn("using legacy profile");
             break;
           }
         }
       }
 
       if (!foundProfile) {
-        console.debug(`FeltExtension: creating new ${profileName} profile`);
+        lazy.log.debug(`FeltExtension: creating new ${profileName} profile`);
         foundProfile = profileService.createProfile(null, profileName);
 
         await profileService.asyncFlush();
@@ -654,7 +658,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     try {
       this.proc = await lazy.Subprocess.call(firefoxRun);
     } catch (e) {
-      console.error("Failed to launch Firefox: ", e.message);
+      lazy.log.error("Failed to launch Firefox: ", e.message);
       throw e;
     }
 
@@ -668,7 +672,7 @@ export class FeltProcessParent extends JSProcessActorParent {
    */
   sendURLToFirefox(payload) {
     if (!this.firefoxReady || !Services.felt) {
-      console.error(`FeltExtension: Cannot send URL, Firefox not ready`);
+      lazy.log.error(`FeltExtension: Cannot send URL, Firefox not ready`);
       return;
     }
 
@@ -676,7 +680,7 @@ export class FeltProcessParent extends JSProcessActorParent {
       let { url, disposition } = extractURLPayload(payload);
       Services.felt.openURL(url, disposition);
     } catch (err) {
-      console.error(`FeltExtension: Failed to forward URL: ${err}`);
+      lazy.log.error(`FeltExtension: Failed to forward URL: ${err}`);
     }
   }
 
@@ -690,14 +694,14 @@ export class FeltProcessParent extends JSProcessActorParent {
 
     // Wait for both Firefox (prefs/cookies) AND extension (observer) to be ready
     if (!this.firefoxReady || !this.extensionReady) {
-      console.debug(
+      lazy.log.debug(
         `FeltExtension: Not ready to forward URLs (firefoxReady=${this.firefoxReady}, extensionReady=${this.extensionReady})`
       );
       return;
     }
 
     if (!Services.felt) {
-      console.error(
+      lazy.log.error(
         `FeltExtension: Services.felt not available, cannot forward URLs`
       );
       return;
@@ -709,7 +713,7 @@ export class FeltProcessParent extends JSProcessActorParent {
         let { url, disposition } = extractURLPayload(payload);
         Services.felt.openURL(url, disposition);
       } catch (err) {
-        console.error(`FeltExtension: Failed to forward URL: ${err}`);
+        lazy.log.error(`FeltExtension: Failed to forward URL: ${err}`);
       }
     }
 
@@ -726,13 +730,13 @@ export class FeltProcessParent extends JSProcessActorParent {
     }
 
     if (gFeltProcessParentInstance.logoutReported) {
-      console.debug(
+      lazy.log.debug(
         "FeltExtension: logoutFirefox: logout already in progress, skipping."
       );
       return;
     }
 
-    console.debug(
+    lazy.log.debug(
       `FeltExtension: Logout, waiting on process ${gFeltProcessParentInstance.proc.pid}`
     );
     gFeltProcessParentInstance.logoutReported = true;
@@ -757,7 +761,7 @@ export class FeltProcessParent extends JSProcessActorParent {
   }
 
   async receiveMessage(message) {
-    console.debug(
+    lazy.log.debug(
       `FeltExtension: ParentProcess: Received message ${message.name} => ${message.data}`
     );
     switch (message.name) {
@@ -779,7 +783,7 @@ export class FeltProcessParent extends JSProcessActorParent {
           );
 
           const ssoCollectedCookies = this.getAllCookies();
-          console.debug(`Collected cookies: ${ssoCollectedCookies.length}`);
+          lazy.log.debug(`Collected cookies: ${ssoCollectedCookies.length}`);
           // When a restart was reported we assume cookies were stored properly on the
           // browser side?
           if (!ssoCollectedCookies.length) {
@@ -799,7 +803,7 @@ export class FeltProcessParent extends JSProcessActorParent {
   }
 
   getAllCookies() {
-    console.debug(
+    lazy.log.debug(
       `FeltExtension: collecting cookies from privateBrowsingId=${lazy.FeltCommon.PRIVATE_BROWSING_ID}`
     );
     return Services.cookies.getCookiesWithOriginAttributes(
@@ -813,7 +817,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     if (this.loggedInUserInfo !== null) {
       return `${lazy.FeltCommon.ENTERPRISE_PROFILE}-${await hashTo40bits(this.loggedInUserInfo.id)}`;
     }
-    console.error(`FeltExtension: loggedInUserInfo not set`);
+    lazy.log.error(`FeltExtension: loggedInUserInfo not set`);
     return lazy.FeltCommon.ENTERPRISE_PROFILE;
   }
 }

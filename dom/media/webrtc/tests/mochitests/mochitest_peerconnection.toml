@@ -209,8 +209,6 @@ fail-if = [
   "true",
 ]
 
-["test_peerConnection_bug1773067.html"]
-
 ["test_peerConnection_callbacks.html"]
 
 ["test_peerConnection_captureStream_canvas_2d.html"]
@@ -445,10 +443,19 @@ skip-if = [
 ["test_peerConnection_sillyCodecPriorities.html"]
 
 ["test_peerConnection_simulcastAnswer.html"]
+skip-if = [
+  "os == 'android' && arch == 'aarch64' && debug", # Bug 2030403
+]
 
 ["test_peerConnection_simulcastAnswer_lowResFirst.html"]
+skip-if = [
+  "os == 'android' && arch == 'aarch64' && debug", # Bug 2030403
+]
 
 ["test_peerConnection_simulcastAnswer_lowResFirst_oldSetParameters.html"]
+skip-if = [
+  "os == 'android' && arch == 'aarch64' && debug", # Bug 2030403
+]
 
 ["test_peerConnection_simulcastAnswer_oldSetParameters.html"]
 
@@ -460,6 +467,7 @@ skip-if = [
 skip-if = [
   "os == 'win' && os_version == '11.26200' && arch == 'x86' && debug", # Bug 2028636
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && debug", # Bug 2028636
+  "os == 'android'", # Bug 2030403
 ]
 
 ["test_peerConnection_simulcastOffer_lowResFirst.html"]

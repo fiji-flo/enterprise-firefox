@@ -50,7 +50,6 @@ class RemoteBrowser : public nsISupports {
   virtual TabId GetTabId() const = 0;
   virtual LayersId GetLayersId() const = 0;
   virtual BrowsingContext* GetBrowsingContext() const = 0;
-  virtual nsILoadContext* GetLoadContext() const = 0;
   virtual bool CanRecv() const = 0;
 
   virtual void LoadURL(nsDocShellLoadState* aLoadState) = 0;

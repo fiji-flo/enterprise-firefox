@@ -15,7 +15,9 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.VisibleForTesting
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +45,6 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -88,6 +89,7 @@ import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.TabStripColors
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.HomepageThumbnailIntegration
+import org.mozilla.fenix.components.LensFeature
 import org.mozilla.fenix.components.QrScanFenixFeature
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.VoiceSearchFeature
@@ -98,11 +100,13 @@ import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.Microsurv
 import org.mozilla.fenix.components.appstate.AppAction.ReviewPromptAction.CheckIfEligibleForReviewPrompt
 import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.components.components
+import org.mozilla.fenix.components.metrics.installSourcePackage
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.e2e.SystemInsetsPaddedFragment
+import org.mozilla.fenix.ext.application
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getBottomToolbarHeight
 import org.mozilla.fenix.ext.getRootView
@@ -145,9 +149,9 @@ import org.mozilla.fenix.home.topsites.DefaultTopSitesView
 import org.mozilla.fenix.home.topsites.TopSitesBinding
 import org.mozilla.fenix.home.topsites.controller.DefaultTopSiteController
 import org.mozilla.fenix.home.topsites.getTopSitesConfig
-import org.mozilla.fenix.home.ui.HomeSwipeIntegration
 import org.mozilla.fenix.home.ui.Homepage
 import org.mozilla.fenix.home.ui.MiddleSearchHomepage
+import org.mozilla.fenix.home.ui.WallpaperBackground
 import org.mozilla.fenix.messaging.DefaultMessageController
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
@@ -155,6 +159,10 @@ import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.onboarding.OnboardingReason
+import org.mozilla.fenix.onboarding.OnboardingTelemetryRecorder
+import org.mozilla.fenix.onboarding.continuous.ContinuousOnboardingFeatureDefault
+import org.mozilla.fenix.onboarding.continuous.ContinuousOnboardingStageProviderDefault
 import org.mozilla.fenix.pbmlock.NavigationOrigin
 import org.mozilla.fenix.pbmlock.observePrivateModeLock
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
@@ -204,8 +212,6 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
     private val bottomToolbarContainerView: BottomToolbarContainerView
         get() = _bottomToolbarContainerView!!
     private var awesomeBarComposable: AwesomeBarComposable? = null
-
-    private var homeSwipeIntegration: HomeSwipeIntegration? = null
 
     private val browsingModeManager get() = (activity as HomeActivity).browsingModeManager
 
@@ -285,6 +291,12 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             voiceSearchFeature?.get()?.handleVoiceSearchResult(result.resultCode, result.data)
         }
+    private var lensFeature: ViewBoundFeatureWrapper<LensFeature>? =
+        ViewBoundFeatureWrapper()
+    private val lensLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            lensFeature?.get()?.handleImageResult(result.resultCode, result.data)
+        }
 
     private val destinationChangedListener =
         NavController.OnDestinationChangedListener { _, destination, _ ->
@@ -305,6 +317,37 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                 }
             }
         }
+
+    private val continuousOnboardingDefaultBrowserLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            continuousOnboardingFeature.onDefaultBrowserStepCompleted(
+                activity = requireActivity(),
+                resultCode = result.resultCode,
+            )
+        }
+
+    private val telemetryRecorder by lazy {
+        OnboardingTelemetryRecorder(
+            onboardingReason = if (requireComponents.settings.enablePersistentOnboarding) {
+                OnboardingReason.EXISTING_USER
+            } else {
+                OnboardingReason.NEW_USER
+            },
+            installSource = installSourcePackage(
+                packageManager = requireContext().application.packageManager,
+                packageName = requireContext().application.packageName,
+            ),
+        )
+    }
+
+    private val continuousOnboardingFeature by lazy {
+        val settings = requireContext().settings()
+        ContinuousOnboardingFeatureDefault(
+            settings = settings,
+            telemetryRecorder = telemetryRecorder,
+            stageProvider = ContinuousOnboardingStageProviderDefault(settings),
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
@@ -337,12 +380,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         val activity = activity as HomeActivity
         val components = requireComponents
 
-        val currentWallpaperName = requireContext().settings().currentWallpaperName
-        applyWallpaper(
-            wallpaperName = currentWallpaperName,
-            orientationChange = false,
-            orientation = requireContext().resources.configuration.orientation,
-        )
+        initWallpaper()
 
         lifecycleScope.launch(IO) {
             val settings = requireContext().settings()
@@ -659,16 +697,6 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
 
         initComposeHomepage()
 
-        homeSwipeIntegration = HomeSwipeIntegration(
-            components = requireContext().components,
-            settings = requireContext().settings(),
-            binding = binding,
-            activity = requireActivity() as HomeActivity,
-            toolbarView = toolbarView,
-            homeNavigationBar = homeNavigationBar,
-            navController = findNavController(),
-        )
-
         FxNimbus.features.homescreen.recordExposure()
 
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
@@ -752,12 +780,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             )
         }
 
-        val currentWallpaperName = requireContext().settings().currentWallpaperName
-        applyWallpaper(
-            wallpaperName = currentWallpaperName,
-            orientationChange = true,
-            orientation = newConfig.orientation,
-        )
+        initWallpaper(orientationChange = true)
     }
 
     private fun showEncourageSearchCfr() {
@@ -934,8 +957,6 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             HomeScreen.standardHomepageViewCount.add()
         }
 
-        homeSwipeIntegration?.initializeSwipeUI()
-
         observePrivateModeLock {
             findNavController().navigate(
                 NavGraphDirections.actionGlobalUnlockPrivateTabsFragment(NavigationOrigin.HOME_PAGE),
@@ -960,6 +981,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
 
         qrScanFenixFeature = QrScanFenixFeature.register(this, qrScanLauncher)
         voiceSearchFeature = VoiceSearchFeature.register(this, voiceSearchLauncher)
+        lensFeature = LensFeature.register(this, lensLauncher)
 
         showReviewPromptBinding.set(
             feature = ShowReviewPromptBinding(
@@ -971,6 +993,11 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             ),
             owner = viewLifecycleOwner,
             view = view,
+        )
+
+        continuousOnboardingFeature.maybeRunContinuousOnboarding(
+            activity = requireActivity(),
+            launcher = continuousOnboardingDefaultBrowserLauncher,
         )
 
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!
@@ -1014,37 +1041,46 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                         }
                     }
 
-                    if (settings.enableHomepageSearchBar) {
-                        MiddleSearchHomepage(
-                            state = HomepageState.build(
-                                appState = appState.value,
-                                privacyNoticeBannerState = privacyNoticeBannerState.value,
-                                settings = settings,
-                                browsingModeManager = browsingModeManager,
-                            ),
-                            interactor = sessionControlInteractor,
-                            onMiddleSearchBarVisibilityChanged = { isVisible ->
-                                // Hide the main address bar in the toolbar when the middle search is
-                                // visible (and vice versa)
-                                toolbarView.updateAddressBarVisibility(!isVisible)
-                            },
-                            onTopSitesItemBound = {
-                                StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
-                            },
-                        )
-                    } else {
-                        Homepage(
-                            state = HomepageState.build(
-                                appState = appState.value,
-                                privacyNoticeBannerState = privacyNoticeBannerState.value,
-                                settings = settings,
-                                browsingModeManager = browsingModeManager,
-                            ),
-                            interactor = sessionControlInteractor,
-                            onTopSitesItemBound = {
-                                StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
-                            },
-                        )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        if (settings.shouldUseComposeWallpaper && !appState.value.mode.isPrivate) {
+                            WallpaperBackground(
+                                wallpaper = appState.value.wallpaperState.currentWallpaper,
+                                loadBitmap = components.useCases.wallpaperUseCases.loadBitmap::invoke,
+                            )
+                        }
+
+                        if (settings.enableHomepageSearchBar) {
+                            MiddleSearchHomepage(
+                                state = HomepageState.build(
+                                    appState = appState.value,
+                                    privacyNoticeBannerState = privacyNoticeBannerState.value,
+                                    settings = settings,
+                                    browsingModeManager = browsingModeManager,
+                                ),
+                                interactor = sessionControlInteractor,
+                                onMiddleSearchBarVisibilityChanged = { isVisible ->
+                                    // Hide the main address bar in the toolbar when the middle search is
+                                    // visible (and vice versa)
+                                    toolbarView.updateAddressBarVisibility(!isVisible)
+                                },
+                                onTopSitesItemBound = {
+                                    StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
+                                },
+                            )
+                        } else {
+                            Homepage(
+                                state = HomepageState.build(
+                                    appState = appState.value,
+                                    privacyNoticeBannerState = privacyNoticeBannerState.value,
+                                    settings = settings,
+                                    browsingModeManager = browsingModeManager,
+                                ),
+                                interactor = sessionControlInteractor,
+                                onTopSitesItemBound = {
+                                    StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
+                                },
+                            )
+                        }
                     }
 
                     LaunchedEffect(Unit) {
@@ -1146,7 +1182,6 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         _sessionControlInteractor = null
         _bottomToolbarContainerView = null
         awesomeBarComposable = null
-        homeSwipeIntegration = null
         _binding = null
 
         bundleArgs.clear()
@@ -1314,6 +1349,18 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
     internal fun shouldEnableWallpaper() =
         (activity as? HomeActivity)?.themeManager?.currentTheme?.isPrivate?.not() ?: false
 
+    private fun initWallpaper(orientationChange: Boolean = false) {
+        if (requireContext().settings().shouldUseComposeWallpaper) {
+            binding.wallpaperImageView.isVisible = false
+        } else {
+            applyWallpaper(
+                wallpaperName = requireContext().settings().currentWallpaperName,
+                orientationChange = orientationChange,
+                orientation = requireContext().resources.configuration.orientation,
+            )
+        }
+    }
+
     internal fun isEdgeToEdgeBackgroundEnabled(): Boolean {
         val settings = requireContext().settings()
         return settings.enableHomepageEdgeToEdgeBackgroundFeature &&
@@ -1410,9 +1457,6 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
         const val START_VOICE_SEARCH = "startVoiceSearch"
         private const val SESSION_TO_DELETE = "sessionToDelete"
-
-        // Elevation for undo toasts
-        internal const val TOAST_ELEVATION = 80f
 
         private const val ENCOURAGE_SEARCH_CFR_VERTICAL_OFFSET = 0
     }

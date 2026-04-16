@@ -48,7 +48,9 @@ import mozilla.components.compose.browser.awesomebar.R
 import mozilla.components.compose.browser.awesomebar.internal.utils.SportSuggestionDataProvider
 import mozilla.components.compose.browser.awesomebar.internal.utils.SportSuggestionPreviewModel
 import mozilla.components.compose.browser.awesomebar.internal.utils.stringResId
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionCategory
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionDate
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionState
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatus
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatusType
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionTeam
@@ -56,18 +58,13 @@ import mozilla.components.ui.icons.R as iconsR
 
 @Composable
 internal fun SportSuggestion(
-    sport: String,
-    status: SportSuggestionStatus,
-    statusType: SportSuggestionStatusType,
-    date: SportSuggestionDate,
-    homeTeam: SportSuggestionTeam,
-    awayTeam: SportSuggestionTeam,
+    state: SportSuggestionState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shouldDisplayScore by remember(homeTeam, awayTeam) {
+    val shouldDisplayScore by remember(state.homeTeam, state.awayTeam) {
         derivedStateOf {
-            homeTeam.score != null && awayTeam.score != null
+            state.homeTeam.score != null && state.awayTeam.score != null
         }
     }
     Column(
@@ -84,10 +81,11 @@ internal fun SportSuggestion(
                 ),
         ) {
             SuggestionHeader(
-                sport = sport,
-                status = status,
-                statusType = statusType,
-                date = date,
+                sport = state.sport,
+                sportCategory = state.sportCategory,
+                status = state.status,
+                statusType = state.statusType,
+                date = state.date,
             )
 
             HorizontalDivider(
@@ -96,8 +94,8 @@ internal fun SportSuggestion(
             )
 
             SuggestionTeams(
-                awayTeam = awayTeam,
-                homeTeam = homeTeam,
+                awayTeam = state.awayTeam,
+                homeTeam = state.homeTeam,
                 shouldDisplayScore = shouldDisplayScore,
             )
         }
@@ -109,12 +107,13 @@ internal fun SportSuggestion(
 @Composable
 private fun SuggestionHeader(
     sport: String,
+    sportCategory: SportSuggestionCategory,
     status: SportSuggestionStatus,
     statusType: SportSuggestionStatusType,
     date: SportSuggestionDate,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        getSportsIcon(sport)?.let {
+        sportCategory.toSportIcon()?.let {
             Icon(
                 modifier = Modifier
                     .size(32.dp)
@@ -187,16 +186,16 @@ private fun SuggestionTeams(
 }
 
 @Composable
-private fun getSportsIcon(sport: String): Painter? =
-    when (sport) {
-        "NBA", "CBB" -> painterResource(iconsR.drawable.mozac_ic_sports_basketball_32)
-        "MLB" -> painterResource(iconsR.drawable.mozac_ic_sports_baseball_32)
-        "NHL" -> painterResource(iconsR.drawable.mozac_ic_sports_hockey_32)
-        "NFL", "CFB" -> painterResource(iconsR.drawable.mozac_ic_sports_american_football_32)
-        "PGA" -> painterResource(iconsR.drawable.mozac_ic_sports_golf_32)
-        "Bundesliga", "Ligue 1", "Serie A", "Champions League" ->
-            painterResource(iconsR.drawable.mozac_ic_sports_european_football_32)
-        else -> null
+private fun SportSuggestionCategory.toSportIcon(): Painter? =
+    when (this) {
+        SportSuggestionCategory.BASEBALL -> painterResource(iconsR.drawable.mozac_ic_sports_baseball_32)
+        SportSuggestionCategory.BASKETBALL -> painterResource(iconsR.drawable.mozac_ic_sports_basketball_32)
+        SportSuggestionCategory.HOCKEY -> painterResource(iconsR.drawable.mozac_ic_sports_hockey_32)
+        SportSuggestionCategory.SOCCER -> painterResource(iconsR.drawable.mozac_ic_sports_soccer_32)
+        SportSuggestionCategory.FOOTBALL -> painterResource(iconsR.drawable.mozac_ic_sports_football_32)
+        SportSuggestionCategory.GOLF -> painterResource(iconsR.drawable.mozac_ic_sports_golf_32)
+        SportSuggestionCategory.RACING -> painterResource(iconsR.drawable.mozac_ic_sports_racing_32)
+        SportSuggestionCategory.MISC -> null
     }
 
 @Composable
@@ -292,12 +291,7 @@ private fun SportSuggestionPreview(
     AcornTheme {
         Surface {
             SportSuggestion(
-                sport = config.sport,
-                status = config.status,
-                statusType = config.statusType,
-                date = config.date,
-                homeTeam = config.homeTeam,
-                awayTeam = config.awayTeam,
+                state = config.state,
                 onClick = {},
             )
         }
@@ -315,12 +309,7 @@ private fun SportSuggestionPreviewPrivate(
     ) {
         Surface {
             SportSuggestion(
-                sport = config.sport,
-                status = config.status,
-                statusType = config.statusType,
-                date = config.date,
-                homeTeam = config.homeTeam,
-                awayTeam = config.awayTeam,
+                state = config.state,
                 onClick = {},
             )
         }

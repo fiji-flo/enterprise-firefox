@@ -1,22 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 26 Mar 2026 10:16:00 -0500
-Subject: Bug 2025559 - (fix-72a64cb437) readd the api/audio:aec3_factory build
- dep
+Date: Mon, 6 Apr 2026 18:41:00 -0500
+Subject: Bug 2029247 - (fix-4520c7897c) fix new usage of GetRealTimeClock in
+ bitrate_adjuster.h
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/17f6c61e65b9ac586e6022278094ea039eab8b46
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a88b1959591bc4ddbf6deb88ff76dcc24fd8ae5d
 ---
- BUILD.gn | 1 +
- 1 file changed, 1 insertion(+)
+ common_video/include/bitrate_adjuster.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index bb666409e5..3cc57c1b05 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -631,6 +631,7 @@ if (!build_with_chromium) {
-       # Added when we removed deps in other places to avoid building
-       # unreachable sources.  See Bug 1820869.
-       deps += [
-+        "api/audio:aec3_factory",
-         "api/video_codecs:video_codecs_api",
-         "api/video_codecs:rtc_software_fallback_wrappers",
-         "media:rtc_simulcast_encoder_adapter",
+diff --git a/common_video/include/bitrate_adjuster.h b/common_video/include/bitrate_adjuster.h
+index 6cd92b7deb..d414fb7e25 100644
+--- a/common_video/include/bitrate_adjuster.h
++++ b/common_video/include/bitrate_adjuster.h
+@@ -40,7 +40,7 @@ class RTC_EXPORT BitrateAdjuster {
+   ABSL_DEPRECATE_AND_INLINE()
+   BitrateAdjuster(float min_adjusted_bitrate_pct,
+                   float max_adjusted_bitrate_pct)
+-      : BitrateAdjuster(Clock::GetRealTimeClock(),
++      : BitrateAdjuster(Clock::GetRealTimeClockRaw(),
+                         min_adjusted_bitrate_pct,
+                         max_adjusted_bitrate_pct) {}
+   virtual ~BitrateAdjuster() = default;

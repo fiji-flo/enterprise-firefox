@@ -157,7 +157,7 @@ class BrowserParent final : public PBrowserParent,
    */
   already_AddRefed<nsIWidget> GetTextInputHandlingWidget() const;
 
-  nsIXULBrowserWindow* GetXULBrowserWindow();
+  already_AddRefed<nsIXULBrowserWindow> GetXULBrowserWindow();
 
   static uint32_t GetMaxTouchPoints(Element* aElement);
   uint32_t GetMaxTouchPoints() { return GetMaxTouchPoints(mFrameElement); }
@@ -413,8 +413,8 @@ class BrowserParent final : public PBrowserParent,
       const mozilla::WidgetTouchEvent& aEvent);
 
   mozilla::ipc::IPCResult RecvScrollRectIntoView(
-      const nsRect& aRect, const ScrollAxis& aVertical,
-      const ScrollAxis& aHorizontal, const ScrollFlags& aScrollFlags,
+      const nsRect& aRect, const AxisScrollParams& aVertical,
+      const AxisScrollParams& aHorizontal, const ScrollFlags& aScrollFlags,
       const int32_t& aAppUnitsPerDevPixel);
 
   already_AddRefed<PColorPickerParent> AllocPColorPickerParent(
@@ -587,7 +587,7 @@ class BrowserParent final : public PBrowserParent,
 
   bool SendSelectionEvent(mozilla::WidgetSelectionEvent& aEvent);
 
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool SendHandleTap(
+  MOZ_CAN_RUN_SCRIPT bool SendHandleTap(
       TapType aType, const LayoutDevicePoint& aPoint, Modifiers aModifiers,
       const ScrollableLayerGuid& aGuid, uint64_t aInputBlockId,
       const Maybe<DoubleTapToZoomMetrics>& aDoubleTapToZoomMetrics);
@@ -961,7 +961,7 @@ class BrowserParent final : public PBrowserParent,
   nsTArray<nsString> mVerifyDropLinks;
 
 #ifdef DEBUG
-  int32_t mActiveSupressDisplayportCount = 0;
+  int32_t mActiveSuppressDisplayportCount = 0;
 #endif
 
   // When true, we've initiated normal shutdown and notified our managing

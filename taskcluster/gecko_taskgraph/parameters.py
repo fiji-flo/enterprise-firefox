@@ -18,6 +18,7 @@ gecko_parameters_schema = {
     Required("android_perftest_backstop"): bool,
     Required("app_version"): str,
     Required("backstop"): bool,
+    Required("dontbuild"): bool,
     Required("build_number"): int,
     Required("enable_always_target"): Any(bool, [str]),
     Required("files_changed"): [str],
@@ -125,13 +126,7 @@ def get_app_version(product_dir="browser"):
 
 
 def get_release_type(parameters):
-    if parameters["project"] != "enterprise-firefox":
-        return ""
-
-    if (
-        not parameters["base_repository"]
-        == "https://github.com/mozilla/enterprise-firefox"
-    ):
+    if parameters["project"] not in ("enterprise-firefox", "enterprise-firefox-try"):
         return ""
 
     if parameters["head_ref"] == "refs/heads/enterprise-release":
@@ -145,6 +140,7 @@ def get_defaults(repo_root=None):
         "android_perftest_backstop": False,
         "app_version": get_app_version(),
         "backstop": False,
+        "dontbuild": False,
         "base_repository": "https://hg.mozilla.org/mozilla-unified",
         "build_number": 1,
         "enable_always_target": ["docker-image"],
@@ -155,7 +151,7 @@ def get_defaults(repo_root=None):
         "next_version": None,
         "optimize_strategies": None,
         "phabricator_diff": None,
-        "project": "mozilla-central",
+        "project": "enterprise-firefox",
         "release_enable_emefree": False,
         "release_enable_partner_repack": False,
         "release_enable_partner_attribution": False,

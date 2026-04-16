@@ -308,8 +308,6 @@ export class _DSCard extends React.PureComponent {
             ...(this.props.shim && this.props.shim.click
               ? { shim: this.props.shim.click }
               : {}),
-            fetchTimestamp: this.props.fetchTimestamp,
-            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
             corpus_item_id: this.props.corpus_item_id,
             scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
             recommended_at: this.props.recommended_at,
@@ -700,7 +698,6 @@ export class _DSCard extends React.PureComponent {
                   ? { shim: this.props.shim.impression }
                   : {}),
                 recommendation_id: this.props.recommendation_id,
-                fetchTimestamp: this.props.fetchTimestamp,
                 corpus_item_id: this.props.corpus_item_id,
                 scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
                 recommended_at: this.props.recommended_at,
@@ -726,7 +723,6 @@ export class _DSCard extends React.PureComponent {
             ]}
             dispatch={this.props.dispatch}
             source={this.props.type}
-            firstVisibleTimestamp={this.props.firstVisibleTimestamp}
           />
 
           {ctaButtonVariant === "variant-b" && (
@@ -781,8 +777,6 @@ export class _DSCard extends React.PureComponent {
               section={this.props.section}
               section_position={this.props.sectionPosition}
               is_section_followed={this.props.sectionFollowed}
-              fetchTimestamp={this.props.fetchTimestamp}
-              firstVisibleTimestamp={this.props.firstVisibleTimestamp}
               format={
                 format
                   ? format

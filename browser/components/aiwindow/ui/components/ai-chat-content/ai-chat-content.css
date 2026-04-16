@@ -13,24 +13,25 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  --smart-window-fade-size: var(--size-item-xlarge);
+  /* space between chat bubbles + spacing around the header + header size */
+  --smart-window-top-spacing-chat: calc(var(--space-large) * 2 + var(--space-small) * 2 + var(--button-size-icon));
 }
 
 .chat-content-wrapper {
   display: flex;
   flex: 1;
   flex-direction: column;
-  margin-block-start: var(--space-xsmall);
   min-height: 0;
   overflow-y: auto;
-  padding-block: var(--space-large);
   width: 100%;
 
   &[overflowing] {
     mask-image: linear-gradient(
       to bottom,
       transparent,
-      var(--color-black) var(--size-item-xlarge),
-      var(--color-black) calc(100% - var(--size-item-xlarge)),
+      var(--color-black) var(--smart-window-fade-size),
+      var(--color-black) calc(100% - var(--smart-window-fade-size)),
       transparent
     );
   }
@@ -51,10 +52,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-small);
+  padding-block-start: var(--smart-window-top-spacing-chat);
   padding-inline: max(var(--space-medium), calc((100% - var(--smartwindow-content-max-width)) / 2));
   --content-height: 100%;
   min-height: var(--content-height);
   width: 100%;
+
+  & > :last-child {
+    padding-block-end: var(--smart-window-fade-size);
+  }
 }
 
 /* Temporary chat bubble styling */

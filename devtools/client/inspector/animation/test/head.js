@@ -1058,8 +1058,8 @@ async function testKeyframesGraphComputedValuePath(testData) {
 /**
  * Check the adjusted current time and created time from specified two animations.
  *
- * @param {AnimationPlayerFront.state} animation1
- * @param {AnimationPlayerFront.state} animation2
+ * @param {AnimationFront.state} animation1
+ * @param {AnimationFront.state} animation2
  */
 function checkAdjustingTheTime(animation1, animation2) {
   const adjustedCurrentTimeDiff =

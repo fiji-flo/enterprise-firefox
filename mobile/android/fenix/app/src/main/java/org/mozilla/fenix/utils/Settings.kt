@@ -1687,7 +1687,7 @@ class Settings(
 
     val shouldShowPwaCfr: Boolean
         get() {
-            if (!canShowCfr || !inAppMessagesEnabled) return false
+            if (!canShowCfr || !inAppMessagesEnabled || continuousOnboardingFeatureEnabled) return false
             // We only want to show this on the 3rd time a user visits a site
             if (userNeedsToVisitInstallableSites) return false
 
@@ -2268,6 +2268,46 @@ class Settings(
     var onboardingFeatureEnabled = FeatureFlags.onboardingFeatureEnabled
 
     /**
+     * The completion timestamp of the initial onboarding flow.
+     */
+    var onboardingCompletedTimestamp: Long by longPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_onboarding_completed_timestamp),
+        default = -1L,
+    )
+
+    /**
+     * Indicates if the continuous onboarding feature is enabled.
+     */
+    var continuousOnboardingFeatureEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_continuous_onboarding_enabled),
+        default = { FxNimbus.features.continuousOnboarding.value().enabled },
+    )
+
+    /**
+     * The completion timestamp of the second day of continuous onboarding.
+     */
+    var secondDayOnboardingCompletedTimestamp by longPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_continuous_onboarding_day_two_completed_timestamp),
+        default = -1L,
+    )
+
+    /**
+     * The completion timestamp of the third day of continuous onboarding.
+     */
+    var thirdDayOnboardingCompletedTimestamp by longPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_continuous_onboarding_day_three_completed_timestamp),
+        default = -1L,
+    )
+
+    /**
+     * The completion timestamp of the seventh day of continuous onboarding.
+     */
+    var seventhDayOnboardingCompletedTimestamp by longPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_continuous_onboarding_day_seven_completed_timestamp),
+        default = -1L,
+    )
+
+    /**
      * Indicates if the onboarding redesign should be used.
      */
     var useOnboardingRedesign by booleanPreference(
@@ -2284,6 +2324,14 @@ class Settings(
     )
 
     val shouldUseComposableToolbar = true
+
+    /**
+     * Indicates if the homepage wallpaper background should be rendered in Compose.
+     */
+    var shouldUseComposeWallpaper by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_wallpaper),
+        default = false,
+    )
 
     var shouldUseMinimalBottomToolbarWhenEnteringText by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_use_minimal_bottom_toolbar_while_entering_text),
@@ -2667,8 +2715,26 @@ class Settings(
 
     var aiControlsFeatureFlagEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_ai_controls),
-        default = Config.channel.isDebug,
+        default = Config.channel.isNightlyOrDebug,
     )
+
+    /**
+     * Persists IPProtection state set through Secret Settings.
+     *
+     * `true` makes the IPProtection UI elements visible across the app, while `false` hides them.
+     */
+    var isIPProtectionEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_ip_protection),
+        default = false,
+    )
+
+    /**
+     * Indicates if the IPProtection feature is available for the user.
+     *
+     * The flag is backed by a Nimbus `ip-protection` feature, with an option to override it through secret settings.
+     */
+    val isIPProtectionAvailable: Boolean
+        get() = FxNimbus.features.ipProtection.value().enabled || isIPProtectionEnabled
 
     /**
      * Tracks how many times the summarize menu item has been shown.
@@ -3057,11 +3123,24 @@ class Settings(
     )
 
     /**
+     * Whether drag and drop is enabled for the Tab Groups feature.
+     */
+    var tabGroupsDragAndDropEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_tab_groups_drag_and_drop),
+        default = { DefaultTabManagementFeatureHelper.tabGroupsDragAndDropEnabled },
+    )
+
+    /**
      * Whether the Native Share Sheet feature is enabled.
      */
     var nativeShareSheetEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_native_share_sheet),
         default = { FxNimbus.features.nativeShareSheet.value().enabled },
+    )
+
+    var googleLensIntegrationEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_google_lens_integration),
+        default = { FxNimbus.features.googleLensIntegration.value().enabled },
     )
 
     /**

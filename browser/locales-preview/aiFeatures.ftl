@@ -24,6 +24,12 @@ ai-window-personalize-button =
 ai-window-personalize-header =
     .heading = Smart Window
 
+ai-window-default-section =
+    .label = Default settings
+ai-window-open-sidebar =
+    .label = Open assistant automatically
+    .description = Show the assistant sidebar on each new tab. Close it anytime.
+
 smart-window-model-section =
     .label = Assistant model
     .description = Choose a model based on what’s important to you.
@@ -66,7 +72,7 @@ ai-window-learn-from-chat-activity =
     .label = Learn from chats in Smart Window
 
 ai-window-learn-from-browsing-activity =
-    .label = Learn from browsing and searches in Classic and Smart Windows
+    .label = Learn from browsing in Classic and Smart Windows
 
 ai-window-manage-memories-button =
     .label = Manage memories

@@ -520,6 +520,7 @@ $(notdir $(1))_deps := $$(call unescape_spaces,$$(call normalize_sep,$$(wordlist
 $(1): $(CARGO_FILE) $(3) $(topsrcdir)/Cargo.lock $$(if $$($(notdir $(1))_deps),$$($(notdir $(1))_deps),$(2))
 	$$(REPORT_BUILD)
 	$$(if $$($(notdir $(1))_deps),+$(MAKE) $(2),:)
+	@touch $$@
 
 $$(foreach dep, $$(call escape_spaces,$$($(notdir $(1))_deps)),$$(eval $$(call make_default_rule,$$(call unescape_spaces,$$(dep)))))
 endef

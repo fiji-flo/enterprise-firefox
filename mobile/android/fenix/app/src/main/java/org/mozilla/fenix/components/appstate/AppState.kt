@@ -12,6 +12,7 @@ import mozilla.components.lib.crash.store.CrashState
 import mozilla.components.lib.state.State
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.components.appstate.lens.LensState
 import org.mozilla.fenix.components.appstate.qrScanner.QrScannerState
 import org.mozilla.fenix.components.appstate.readerview.ReaderViewState
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
@@ -74,6 +75,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property webCompatState The [WebCompatState] when the feature was last used.
  * @property setupChecklistState Optional [SetupChecklistState] for the Setup Checklist feature.
  * @property searchState The current search state.
+ * @property lensState The [LensState] for Google Lens image search.
  * @property qrScannerState The [QrScannerState] when the feature was last used.
  * @property isPrivateScreenLocked Whether the private browsing mode is currently locked behind
  * authentication.
@@ -113,6 +115,7 @@ data class AppState(
     val webCompatState: WebCompatState? = null,
     val setupChecklistState: SetupChecklistState? = null,
     val searchState: SearchState = SearchState.EMPTY,
+    val lensState: LensState = LensState.DEFAULT,
     val qrScannerState: QrScannerState = QrScannerState.DEFAULT,
     val isPrivateScreenLocked: Boolean = false,
     val reviewPrompt: ReviewPromptState = Unknown,

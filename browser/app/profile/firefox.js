@@ -301,6 +301,7 @@ pref("browser.shell.checkDefaultPDF.silencedByUser", false);
 // Whether or not the user should be shown the guidance notifications when
 // setting Firefox as their default browser.
 pref("browser.shell.setDefaultGuidanceNotifications", true);
+pref("browser.shell.focusSetDefaultBrowserButton", false);
 #endif
 
 
@@ -828,6 +829,10 @@ pref("browser.urlbar.lastUrlbarSearchSeconds", 0);
 
 // Feature gate pref for Nova UI in the urlbar.
 pref("browser.urlbar.nova.featureGate", false);
+
+// When selecting and hovering over certain types of urlbar results, replace
+// their URLs with strings that explain why they're shown.
+pref("browser.urlbar.resultExplanations.featureGate", false);
 
 pref("browser.altClickSave", false);
 
@@ -2027,7 +2032,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.topicLabels.locale-topi
 // List of locales that get section layout by default
 pref("browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config", "en-US,en-CA,en-GB");
 // List of regions that get section layout by default
-pref("browser.newtabpage.activity-stream.discoverystream.sections.region-content-config", "US,GB");
+pref("browser.newtabpage.activity-stream.discoverystream.sections.region-content-config", "US,GB,CA,IE");
 
 pref("browser.newtabpage.activity-stream.discoverystream.sections.cards.enabled", true);
 
@@ -2124,9 +2129,23 @@ pref("browser.newtabpage.sponsor-protection.enabled", true);
 pref("browser.aboutwelcome.enabled", true);
 // Used to set multistage welcome UX
 pref("browser.aboutwelcome.screens", "");
+// Whether to gate loading about:welcome on Nimbus experiments having loaded.
+// Currently limited to Mac where a blocking preonboarding modal is shown with a
+// splash screen that advances after experiments load. On non-MSIX Windows,
+// experiments are loaded early enough that this isn't required.
+#if defined(XP_MACOSX)
+  pref("browser.aboutwelcome.experimentsGate.enabled", true);
+#endif
+// Whether to skip showing the experiment loading splash screen if Nimbus is
+// already initialized when the preonboarding modal's screen targeting is
+// evaluated.
+pref("browser.aboutwelcome.experimentsGate.skipSplashIfLoaded", true);
+// Minimum and maximum time (ms) to display the experiment-loading splash screen.
+pref("browser.aboutwelcome.experimentsGate.minDisplayMs", 3000);
+pref("browser.aboutwelcome.experimentsGate.maxDisplayMs", 8000);
 
-// Override design tokens for a given theme
-pref("browser.design-tokens.nova", false);
+// Global Nova enabled pref
+pref("browser.nova.enabled", false);
 
 // Disable singleProfile messaging mitigation (Bug 1963213) for multiProfile feature users
 pref("messaging-system.profile.singleProfileMessaging.disable", true);
@@ -2275,6 +2294,7 @@ pref("browser.smartwindow.memoriesLogLevel", "Warn");
 pref("browser.smartwindow.firstrun.autoAdvanceMS", 3000);
 pref("browser.smartwindow.firstrun.hasCompleted", false);
 pref("browser.smartwindow.showThemesNotice", true);
+pref("browser.smartwindow.sidebar.openByDefault", true);
 pref("browser.smartwindow.firstrun.modelChoice", "");
 pref("browser.smartwindow.model", "");
 pref("browser.smartwindow.preferences.endpoint", "");
@@ -2285,6 +2305,9 @@ pref("browser.smartwindow.chatHistory.loglevel", "Error");
 pref("browser.smartwindow.chatStore.loglevel", "Error");
 pref("browser.smartwindow.conversation.logLevel", "Error");
 pref("browser.smartwindow.smartbarMentions.loglevel", "Error");
+
+//Smart Window Nova
+pref("browser.smartwindow.nova.enabled", false);
 
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);
@@ -3064,6 +3087,7 @@ pref("devtools.command-button-rulers.enabled", false);
 pref("devtools.command-button-measure.enabled", false);
 pref("devtools.command-button-noautohide.enabled", false);
 pref("devtools.command-button-errorcount.enabled", true);
+pref("devtools.command-button-jstracer.enabled", false);
 #ifndef MOZILLA_OFFICIAL
   pref("devtools.command-button-experimental-prefs.enabled", true);
 #endif
@@ -3663,6 +3687,9 @@ pref("browser.ipProtection.bandwidth.enabled", true);
 pref("browser.ipProtection.egressLocationEnabled", false);
 // Pref that flips at 50%, 75%, and 90% bandwidth usage thresholds
 pref("browser.ipProtection.bandwidthThreshold", 0);
+// Tracks the highest bandwidth warning threshold (75 or 90) the user has dismissed.
+// Reset to 0 when bandwidth usage resets.
+pref("browser.ipProtection.bandwidthWarningDismissedThreshold", 0);
 
 // Pref to enable aboug:glean redesign.
 pref("about.glean.redesign.enabled", false);
@@ -3685,3 +3712,6 @@ pref("browser.settings-redesign.enabled", false);
 #if defined(MOZ_WIDGET_GTK)
 pref("widget.support-xdg-config", true, locked);
 #endif
+
+// A preference that enables Content Sharing
+pref("browser.contentsharing.enabled", false);

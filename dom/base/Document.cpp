@@ -13510,7 +13510,7 @@ bool Document::CanRewriteURL(nsIURI* aTargetURL, bool aReportErrors) const {
   nsAutoCString scheme;
   nsresult rv = mDocumentURI->GetScheme(scheme);
   NS_ENSURE_SUCCESS(rv, false);
-  if (!aTargetURL->SchemeIs(scheme.get())) {
+  if (!aTargetURL || !aTargetURL->SchemeIs(scheme.get())) {
     return false;
   }
 
@@ -14212,12 +14212,10 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
       continue;
     }
 
-    RefPtr<nsRange> clonedRange = nsRange::Create(
-        startNode, range->MayCrossShadowBoundaryStartOffset(), endNode,
-        range->MayCrossShadowBoundaryEndOffset(), IgnoreErrors(),
-        StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
-            ? AllowRangeCrossShadowBoundary::Yes
-            : AllowRangeCrossShadowBoundary::No);
+    RefPtr<nsRange> clonedRange =
+        nsRange::Create(startNode, range->MayCrossShadowBoundaryStartOffset(),
+                        endNode, range->MayCrossShadowBoundaryEndOffset(),
+                        IgnoreErrors(), AllowRangeCrossShadowBoundary::Yes);
     if (clonedRange &&
         !clonedRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
       printRanges->AppendElement(std::move(clonedRange));
@@ -16789,11 +16787,16 @@ void Document::RequestFullscreenInParentProcess(
 
 /* static */
 bool Document::HandlePendingFullscreenRequests(Document* aDoc) {
+  AutoTArray<UniquePtr<FullscreenRequest>, 1> requests;
+  {
+    PendingFullscreenChangeList::Iterator<FullscreenRequest> iter(
+        aDoc, PendingFullscreenChangeList::eDocumentsWithSameRoot);
+    while (!iter.AtEnd()) {
+      requests.AppendElement(iter.TakeAndNext());
+    }
+  }
   bool handled = false;
-  PendingFullscreenChangeList::Iterator<FullscreenRequest> iter(
-      aDoc, PendingFullscreenChangeList::eDocumentsWithSameRoot);
-  while (!iter.AtEnd()) {
-    UniquePtr<FullscreenRequest> request = iter.TakeAndNext();
+  for (UniquePtr<FullscreenRequest>& request : requests) {
     Document* doc = request->Document();
     if (doc->ApplyFullscreen(std::move(request))) {
       handled = true;

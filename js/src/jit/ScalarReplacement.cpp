@@ -3946,7 +3946,6 @@ class ObjectKeysReplacer : public GenericArrayReplacer {
 
   MObjectKeys* objectKeys() const { return arr_->toObjectKeys(); }
 
-  MDefinition* objectKeysLength(MInstruction* ins);
   void visitLength(MInstruction* ins, MDefinition* elements);
 
   void visitLoadElement(MLoadElement* ins);

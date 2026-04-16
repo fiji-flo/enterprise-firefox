@@ -109,9 +109,10 @@ uint32_t ConnectionAttemptPool::UnconnectedConnectionAttempts() const {
   return unconnectedConns;
 }
 
-void ConnectionAttemptPool::CloseAllConnectionAttempts() {
+void ConnectionAttemptPool::CloseAllConnectionAttempts(
+    bool aReenqueueTransaction) {
   for (const auto& sock : mAttempts) {
-    sock->Abandon();
+    sock->Abandon(aReenqueueTransaction);
     gHttpHandler->ConnMgr()->DecreaseNumDnsAndConnectSockets();
   }
 

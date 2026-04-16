@@ -562,14 +562,30 @@ static bool ResolveLocale(JSContext* cx,
   displayNames->setLocale(locale);
 
   if (mozExtensions) {
-    auto ca = resolved.extension(UnicodeExtensionKey::Calendar);
-    MOZ_ASSERT(ca, "resolved calendar is non-null");
-
-    displayNames->setCalendar(ca);
+    if (auto ca = resolved.extension(UnicodeExtensionKey::Calendar)) {
+      displayNames->setCalendar(ca);
+    } else {
+      displayNames->setCalendar(cx->names().default_);
+    }
   }
 
   MOZ_ASSERT(displayNames->isLocaleResolved(), "locale successfully resolved");
   return true;
+}
+
+static JSLinearString* ResolveCalendar(
+    JSContext* cx, Handle<DisplayNamesObject*> displayNames) {
+  MOZ_ASSERT(displayNames->isLocaleResolved());
+
+  auto* calendar = displayNames->getCalendar();
+  if (calendar == cx->names().default_) {
+    calendar = DefaultCalendar(cx, displayNames->getLocale());
+    if (!calendar) {
+      return nullptr;
+    }
+    displayNames->setCalendar(calendar);
+  }
+  return calendar;
 }
 
 static mozilla::intl::DisplayNames* NewDisplayNames(
@@ -783,7 +799,12 @@ static bool ComputeDisplayName(JSContext* cx,
         return false;
       }
 
-      auto calendarChars = EncodeAscii(cx, displayNames->getCalendar());
+      auto* calendar = ResolveCalendar(cx, displayNames);
+      if (!calendar) {
+        return false;
+      }
+
+      auto calendarChars = EncodeAscii(cx, calendar);
       if (!calendarChars) {
         return false;
       }
@@ -986,8 +1007,13 @@ static bool displayNames_resolvedOptions(JSContext* cx, const CallArgs& args) {
   }
 
   if (dnOptions.mozExtensions) {
+    auto* calendar = ResolveCalendar(cx, displayNames);
+    if (!calendar) {
+      return false;
+    }
+
     if (!options.emplaceBack(NameToId(cx->names().calendar),
-                             StringValue(displayNames->getCalendar()))) {
+                             StringValue(calendar))) {
       return false;
     }
   }

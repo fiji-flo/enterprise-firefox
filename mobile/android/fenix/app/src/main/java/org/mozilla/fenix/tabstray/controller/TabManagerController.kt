@@ -316,6 +316,7 @@ class DefaultTabManagerController(
             when (page) {
                 Page.NormalTabs -> TabsTray.normalModeTapped.record(NoExtras())
                 Page.PrivateTabs -> TabsTray.privateModeTapped.record(NoExtras())
+                Page.TabGroups -> TabsTray.tabGroupModeTapped.record(NoExtras())
                 Page.SyncedTabs -> TabsTray.syncedModeTapped.record(NoExtras())
             }
         }

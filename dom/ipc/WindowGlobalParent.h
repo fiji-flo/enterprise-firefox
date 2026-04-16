@@ -341,14 +341,17 @@ class WindowGlobalParent final : public WindowContext,
 
   mozilla::ipc::IPCResult RecvSetCookies(
       const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-      nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
+      nsIURI* aHost, bool aIsThirdParty,
       const nsTArray<CookieStruct>& aCookies);
-
-  mozilla::ipc::IPCResult RecvOnInitialStorageAccess();
 
   mozilla::ipc::IPCResult RecvRecordUserActivationForBTP();
 
   mozilla::ipc::IPCResult RecvRecordUserInteractionForPermissions();
+
+  already_AddRefed<dom::PSerialManagerParent> AllocPSerialManagerParent();
+
+  mozilla::ipc::IPCResult RecvPSerialManagerConstructor(
+      PSerialManagerParent* aActor) override;
 
   already_AddRefed<dom::PWebAuthnTransactionParent>
   AllocPWebAuthnTransactionParent();

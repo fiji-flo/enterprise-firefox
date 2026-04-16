@@ -83,8 +83,8 @@ prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 skip-if = [
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1760081
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1760081
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1760081
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1760081
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1760081
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1760081
 ]
 
@@ -101,8 +101,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
 ]
 
@@ -326,8 +326,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64' && socketprocess_networking",
   "os == 'win' && os_version == '11.26100' && arch == 'x86' && socketprocess_networking",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && socketprocess_networking",
 ]
 
@@ -362,8 +362,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1622901
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1808048
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1808048
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808048
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1808048
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808048
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1808048
 ]
 
@@ -543,6 +543,9 @@ skip-if = [
 
 ["test_connection_coalescing.js"]
 
+["test_content_decoding_error_telemetry.js"]
+run-sequentially = ["true"]
+
 ["test_content_encoding_gzip.js"]
 
 ["test_content_length_underrun.js"]
@@ -605,9 +608,6 @@ prefs = ["content.cors.use_triggering_principal=true"] # See bug 1982916.
 
 ["test_defaultURI.js"]
 
-["test_content_decoding_error_telemetry.js"]
-run-sequentially = ["true"]
-
 ["test_dictionary_compression_dcb.js"]
 run-sequentially = ["true"]
 
@@ -655,8 +655,8 @@ run-if = [
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && socketprocess_networking", # Bug 1760106
   "os == 'win' && os_version == '11.26100' && arch == 'x86' && socketprocess_networking", # Bug 1760106
-  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking", # Bug 1760106
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && socketprocess_networking", # Bug 1760106
+  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking", # Bug 1760106
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && socketprocess_networking", # Bug 1760106
 ]
 
@@ -706,11 +706,6 @@ run-if = [
 
 ["test_getHost.js"]
 
-["test_gio_protocol.js"]
-run-if = [
-  "os == 'linux'",
-]
-
 ["test_gre_resources.js"]
 
 ["test_h2proxy_connection_limit.js"]
@@ -736,6 +731,9 @@ skip-if = [
   "os == 'android'",
   "os == 'win'",
 ]
+
+["test_happy_eyeballs_concurrent_channels.js"]
+run-sequentially = ["true"]
 
 ["test_happy_eyeballs_conn_failure.js"]
 run-sequentially = ["true"] # node server exceptions dont replay well
@@ -786,8 +784,8 @@ run-sequentially = ["true"] # node server exceptions dont replay well
 skip-if = [
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1881334
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1881334
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1881334
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1881334
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1881334
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1881334
 ]
 
@@ -816,8 +814,8 @@ skip-if = [
   "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1998062
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
 ]
 
@@ -832,8 +830,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
 ]
 
@@ -842,8 +840,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -852,8 +850,8 @@ skip-if = [
   "os == 'android'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -863,8 +861,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
 ]
 
@@ -886,8 +884,8 @@ skip-if = [
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1866067
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1808049
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1808049
   "verify", # Bug 2000787
 ]
@@ -898,8 +896,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1808049
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1808049
 ]
 
@@ -909,8 +907,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -920,8 +918,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1808049
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1808049
 ]
 
@@ -947,8 +945,8 @@ run-sequentially = ["true"] # node server exceptions dont replay well
 skip-if = [
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -965,8 +963,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -976,8 +974,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -991,8 +989,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -1010,8 +1008,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1807931
 ]
 
@@ -1021,8 +1019,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1807931
 ]
 
@@ -1067,6 +1065,15 @@ skip-if = [
   # connection. Disable test on MacOS 10.15.
 ]
 
+["test_http3_quic_token_partition.js"]
+skip-if = [
+  "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26100' && arch == 'x86'",
+  "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
+]
+
 ["test_http3_server.js"]
 run-sequentially = ["true"] # node server exceptions dont replay well
 skip-if = [
@@ -1086,8 +1093,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -1097,8 +1104,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
 ]
 
@@ -1108,8 +1115,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -1121,8 +1128,8 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
   # Setting dontfragment socket option on MacOS 10.15 fails with -5987. Without
   # dontfragment, PMTUD needs to be disabled. Without PMTUD, the HTTP/3 proxy
@@ -1136,16 +1143,16 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
 ["test_httpResponseTimeout.js"]
 skip-if = [
   "os == 'win' && os_version == '11.26100' && arch == 'x86' && socketprocess_networking",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && socketprocess_networking",
 ]
 
@@ -1185,8 +1192,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1622901
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1808048
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1808048
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808048
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1808048
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808048
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1808048
 ]
 run-sequentially = ["true"] # uses common port for ECH server
@@ -1245,6 +1252,8 @@ skip-if = [
 
 ["test_multipart_byteranges.js"]
 
+["test_multipart_byteranges_invalid.js"]
+
 ["test_multipart_contentdisp.js"]
 
 ["test_multipart_set_cookie.js"]
@@ -1267,8 +1276,8 @@ skip-if = [
 skip-if = [
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 732363: test fails on windows for unknown reasons.
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 732363: test fails on windows for unknown reasons.
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 732363: test fails on windows for unknown reasons.
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 732363: test fails on windows for unknown reasons.
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 732363: test fails on windows for unknown reasons.
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 732363: test fails on windows for unknown reasons.
 ]
 
@@ -1333,8 +1342,8 @@ skip-if = [
 ["test_port_remapping.js"]
 skip-if = [
   "os == 'win' && os_version == '11.26100' && arch == 'x86' && socketprocess_networking",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && socketprocess_networking",
 ]
 
@@ -1354,8 +1363,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'", # Bug 1982955
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -1379,13 +1388,15 @@ skip-if = [
 ["test_proxyDNS_leak.js"]
 skip-if = [
   "os == 'win' && os_version == '11.26100' && arch == 'x86' && socketprocess_networking",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && socketprocess_networking",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86' && socketprocess_networking",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && socketprocess_networking",
 ]
 
 ["test_proxy_cancel.js"]
 run-sequentially = ["true"] # node server exceptions dont replay well
+
+["test_proxy_fast_path.js"]
 
 ["test_proxy_pac.js"]
 
@@ -1572,8 +1583,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -1657,8 +1668,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86'",
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'",
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'",
 ]
 
@@ -1667,8 +1678,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1808049
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1808049
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1808049
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1808049
 ]
 
@@ -1770,8 +1781,8 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'x86_64'",
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1807931
-  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && msix", # Bug 1807931
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1807931
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && msix", # Bug 1807931
 ]
 

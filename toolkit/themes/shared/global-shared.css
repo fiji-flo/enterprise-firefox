@@ -27,12 +27,12 @@
 
   @media (-moz-platform: macos) {
     /* On macOS we use native shadows via -moz-window-shadow */
-    --arrowpanel-shadow-margin: 0px;
+    --panel-shadow-margin: 0px;
   }
 
   --panel-separator-color: color-mix(in srgb, currentColor 25%, transparent);
 
-  --popup-notification-body-width: calc(31em - calc(2 * var(--arrowpanel-padding)));
+  --popup-notification-body-width: calc(31em - calc(2 * var(--panel-padding)));
 
   --input-border-color: var(--border-color-interactive);
 
@@ -71,15 +71,9 @@
 }
 
 :is(menupopup, panel):where([type="arrow"]) {
-  --panel-background: var(--arrowpanel-background);
-  --panel-color: var(--arrowpanel-color);
-  --panel-border-color: var(--arrowpanel-border-color);
-  --panel-border-radius: var(--arrowpanel-border-radius);
-  --panel-padding: var(--arrowpanel-padding);
-  --panel-shadow-margin: var(--arrowpanel-shadow-margin);
-  --menuitem-border-radius: var(--arrowpanel-menuitem-border-radius);
-  --menuitem-padding: var(--arrowpanel-menuitem-padding);
-  --menuitem-margin: var(--arrowpanel-menuitem-margin);
+  --menuitem-border-radius: var(--panel-menuitem-border-radius);
+  --menuitem-padding: var(--panel-menuitem-padding);
+  --menuitem-margin: var(--panel-menuitem-margin);
 }
 
 /* Lightweight theme roots */
@@ -371,8 +365,6 @@ button.text-link .button-text {
   --panel-border-color: rgba(0, 0, 0, 0.4);
   --panel-padding: 0;
   --panel-background: rgba(249, 249, 250, 0.8) no-repeat center var(--autoscroll-background-image);
-  --panel-shadow: 0 0 var(--panel-shadow-margin) rgba(0, 0, 0, 0.2);
-  --panel-shadow-margin: 4px;
   --panel-border-radius: 100%;
 
   /* Set pointer-events: none; so that mousemove events can be handled by AutoScrollChild.sys.mjs. */
@@ -420,4 +412,10 @@ button.text-link .button-text {
 /* Indent options in optgroups */
 #ContentSelectDropdown menuitem[indented] > .menu-text {
   padding-inline-start: var(--space-xxlarge);
+}
+
+/* When in Enterprise and running in Felt mode, some parts of browser should
+ * not be accessible */
+[hide-in-felt="true"] {
+  display: none;
 }

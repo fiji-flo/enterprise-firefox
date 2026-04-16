@@ -263,8 +263,20 @@ const CONFIG_PANES = Object.freeze({
     l10nId: "ai-window-personalize-header",
     iconSrc: "chrome://browser/skin/smart-window-mono.svg",
     badge: "beta",
-    groupIds: ["assistantModelGroup", "memoriesGroup"],
+    groupIds: ["assistantDefaultGroup", "assistantModelGroup", "memoriesGroup"],
     module: "chrome://browser/content/preferences/config/aiFeatures.mjs",
+  },
+  search: {
+    l10nId: "search-section",
+    groupIds: [
+      "defaultEngine",
+      "searchShortcuts",
+      "searchSuggestions",
+      "firefoxSuggest",
+    ],
+    iconSrc: "chrome://browser/skin/preferences/category-search.svg",
+    module: "chrome://browser/content/preferences/config/search.mjs",
+    replaces: "search",
   },
   sync: {
     l10nId: "account-sync-section",

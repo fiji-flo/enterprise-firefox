@@ -14,6 +14,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.engine.Engine
+import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.store.CrashReportOption
 import mozilla.components.service.nimbus.NimbusApi
 import org.junit.Assert.assertEquals
@@ -43,6 +44,7 @@ class DataChoicesMiddlewareTest {
     private lateinit var nav: NavController
     private lateinit var learnMore: (SupportUtils.SumoTopic) -> Unit
     private lateinit var crashReportCache: SettingsCrashReportCache
+    private lateinit var crashReporter: CrashReporter
 
     @Before
     fun setup() {
@@ -53,6 +55,7 @@ class DataChoicesMiddlewareTest {
         nav = mockk(relaxUnitFun = true)
         learnMore = mockk()
         crashReportCache = mockk(relaxed = true)
+        crashReporter = mockk(relaxed = true)
     }
 
     @Test
@@ -90,6 +93,7 @@ class DataChoicesMiddlewareTest {
             assertEquals(false, store.state.telemetryEnabled)
             verify { settings.isExperimentationEnabled = false }
             verify { metrics.stop(MetricServiceType.Data) }
+            verify { crashReporter.setTelemetryEnabled(false) }
             verify { nimbus.resetTelemetryIdentifiers() }
             verify { engine.notifyTelemetryPrefChanged(false) }
         }
@@ -180,6 +184,7 @@ class DataChoicesMiddlewareTest {
                 nimbusSdk = nimbus,
                 engine = engine,
                 metrics = metrics,
+                crashReporter = crashReporter,
                 navController = nav,
                 crashReportCache = crashReportCache,
                 scope = scope,

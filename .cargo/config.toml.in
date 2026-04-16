@@ -75,14 +75,14 @@ git = "https://github.com/mozilla/audioipc"
 rev = "b52c33425baf619b6c1278c5b4c7ffa3e92b9b1e"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/mozilla/cubeb-coreaudio-rs?rev=5b689a7f90086e07c271ad1cf79325ee06112ab6"]
+[source."git+https://github.com/mozilla/cubeb-coreaudio-rs?rev=0bb8a45a040e85d313eb18deb36570e87df3a6af"]
 git = "https://github.com/mozilla/cubeb-coreaudio-rs"
-rev = "5b689a7f90086e07c271ad1cf79325ee06112ab6"
+rev = "0bb8a45a040e85d313eb18deb36570e87df3a6af"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/mozilla/cubeb-pulse-rs?rev=a1936adf8e0fb0637b48436f92f833c8c48a0fee"]
+[source."git+https://github.com/mozilla/cubeb-pulse-rs?rev=c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c"]
 git = "https://github.com/mozilla/cubeb-pulse-rs"
-rev = "a1936adf8e0fb0637b48436f92f833c8c48a0fee"
+rev = "c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/mozilla/ipc-channel?rev=f2b5aed36a60f07589579d31aaace2f90d2e5e9e"]
@@ -110,9 +110,9 @@ git = "https://github.com/mozilla/mp4parse-rust"
 rev = "f2d96807b8becf7485f035b393575fcfc76cec4c"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/mozilla/neqo?tag=v0.25.0"]
+[source."git+https://github.com/mozilla/neqo?tag=v0.26.0"]
 git = "https://github.com/mozilla/neqo"
-tag = "v0.25.0"
+tag = "v0.26.0"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/rust-lang/rust-bindgen?rev=9366e0af8da529c958b4cd4fcbe492d951c86f5c"]

@@ -1706,11 +1706,14 @@ void LocalAccessible::ApplyARIAState(uint64_t* aState) const {
     }
   }
 
-  // special case: A native button element whose role got transformed by ARIA to
-  // a toggle button Also applies to togglable button menus, like in the Dev
-  // Tools Web Console.
-  if (IsButton() || IsMenuButton()) {
-    aria::MapToState(aria::eARIAPressed, element, aState);
+  if (!roleMapEntry) {
+    if (nsStaticAtom* ariaRole = ComputedARIARole()) {
+      const nsRoleMapEntry* computedRoleMapEntry = aria::GetRoleMap(ariaRole);
+      aria::MapToStateIfInRoleMapEntry(computedRoleMapEntry,
+                                       aria::eARIAExpanded, element, aState);
+      aria::MapToStateIfInRoleMapEntry(computedRoleMapEntry, aria::eARIAPressed,
+                                       element, aState);
+    }
   }
 
   if (!IsTextField() && IsEditableRoot()) {
@@ -2589,7 +2592,8 @@ void LocalAccessible::DispatchClickEvent(uint32_t aActionIndex) const {
   RefPtr<PresShell> presShell = mDoc->PresShellPtr();
 
   // Scroll into view.
-  presShell->ScrollContentIntoView(mContent, ScrollAxis(), ScrollAxis(),
+  presShell->ScrollContentIntoView(mContent, AxisScrollParams(),
+                                   AxisScrollParams(),
                                    ScrollFlags::ScrollOverflowHidden);
 
   AutoWeakFrame frame = GetFrame();

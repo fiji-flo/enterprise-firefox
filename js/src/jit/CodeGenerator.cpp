@@ -16656,15 +16656,6 @@ void CodeGenerator::visitObjectKeys(LObjectKeys* lir) {
   callVM<Fn, jit::ObjectKeys>(lir);
 }
 
-void CodeGenerator::visitObjectKeysLength(LObjectKeysLength* lir) {
-  Register object = ToRegister(lir->object());
-
-  pushArg(object);
-
-  using Fn = bool (*)(JSContext*, HandleObject, int32_t*);
-  callVM<Fn, jit::ObjectKeysLength>(lir);
-}
-
 void CodeGenerator::visitGetIteratorCache(LGetIteratorCache* lir) {
   LiveRegisterSet liveRegs = lir->safepoint()->liveRegs();
   TypedOrValueRegister val =
@@ -17271,7 +17262,6 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
     auto* ool = new (alloc())
         LambdaOutOfLineCode([this, entryTrapSiteDesc](OutOfLineCode& ool) {
           masm.wasmTrap(wasm::Trap::StackOverflow, entryTrapSiteDesc);
-          return true;
         });
     addOutOfLineCode(ool, (const BytecodeSite*)nullptr);
     masm.wasmReserveStackChecked(frameSize(), ool->entry());
@@ -17296,10 +17286,9 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
             if (functionEntryStackMap &&
                 !stackMaps->add(trapInsnOffset.offset(),
                                 functionEntryStackMap)) {
-              return false;
+              masm.setOOM();
             }
             masm.jump(ool.rejoin());
-            return true;
           });
 
       addOutOfLineCode(ool, (const BytecodeSite*)nullptr);

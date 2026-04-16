@@ -7,13 +7,14 @@ import ctypes
 import datetime
 import json
 import os
-import random
 import shutil
+import socket
 import sys
 import tempfile
 import time
 import urllib.parse
 import uuid
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from multiprocessing import Array, Process, Value
 
@@ -22,6 +23,8 @@ from base_test import EnterpriseTestsBase
 from felt_consts import firefox_config
 from marionette_driver import expected
 from marionette_driver.by import By
+from marionette_driver.geckoinstance import DesktopInstance, GeckoInstance
+from mozprofile.prefs import Preferences
 
 
 class SharedString:
@@ -140,16 +143,18 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
         auth = self.headers.get("Authorization")
         if not auth:
             self.reply("", 401, "Authorization required")
-            return
+            return False
 
         bearer = auth.split(" ")
         if len(bearer) != 2 or bearer[0].lower() != "bearer":
             self.reply("", 401, "Authorization required")
-            return
+            return False
 
         if bearer[1] != self.server.policy_access_token.value:
             self.reply("", 401, "Authorization required")
-            return
+            return False
+
+        return True
 
     def do_GET(self):
         print("GET", self.path)
@@ -197,7 +202,8 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
             })
 
         elif path == "/api/browser/policies":
-            self.check_auth()
+            if not self.check_auth():
+                return
             if self.server.policies_fail_request.value:
                 self.reply("", 500, "Internal Server Error", "application/json")
                 return
@@ -227,7 +233,8 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
             contentType = "application/json"
 
         elif path == "/api/browser/whoami":
-            self.check_auth()
+            if not self.check_auth():
+                return
 
             m = json.dumps({
                 "id": str(uuid.uuid4()),
@@ -425,7 +432,8 @@ class ConsoleHttpHandler(LocalHttpRequestHandler):
             m = json.dumps({"posture": self.server.device_posture_token})
 
         elif path == "/sso/logout":
-            self.check_auth()
+            if not self.check_auth():
+                return
             with self.server.signout_count.get_lock():
                 self.server.signout_count.value += 1
             self.server.policy_access_token.value = ""
@@ -599,6 +607,12 @@ class FeltLogoutChecker:
         return False
 
 
+def find_free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 class FeltTestsBase(EnterpriseTestsBase):
     EXTRA_ENV = {}
 
@@ -606,8 +620,8 @@ class FeltTestsBase(EnterpriseTestsBase):
         # test_prefs = kwargs.get("test_prefs", [])
 
         self._manually_closed_child = False
-        self.console_port = random.randrange(10000, 14999)
-        self.sso_port = random.randrange(15000, 20000)
+        self.console_port = find_free_port()
+        self.sso_port = find_free_port()
         self.policy_block_about_config = Value("b", 1)
         self.policy_extensions = Value("B", 0)
         self.policies_fail_request = Value("B", 0)
@@ -619,6 +633,7 @@ class FeltTestsBase(EnterpriseTestsBase):
         self._extra_prefs = {
             "enterprise.console.address": f"http://localhost:{self.console_port}",
             "enterprise.is_testing": True,
+            "enterprise.log_level": "Debug",
         }  # + test_prefs
 
         if hasattr(self, "EXTRA_PREFS"):
@@ -688,6 +703,7 @@ class FeltTestsBase(EnterpriseTestsBase):
             name="enterprise-tests-browser"
         )
         self._logger.info(f"Using browser profile at {self._child_profile_path}")
+        self._apply_marionette_and_local_prefs_to_child_profile()
 
         # Pref does not like passing '\' ?
         if sys.platform == "win32":
@@ -728,6 +744,22 @@ class FeltTestsBase(EnterpriseTestsBase):
         if hasattr(self, "_child_profile_path"):
             self._logger.info(f"Removing browser profile at {self._child_profile_path}")
             shutil.rmtree(self._child_profile_path, ignore_errors=True)
+
+    def _apply_marionette_and_local_prefs_to_child_profile(self):
+        prefs = {
+            k: v
+            for k, v in {
+                **GeckoInstance.required_prefs,
+                **DesktopInstance.desktop_prefs,
+            }.items()
+            # Drop prefs with %-style format placeholders (e.g. "%(server)s")
+            # as they require interpolation that isn't performed here.
+            if not isinstance(v, str) or "%" not in v
+        }
+        prefs.update({"enterprise.is_testing": True, "enterprise.log_level": "Debug"})
+        if hasattr(self, "EXTRA_CHILD_PREFS"):
+            prefs.update(self.EXTRA_CHILD_PREFS)
+        Preferences.write(os.path.join(self._child_profile_path, "user.js"), prefs)
 
     def set_string_pref(self, pref_name, pref_value):
         self._logger.info(f"Setting {pref_name} to {pref_value}")
@@ -897,6 +929,43 @@ class FeltTestsBase(EnterpriseTestsBase):
 
 
 class FeltTests(FeltTestsBase):
+    def reload_chrome_window(self):
+        # We set a marker before reloading so we can reliably detect when the
+        # new page is ready. A simple readyState == "complete" check is not
+        # sufficient because the old page may still report "complete" for a
+        # brief window after window.location.reload() is called, causing a
+        # false positive. The marker is absent on the new page, so we can
+        # unambiguously tell old page (marker matches), mid-reload (exception),
+        # and new page loading (marker gone, readyState != "complete") apart.
+        marker = str(uuid.uuid4())
+        with self._driver.using_context(self._driver.CONTEXT_CHROME):
+            try:
+                self._driver.execute_script(
+                    """
+                    window.__felt_reload_marker = arguments[0];
+                    window.location.reload();
+                    """,
+                    [marker],
+                )
+            except Exception:
+                pass
+
+            def new_page_loaded(_):
+                try:
+                    current = self._driver.execute_script(
+                        "return window.__felt_reload_marker;"
+                    )
+                    if current == marker:
+                        return False
+                    return (
+                        self._driver.execute_script("return document.readyState")
+                        == "complete"
+                    )
+                except Exception:
+                    return False
+
+            self._wait.until(new_page_loaded)
+
     def run_felt_chrome_on_email_submit(self):
         self.submit_email()
 

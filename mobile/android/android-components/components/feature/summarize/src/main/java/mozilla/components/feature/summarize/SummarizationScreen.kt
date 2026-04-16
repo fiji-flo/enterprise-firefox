@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.summarize
 
+import android.os.Build
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -116,9 +117,7 @@ private fun SummarizationScreen(
 
     SummarizationScreenScaffold(
         modifier = modifier
-            .thenConditional(Modifier.summaryLoadingGradient(loadingAlpha)) {
-                loadingAlpha > 0
-            }
+            .summaryLoadingGradientCompat(loadingAlpha)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
             .nestedScroll(rememberNestedScrollInteropConnection()),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 1f - loadingAlpha),
@@ -126,6 +125,17 @@ private fun SummarizationScreen(
         SummarizationScreenContent(store, settingsStore)
     }
 }
+
+private fun Modifier.summaryLoadingGradientCompat(loadingAlpha: Float): Modifier =
+    thenConditional(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Modifier.summaryLoadingGradient(loadingAlpha)
+        } else {
+            Modifier
+        },
+    ) {
+        loadingAlpha > 0
+    }
 
 @Composable
 private fun SummarizationScreenContent(
@@ -136,6 +146,8 @@ private fun SummarizationScreenContent(
 
     when (val state = state) {
         is SummarizationState.Inert -> Unit
+
+        is SummarizationState.LearnMoreAboutShakeConsent,
         is SummarizationState.ShakeConsentRequired,
             -> {
             OffDeviceSummarizationConsent(
@@ -196,8 +208,19 @@ private fun SummarizationScreenContent(
 private fun ApplyHaptics(state: SummarizationState) {
     val haptic = LocalHapticFeedback.current
     LaunchedEffect(state) {
-        if (state.isSummarized) {
-            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+        when (state) {
+            is SummarizationState.Inert -> {
+                if (state.initializedWithShake) {
+                    haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                }
+            }
+            is SummarizationState.Summarized -> {
+                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+            }
+            is SummarizationState.Error -> {
+                haptic.performHapticFeedback(HapticFeedbackType.Reject)
+            }
+            else -> {}
         }
     }
 }

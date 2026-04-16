@@ -20,7 +20,7 @@
   --urlbar-icon-fill-opacity: 0.9;
 
   /* Urlbarview */
-  --urlbarview-background-color-hover: var(--arrowpanel-dimmed);
+  --urlbarview-background-color-hover: var(--panel-dimmed);
   --urlbarview-background-color-selected: SelectedItem;
   --urlbarview-border-radius: calc(var(--button-border-radius) + var(--dimension-2));
   --urlbarview-separator-color: color-mix(in srgb, currentColor 14%, transparent);
@@ -32,6 +32,15 @@
 
     --urlbarview-separator-color: color-mix(in srgb, currentColor 86%, transparent);
   }
+
+  @media (prefers-color-scheme: dark) {
+    /* Increase the contrast of urlbar boxes in dark mode.
+     * In practice these are bumped-up --button-background-color-hover values.
+     */
+    --urlbar-box-background-color: color-mix(in srgb, currentColor 16%, transparent);
+    --urlbar-box-background-color-focus: color-mix(in srgb, currentColor 16%, transparent);
+    --urlbar-box-background-color-hover: color-mix(in srgb, currentColor 22%, transparent);
+  }
 }
 
 @media not ((forced-colors) or (-moz-native-theme)) {
@@ -39,7 +48,7 @@
     --urlbar-box-background-color: light-dark(white, rgb(66, 65, 77));
     --urlbar-icon-fill-opacity: 0.72;
 
-    --urlbarview-background-color-hover: light-dark(rgb(240, 240, 244), var(--arrowpanel-dimmed));
+    --urlbarview-background-color-hover: light-dark(rgb(240, 240, 244), var(--panel-dimmed));
     --urlbarview-background-color-selected: light-dark(#e0e0e6, rgb(43, 42, 51));
     --urlbarview-separator-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
     --urlbarview-text-color-action: light-dark(rgb(91, 91, 102), rgb(191, 191, 201));

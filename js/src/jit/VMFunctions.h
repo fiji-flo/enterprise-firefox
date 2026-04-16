@@ -501,9 +501,9 @@ ArrayObject* InitRestParameter(JSContext* cx, uint32_t length, Value* rest,
 [[nodiscard]] bool PushVarEnv(JSContext* cx, BaselineFrame* frame,
                               Handle<Scope*> scope);
 
-[[nodiscard]] bool InitBaselineFrameForOsr(BaselineFrame* frame,
-                                           InterpreterFrame* interpFrame,
-                                           uint32_t numStackValues);
+void InitBaselineFrameForOsr(BaselineFrame* frame,
+                             InterpreterFrame* interpFrame,
+                             uint32_t numStackValues);
 
 JSString* StringReplace(JSContext* cx, HandleString string,
                         HandleString pattern, HandleString repl);
@@ -524,7 +524,6 @@ bool ObjectIsCallable(JSObject* obj);
 bool ObjectIsConstructor(JSObject* obj);
 JSObject* ObjectKeys(JSContext* cx, HandleObject obj);
 JSObject* ObjectKeysFromIterator(JSContext* cx, HandleObject iterObj);
-bool ObjectKeysLength(JSContext* cx, HandleObject obj, int32_t* length);
 
 [[nodiscard]] bool ThrowRuntimeLexicalError(JSContext* cx,
                                             unsigned errorNumber);

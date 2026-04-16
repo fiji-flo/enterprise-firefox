@@ -2444,7 +2444,33 @@ void VideoStreamEncoder::OnDroppedFrame(DropReason reason) {
   sink_->OnDroppedFrame(reason);
   encoder_queue_->PostTask([this, reason] {
     RTC_DCHECK_RUN_ON(encoder_queue_.get());
-    stream_resource_manager_.OnFrameDropped(reason);
+    switch (reason) {
+      case webrtc::EncodedImageCallback::DropReason::kDroppedByEncoder:
+        stream_resource_manager_.OnFrameDropped(
+            VideoStreamEncoderObserver::DropReason::kEncoder);
+        break;
+      case webrtc::EncodedImageCallback::DropReason::
+          kDroppedByMediaOptimizations:
+        stream_resource_manager_.OnFrameDropped(
+            VideoStreamEncoderObserver::DropReason::kMediaOptimization);
+        break;
+    }
+  });
+}
+
+void VideoStreamEncoder::OnFrameDropped(uint32_t rtp_timestamp,
+                                        int spatial_id,
+                                        bool is_end_of_temporal_unit) {
+  sink_->OnFrameDropped(rtp_timestamp, spatial_id, is_end_of_temporal_unit);
+  encoder_queue_->PostTask([this, rtp_timestamp, is_end_of_temporal_unit] {
+    RTC_DCHECK_RUN_ON(encoder_queue_.get());
+    stream_resource_manager_.OnFrameDropped(
+        VideoStreamEncoderObserver::DropReason::kEncoder);
+    // If this is the end of the temporal unit, signal frame instrumentation
+    // that any reference to this frame can be released.
+    if (frame_instrumentation_generator_ && is_end_of_temporal_unit) {
+      frame_instrumentation_generator_->OnFrameReleased(rtp_timestamp);
+    }
   });
 }
 
@@ -2652,8 +2678,7 @@ void VideoStreamEncoder::RunPostEncode(const EncodedImage& encoded_image,
 
   // Run post encode tasks, such as overuse detection and frame rate/drop
   // stats for internal encoders.
-  const bool keyframe =
-      encoded_image._frameType == VideoFrameType::kVideoFrameKey;
+  const bool keyframe = encoded_image.IsKey();
 
   if (!frame_size.IsZero()) {
     frame_dropper_.Fill(frame_size.bytes(), !keyframe);
@@ -2678,7 +2703,7 @@ void VideoStreamEncoder::ReleaseEncoder() {
   }
   encoder_->Release();
   encoder_initialized_ = false;
-  frame_instrumentation_generator_ = nullptr;
+  frame_instrumentation_generator_.reset();
   TRACE_EVENT0("webrtc", "VCMGenericEncoder::Release");
 }
 

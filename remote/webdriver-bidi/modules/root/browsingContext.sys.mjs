@@ -2575,6 +2575,10 @@ class BrowsingContextModule extends RootBiDiModule {
     }
   }
 
+  static get supportedCommandsFromContent() {
+    return ["_onConfigurationComplete"];
+  }
+
   static get supportedEvents() {
     return [
       "browsingContext.contextCreated",

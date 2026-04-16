@@ -56,11 +56,6 @@ skip-if = [
   # connection. Disable test on MacOS 10.15.
 ]
 
-# ActivityErrorFallbackCheck fires when mStatus=NS_OK with no response headers.
-# In in-process mode the same server closure produces NS_ERROR_NOT_AVAILABLE
-# instead, so ErrorCheck handles it there. OOP-only to match the trigger.
-["test_ext_webRequest_error_no_response.js"]
-
 ["test_extension_process_alive.js"]
 
 ["test_process_crash_telemetry.js"]

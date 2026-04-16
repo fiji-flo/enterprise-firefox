@@ -9,11 +9,13 @@ import { IPPAutoStartHelpers } from "moz-src:///toolkit/components/ipprotection/
 import { IPPNimbusHelper } from "moz-src:///toolkit/components/ipprotection/IPPNimbusHelper.sys.mjs";
 import { IPProtectionServerlist } from "moz-src:///toolkit/components/ipprotection/IPProtectionServerlist.sys.mjs";
 import { IPPStartupCache } from "moz-src:///toolkit/components/ipprotection/IPPStartupCache.sys.mjs";
+import { IPPSessionPrefManager } from "moz-src:///toolkit/components/ipprotection/IPPSessionPrefManager.sys.mjs";
 
 const coreHelpers = [
   IPPStartupCache,
   IPProtectionServerlist,
   IPPProxyManager,
+  IPPSessionPrefManager,
   IPPAutoRestoreHelper,
   ...IPPAutoStartHelpers,
   IPPNimbusHelper,

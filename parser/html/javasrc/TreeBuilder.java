@@ -3087,8 +3087,9 @@ public abstract class TreeBuilder<T> implements TokenHandler,
         boolean shadowRootDelegatesFocus = attributes.contains(AttributeName.SHADOWROOTDELEGATESFOCUS);
         boolean shadowRootCustomElementRegistry = attributes.contains(AttributeName.SHADOWROOTCUSTOMELEMENTREGISTRY);
         String shadowRootReferenceTarget = attributes.getValue(AttributeName.SHADOWROOTREFERENCETARGET);
+        String shadowRootSlotAssignment = attributes.getValue(AttributeName.SHADOWROOTSLOTASSIGNMENT);
 
-        return getShadowRootFromHost(currentNode, templateNode, shadowRootMode, shadowRootIsClonable, shadowRootIsSerializable, shadowRootDelegatesFocus, shadowRootCustomElementRegistry, shadowRootReferenceTarget);
+        return getShadowRootFromHost(currentNode, templateNode, shadowRootMode, shadowRootIsClonable, shadowRootIsSerializable, shadowRootDelegatesFocus, shadowRootCustomElementRegistry, shadowRootSlotAssignment, shadowRootReferenceTarget);
     }
 
     /**
@@ -5563,7 +5564,8 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
     T getShadowRootFromHost(T host, T template, String shadowRootMode,
             boolean shadowRootIsClonable, boolean shadowRootIsSerializable, boolean shadowRootDelegatesFocus,
-            boolean shadowRootCustomElementRegistry, String shadowRootReferenceTarget) {
+            boolean shadowRootCustomElementRegistry, String shadowRootSlotAssignment,
+            String shadowRootReferenceTarget) {
         return null;
     }
 

@@ -112,7 +112,6 @@ std::unique_ptr<rtclog::StreamConfig> CreateRtcLogStreamConfig(
     const VideoReceiveStreamInterface::Config& config) {
   auto rtclog_config = std::make_unique<rtclog::StreamConfig>();
   rtclog_config->remote_ssrc = config.rtp.remote_ssrc;
-  rtclog_config->local_ssrc = config.rtp.local_ssrc;
   rtclog_config->rtx_ssrc = config.rtp.rtx_ssrc;
   rtclog_config->rtcp_mode = config.rtp.rtcp_mode;
 
@@ -129,7 +128,6 @@ std::unique_ptr<rtclog::StreamConfig> CreateRtcLogStreamConfig(
     const VideoSendStream::Config& config,
     size_t ssrc_index) {
   auto rtclog_config = std::make_unique<rtclog::StreamConfig>();
-  rtclog_config->local_ssrc = config.rtp.ssrcs[ssrc_index];
   if (ssrc_index < config.rtp.rtx.ssrcs.size()) {
     rtclog_config->rtx_ssrc = config.rtp.rtx.ssrcs[ssrc_index];
   }
@@ -146,7 +144,6 @@ std::unique_ptr<rtclog::StreamConfig> CreateRtcLogStreamConfig(
     const AudioReceiveStreamInterface::Config& config) {
   auto rtclog_config = std::make_unique<rtclog::StreamConfig>();
   rtclog_config->remote_ssrc = config.rtp.remote_ssrc;
-  rtclog_config->local_ssrc = config.rtp.local_ssrc;
   return rtclog_config;
 }
 
@@ -270,13 +267,6 @@ class Call final : public webrtc::Call,
 
   void OnAudioTransportOverheadChanged(
       int transport_overhead_per_packet) override;
-
-  void OnLocalSsrcUpdated(webrtc::AudioReceiveStreamInterface& stream,
-                          uint32_t local_ssrc) override;
-  void OnLocalSsrcUpdated(VideoReceiveStreamInterface& stream,
-                          uint32_t local_ssrc) override;
-  void OnLocalSsrcUpdated(FlexfecReceiveStream& stream,
-                          uint32_t local_ssrc) override;
 
   void OnUpdateSyncGroup(webrtc::AudioReceiveStreamInterface& stream,
                          absl::string_view sync_group) override;
@@ -1040,7 +1030,7 @@ FlexfecReceiveStream* Call::CreateFlexfecReceiveStream(
   // in a valid state, since OnRtpPacket runs on the same thread.
   FlexfecReceiveStreamImpl* receive_stream = new FlexfecReceiveStreamImpl(
       env_, std::move(config), &video_receiver_controller_,
-      call_stats_->AsRtcpRttStats());
+      transport_send_->packet_router(), call_stats_->AsRtcpRttStats());
 
   // TODO(bugs.webrtc.org/11993): Set this up asynchronously on the network
   // thread.
@@ -1207,24 +1197,6 @@ void Call::UpdateAggregateNetworkState() {
   transport_send_->OnNetworkAvailability(aggregate_network_up);
 }
 
-void Call::OnLocalSsrcUpdated(webrtc::AudioReceiveStreamInterface& stream,
-                              uint32_t local_ssrc) {
-  RTC_DCHECK_RUN_ON(worker_thread_);
-  static_cast<webrtc::AudioReceiveStreamImpl&>(stream).SetLocalSsrc(local_ssrc);
-}
-
-void Call::OnLocalSsrcUpdated(VideoReceiveStreamInterface& stream,
-                              uint32_t local_ssrc) {
-  RTC_DCHECK_RUN_ON(worker_thread_);
-  static_cast<VideoReceiveStream2&>(stream).SetLocalSsrc(local_ssrc);
-}
-
-void Call::OnLocalSsrcUpdated(FlexfecReceiveStream& stream,
-                              uint32_t local_ssrc) {
-  RTC_DCHECK_RUN_ON(worker_thread_);
-  static_cast<FlexfecReceiveStreamImpl&>(stream).SetLocalSsrc(local_ssrc);
-}
-
 void Call::OnUpdateSyncGroup(webrtc::AudioReceiveStreamInterface& stream,
                              absl::string_view sync_group) {
   RTC_DCHECK_RUN_ON(worker_thread_);
@@ -1373,6 +1345,15 @@ void Call::DeliverRtpPacket(
     MediaType media_type,
     RtpPacketReceived packet,
     OnUndemuxablePacketHandler undemuxable_packet_handler) {
+  if (!worker_thread_->IsCurrent()) {
+    worker_thread_->PostTask(SafeTask(
+        task_safety_.flag(),
+        [this, media_type, packet = std::move(packet),
+         handler = std::move(undemuxable_packet_handler)]() mutable {
+          DeliverRtpPacket(media_type, std::move(packet), std::move(handler));
+        }));
+    return;
+  }
   RTC_DCHECK_RUN_ON(worker_thread_);
   RTC_DCHECK(packet.arrival_time().IsFinite());
 
@@ -1387,8 +1368,10 @@ void Call::DeliverRtpPacket(
 
   NotifyBweOfReceivedPacket(packet, media_type);
 
-  env_.event_log().Log(std::make_unique<RtcEventRtpPacketIncoming>(packet));
+  // Packets that are successfully demuxed are logged by their respective
+  // streams. Packets that fail to demux are logged here.
   if (media_type != MediaType::AUDIO && media_type != MediaType::VIDEO) {
+    env_.event_log().Log(std::make_unique<RtcEventRtpPacketIncoming>(packet));
     return;
   }
 
@@ -1407,9 +1390,11 @@ void Call::DeliverRtpPacket(
     // Note that we dont want to call NotifyBweOfReceivedPacket twice per
     // packet.
     if (!undemuxable_packet_handler(packet)) {
+      env_.event_log().Log(std::make_unique<RtcEventRtpPacketIncoming>(packet));
       return;
     }
     if (!receiver_controller.OnRtpPacket(packet)) {
+      env_.event_log().Log(std::make_unique<RtcEventRtpPacketIncoming>(packet));
       RTC_LOG(LS_INFO) << "Failed to demux packet " << packet.Ssrc();
       return;
     }

@@ -2547,7 +2547,7 @@ bool JSStructuredCloneWriter::write(HandleValue v) {
 
         if (found) {
 #if FUZZING_JS_FUZZILLI
-          // supress calls into user code
+          // suppress calls into user code
           if (js::SupportDifferentialTesting()) {
             fprintf(stderr, "Differential testing: cannot call GetProperty\n");
             return false;
@@ -3017,6 +3017,10 @@ bool JSStructuredCloneReader::readSharedWasmMemory(uint32_t nbytes,
     return false;
   }
 
+  // Reserve a slot in allObjs for this WasmMemoryObject before reading the
+  // embedded SAB.  The writer calls startObject() on the memory first, so the
+  // memory occupies writer-index N while the SAB occupies N+1.  Mirroring that
+  // order here keeps back-reference indices consistent.
   uint32_t placeholderIndex = allObjs.length();
   if (!allObjs.append(UndefinedValue())) {
     return false;
@@ -3049,8 +3053,9 @@ bool JSStructuredCloneReader::readSharedWasmMemory(uint32_t nbytes,
     return false;
   }
 
-  Rooted<ArrayBufferObjectMaybeShared*> sab(
+  Rooted<SharedArrayBufferObject*> sab(
       cx, &payload.toObject().as<SharedArrayBufferObject>());
+  MOZ_RELEASE_ASSERT(sab->isWasm());
 
   // Construct the memory.
   RootedObject proto(

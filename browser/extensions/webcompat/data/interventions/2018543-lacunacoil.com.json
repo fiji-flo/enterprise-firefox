@@ -10,7 +10,7 @@
     {
       "platforms": ["all"],
       "content_scripts": {
-        "js": ["bug2018543-lacunacoil.com-ua-change.js"]
+        "js": ["bug2018543-lacunacoil.com-wprocket-fix.js"]
       }
     }
   ]

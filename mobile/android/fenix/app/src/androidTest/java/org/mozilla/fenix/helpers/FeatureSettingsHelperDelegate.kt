@@ -48,6 +48,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
         openLinksInApp = getOpenLinksInApp(settings),
         tabManagerOpeningAnimationEnabled = settings.tabManagerOpeningAnimationEnabled,
         hasSeenBrowserToolbarCFR = settings.hasSeenBrowserToolbarCFR,
+        hasSeenShakeToSummarizeToolbarCfr = settings.shakeToSummarizeToolbarCfrShown,
         isPrivateModeAndStoriesEntryPointEnabled = settings.privateModeAndStoriesEntryPointEnabled,
     )
 
@@ -75,6 +76,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
     override var openLinksInExternalApp: OpenLinksInApp by updatedFeatureFlags::openLinksInApp
     override var tabManagerOpeningAnimationEnabled: Boolean by updatedFeatureFlags::tabManagerOpeningAnimationEnabled
     override var hasSeenBrowserToolbarCFR: Boolean by updatedFeatureFlags::hasSeenBrowserToolbarCFR
+    override var hasSeenShakeToSummarizeToolbarCfr: Boolean by updatedFeatureFlags::hasSeenShakeToSummarizeToolbarCfr
     override var isPrivateModeAndStoriesEntryPointEnabled: Boolean by updatedFeatureFlags::isPrivateModeAndStoriesEntryPointEnabled
 
     override fun applyFlagUpdates() {
@@ -112,6 +114,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
         setOpenLinksInApp(featureFlags.openLinksInApp)
         settings.tabManagerOpeningAnimationEnabled = featureFlags.tabManagerOpeningAnimationEnabled
         settings.hasSeenBrowserToolbarCFR = featureFlags.hasSeenBrowserToolbarCFR
+        settings.shakeToSummarizeToolbarCfrShown = featureFlags.hasSeenShakeToSummarizeToolbarCfr
         settings.privateModeAndStoriesEntryPointEnabled = featureFlags.isPrivateModeAndStoriesEntryPointEnabled
     }
 }
@@ -137,6 +140,7 @@ private data class FeatureFlags(
     var openLinksInApp: OpenLinksInApp,
     var tabManagerOpeningAnimationEnabled: Boolean,
     var hasSeenBrowserToolbarCFR: Boolean,
+    var hasSeenShakeToSummarizeToolbarCfr: Boolean,
     var isPrivateModeAndStoriesEntryPointEnabled: Boolean,
 )
 

@@ -106,6 +106,8 @@
 #include "mozilla/dom/PContentPermissionRequestParent.h"
 #include "mozilla/dom/PCycleCollectWithLogsParent.h"
 #include "mozilla/dom/ParentProcessMessageManager.h"
+#include "mozilla/dom/PermissionObserver.h"
+#include "mozilla/dom/PermissionStatusBinding.h"
 #include "mozilla/dom/Permissions.h"
 #include "mozilla/dom/ProcessMessageManager.h"
 #include "mozilla/dom/PushNotifier.h"
@@ -2276,21 +2278,21 @@ void ContentParent::StartForceKillTimer() {
   }
 }
 
-TestShellParent* ContentParent::CreateTestShell() {
+already_AddRefed<TestShellParent> ContentParent::CreateTestShell() {
   RefPtr<TestShellParent> actor = new TestShellParent();
   if (!SendPTestShellConstructor(actor)) {
     return nullptr;
   }
-  return actor;
+  return actor.forget();
 }
 
 bool ContentParent::DestroyTestShell(TestShellParent* aTestShell) {
   return PTestShellParent::Send__delete__(aTestShell);
 }
 
-TestShellParent* ContentParent::GetTestShellSingleton() {
+already_AddRefed<TestShellParent> ContentParent::GetTestShellSingleton() {
   PTestShellParent* p = LoneManagedOrNullAsserts(ManagedPTestShellParent());
-  return static_cast<TestShellParent*>(p);
+  return do_AddRef(static_cast<TestShellParent*>(p));
 }
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
@@ -4461,22 +4463,21 @@ bool ContentParent::SendRequestMemoryReport(
     const bool& aMinimizeMemoryUsage, const Maybe<FileDescriptor>& aDMDFile) {
   // This automatically cancels the previous request.
   mMemoryReportRequest = MakeUnique<MemoryReportRequestHost>(aGeneration);
-  // If we run the callback in response to a reply, then by definition |this|
-  // is still alive, so the ref pointer is redundant, but it seems easier
-  // to hold a strong reference than to worry about that.
   RefPtr<ContentParent> self(this);
-  PContentParent::SendRequestMemoryReport(
-      aGeneration, aAnonymize, aMinimizeMemoryUsage, aDMDFile,
-      [&, self](const uint32_t& aGeneration2) {
-        if (self->mMemoryReportRequest) {
-          self->mMemoryReportRequest->Finish(aGeneration2);
-          self->mMemoryReportRequest = nullptr;
-        }
-      },
-      [&, self](mozilla::ipc::ResponseRejectReason) {
-        self->mMemoryReportRequest = nullptr;
-      });
-  return IPC_OK();
+  PContentParent::SendRequestMemoryReport(aGeneration, aAnonymize,
+                                          aMinimizeMemoryUsage, aDMDFile)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self](uint32_t aGeneration2) {
+            if (self->mMemoryReportRequest) {
+              self->mMemoryReportRequest->Finish(aGeneration2);
+              self->mMemoryReportRequest = nullptr;
+            }
+          },
+          [self](mozilla::ipc::ResponseRejectReason) {
+            self->mMemoryReportRequest = nullptr;
+          });
+  return true;
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvAddMemoryReport(
@@ -5990,6 +5991,29 @@ nsresult ContentParent::AboutToLoadDocumentForChild(nsIChannel* aChannel) {
 
   rv = TransmitPermissionsForPrincipal(partitionedPrincipal);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // Forward browser-scoped (temporary) permissions for this tab to the content
+  // process. These are stored per-browserId and must be re-transmitted on
+  // cross-origin navigations that switch content processes. (Bug 2021626)
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  aChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+  if (loadInfo) {
+    RefPtr<dom::BrowsingContext> bc;
+    loadInfo->GetTargetBrowsingContext(getter_AddRefs(bc));
+    if (bc) {
+      uint64_t browserId = bc->Top()->BrowserId();
+      if (browserId) {
+        RefPtr<PermissionManager> permManager =
+            PermissionManager::GetInstance();
+        if (permManager) {
+          permManager->TransmitBrowserPermissionsForPrincipal(this, principal,
+                                                              browserId);
+          permManager->TransmitBrowserPermissionsForPrincipal(
+              this, partitionedPrincipal, browserId);
+        }
+      }
+    }
+  }
 
   if (!NextGenLocalStorageEnabled()) {
     return NS_OK;
@@ -7896,8 +7920,17 @@ IPCResult ContentParent::RecvGetSystemIcon(nsIURI* aURI,
 
 IPCResult ContentParent::RecvGetSystemGeolocationPermissionBehavior(
     GetSystemGeolocationPermissionBehaviorResolver&& aResolver) {
+  PermissionObserver::EnsureMonitoringInParent(PermissionName::Geolocation);
   aResolver(Geolocation::GetLocationOSPermission());
   return IPC_OK();
+}
+
+/* static */
+void ContentParent::BroadcastSystemPermissionChanged(PermissionName aName,
+                                                     PermissionState aState) {
+  for (auto* cp : AllProcesses(eLive)) {
+    (void)cp->SendSystemPermissionChanged(aName, aState);
+  }
 }
 
 IPCResult ContentParent::RecvRequestGeolocationPermissionFromUser(

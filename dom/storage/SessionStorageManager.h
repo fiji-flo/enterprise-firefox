@@ -6,6 +6,7 @@
 #define mozilla_dom_SessionStorageManager_h
 
 #include "StorageObserver.h"
+#include "ipc/EnumSerializer.h"
 #include "mozilla/dom/FlippedOnce.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/ipc/PBackgroundParent.h"
@@ -290,5 +291,16 @@ class BackgroundSessionStorageManager final : public SessionStorageManagerBase {
 
 }  // namespace dom
 }  // namespace mozilla
+
+namespace IPC {
+
+template <>
+struct ParamTraits<mozilla::dom::DomainMatchingMode>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::dom::DomainMatchingMode,
+          mozilla::dom::DomainMatchingMode::PREFIX_MATCH,
+          mozilla::dom::DomainMatchingMode::EXACT_MATCH> {};
+
+}  // namespace IPC
 
 #endif  // mozilla_dom_SessionStorageManager_h

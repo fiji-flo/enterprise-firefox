@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -62,6 +61,8 @@
 
 #ifdef XP_MACOSX
 #  include "nsVersionComparator.h"
+#  include "nsCocoaFeatures.h"
+#  include "mozilla/glean/WidgetCocoaMetrics.h"
 #  include "MacLaunchHelper.h"
 #  include "MacApplicationDelegate.h"
 #  include "MacAutoreleasePool.h"
@@ -401,6 +402,15 @@ using mozilla::dom::ContentParent;
 using mozilla::dom::quota::QuotaManager;
 using mozilla::intl::LocaleService;
 using mozilla::scache::StartupCache;
+
+struct AppRunnerTelemFlags {
+  uint8_t isBackgroundTaskModeRequested : 1;
+  uint8_t isBackgroundTaskMode : 1;
+  uint8_t hasRestartPidParameter : 1;
+  uint8_t isRestartPidNotInteger : 1;
+  uint8_t isRestartPidWaitTimeout : 1;
+  uint8_t isRestartPidFailure : 1;
+};
 
 #ifndef XP_WIN
 // Save the given word to the specified environment variable.
@@ -2751,7 +2761,7 @@ static nsresult ProfileMissingDialog(nsINativeAppSupport* aNative) {
 
     nsCOMPtr<nsIStringBundle> sb;
     sbs->CreateBundle(kProfileProperties, getter_AddRefs(sb));
-    NS_ENSURE_TRUE_LOG(sbs, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE_LOG(sb, NS_ERROR_FAILURE);
 
     NS_ConvertUTF8toUTF16 appName(gAppData->name);
     AutoTArray<nsString, 2> params = {appName, appName};
@@ -3237,7 +3247,8 @@ struct FileWriteFunc final : public JSONWriteFunc {
 };
 
 static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
-                                     bool aHasSync, int32_t aButton) {
+                                     bool aHasSync, int32_t aButton,
+                                     AppRunnerTelemFlags appRunnerTelemFlags) {
   nsCOMPtr<nsIPrefService> prefSvc =
       do_GetService("@mozilla.org/preferences-service;1");
   NS_ENSURE_TRUE_VOID(prefSvc);
@@ -3282,6 +3293,15 @@ static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
       do_GetService("@mozilla.org/system-info;1");
   NS_ENSURE_TRUE_VOID(sysInfo);
   sysInfo->GetPropertyAsACString(u"arch"_ns, arch);
+
+  bool isMSIX = false;
+#  ifdef XP_WIN
+  rv = sysInfo->GetPropertyAsBool(u"hasWinPackageId"_ns, &isMSIX);
+  if (rv != NS_OK) {
+    // Don't early return.
+    NS_ERROR("Failed to get property: hasWinPackageId");
+  }
+#  endif
 
   time_t now;
   time(&now);
@@ -3379,6 +3399,19 @@ static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
       w.StringProperty("lastBuildId", PromiseFlatCString(lastBuildId));
       w.BoolProperty("hasSync", aHasSync);
       w.IntProperty("button", aButton);
+      w.BoolProperty("isMSIX", isMSIX);
+      w.BoolProperty("isBackgroundTaskModeRequested",
+                     appRunnerTelemFlags.isBackgroundTaskModeRequested);
+      w.BoolProperty("isBackgroundTaskMode",
+                     appRunnerTelemFlags.isBackgroundTaskMode);
+      w.BoolProperty("hasRestartPidParameter",
+                     appRunnerTelemFlags.hasRestartPidParameter);
+      w.BoolProperty("isRestartPidNotInteger",
+                     appRunnerTelemFlags.isRestartPidNotInteger);
+      w.BoolProperty("isRestartPidWaitTimeout",
+                     appRunnerTelemFlags.isRestartPidWaitTimeout);
+      w.BoolProperty("isRestartPidFailure",
+                     appRunnerTelemFlags.isRestartPidFailure);
     }
     w.EndObject();
   }
@@ -3413,10 +3446,10 @@ static void SubmitDowngradeTelemetry(const nsCString& aLastVersion,
 static const char kProfileDowngradeURL[] =
     "chrome://mozapps/content/profile/profileDowngrade.xhtml";
 
-static ReturnAbortOnError CheckDowngrade(nsIFile* aProfileDir,
-                                         nsINativeAppSupport* aNative,
-                                         nsIToolkitProfileService* aProfileSvc,
-                                         const nsCString& aLastVersion) {
+static ReturnAbortOnError HandleDetectedDowngrade(
+    nsIFile* aProfileDir, nsINativeAppSupport* aNative,
+    nsIToolkitProfileService* aProfileSvc, const nsCString& aLastVersion,
+    AppRunnerTelemFlags appRunnerTelemFlags) {
   int32_t result = 0;
   nsresult rv;
 
@@ -3495,7 +3528,8 @@ static ReturnAbortOnError CheckDowngrade(nsIFile* aProfileDir,
 
       paramBlock->GetInt(1, &result);
 
-      SubmitDowngradeTelemetry(aLastVersion, hasSync, result);
+      SubmitDowngradeTelemetry(aLastVersion, hasSync, result,
+                               appRunnerTelemFlags);
     }
   }
 
@@ -3879,8 +3913,9 @@ class XREMain {
   }
 
   int XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig);
-  int XRE_mainInit(bool* aExitFlag);
-  int XRE_mainStartup(bool* aExitFlag);
+  int XRE_mainInit(bool* aExitFlag, AppRunnerTelemFlags& appRunnerTelemFlags);
+  int XRE_mainStartup(bool* aExitFlag,
+                      AppRunnerTelemFlags& appRunnerTelemFlags);
   nsresult XRE_mainRun();
 
   bool CheckLastStartupWasCrash();
@@ -4084,7 +4119,8 @@ static void SetupConsoleForBackgroundTask(
  * Main() will exit early if either return value != 0 or if aExitFlag is
  * true.
  */
-int XREMain::XRE_mainInit(bool* aExitFlag) {
+int XREMain::XRE_mainInit(bool* aExitFlag,
+                          AppRunnerTelemFlags& appRunnerTelemFlags) {
   if (!aExitFlag) return 1;
   *aExitFlag = false;
 
@@ -4129,7 +4165,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   if (ARG_FOUND ==
       CheckArg("backgroundtask", &backgroundTaskName, CheckArgFlag::None)) {
     backgroundTask = Some(backgroundTaskName);
-
+    appRunnerTelemFlags.isBackgroundTaskModeRequested = 1;
     SetupConsoleForBackgroundTask(backgroundTask.ref());
   }
 
@@ -4380,6 +4416,11 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
 
   nsCOMPtr<nsIFile> xreBinDirectory;
   xreBinDirectory = mDirProvider.GetGREBinDir();
+
+  if ((mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER) &&
+      NS_FAILED(CrashReporter::OOPInit(xreBinDirectory))) {
+    NS_WARNING("Could not launch the crash helper");
+  }
 
   if ((mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER) &&
       NS_SUCCEEDED(CrashReporter::SetExceptionHandler(xreBinDirectory))) {
@@ -4871,7 +4912,8 @@ bool XREMain::CheckLastStartupWasCrash() {
  * Main() will exit early if either return value != 0 or if aExitFlag is
  * true.
  */
-int XREMain::XRE_mainStartup(bool* aExitFlag) {
+int XREMain::XRE_mainStartup(bool* aExitFlag,
+                             AppRunnerTelemFlags& appRunnerTelemFlags) {
   nsresult rv;
 
   if (!aExitFlag) return 1;
@@ -5000,6 +5042,9 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   bool isBackgroundTaskMode = false;
 #ifdef MOZ_BACKGROUNDTASKS
   isBackgroundTaskMode = BackgroundTasks::IsBackgroundTaskMode();
+  if (isBackgroundTaskMode) {
+    appRunnerTelemFlags.isBackgroundTaskMode = 1;
+  }
 #endif
 
 #ifdef MOZ_HAS_REMOTE
@@ -5271,6 +5316,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
     // Ensure we keep -restart-pid if we are running tests
     if (ARG_FOUND == CheckArgExists("restart-pid") &&
         !CheckArg("test-only-automatic-restart-no-wait")) {
+      appRunnerTelemFlags.hasRestartPidParameter = 1;
       // We're not testing and can safely remove it now and read the pid.
       const char* restartPidString = nullptr;
       CheckArg("restart-pid", &restartPidString, CheckArgFlag::RemoveArg);
@@ -5280,12 +5326,19 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
         printf_stderr(
             "*** MaybeWaitForProcessExit: launched pidDWORD = %u ***\n", pid);
         RefPtr<nsUpdateProcessor> updater = new nsUpdateProcessor();
-        if (NS_FAILED(
-                updater->WaitForProcessExit(pid, MAYBE_WAIT_TIMEOUT_MS))) {
-          NS_WARNING("Failed to MaybeWaitForProcessExit.");
+        rv = updater->WaitForProcessExit(pid, MAYBE_WAIT_TIMEOUT_MS);
+        if (NS_FAILED(rv)) {
+          NS_WARNING("Failure in nsUpdateProcessor::WaitForProcessExit.");
+          // Is this a timeout?
+          if (rv == NS_ERROR_ABORT) {
+            appRunnerTelemFlags.isRestartPidWaitTimeout = 1;
+          } else {
+            appRunnerTelemFlags.isRestartPidFailure = 1;
+          }
         }
       } else {
         NS_WARNING("Failed to parse pid from -restart-pid.");
+        appRunnerTelemFlags.isRestartPidNotInteger = 1;
       }
     }
   }
@@ -5486,7 +5539,8 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #  ifdef XP_MACOSX
     InitializeMacApp();
 #  endif
-    rv = CheckDowngrade(mProfD, mNativeApp, mProfileSvc, lastVersion);
+    rv = HandleDetectedDowngrade(mProfD, mNativeApp, mProfileSvc, lastVersion,
+                                 appRunnerTelemFlags);
     if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
       *aExitFlag = true;
       return 0;
@@ -5531,6 +5585,13 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 
   CrashReporter::RecordAnnotationBool(
       CrashReporter::Annotation::StartupCacheValid, cachesOK && versionOK);
+
+#ifdef XP_MACOSX
+  static bool status = nsCocoaFeatures::ProcessIsRosettaTranslated();
+  CrashReporter::RecordAnnotationBool(CrashReporter::Annotation::RosettaStatus,
+                                      status);
+  mozilla::glean::widget::rosetta_status.Set(status);
+#endif
 
   // Every time a profile is loaded by a build with a different version,
   // it updates the compatibility.ini file saying what version last wrote
@@ -6177,6 +6238,7 @@ static already_AddRefed<nsIFile> GreOmniPath(int argc, char** argv) {
 int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   gArgc = argc;
   gArgv = argv;
+  AppRunnerTelemFlags appRunnerTelemFlags{};
 
   ScopedLogging log;
 
@@ -6389,8 +6451,11 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   // detect hangs -- they show up as crashes.  We do this as late as possible.
   // In particular, after ProcessRuntime is destroyed on Windows.
   auto unsetExceptionHandler = MakeScopeExit([&] {
-    if (mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER)
-      return CrashReporter::UnsetExceptionHandler();
+    if (mAppData->flags & NS_XRE_ENABLE_CRASH_REPORTER) {
+      nsresult rv = CrashReporter::UnsetExceptionHandler();
+      CrashReporter::OOPDeinit();
+      return rv;
+    }
     return NS_OK;
   });
 
@@ -6411,7 +6476,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 
   // init
   bool exit = false;
-  int result = XRE_mainInit(&exit);
+  int result = XRE_mainInit(&exit, appRunnerTelemFlags);
   if (result != 0 || exit) return result;
 
   // If we exit gracefully, remove the startup crash canary file.
@@ -6424,7 +6489,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   });
 
   // startup
-  result = XRE_mainStartup(&exit);
+  result = XRE_mainStartup(&exit, appRunnerTelemFlags);
   if (result != 0 || exit) return result;
 
   // Start the real application. We use |aInitJSContext = false| because

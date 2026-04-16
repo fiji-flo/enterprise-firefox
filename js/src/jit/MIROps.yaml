@@ -1657,7 +1657,7 @@
 
 - name: BoxNonStrictThis
   operands:
-    def: Value
+    def: ValueOrObject
   arguments:
     globalThis: JSObject*
   result_type: Object
@@ -1930,7 +1930,6 @@
   result_type: Int32
   movable: true
   congruent_to: if_operands_equal
-  folds_to: custom
   alias_set:
     load: ObjectFields
   compute_range: custom
@@ -2377,25 +2376,6 @@
     iterator: Object
   result_type: Object
   can_recover: true
-
-# Used to fold Object.keys(obj).length into a single operation.
-#
-# This should not be used with a Proxy, as proxies can have a user-defined
-# `ownKeys` function which can have arbitrary outputs.
-#
-# This MIR node is created by folding an MObjectKeys with an MArrayLength, as
-# part of MArrayLength::foldsTo.
-- name: ObjectKeysLength
-  operands:
-    object: Object
-  result_type: Int32
-  movable: false
-  congruent_to: if_operands_equal
-  alias_set:
-    load: ObjectFields
-  clone: true
-  possibly_calls: true
-  generate_lir: true
 
 - name: LoadUnboxedScalar
   gen_boilerplate: false
@@ -3415,7 +3395,9 @@
   gen_boilerplate: false
 
 - name: GetIteratorCache
-  gen_boilerplate: false
+  operands:
+    value: ValueOrObject
+  result_type: Object
 
 - name: OptimizeSpreadCallCache
   operands:
@@ -3491,8 +3473,12 @@
 - name: HasOwnCache
   gen_boilerplate: false
 
+# Implementation for instanceof operator with specific rhs.
 - name: InstanceOf
-  gen_boilerplate: false
+  operands:
+    obj: ValueOrObject
+    proto: Object
+  result_type: Boolean
 
 # Implementation for instanceof operator with unknown rhs.
 - name: InstanceOfCache
@@ -3600,7 +3586,14 @@
   gen_boilerplate: false
 
 - name: IsCallable
-  gen_boilerplate: false
+  operands:
+    object: ValueOrObject
+  result_type: Boolean
+  movable: true
+  congruent_to: if_operands_equal
+  folds_to: custom
+  alias_set:
+    load: ObjectFields
 
 - name: IsConstructor
   operands:
@@ -3652,8 +3645,12 @@
 - name: GuardToFunction
   gen_boilerplate: false
 
+# Note: we might call a proxy trap, so this instruction is effectful.
 - name: IsArray
-  gen_boilerplate: false
+  operands:
+    value: ValueOrObject
+  result_type: Boolean
+  folds_to: custom
 
 - name: IsTypedArray
   gen_boilerplate: false

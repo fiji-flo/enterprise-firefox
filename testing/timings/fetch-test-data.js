@@ -1350,7 +1350,11 @@ async function fetchPreviousRunData() {
 }
 
 // Process data for a single date
-async function processDateData(targetDate, forceRefetch = false) {
+async function processDateData(
+  targetDate,
+  forceRefetch = false,
+  acceptIncomplete = false
+) {
   const timingsFilename = `${HARNESS}-${targetDate}.json`;
   const resourcesFilename = `${HARNESS}-${targetDate}-resources.json`;
   const timingsPath = path.join(OUTPUT_DIR, timingsFilename);
@@ -1439,7 +1443,7 @@ async function processDateData(targetDate, forceRefetch = false) {
           (timings.metadata.invalidJobCount || 0);
 
         // Check if previous run processed fewer jobs (had retryable errors or incomplete data)
-        if (actualProcessedCount < expectedJobCount) {
+        if (!acceptIncomplete && actualProcessedCount < expectedJobCount) {
           const missingJobs = expectedJobCount - actualProcessedCount;
           console.log(
             `Ignoring artifact from previous run: missing ${missingJobs} jobs (expected ${expectedJobCount}, got ${actualProcessedCount})`
@@ -1468,6 +1472,11 @@ async function processDateData(targetDate, forceRefetch = false) {
         `Error fetching artifact from previous run: ${error.message}`
       );
     }
+  }
+
+  if (acceptIncomplete) {
+    console.log(`No previous data available for ${targetDate}, skipping.`);
+    return;
   }
 
   if (forceRefetch) {
@@ -2494,24 +2503,27 @@ async function main() {
     `Fetching ${HARNESS} test data for the last ${numDays} day${numDays > 1 ? "s" : ""}: ${dates.join(", ")}`
   );
 
-  const processedDates = [];
-  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const TIME_LIMIT_HOURS = 1.5;
+  const TIME_LIMIT_MS = TIME_LIMIT_HOURS * 60 * 60 * 1000;
+  let acceptIncomplete = false;
 
   for (const date of dates) {
     console.log(`\n=== Processing ${date} ===`);
-    await processDateData(date, forceRefetch);
-    processedDates.push(date);
+    await processDateData(date, forceRefetch, acceptIncomplete);
 
-    // Check if we've been running for more than 1 hour
-    const elapsedTime = Date.now() - scriptStartTime;
-    if (elapsedTime > ONE_HOUR_MS) {
-      const remainingDates = dates.length - processedDates.length;
-      if (remainingDates > 0) {
-        console.log(
-          `\nStopping after 1 hour of processing. Skipping ${remainingDates} remaining date${remainingDates > 1 ? "s" : ""}.`
-        );
+    // After the time limit, accept incomplete data from the previous run
+    // instead of re-processing from scratch, to avoid losing data entirely.
+    if (!acceptIncomplete) {
+      const elapsedTime = Date.now() - scriptStartTime;
+      if (elapsedTime > TIME_LIMIT_MS) {
+        const remainingDates = dates.length - dates.indexOf(date) - 1;
+        if (remainingDates > 0) {
+          console.log(
+            `\nStopping full processing after ${TIME_LIMIT_HOURS} hours. Accepting incomplete previous data for ${remainingDates} remaining date${remainingDates > 1 ? "s" : ""}.`
+          );
+        }
+        acceptIncomplete = true;
       }
-      break;
     }
   }
 
@@ -2548,8 +2560,8 @@ async function main() {
   await saveStatsFile();
 
   // Create aggregated failures file if processing multiple days
-  if (processedDates.length > 1) {
-    await createAggregatedFailuresFile(processedDates);
+  if (dates.length > 1) {
+    await createAggregatedFailuresFile(dates);
   }
 }
 

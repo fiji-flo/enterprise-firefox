@@ -2116,6 +2116,11 @@ static MObjectToIterator* FindObjectToIteratorUse(MDefinition* ins) {
 bool jit::OptimizeIteratorIndices(const MIRGenerator* mir, MIRGraph& graph) {
   bool changed = false;
 
+  uint32_t numInitialBlocks = graph.numBlockIds();
+  auto hasNoDominatorInfo = [&](MBasicBlock* block) {
+    return block->id() >= numInitialBlocks;
+  };
+
   for (ReversePostorderIterator blockIter = graph.rpoBegin();
        blockIter != graph.rpoEnd();) {
     MBasicBlock* block = *blockIter++;
@@ -2231,7 +2236,9 @@ bool jit::OptimizeIteratorIndices(const MIRGenerator* mir, MIRGraph& graph) {
             otherIter = FindObjectToIteratorUse(SkipIterObjectUnbox(receiver));
           }
 
-          if (!otherIter || !otherIter->dominates(ins)) {
+          if (!otherIter || hasNoDominatorInfo(block) ||
+              hasNoDominatorInfo(otherIter->block()) ||
+              !otherIter->dominates(ins)) {
             continue;
           }
         }

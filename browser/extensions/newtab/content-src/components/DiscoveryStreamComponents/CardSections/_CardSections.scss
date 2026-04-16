@@ -9,6 +9,7 @@
   .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
 }
@@ -115,7 +116,7 @@
     --nova-small-card-image-height: 108px;
 
     &:not(.placeholder) {
-      box-shadow: none;
+      box-shadow: var(--card-box-shadow);
     }
 
     &:hover,
@@ -276,7 +277,7 @@
 
   &.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) {
     &:not(.placeholder) {
-      box-shadow: none;
+      box-shadow: var(--card-box-shadow);
 
       .img-wrapper > .ds-image.img > img {
         border-radius: var(--border-radius-medium);
@@ -451,7 +452,7 @@
 
   &.ds-card.sections-card-ui.nova-card-ui {
     &:not(.placeholder) {
-      box-shadow: none;
+      box-shadow: var(--card-box-shadow);
     }
 
     &:hover,
@@ -684,6 +685,14 @@
 // @nova-cleanup(remove-conditional): Remove .nova-enabled wrapper, make default
 .nova-enabled .ds-section-wrapper .ds-section .section-heading {
   grid-column: 1 / -1;
+
+  .section-title {
+    font-size: var(--font-size-heading-large);
+
+    @include at-content-cols(12) {
+      font-size: var(--font-size-heading-xlarge);
+    }
+  }
 }
 
 .ds-section-grid.ds-card-grid {
@@ -938,6 +947,8 @@
     // (assigned by JS for all breakpoints simultaneously) only activate one set of
     // mixin styles at a time, avoiding specificity conflicts between mixins.
     @include at-content-cols-range(0, 8) {
+      --sections-col-count: 1;
+
       @for $i from 0 through 16 {
         .col-1-position-#{$i} { order: $i; }
       }
@@ -962,6 +973,8 @@
     }
 
     @include at-content-cols-range(8, 12) {
+      --sections-col-count: 2;
+
       @for $i from 0 through 16 {
         .col-2-position-#{$i} { order: $i; }
       }
@@ -987,13 +1000,13 @@
         grid-column: span 2;
       }
 
-      .ds-image {
-        &.image-1, &.image-3, &.image-4 { display: none; }
-        &.image-2 { display: block; }
-      }
+      .ds-image.image-1, .ds-image.image-3, .ds-image.image-4 { display: none; }
+      .ds-image.image-2 { display: block; }
     }
 
     @include at-content-cols-range(12, 16) {
+      --sections-col-count: 3;
+
       @for $i from 0 through 16 {
         .col-3-position-#{$i} { order: $i; }
       }
@@ -1019,13 +1032,13 @@
         grid-column: span 2;
       }
 
-      .ds-image {
-        &.image-1, &.image-2, &.image-4 { display: none; }
-        &.image-3 { display: block; }
-      }
+      .ds-image.image-1, .ds-image.image-2, .ds-image.image-4 { display: none; }
+      .ds-image.image-3 { display: block; }
     }
 
     @include at-content-cols(16) {
+      --sections-col-count: 4;
+
       @for $i from 0 through 16 {
         .col-4-position-#{$i} { order: $i; }
       }
@@ -1051,10 +1064,8 @@
         grid-column: span 2;
       }
 
-      .ds-image {
-        &.image-1, &.image-2, &.image-3 { display: none; }
-        &.image-4 { display: block; }
-      }
+      .ds-image.image-1, .ds-image.image-2, .ds-image.image-3 { display: none; }
+      .ds-image.image-4 { display: block; }
     }
   }
 

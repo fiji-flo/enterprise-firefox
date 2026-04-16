@@ -32,6 +32,7 @@ const CUSTOM_PROMPT = "Hello from custom prompt!";
 
 const API_KEY = "fake-key";
 const ENDPOINT = "https://api.fake-endpoint.com/v1";
+const MAJOR_VERSION_3 = 3;
 const MAJOR_VERSION_2 = 2;
 const MAJOR_VERSION_1 = 1;
 
@@ -135,9 +136,8 @@ add_task(async function test_prompt_override_via_pref() {
     const config = engine.getConfig(MODEL_FEATURES.CHAT);
     Assert.ok(config, "Config should be loaded");
     const prompt = await engine.loadPrompt(MODEL_FEATURES.CHAT);
-    Assert.equal(
-      prompt,
-      CUSTOM_PROMPT,
+    Assert.ok(
+      prompt.startsWith(CUSTOM_PROMPT),
       "Custom prompt should be loaded from pref"
     );
   } finally {
@@ -214,9 +214,8 @@ add_task(async function test_loadConfig_with_custom_endpoint_and_model() {
     );
 
     const prompt = await engine.loadPrompt(MODEL_FEATURES.CHAT);
-    Assert.equal(
-      prompt,
-      "Generic model prompt loaded!",
+    Assert.ok(
+      prompt.startsWith("Generic model prompt loaded"),
       "Should load generic prompt with custom endpoint"
     );
   } finally {
@@ -326,7 +325,7 @@ add_task(async function test_loadConfig_custom_endpoint_with_custom_model() {
     };
     sb.stub(openAIEngine, "getRemoteClient").returns(fakeClient);
 
-    await engine.loadConfig(MODEL_FEATURES.CHAT, MAJOR_VERSION_2);
+    await engine.loadConfig(MODEL_FEATURES.CHAT, MAJOR_VERSION_3);
 
     Assert.equal(
       engine.model,
@@ -653,7 +652,7 @@ add_task(
       });
 
       const engine = new openAIEngine();
-      await engine.loadConfig(MODEL_FEATURES.CHAT, MAJOR_VERSION_2);
+      await engine.loadConfig(MODEL_FEATURES.CHAT, MAJOR_VERSION_3);
 
       Assert.equal(
         engine.model,
@@ -877,7 +876,7 @@ add_task(async function test_custom_endpoint_override() {
     });
 
     const engine = new openAIEngine();
-    await engine.loadConfig(MODEL_FEATURES.CHAT, MAJOR_VERSION_2);
+    await engine.loadConfig(MODEL_FEATURES.CHAT, MAJOR_VERSION_3);
 
     Assert.equal(
       engine.model,
@@ -1283,7 +1282,7 @@ add_task(
       const fakeRecords = [
         {
           feature: MODEL_FEATURES.CHAT,
-          version: "2.0",
+          version: getVersionForFeature(MODEL_FEATURES.CHAT),
           model: "test-model",
           prompts: "Test prompt",
           is_default: true,

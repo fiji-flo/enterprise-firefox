@@ -279,19 +279,19 @@ static bool OriginCanClaimRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
 
 static bool ExtensionCanClaimRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
                                   const nsACString& aRpId) {
-  // The conditions here are largely the same as in IsValidRpId. However, rather
-  // than making direct comparisons with the caller's origin, we check whether
-  // the extension has host permissions for a suitable origin.
+  // The conditions here are largely the same as in OriginCanClaimRpId. However,
+  // rather than making direct comparisons with the caller's origin, we check
+  // whether the extension has host permissions for a suitable origin via
+  // WebExtensionPolicy::CanAccessURI (which checks the restricted URI list).
   //
   // The conditions that we enforce are:
   // (1) The RP ID must be a valid domain string.
   // (2) The RP ID must not be a single-label non-loopback hostname or a known
   //     public suffix.
   // (3) The extension must have host permissions for either
-  //     - https://<domain> where RP ID is a registrable domain suffix of or
-  //     equal to <domain>, or
-  //     - http://<domain> where RP ID is equal to <domain> and <domain> is a
-  //     loopback hostname (per mozilla::net::IsLoopbackHostname).
+  //     - https://<aRpId>, or
+  //     - http://<aRpId>, if aRpId is a loopback hostname (per
+  //     mozilla::net::IsLoopbackHostname).
 
   // Condition (1)
   nsAutoCString normalizedRpId;
@@ -331,28 +331,26 @@ static bool ExtensionCanClaimRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
   auto* basePrin = BasePrincipal::Cast(aPrincipal);
   MOZ_ASSERT(basePrin->AddonPolicy());
 
-  RefPtr<mozilla::extensions::MatchPatternSet> matchPatternSet =
-      basePrin->AddonPolicy()->AllowedOrigins();
+  nsAutoCString httpsUriSpec("https://"_ns);
+  httpsUriSpec.Append(aRpId);
+  httpsUriSpec.AppendLiteral("/");
+  nsCOMPtr<nsIURI> uri;
+  rv = NS_NewURI(getter_AddRefs(uri), httpsUriSpec);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
 
-  nsTArray<RefPtr<mozilla::extensions::MatchPattern>> matchPatterns;
-  matchPatternSet->GetPatterns(matchPatterns);
+  if (basePrin->AddonPolicy()->CanAccessURI(uri.get())) {
+    return true;
+  }
 
-  for (const auto& matchPattern : matchPatterns) {
-    bool matchesHttps = matchPattern->Core()->ContainsScheme(nsGkAtoms::https);
-    bool matchesHttp = matchPattern->Core()->ContainsScheme(nsGkAtoms::http);
-
-    if (matchPattern->MatchesDomain(aRpId)) {
-      return matchesHttps ||
-             (matchesHttp && mozilla::net::IsLoopbackHostname(aRpId));
-    }
-
-    if (matchesHttps) {
-      // An extension with https:// permissions for a domain from which aRpId
-      // is a valid RP ID (i.e. aRpId is a registrable domain suffix of or
-      // equal to the pattern domain) can claim aRpId.
-      nsCString patternDomain;
-      matchPattern->Core()->GetDomain(patternDomain);
-      return IsRegistrableDomainSuffixOfOrEqualTo(patternDomain, aRpId);
+  if (mozilla::net::IsLoopbackHostname(aRpId)) {
+    nsCOMPtr<nsIURI> httpUri;
+    rv = NS_MutateURI(uri).SetScheme("http"_ns).Finalize(
+        getter_AddRefs(httpUri));
+    if (NS_SUCCEEDED(rv) &&
+        basePrin->AddonPolicy()->CanAccessURI(httpUri.get())) {
+      return true;
     }
   }
 

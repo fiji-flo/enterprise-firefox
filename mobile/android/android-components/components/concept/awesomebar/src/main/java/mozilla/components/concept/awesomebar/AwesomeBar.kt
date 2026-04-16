@@ -10,6 +10,7 @@ import android.view.View
 import mozilla.components.concept.awesomebar.AwesomeBar.Suggestion.Flag
 import mozilla.components.concept.awesomebar.optimizedsuggestions.FlightData
 import mozilla.components.concept.awesomebar.optimizedsuggestions.FlightSuggestionStatus
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionCategory
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionDate
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatus
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatusType
@@ -175,6 +176,7 @@ interface AwesomeBar {
      *
      * @property query The full query string that triggered this suggestion.
      * @property sport The sport name.
+     * @property sportCategory The category of the sport (e.g. "baseball", "basketball", "football", "hockey").
      * @property date The date of the event.
      * @property status The status of the event.
      * @property statusType The type of the status.
@@ -184,6 +186,7 @@ interface AwesomeBar {
     data class SportItem(
         val query: String,
         val sport: String,
+        val sportCategory: String,
         val date: String,
         val status: String,
         val statusType: String,
@@ -198,6 +201,7 @@ interface AwesomeBar {
             val name: String,
             val colors: List<String>,
             val score: Int?,
+            val iconUrl: String?,
         )
     }
 
@@ -445,6 +449,7 @@ interface AwesomeBar {
      * @property onSuggestionClicked A callback to be executed when the [SportSuggestion] was clicked by the user.
      * @property query The user input in the toolbar.
      * @property sport The sport name.
+     * @property sportCategory The category of the sport (e.g. "baseball", "basketball", "football", "hockey").
      * @property date The date of the event.
      * @property status The status of the event.
      * @property statusType The type of the status.
@@ -459,6 +464,7 @@ interface AwesomeBar {
         override val onSuggestionClicked: (() -> Unit)? = null,
         val query: String,
         val sport: String,
+        val sportCategory: SportSuggestionCategory,
         val date: SportSuggestionDate,
         val status: SportSuggestionStatus,
         val statusType: SportSuggestionStatusType,

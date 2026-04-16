@@ -142,12 +142,13 @@ installation.firstSeen:
   failure_reason:
     bug_numbers:
       - 1811374
+      - 2026437
     description: >
       Only sent if unable to collect firstSeen data. Can have
       value "NotFoundError" if file not found or other values
       depending on the failure reason.
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: string
     notification_emails:
       - rtestard@mozilla.com
@@ -167,7 +168,7 @@ installation.firstSeen:
       The type of installer used to install Firefox.
       The value is one of "stub", "full", or "msix"
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: string
     notification_emails:
       - rtestard@mozilla.com
@@ -187,7 +188,7 @@ installation.firstSeen:
       The application version installed by the installer
       (not necessarily the current version)
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: string
     notification_emails:
       - rtestard@mozilla.com
@@ -206,7 +207,7 @@ installation.firstSeen:
     description: >
       Whether the installer is running from an elevated admin user
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -225,7 +226,7 @@ installation.firstSeen:
     description: >
       'Whether there was already an install in this location'
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -244,7 +245,7 @@ installation.firstSeen:
     description: >
       'Whether the top-level profile directory existed'
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -263,7 +264,7 @@ installation.firstSeen:
     description: >
       'Whether there was already any non-MSIX install on this system'
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -282,7 +283,7 @@ installation.firstSeen:
     description: >
       'Whether there was already any MSIX install on this system'
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -302,7 +303,7 @@ installation.firstSeen:
       (optional, present if installer_type is "full")
       Whether this was a silent install
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -322,7 +323,7 @@ installation.firstSeen:
       (optional, present if installer_type is "full")
       Whether this was an MSI install
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -342,7 +343,7 @@ installation.firstSeen:
       (optional, present if installer_type is "full")
       Whether the default path was used
     keyed: false
-    expires: "152"
+    expires: "164"
     kind: boolean
     notification_emails:
       - rtestard@mozilla.com
@@ -2711,37 +2712,6 @@ os.environment:
     release_channel_collection: opt-out
     products:
       - firefox
-    record_in_processes:
-      - main
-
-pictureinpicture:
-  most_concurrent_players:
-    bug_numbers:
-      - 1677107
-      - 1706843
-      - 1736690
-    description:
-      The most concurrent Picture-in-Picture players the user had open at any one time.
-    expires: "never"
-    kind: uint
-    notification_emails:
-      - mconley@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-  toggle_enabled:
-    bug_numbers:
-      - 1639774
-    description: Whether the user has Picture-in-Picture enabled.
-    expires: "never"
-    kind: boolean
-    notification_emails:
-      - mconley@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
     record_in_processes:
       - main
 

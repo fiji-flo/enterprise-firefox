@@ -365,6 +365,14 @@ tags = "vertical-tabs"
 
 ["browser_new_tab_in_privilegedabout_process_pref.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'", # Bug 1934364
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1934364
+  "os == 'win' && os_version == '11.26100' && arch == 'x86'", # Bug 1934364
+  "os == 'win' && os_version == '11.26200' && arch == 'x86'", # Bug 1934364
+  "os == 'win' && os_version == '11.26100' && arch == 'x86_64'", # Bug 1934364
+  "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1934364
+]
 
 ["browser_new_tab_insert_position.js"]
 https_first_disabled = true
@@ -583,6 +591,8 @@ tags = "vertical-tabs"
 ["browser_tab_groups_keyboard_focus.js"]
 tags = "vertical-tabs"
 
+["browser_tab_groups_list.js"]
+
 ["browser_tab_groups_tabContextMenu.js"]
 tags = "vertical-tabs"
 skip-if = [
@@ -651,6 +661,8 @@ skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && opt", # Bug 2010318
 ]
 
+["browser_tabs_space_consistent.js"]
+
 ["browser_tab_splitview.js"]
 
 ["browser_tab_splitview_about_opentabs.js"]
@@ -665,6 +677,7 @@ skip-if = [
 ["browser_tab_splitview_contextmenu.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'", # Bug 1994508
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2023967
 ]
 
 ["browser_tab_splitview_footer.js"]

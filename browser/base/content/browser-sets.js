@@ -11,11 +11,11 @@ document.addEventListener(
       TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
     });
 
-    // <commandset id="mainCommandSet"> defined in browser-sets.inc
+    // <commandset id="mainCommandSet"> defined in browser-sets.inc.xhtml
     document
       .getElementById("mainCommandSet")
       // eslint-disable-next-line complexity
-      .addEventListener("command", async event => {
+      .addEventListener("command", event => {
         switch (event.target.id) {
           case "cmd_newNavigator":
             OpenBrowserWindow();
@@ -202,7 +202,7 @@ document.addEventListener(
             gGestureSupport.rotateEnd();
             break;
           case "cmd_signoutEnterpriseUser":
-            await EnterpriseHandler.onSignOut(window);
+            EnterpriseHandler.onSignOut(window).catch(console.error);
             break;
           case "Browser:OpenLocation":
             openLocation(event);

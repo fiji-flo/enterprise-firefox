@@ -2224,10 +2224,13 @@ nsIContentHandle* nsHtml5TreeBuilder::getDeclarativeShadowRoot(
       nsHtml5AttributeName::ATTR_SHADOWROOTCUSTOMELEMENTREGISTRY);
   nsHtml5String shadowRootReferenceTarget = attributes->getValue(
       nsHtml5AttributeName::ATTR_SHADOWROOTREFERENCETARGET);
+  nsHtml5String shadowRootSlotAssignment =
+      attributes->getValue(nsHtml5AttributeName::ATTR_SHADOWROOTSLOTASSIGNMENT);
   return getShadowRootFromHost(
       currentNode, templateNode, shadowRootMode, shadowRootIsClonable,
       shadowRootIsSerializable, shadowRootDelegatesFocus,
-      shadowRootCustomElementRegistry, shadowRootReferenceTarget);
+      shadowRootCustomElementRegistry, shadowRootSlotAssignment,
+      shadowRootReferenceTarget);
 }
 
 nsHtml5String nsHtml5TreeBuilder::extractCharsetFromContent(

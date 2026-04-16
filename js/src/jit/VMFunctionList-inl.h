@@ -291,7 +291,6 @@ namespace jit {
   _(NumberToString, js::NumberToString<js::CanGC>)                             \
   _(ObjectCreateWithTemplate, js::ObjectCreateWithTemplate)                    \
   _(ObjectKeys, js::jit::ObjectKeys)                                           \
-  _(ObjectKeysLength, js::jit::ObjectKeysLength)                               \
   _(ObjectWithProtoOperation, js::ObjectWithProtoOperation)                    \
   _(OnDebuggerStatement, js::jit::OnDebuggerStatement)                         \
   _(ProxyGetProperty, js::ProxyGetProperty)                                    \

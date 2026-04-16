@@ -417,6 +417,10 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment 
                 SettingsFragmentDirections.actionSettingsFragmentToHttpsOnlyFragment()
             }
 
+            resources.getString(R.string.pref_key_ip_protection_settings) -> {
+                SettingsFragmentDirections.actionSettingsFragmentToIpProtectionFragment()
+            }
+
             resources.getString(R.string.pref_key_tracking_protection_settings) -> {
                 TrackingProtection.etpSettings.record(NoExtras())
                 SettingsFragmentDirections.actionSettingsFragmentToTrackingProtectionFragment()
@@ -626,6 +630,7 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment 
         )
         setupGeckoLogsPreference(settings)
         setupHttpsOnlyPreferences(settings)
+        setupIPProtectionPreferences(settings)
         setupNotificationPreference(
             NotificationManagerCompat.from(requireContext()).areNotificationsEnabled(),
         )
@@ -840,6 +845,12 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment 
                     getString(R.string.preferences_https_only_on_private)
                 else -> null
             }
+    }
+
+    private fun setupIPProtectionPreferences(settings: Settings) {
+        findPreference<Preference>(
+            getPreferenceKey(R.string.pref_key_ip_protection_settings),
+        )?.isVisible = settings.isIPProtectionAvailable
     }
 
     private fun updateProfilerUI(profilerStatus: Boolean) {

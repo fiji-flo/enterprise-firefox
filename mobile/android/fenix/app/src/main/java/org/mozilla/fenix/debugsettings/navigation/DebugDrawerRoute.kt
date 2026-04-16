@@ -30,6 +30,8 @@ import org.mozilla.fenix.debugsettings.logins.LoginsTools
 import org.mozilla.fenix.debugsettings.region.RegionTools
 import org.mozilla.fenix.debugsettings.store.DebugDrawerAction
 import org.mozilla.fenix.debugsettings.store.DebugDrawerStore
+import org.mozilla.fenix.debugsettings.tabs.TabGroupTools
+import org.mozilla.fenix.tabgroups.storage.repository.TabGroupRepository
 import org.mozilla.fenix.debugsettings.cfrs.CfrTools as CfrToolsScreen
 import org.mozilla.fenix.debugsettings.tabs.TabTools as TabToolsScreen
 
@@ -95,6 +97,10 @@ enum class DebugDrawerRoute(
         route = "llm_tools",
         title = R.string.llm_debug_tools_title,
     ),
+    TabGroupTools(
+        route = "tab_group_tools",
+        title = R.string.debug_drawer_tab_group_tools_title,
+    ),
     ;
 
     companion object {
@@ -112,6 +118,7 @@ enum class DebugDrawerRoute(
          * @param integrityClient used to test an [IntegrityClient] in [IntegrityTools].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
          * @param llm the component group [Llm].
+         * @param tabGroupRepository [TabGroupRepository] used to access and modify tab groups for [TabGroupTools].
          */
         @Suppress("LongParameterList", "LongMethod")
         fun generateDebugDrawerDestinations(
@@ -126,6 +133,7 @@ enum class DebugDrawerRoute(
             integrityClient: IntegrityClient,
             inactiveTabsEnabled: Boolean,
             llm: Llm,
+            tabGroupRepository: TabGroupRepository,
         ): List<DebugDrawerDestination> =
             entries.map { debugDrawerRoute ->
                 var isChildDestination: Boolean = false
@@ -253,6 +261,18 @@ enum class DebugDrawerRoute(
                         }
                         content = {
                             LlmTools(llm)
+                        }
+                    }
+
+                    TabGroupTools -> {
+                        onClick = {
+                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.TabGroupDebugTools)
+                        }
+                        content = {
+                            TabGroupTools(
+                                tabGroupRepository = tabGroupRepository,
+                                browserStore = browserStore,
+                            )
                         }
                     }
                 }

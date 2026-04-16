@@ -632,7 +632,7 @@ JS_PUBLIC_API JSScript* ProfilingStackFrame::script() const {
     return nullptr;
   }
 
-  // If profiling is supressed then we can't trust the script pointers to be
+  // If profiling is suppressed then we can't trust the script pointers to be
   // valid as they could be in the process of being moved by a compacting GC
   // (although it's still OK to get the runtime from them).
   JSContext* cx = script->runtimeFromAnyThread()->mainContextFromAnyThread();

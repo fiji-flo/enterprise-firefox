@@ -340,7 +340,7 @@ void TextControlElement::ScrollSelectionIntoViewAsync(
                          : ScrollFlags::ScrollFirstAncestorOnly;
   selCon->ScrollSelectionIntoView(
       SelectionType::eNormal, nsISelectionController::SELECTION_FOCUS_REGION,
-      ScrollAxis(), ScrollAxis(), flags);
+      AxisScrollParams(), AxisScrollParams(), flags);
 }
 
 void TextControlElement::ShowSelection() {

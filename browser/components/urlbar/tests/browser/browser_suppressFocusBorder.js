@@ -55,7 +55,7 @@ add_task(async function afterMousedown_topSites() {
     async () => {
       Assert.ok(
         !win.gURLBar.hasAttribute("suppress-focus-border"),
-        "Sanity check: the Urlbar does not have the supress-focus-border attribute."
+        "Sanity check: the Urlbar does not have the suppress-focus-border attribute."
       );
 
       await UrlbarTestUtils.promisePopupOpen(win, () => {
@@ -74,7 +74,7 @@ add_task(async function afterMousedown_topSites() {
       await UrlbarTestUtils.promisePopupClose(win);
       Assert.ok(
         !gURLBar.hasAttribute("suppress-focus-border"),
-        "The Urlbar no longer has the supress-focus-border attribute after close."
+        "The Urlbar no longer has the suppress-focus-border attribute after close."
       );
     }
   );
@@ -91,7 +91,7 @@ add_task(async function openLocation_topSites() {
     async () => {
       Assert.ok(
         !win.gURLBar.hasAttribute("suppress-focus-border"),
-        "Sanity check: the Urlbar does not have the supress-focus-border attribute."
+        "Sanity check: the Urlbar does not have the suppress-focus-border attribute."
       );
 
       await UrlbarTestUtils.promisePopupOpen(win, () => {
@@ -107,7 +107,7 @@ add_task(async function openLocation_topSites() {
       await UrlbarTestUtils.promisePopupClose(win);
       Assert.ok(
         !win.gURLBar.hasAttribute("suppress-focus-border"),
-        "The Urlbar no longer has the supress-focus-border attribute after close."
+        "The Urlbar no longer has the suppress-focus-border attribute after close."
       );
     }
   );
@@ -128,7 +128,7 @@ add_task(async function afterMousedown_noTopSites() {
     async () => {
       Assert.ok(
         !win.gURLBar.hasAttribute("suppress-focus-border"),
-        "Sanity check: the Urlbar does not have the supress-focus-border attribute."
+        "Sanity check: the Urlbar does not have the suppress-focus-border attribute."
       );
 
       EventUtils.synthesizeMouseAtCenter(win.gURLBar.inputField, {}, win);
@@ -139,7 +139,7 @@ add_task(async function afterMousedown_noTopSites() {
 
       Assert.ok(
         !win.gURLBar.hasAttribute("suppress-focus-border"),
-        "The Urlbar no longer has the supress-focus-border attribute."
+        "The Urlbar no longer has the suppress-focus-border attribute."
       );
     }
   );
@@ -269,7 +269,7 @@ add_task(async function clickOnEdgeOfURLBar() {
   );
 
   const container = win.gURLBar.querySelector(".urlbar-input-container");
-  container.click();
+  EventUtils.synthesizeMouseAtCenter(container, {}, win);
 
   await onHiddenFocusRemoved;
   Assert.ok(

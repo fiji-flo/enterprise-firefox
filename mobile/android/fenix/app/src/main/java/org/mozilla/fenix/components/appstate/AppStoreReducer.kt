@@ -8,6 +8,7 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.lib.crash.store.CrashAction
 import mozilla.components.lib.crash.store.crashReducer
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.lens.LensReducer
 import org.mozilla.fenix.components.appstate.privatebrowsinglock.PrivateBrowsingLockReducer
 import org.mozilla.fenix.components.appstate.qrScanner.QrScannerReducer
 import org.mozilla.fenix.components.appstate.readerview.ReaderViewStateReducer
@@ -264,6 +265,8 @@ internal object AppStoreReducer {
         )
 
         is AppAction.PrivateBrowsingLockAction -> PrivateBrowsingLockReducer.reduce(state, action)
+
+        is AppAction.LensAction -> LensReducer.reduce(state, action)
 
         is AppAction.QrScannerAction -> QrScannerReducer.reduce(state, action)
 

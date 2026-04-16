@@ -294,13 +294,6 @@ class MockCall : public webrtc::Call {
   void OnAudioTransportOverheadChanged(
       int transport_overhead_per_packet) override {}
 
-  void OnLocalSsrcUpdated(webrtc::AudioReceiveStreamInterface& stream,
-                          uint32_t local_ssrc) override {}
-  void OnLocalSsrcUpdated(webrtc::VideoReceiveStreamInterface& stream,
-                          uint32_t local_ssrc) override {}
-  void OnLocalSsrcUpdated(webrtc::FlexfecReceiveStream& stream,
-                          uint32_t local_ssrc) override {}
-
   void OnUpdateSyncGroup(webrtc::AudioReceiveStreamInterface& stream,
                          absl::string_view sync_group) override {}
 

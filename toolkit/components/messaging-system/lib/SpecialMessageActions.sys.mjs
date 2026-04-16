@@ -25,9 +25,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
+  SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   Spotlight: "resource:///modules/asrouter/Spotlight.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
@@ -447,8 +449,7 @@ export const SpecialMessageActions = {
         { once: true, signal }
       );
 
-      let window = fxaTab.ownerGlobal;
-      window.addEventListener("unload", () => {
+      fxaTab.ownerGlobal.addEventListener("unload", () => {
         // If the hosting window unload event was fired before the event handler
         // was removed, this means that the window was closed and sign-in was
         // not completed, which means we should resolve didSignIn to false.
@@ -761,6 +762,37 @@ export const SpecialMessageActions = {
         await WindowsLaunchOnLogin.createLaunchOnLogin();
         break;
       }
+      case "CREATE_GROUP_FROM_CURRENT_TAB": {
+        let tab =
+          window.gBrowser.getTabForBrowser(browser) ??
+          window.gBrowser.selectedTab;
+        if (tab.group) {
+          // Create a new tab after the current tab's group, add the new tab to
+          // a new tab group.
+          /** @type {Extract<nsIObserver, Function>} */
+          async function observer(aSubject) {
+            Services.obs.removeObserver(observer, "browser-open-newtab-start");
+            /** @type {nsIBrowser} */
+            let newBrowser = await aSubject.wrappedJSObject;
+            let newTab = window.gBrowser.getTabForBrowser(newBrowser);
+            window.gBrowser.addTabGroup([newTab], {
+              insertBefore: tab.group.nextElementSibling,
+              isUserTriggered: true,
+              telemetryUserCreateSource: "messaging",
+            });
+          }
+          Services.obs.addObserver(observer, "browser-open-newtab-start");
+          window.gBrowser.addAdjacentNewTab(tab);
+        } else {
+          // Add the current tab to a new tab group in place.
+          window.gBrowser.addTabGroup([tab], {
+            insertBefore: tab,
+            isUserTriggered: true,
+            telemetryUserCreateSource: "messaging",
+          });
+        }
+        break;
+      }
       case "PIN_CURRENT_TAB": {
         let tab = window.gBrowser.selectedTab;
         window.gBrowser.pinTab(tab);
@@ -901,6 +933,15 @@ export const SpecialMessageActions = {
       case "CREATE_TASKBAR_TAB": {
         let currentTab = window.gBrowser.selectedTab;
         await lazy.TaskbarTabs.moveTabIntoTaskbarTab(currentTab);
+        break;
+      }
+      case "RESTORE_SESSION": {
+        if (
+          lazy.SessionStore.canRestoreLastSession &&
+          !lazy.PrivateBrowsingUtils.isWindowPrivate(window)
+        ) {
+          await lazy.SessionStore.restoreLastSession();
+        }
         break;
       }
     }

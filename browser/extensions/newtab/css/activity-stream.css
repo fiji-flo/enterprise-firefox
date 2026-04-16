@@ -41,6 +41,7 @@ input {
   --newtab-background-color-secondary: var(--color-white);
   --newtab-text-primary-color: var(--text-color);
   --newtab-background-card: color-mix(in srgb, var(--color-white) 85%, transparent);
+  --newtab-card-placeholder-background-color: color-mix(in srgb, currentColor 21%, transparent);
   --newtab-text-topic-label-color: var(--color-violet-70);
   --newtab-text-secondary-text: var(--text-color-deemphasized);
   --newtab-contextual-text-primary-color: light-dark(var(--newtab-text-primary-color), var(--text-color));
@@ -757,6 +758,10 @@ main section {
   }
 }
 
+.nova-outer-wrapper {
+  min-height: 100vh;
+}
+
 .as-error-fallback {
   align-items: center;
   border-radius: var(--border-radius-medium);
@@ -779,6 +784,11 @@ main section {
 .logo-and-wordmark-wrapper {
   margin-block: 0;
 }
+.nova-enabled .content .logo-and-wordmark-wrapper {
+  grid-column: 1/-1;
+  display: flex;
+  justify-content: center;
+}
 
 .logo-and-wordmark {
   align-items: center;
@@ -796,6 +806,12 @@ main section {
   .nova-enabled .logo-and-wordmark .wordmark {
     display: inline-block;
   }
+}
+.nova-enabled .content .logo-and-wordmark {
+  grid-column: 1/-1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 .no-recommended-stories .logo-and-wordmark {
   margin-block-end: calc(var(--space-large) + var(--space-xlarge));
@@ -1201,6 +1217,12 @@ main section {
 .top-site-outer.add-button .tile {
   background-color: var(--button-background-color);
 }
+.lightWallpaper .top-site-outer.add-button .tile {
+  color-scheme: light;
+}
+.darkWallpaper .top-site-outer.add-button .tile {
+  color-scheme: dark;
+}
 .top-site-outer.add-button .tile .icon-wrapper {
   background-image: url("chrome://global/skin/icons/plus-20.svg");
   background-size: cover;
@@ -1513,6 +1535,7 @@ main section {
   grid-gap: var(--space-xxlarge);
   grid-template-columns: repeat(auto-fit, 192px);
   margin: 0;
+  padding: 0;
 }
 @media (max-width: 610px) {
   .sections-list .section-list .context-menu {
@@ -1846,6 +1869,10 @@ main section {
   pointer-events: none;
 }
 
+.nova-enabled ~ .confirmation-dialog {
+  border-radius: var(--border-radius-large);
+}
+
 .confirmation-dialog {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-small);
@@ -1868,6 +1895,9 @@ main section {
 .confirmation-dialog .modal-message p {
   margin: 0;
   margin-block-end: var(--space-large);
+}
+.confirmation-dialog .modal-message p:first-child {
+  font-weight: var(--font-weight-semibold);
 }
 .confirmation-dialog .button-group {
   border: 0;
@@ -1958,67 +1988,69 @@ main section {
   max-width: 30ch;
 }
 
-.customize-menu-animate-wrapper {
+.customize-menu {
   color: var(--newtab-text-primary-color);
   background-color: var(--newtab-background-color-secondary);
   width: 432px;
-  height: 100%;
-  display: none;
+  min-height: 100%;
   position: fixed;
   inset-block: 0;
-  inset-inline-end: 0;
+  inset-inline: auto 0;
   z-index: 1001;
   padding-block: 0 var(--space-large);
   padding-inline: var(--space-large);
   transform: translateX(435px);
   visibility: hidden;
   cursor: default;
+  overflow: auto;
+  border: none;
+  margin: 0;
 }
-.customize-menu-animate-wrapper.customize-animate-enter, .customize-menu-animate-wrapper.customize-animate-exit, .customize-menu-animate-wrapper.customize-animate-enter-done, .customize-menu-animate-wrapper.customize-animate-exit-done {
-  display: block;
+.customize-menu::backdrop {
+  background: transparent;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .customize-menu-animate-wrapper.customize-animate-enter, .customize-menu-animate-wrapper.customize-animate-exit, .customize-menu-animate-wrapper.customize-animate-enter-done, .customize-menu-animate-wrapper.customize-animate-exit-done {
+  .customize-menu.customize-animate-enter, .customize-menu.customize-animate-exit, .customize-menu.customize-animate-enter-done, .customize-menu.customize-animate-exit-done {
     transition: transform 250ms cubic-bezier(0.46, 0.03, 0.52, 0.96), visibility 250ms;
   }
 }
 @media (forced-colors: active) {
-  .customize-menu-animate-wrapper {
+  .customize-menu {
     border-inline-start: solid 1px;
   }
 }
-.customize-menu-animate-wrapper:dir(rtl) {
+.customize-menu:dir(rtl) {
   transform: translateX(-435px);
 }
-.customize-menu-animate-wrapper.customize-animate-enter-done, .customize-menu-animate-wrapper.customize-animate-enter-active {
+.customize-menu.customize-animate-enter-done, .customize-menu.customize-animate-enter-active {
   box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
   visibility: visible;
   transform: translateX(0);
 }
-.customize-menu-animate-wrapper.customize-animate-exit-active {
+.customize-menu.customize-animate-exit-active {
   box-shadow: 0 2px 14px 0 rgba(0, 0, 0, 0.2);
 }
 
-.customize-menu {
+.customize-menu-content {
   overflow: auto;
   height: 100%;
 }
-.customize-menu.subpanel-open {
+.customize-menu-content.subpanel-open {
   overflow: clip;
 }
-.customize-menu .close-button-wrapper {
+.customize-menu-content .close-button-wrapper {
   position: sticky;
   inset-block-start: 0;
   padding-block-start: var(--space-large);
   background-color: var(--newtab-background-color-secondary);
   z-index: 1;
 }
-.customize-menu .close-button-wrapper moz-button {
+.customize-menu-content .close-button-wrapper moz-button {
   margin-inline-start: auto;
   margin-inline-end: var(--space-large);
   display: block;
 }
-.customize-menu *:focus-visible {
+.customize-menu-content *:focus-visible {
   outline: var(--focus-outline);
 }
 
@@ -4343,6 +4375,11 @@ dialog:dir(rtl)::after {
   animation: toastSlideInSlideOut 4s ease-in-out forwards;
 }
 
+.nova-enabled ~ .notification-wrapper .newtab-toast-success {
+  --message-bar-background-color: var(--background-color-box);
+  --message-bar-icon-color: var(--icon-color-success);
+}
+
 @keyframes toastSlideInSlideOut {
   0%, 100% {
     opacity: 0;
@@ -4371,6 +4408,7 @@ dialog:dir(rtl)::after {
   grid-column: 1/-1;
   display: grid;
   grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
 }
 
 .classic-enabled .widgets-section-container {
@@ -4410,6 +4448,27 @@ dialog:dir(rtl)::after {
   font-size: var(--font-size-large);
   font-weight: var(--font-weight-bold);
 }
+.nova-enabled .widgets-section-container h1 {
+  color: var(--newtab-contextual-text-primary-color);
+}
+.lightWallpaper .nova-enabled .widgets-section-container h1 {
+  color-scheme: light;
+}
+.darkWallpaper .nova-enabled .widgets-section-container h1 {
+  color-scheme: dark;
+}
+.nova-enabled .widgets-section-container #hide-all-widgets-button,
+.nova-enabled .widgets-section-container #toggle-widgets-size-button {
+  color: var(--newtab-contextual-text-primary-color);
+}
+.lightWallpaper .nova-enabled .widgets-section-container #hide-all-widgets-button,
+.lightWallpaper .nova-enabled .widgets-section-container #toggle-widgets-size-button {
+  color-scheme: light;
+}
+.darkWallpaper .nova-enabled .widgets-section-container #hide-all-widgets-button,
+.darkWallpaper .nova-enabled .widgets-section-container #toggle-widgets-size-button {
+  color-scheme: dark;
+}
 
 @media (min-width: 1122px) {
   .classic-enabled .widgets-section-container {
@@ -4428,6 +4487,7 @@ dialog:dir(rtl)::after {
   grid-column: 1/-1;
   display: grid;
   grid-template-columns: subgrid;
+  grid-auto-rows: var(--row-height);
   gap: var(--space-medium);
 }
 .classic-enabled .widgets-container {
@@ -4452,7 +4512,7 @@ dialog:dir(rtl)::after {
     --widgets-grid-gap: var(--space-xlarge);
   }
 }
-.classic-enabled .widgets-container .small-widget {
+.classic-enabled .widgets-container .is-small {
   height: var(--widgets-small-card-height);
 }
 
@@ -4535,6 +4595,12 @@ dialog:dir(rtl)::after {
 }
 .has-sections-grid .classic-enabled .lists {
   width: var(--newtab-card-width-medium);
+}
+.lists.medium-widget {
+  grid-row: span 2;
+}
+.lists.large-widget {
+  grid-row: span 4;
 }
 .lists .confetti-canvas {
   position: absolute;
@@ -4766,6 +4832,12 @@ dialog:dir(rtl)::after {
 }
 .has-sections-grid .classic-enabled .focus-timer {
   width: var(--newtab-card-width-medium);
+}
+.focus-timer.medium-widget {
+  grid-row: span 2;
+}
+.focus-timer.large-widget {
+  grid-row: span 4;
 }
 
 .focus-timer-tabs {
@@ -5002,19 +5074,19 @@ dialog:dir(rtl)::after {
   border-radius: var(--border-radius-medium);
   width: 100%;
 }
-.weather-forecast-widget .current-weather-wrapper:has(.iconId1, .iconId2, .iconId3, .iconId4, .iconId5, .iconId6, .iconId33), .weather-forecast-widget.small-widget .forecast-row-items > li:first-of-type:has(.iconId1, .iconId2, .iconId3, .iconId4, .iconId5, .iconId6, .iconId33) {
+.weather-forecast-widget .current-weather-wrapper:has(.iconId1, .iconId2, .iconId3, .iconId4, .iconId5, .iconId6, .iconId33), .weather-forecast-widget.is-small .forecast-row-items > li:first-of-type:has(.iconId1, .iconId2, .iconId3, .iconId4, .iconId5, .iconId6, .iconId33) {
   background-color: var(--weather-sunny-background-color);
 }
-.weather-forecast-widget .current-weather-wrapper:has(.iconId7, .iconId8, .iconId11, .iconId32, .iconId34, .iconId35, .iconId36, .iconId37, .iconId38), .weather-forecast-widget.small-widget .forecast-row-items > li:first-of-type:has(.iconId7, .iconId8, .iconId11, .iconId32, .iconId34, .iconId35, .iconId36, .iconId37, .iconId38) {
+.weather-forecast-widget .current-weather-wrapper:has(.iconId7, .iconId8, .iconId11, .iconId32, .iconId34, .iconId35, .iconId36, .iconId37, .iconId38), .weather-forecast-widget.is-small .forecast-row-items > li:first-of-type:has(.iconId7, .iconId8, .iconId11, .iconId32, .iconId34, .iconId35, .iconId36, .iconId37, .iconId38) {
   background-color: var(--weather-cloudy-background-color);
 }
-.weather-forecast-widget .current-weather-wrapper:has(.iconId12, .iconId13, .iconId14, .iconId15, .iconId16, .iconId17, .iconId18, .iconId39, .iconId40, .iconId41, .iconId42), .weather-forecast-widget.small-widget .forecast-row-items > li:first-of-type:has(.iconId12, .iconId13, .iconId14, .iconId15, .iconId16, .iconId17, .iconId18, .iconId39, .iconId40, .iconId41, .iconId42) {
+.weather-forecast-widget .current-weather-wrapper:has(.iconId12, .iconId13, .iconId14, .iconId15, .iconId16, .iconId17, .iconId18, .iconId39, .iconId40, .iconId41, .iconId42), .weather-forecast-widget.is-small .forecast-row-items > li:first-of-type:has(.iconId12, .iconId13, .iconId14, .iconId15, .iconId16, .iconId17, .iconId18, .iconId39, .iconId40, .iconId41, .iconId42) {
   background-color: var(--weather-rainy-background-color);
 }
-.weather-forecast-widget .current-weather-wrapper:has(.iconId19, .iconId20, .iconId21, .iconId22, .iconId23, .iconId24, .iconId25, .iconId26, .iconId29, .iconId31, .iconId43, .iconId44), .weather-forecast-widget.small-widget .forecast-row-items > li:first-of-type:has(.iconId19, .iconId20, .iconId21, .iconId22, .iconId23, .iconId24, .iconId25, .iconId26, .iconId29, .iconId31, .iconId43, .iconId44) {
+.weather-forecast-widget .current-weather-wrapper:has(.iconId19, .iconId20, .iconId21, .iconId22, .iconId23, .iconId24, .iconId25, .iconId26, .iconId29, .iconId31, .iconId43, .iconId44), .weather-forecast-widget.is-small .forecast-row-items > li:first-of-type:has(.iconId19, .iconId20, .iconId21, .iconId22, .iconId23, .iconId24, .iconId25, .iconId26, .iconId29, .iconId31, .iconId43, .iconId44) {
   background-color: var(--weather-snowy-background-color);
 }
-.weather-forecast-widget .current-weather-wrapper:has(.iconId30), .weather-forecast-widget.small-widget .forecast-row-items > li:first-of-type:has(.iconId30) {
+.weather-forecast-widget .current-weather-wrapper:has(.iconId30), .weather-forecast-widget.is-small .forecast-row-items > li:first-of-type:has(.iconId30) {
   background-color: var(--weather-hot-background-color);
 }
 .weather-forecast-widget.forecast-error-state .full-forecast {
@@ -5222,27 +5294,27 @@ hr {
   color: inherit;
 }
 
-.small-widget {
+.weather-forecast-widget.is-small {
   height: 100%;
   padding: var(--space-small);
 }
-.small-widget .forecast-error {
+.weather-forecast-widget.is-small .forecast-error {
   flex-direction: row;
   justify-content: flex-start;
 }
-.small-widget .forecast-error span {
+.weather-forecast-widget.is-small .forecast-error span {
   margin-inline-end: var(--space-small);
 }
-.small-widget .forecast-row-items li {
+.weather-forecast-widget.is-small .forecast-row-items li {
   padding: var(--space-xsmall) var(--space-medium);
 }
-.small-widget .forecast-footer {
+.weather-forecast-widget.is-small .forecast-footer {
   margin-block-start: auto;
 }
-.small-widget .forecast-footer .full-forecast {
+.weather-forecast-widget.is-small .forecast-footer .full-forecast {
   display: none;
 }
-.small-widget:has(.location-search) .forecast-row-items {
+.weather-forecast-widget.is-small:has(.location-search) .forecast-row-items {
   display: none;
 }
 
@@ -5678,6 +5750,14 @@ hr {
 .nova-enabled .ds-section-wrapper .ds-section .section-heading {
   grid-column: 1/-1;
 }
+.nova-enabled .ds-section-wrapper .ds-section .section-heading .section-title {
+  font-size: var(--font-size-heading-large);
+}
+@container content-grid (inline-size >= calc(12 * 75px + 11 * 0.75rem)) {
+  .nova-enabled .ds-section-wrapper .ds-section .section-heading .section-title {
+    font-size: var(--font-size-heading-xlarge);
+  }
+}
 
 .ds-section-grid.ds-card-grid {
   grid-gap: var(--space-large);
@@ -5826,7 +5906,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-small.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-small.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -5866,6 +5946,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-medium {
@@ -5946,7 +6027,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -5979,6 +6060,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-medium .ds-card-link {
@@ -6083,7 +6165,7 @@ hr {
 }
 @media (max-width: 724px) {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-large.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-large.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -6133,6 +6215,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-1-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
 }
@@ -6286,7 +6369,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-small.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-small.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -6326,6 +6409,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-medium {
@@ -6406,7 +6490,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -6439,6 +6523,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-medium .ds-card-link {
@@ -6543,7 +6628,7 @@ hr {
 }
 @media (724px <= width < 1122px) {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-large.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-large.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -6593,6 +6678,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-2-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
 }
@@ -6764,7 +6850,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-small.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-small.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -6804,6 +6890,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-medium {
@@ -6884,7 +6971,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -6917,6 +7004,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-medium .ds-card-link {
@@ -7021,7 +7109,7 @@ hr {
 }
 @media (1122px <= width < 1390px) {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-large.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-large.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -7071,6 +7159,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-3-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
 }
@@ -7240,7 +7329,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-small.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-small.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -7280,6 +7369,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-medium {
@@ -7360,7 +7450,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -7393,6 +7483,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-medium .ds-card-link {
@@ -7497,7 +7588,7 @@ hr {
 }
 @media (min-width: 1390px) {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-large.ds-card.sections-card-ui.nova-card-ui:hover, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-large.ds-card.sections-card-ui.nova-card-ui:active, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -7547,6 +7638,7 @@ hr {
   .ds-section-grid.ds-card-grid:not(.nova-enabled *) .col-4-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
 }
@@ -7584,6 +7676,9 @@ hr {
   margin-block-end: var(--space-xlarge);
 }
 @container content-grid (inline-size < calc(8 * 75px + 7 * 0.75rem)) {
+  .nova-enabled .ds-section-grid.ds-card-grid {
+    --sections-col-count: 1;
+  }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-position-0 {
     order: 0;
   }
@@ -7720,7 +7815,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -7760,6 +7855,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-medium {
@@ -7840,7 +7936,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -7873,6 +7969,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-medium .ds-card-link {
@@ -7962,7 +8059,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -7995,6 +8092,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-1-large .ds-card-link {
@@ -8013,6 +8111,9 @@ hr {
   }
 }
 @container content-grid ((inline-size >= calc(8 * 75px + 7 * 0.75rem)) and (inline-size < calc(12 * 75px + 11 * 0.75rem))) {
+  .nova-enabled .ds-section-grid.ds-card-grid {
+    --sections-col-count: 2;
+  }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-position-0 {
     order: 0;
   }
@@ -8149,7 +8250,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -8189,6 +8290,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-medium {
@@ -8269,7 +8371,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -8302,6 +8404,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-medium .ds-card-link {
@@ -8402,7 +8505,7 @@ hr {
     }
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -8451,6 +8554,7 @@ hr {
     .nova-enabled .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
       width: var(--size-item-medium);
       height: var(--size-item-medium);
+      border-radius: var(--border-radius-circle);
       background-size: var(--icon-size);
     }
   }
@@ -8469,6 +8573,9 @@ hr {
   }
 }
 @container content-grid ((inline-size >= calc(12 * 75px + 11 * 0.75rem)) and (inline-size < calc(16 * 75px + 15 * 0.75rem))) {
+  .nova-enabled .ds-section-grid.ds-card-grid {
+    --sections-col-count: 3;
+  }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-position-0 {
     order: 0;
   }
@@ -8605,7 +8712,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -8645,6 +8752,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-medium {
@@ -8725,7 +8833,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -8758,6 +8866,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-medium .ds-card-link {
@@ -8858,7 +8967,7 @@ hr {
     }
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -8907,6 +9016,7 @@ hr {
     .nova-enabled .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
       width: var(--size-item-medium);
       height: var(--size-item-medium);
+      border-radius: var(--border-radius-circle);
       background-size: var(--icon-size);
     }
   }
@@ -8925,6 +9035,9 @@ hr {
   }
 }
 @container content-grid (inline-size >= calc(16 * 75px + 15 * 0.75rem)) {
+  .nova-enabled .ds-section-grid.ds-card-grid {
+    --sections-col-count: 4;
+  }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-position-0 {
     order: 0;
   }
@@ -9061,7 +9174,7 @@ hr {
     --nova-stp-inset: var(--space-medium);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -9101,6 +9214,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-small.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-medium {
@@ -9181,7 +9295,7 @@ hr {
     --nova-stp-inset: var(--space-large);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle):not(.placeholder) .img-wrapper > .ds-image.img > img {
     border-radius: var(--border-radius-medium);
@@ -9214,6 +9328,7 @@ hr {
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-medium.ds-card.sections-card-ui.nova-card-ui:not(.ds-spoc-rectangle) .context-menu-position-container .context-menu-button {
     width: var(--size-item-medium);
     height: var(--size-item-medium);
+    border-radius: var(--border-radius-circle);
     background-size: var(--icon-size);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-medium .ds-card-link {
@@ -9314,7 +9429,7 @@ hr {
     }
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui.nova-card-ui:not(.placeholder) {
-    box-shadow: none;
+    box-shadow: var(--card-box-shadow);
   }
   .nova-enabled .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui.nova-card-ui:hover, .nova-enabled .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui.nova-card-ui:active, .nova-enabled .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui.nova-card-ui:focus-within, .nova-enabled .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui.nova-card-ui.active {
     box-shadow: var(--card-box-shadow-hover);
@@ -9363,6 +9478,7 @@ hr {
     .nova-enabled .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui.nova-card-ui .context-menu-position-container .context-menu-button {
       width: var(--size-item-medium);
       height: var(--size-item-medium);
+      border-radius: var(--border-radius-circle);
       background-size: var(--icon-size);
     }
   }
@@ -9387,15 +9503,17 @@ hr {
 /* stylelint-disable max-nesting-depth */
 .ds-highlights .section .section-list {
   grid-gap: var(--gridRowGap);
+}
+.ds-highlights .section .section-list:not(.nova-enabled *) {
   grid-template-columns: repeat(1, 1fr);
 }
 @media (min-width: 610px) {
-  .ds-highlights .section .section-list {
+  .ds-highlights .section .section-list:not(.nova-enabled *) {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 @media (min-width: 866px) {
-  .ds-highlights .section .section-list {
+  .ds-highlights .section .section-list:not(.nova-enabled *) {
     grid-template-columns: repeat(4, 1fr);
   }
 }
@@ -9432,6 +9550,57 @@ hr {
 }
 .ds-highlights .hide-for-narrow {
   display: block;
+}
+.nova-enabled .ds-highlights {
+  display: grid;
+  grid-column: 1/-1;
+  grid-template-columns: repeat(2, calc(2 * var(--col-width) + 1 * var(--space-medium)));
+  gap: var(--space-medium);
+  justify-content: center;
+}
+@container content-grid (inline-size >= calc(8 * 75px + 7 * 0.75rem)) {
+  .nova-enabled .ds-highlights {
+    grid-template-columns: repeat(4, calc(2 * var(--col-width) + 1 * var(--space-medium)));
+  }
+}
+@container content-grid (inline-size >= calc(12 * 75px + 11 * 0.75rem)) {
+  .nova-enabled .ds-highlights {
+    grid-template-columns: repeat(4, calc(3 * var(--col-width) + 2 * var(--space-medium)));
+  }
+}
+.nova-enabled .ds-highlights .ds-highlights-title {
+  grid-column: 1/-1;
+  font-weight: var(--font-weight-heading, var(--heading-font-weight));
+  font-size: var(--font-size-heading-large, var(--font-size-xlarge));
+  color: var(--newtab-contextual-text-primary-color);
+  margin-block: var(--space-small) 0;
+}
+.lightWallpaper .nova-enabled .ds-highlights .ds-highlights-title {
+  color-scheme: light;
+}
+.darkWallpaper .nova-enabled .ds-highlights .ds-highlights-title {
+  color-scheme: dark;
+}
+@container content-grid (inline-size >= calc(12 * 75px + 11 * 0.75rem)) {
+  .nova-enabled .ds-highlights .ds-highlights-title {
+    font-size: var(--font-size-heading-xlarge, var(--font-size-xxlarge));
+  }
+}
+.nova-enabled .ds-highlights .section {
+  display: contents;
+}
+.nova-enabled .ds-highlights .section > div {
+  display: contents;
+}
+.nova-enabled .ds-highlights .section-list {
+  grid-column: 1/-1;
+  padding-block-end: var(--space-xxlarge);
+  grid-template-columns: repeat(2, 1fr);
+}
+@container content-grid (inline-size >= calc(8 * 75px + 7 * 0.75rem)) {
+  .nova-enabled .ds-highlights .section-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .ds-hr {
@@ -9500,6 +9669,15 @@ hr {
 }
 .nova-enabled .content .ds-navigation {
   grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(4 * var(--col-width) + 3 * var(--space-medium)));
+  justify-content: center;
+  padding-block-end: var(--space-xxlarge);
+  gap: var(--space-medium);
+}
+.nova-enabled .content .ds-navigation .ds-navigation-privacy {
+  grid-column: 1/-1;
+  text-align: end;
 }
 .ds-navigation.ds-navigation-new-topics {
   display: block;
@@ -9773,7 +9951,7 @@ hr {
   overflow: hidden;
 }
 .ds-card.placeholder .placeholder-fill {
-  background: var(--newtab-button-active-background);
+  background: var(--newtab-card-placeholder-background-color);
   border-radius: var(--border-radius-small);
 }
 .ds-card.placeholder .placeholder-image {
@@ -10301,16 +10479,22 @@ hr {
 .ds-card-grid .ds-card:hover h3, .ds-card-grid .ds-card.active h3 {
   color: var(--color-accent-primary);
 }
-.ds-card-grid .ds-card:hover .context-menu-button:hover, .ds-card-grid .ds-card.active .context-menu-button:hover {
+.ds-card-grid .ds-card:hover .context-menu-button:hover,
+.ds-card-grid .ds-card:hover .context-menu-button[aria-expanded=true], .ds-card-grid .ds-card.active .context-menu-button:hover,
+.ds-card-grid .ds-card.active .context-menu-button[aria-expanded=true] {
   background-color: var(--button-background-color-ghost-hover);
 }
 @media (forced-colors: active) {
-  .ds-card-grid .ds-card:hover .context-menu-button:hover, .ds-card-grid .ds-card.active .context-menu-button:hover {
+  .ds-card-grid .ds-card:hover .context-menu-button:hover,
+.ds-card-grid .ds-card:hover .context-menu-button[aria-expanded=true], .ds-card-grid .ds-card.active .context-menu-button:hover,
+.ds-card-grid .ds-card.active .context-menu-button[aria-expanded=true] {
     border-color: var(--button-border-color-ghost-hover);
     fill: var(--button-text-color-ghost-hover);
   }
 }
-.ds-card-grid .ds-card:hover .context-menu-button:hover:active, .ds-card-grid .ds-card.active .context-menu-button:hover:active {
+.ds-card-grid .ds-card:hover .context-menu-button:hover:active,
+.ds-card-grid .ds-card:hover .context-menu-button[aria-expanded=true]:active, .ds-card-grid .ds-card.active .context-menu-button:hover:active,
+.ds-card-grid .ds-card.active .context-menu-button[aria-expanded=true]:active {
   background-color: var(--button-background-color-ghost-active);
 }
 .ds-card-grid .ds-card:hover .context-menu-button:focus-visible, .ds-card-grid .ds-card.active .context-menu-button:focus-visible {
@@ -11472,6 +11656,9 @@ hr {
 .section-context-menu {
   position: relative;
 }
+.section-context-menu.context-menu-open > moz-button::part(button) {
+  background-color: var(--button-background-color-ghost-hover);
+}
 .section-context-menu .context-menu {
   /* Fix the context menu width */
   width: calc(4 * var(--size-item-large));
@@ -11577,132 +11764,240 @@ hr {
 }
 
 .personalized-card-wrapper {
-  background-color: var(--background-color-canvas);
+  background-color: var(--newtab-background-card);
   border: 2px solid var(--card-border-color, var(--border-color-card));
   color: var(--text-color);
-  padding: var(--space-xxlarge);
   border-radius: var(--border-radius-large);
+  padding-block-start: var(--space-xxlarge);
   margin: var(--space-xlarge) 0;
   position: relative;
+  display: flex;
+  overflow: hidden;
 }
 .personalized-card-wrapper .personalized-card-dismiss {
   position: absolute;
-  inset-inline-end: var(--space-medium);
-  inset-block-start: var(--space-medium);
+  inset-inline-end: var(--space-xxsmall);
+  inset-block-start: var(--space-xxsmall);
+}
+.personalized-card-wrapper img {
+  object-fit: contain;
 }
 .personalized-card-wrapper .personalized-card-inner {
-  display: grid;
-  grid-template-columns: 0.5fr 1fr 1fr 1fr;
-  align-items: start;
-}
-.personalized-card-wrapper .personalized-card-inner .personalized-card-cta-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-medium);
 }
-.personalized-card-wrapper .personalized-card-inner img {
-  max-width: 200px;
-  max-height: 200px;
-  object-fit: contain;
-  justify-self: center;
-  align-self: start;
+.personalized-card-wrapper .personalized-card-message-wrapper {
+  display: flex;
+  gap: var(--space-small);
+  padding-inline: var(--space-xxlarge);
+  padding-block-end: var(--space-xxlarge);
 }
-.personalized-card-wrapper .personalized-card-inner h2, .personalized-card-wrapper .personalized-card-inner p {
-  margin-block-start: 0;
+.personalized-card-wrapper .personalized-card-message-wrapper h2, .personalized-card-wrapper .personalized-card-message-wrapper p {
+  margin: 0;
 }
-.personalized-card-wrapper .personalized-card-inner h2 {
-  font-size: var(--font-size-xxlarge);
+.personalized-card-wrapper .personalized-card-message-wrapper h2 {
+  font-size: var(--font-size-heading-large, var(--font-size-xlarge));
   font-weight: var(--font-weight-heading, var(--heading-font-weight));
 }
-.personalized-card-wrapper .personalized-card-inner .personalized-card-link {
+.personalized-card-wrapper .personalized-card-cta-wrapper {
+  display: flex;
+  gap: var(--space-small);
+  align-items: center;
+}
+.personalized-card-wrapper .personalized-card-cta-wrapper .personalized-card-link {
   color: var(--link-color);
   font-size: var(--font-size-small);
 }
-@media (max-width: 724px) {
-  .personalized-card-wrapper .personalized-card-inner {
-    grid-template-columns: 1fr;
-    gap: var(--space-large);
-  }
-  .personalized-card-wrapper .personalized-card-inner img {
-    width: 100px;
-    justify-self: initial;
-  }
-  .personalized-card-wrapper .personalized-card-inner h2 {
-    margin-block-end: var(--space-xsmall);
-  }
+.personalized-card-wrapper:not(.nova-enabled *) {
+  flex-direction: column;
+}
+.personalized-card-wrapper:not(.nova-enabled *) img {
+  width: 98px;
+  height: 98px;
+  margin-inline-start: var(--space-xxlarge);
+  margin-block-end: var(--space-large);
+}
+.personalized-card-wrapper:not(.nova-enabled *) moz-button {
+  width: 100%;
+}
+.personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper,
+.personalized-card-wrapper:not(.nova-enabled *) .personalized-card-cta-wrapper {
+  flex-direction: column;
+}
+.personalized-card-wrapper:not(.nova-enabled *) .personalized-card-cta-wrapper {
+  padding-inline-start: var(--space-xxlarge);
+  padding-inline-end: var(--space-xxlarge);
+  padding-block-end: var(--space-xxlarge);
 }
 @media (min-width: 724px) {
-  .personalized-card-wrapper .personalized-card-inner {
-    grid-template-columns: 0.2fr 1fr 1.2fr;
-    gap: var(--space-large);
+  .personalized-card-wrapper:not(.nova-enabled *) {
+    flex-direction: row;
   }
-  .personalized-card-wrapper .personalized-card-inner img {
+  .personalized-card-wrapper:not(.nova-enabled *) img {
     width: 130px;
-    align-self: end;
-    grid-row: 1/span 2;
+    height: 130px;
+    margin-inline-start: var(--space-large);
+    margin-block-end: 0;
+    align-self: flex-end;
   }
-  .personalized-card-wrapper .personalized-card-inner .personalized-card-cta-wrapper {
-    align-items: center;
-    display: grid;
-    grid-template-columns: subgrid;
-    grid-row: 2;
-    grid-column: 2/span 2;
-    padding-block-end: var(--space-xxlarge);
+  .personalized-card-wrapper:not(.nova-enabled *) moz-button {
+    width: auto;
   }
-  .personalized-card-wrapper .personalized-card-inner p {
-    width: 210px;
-    margin: 0;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper,
+.personalized-card-wrapper:not(.nova-enabled *) .personalized-card-cta-wrapper {
+    flex-direction: row;
+    padding-inline-start: var(--space-large);
+    gap: var(--space-xxlarge);
   }
-  .personalized-card-wrapper .personalized-card-inner h2 {
-    margin: 0;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper {
+    padding-block-end: var(--space-large);
+  }
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper h2 {
+    flex: 1;
+  }
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper p {
+    flex: 1.4;
+  }
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-cta-wrapper .personalized-card-button {
+    flex: none;
   }
 }
 @media (min-width: 1122px) {
-  .personalized-card-wrapper .personalized-card-inner {
-    grid-template-columns: 0.2fr 1.2fr 0.8fr 1fr;
-    gap: var(--space-large);
+  .personalized-card-wrapper:not(.nova-enabled *) img {
+    width: 98px;
+    height: 98px;
   }
-  .personalized-card-wrapper .personalized-card-inner img {
-    width: 100px;
-    align-self: end;
+  .personalized-card-wrapper:not(.nova-enabled *) moz-button {
+    width: 100%;
   }
-  .personalized-card-wrapper .personalized-card-inner h2 {
-    grid-column: 2;
-    grid-row: 1;
-    width: initial;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-inner {
+    flex-direction: row;
   }
-  .personalized-card-wrapper .personalized-card-inner p {
-    grid-column: 3;
-    grid-row: 1;
-    width: 400px;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper {
+    flex: 1;
+    padding-inline-start: var(--space-xxlarge);
+    padding-inline-end: 0;
+    padding-block-end: var(--space-xxlarge);
   }
-  .personalized-card-wrapper .personalized-card-inner .personalized-card-cta-wrapper {
-    grid-column: 4;
-    grid-row: 1;
-    display: flex;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper p {
+    flex: 1.8;
+  }
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-cta-wrapper {
+    padding-inline-start: var(--space-xxlarge);
     flex-direction: column;
-    justify-self: end;
     gap: var(--space-medium);
-    width: max-content;
-    margin-inline-end: var(--space-medium);
-  }
-  .personalized-card-wrapper .personalized-card-inner .personalized-card-cta {
-    align-self: baseline;
   }
 }
-@media (min-width: 1122px) and (max-width: 1390px) {
-  .personalized-card-wrapper .personalized-card-inner {
-    grid-template-columns: 0.2fr 1fr 1fr 1fr;
+@media (min-width: 1390px) {
+  .personalized-card-wrapper:not(.nova-enabled *) img {
+    width: 141px;
+    height: 141px;
+    margin-inline-start: var(--space-large);
+    margin-block-end: calc(-1 * var(--space-xlarge));
+    margin-block-start: calc(-1 * var(--space-large));
   }
-  .personalized-card-wrapper .personalized-card-inner h2 {
-    max-width: 200px;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper {
+    flex: 0.9;
+    padding-inline-start: var(--space-xlarge);
   }
-  .personalized-card-wrapper .personalized-card-inner p {
-    width: 300px;
+  .personalized-card-wrapper:not(.nova-enabled *) .personalized-card-message-wrapper p {
+    flex: 1.3;
   }
 }
-@media (min-width: 724px) {
-  .personalized-card-wrapper {
-    padding-block-end: 0;
+.personalized-card-wrapper:is(.nova-enabled *) {
+  border: none;
+  flex-direction: column;
+}
+.personalized-card-wrapper:is(.nova-enabled *) img {
+  width: 98px;
+  height: 98px;
+  margin-inline-start: var(--space-xxlarge);
+  margin-block-end: var(--space-large);
+}
+.personalized-card-wrapper:is(.nova-enabled *) moz-button {
+  width: 100%;
+}
+.personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper,
+.personalized-card-wrapper:is(.nova-enabled *) .personalized-card-cta-wrapper {
+  flex-direction: column;
+}
+.personalized-card-wrapper:is(.nova-enabled *) .personalized-card-cta-wrapper {
+  padding-inline-start: var(--space-xxlarge);
+  padding-inline-end: var(--space-xxlarge);
+  padding-block-end: var(--space-xxlarge);
+}
+@container content-grid (inline-size >= calc(8 * 75px + 7 * 0.75rem)) {
+  .personalized-card-wrapper:is(.nova-enabled *) {
+    flex-direction: row;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) img {
+    width: 130px;
+    height: 130px;
+    margin-inline-start: var(--space-large);
+    margin-block-end: 0;
+    align-self: flex-end;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) moz-button {
+    width: auto;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper,
+.personalized-card-wrapper:is(.nova-enabled *) .personalized-card-cta-wrapper {
+    flex-direction: row;
+    padding-inline-start: var(--space-large);
+    gap: var(--space-xxlarge);
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper {
+    padding-block-end: var(--space-large);
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper h2 {
+    flex: 1;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper p {
+    flex: 1.4;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-cta-wrapper .personalized-card-button {
+    flex: none;
+  }
+}
+@container content-grid (inline-size >= calc(12 * 75px + 11 * 0.75rem)) {
+  .personalized-card-wrapper:is(.nova-enabled *) img {
+    width: 98px;
+    height: 98px;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) moz-button {
+    width: 100%;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-inner {
+    flex-direction: row;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper {
+    flex: 1;
+    padding-inline-start: var(--space-xxlarge);
+    padding-inline-end: 0;
+    padding-block-end: var(--space-xxlarge);
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper p {
+    flex: 1.8;
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-cta-wrapper {
+    padding-inline-start: var(--space-xxlarge);
+    flex-direction: column;
+    gap: var(--space-medium);
+  }
+}
+@container content-grid (inline-size >= calc(16 * 75px + 15 * 0.75rem)) {
+  .personalized-card-wrapper:is(.nova-enabled *) img {
+    width: 141px;
+    height: 141px;
+    margin-inline-start: var(--space-large);
+    margin-block-end: calc(-1 * var(--space-xlarge));
+    margin-block-start: calc(-1 * var(--space-large));
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper {
+    flex: 0.9;
+    padding-inline-start: var(--space-xlarge);
+  }
+  .personalized-card-wrapper:is(.nova-enabled *) .personalized-card-message-wrapper p {
+    flex: 1.3;
   }
 }

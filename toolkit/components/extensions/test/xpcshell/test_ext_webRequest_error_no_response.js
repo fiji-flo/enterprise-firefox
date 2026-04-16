@@ -41,11 +41,15 @@ add_task(async function test_error_occurred_no_response() {
     `${BASE_URL}/put-target`,
     "onErrorOccurred fires for the right URL"
   );
-  equal(
-    error,
-    "NS_ERROR_NET_ON_RECEIVING_FROM",
-    "ActivityErrorFallbackCheck fires the expected error"
-  );
+  // In OOP mode, seizePower() + finish() causes the PUT channel to complete
+  // with mStatus=NS_OK and no response headers, triggering
+  // ActivityErrorFallbackCheck. In in-process mode, fetch() runs in the parent
+  // process rather than through an extension process, which results in a
+  // different channel error (NS_ERROR_NOT_AVAILABLE) that ErrorCheck catches.
+  const expectedError = WebExtensionPolicy.useRemoteWebExtensions
+    ? "NS_ERROR_NET_ON_RECEIVING_FROM"
+    : "NS_ERROR_NOT_AVAILABLE";
+  equal(error, expectedError, "onErrorOccurred carries the expected error");
 
   await extension.unload();
 });

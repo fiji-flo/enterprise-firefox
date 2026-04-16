@@ -205,7 +205,6 @@ AudioProcessing::Config AudioInputProcessing::ConfigForPrefs(
   config.pipeline.multi_channel_capture = true;
 
   config.echo_canceller.enabled = aPrefs.mAecOn;
-  config.echo_canceller.mobile_mode = aPrefs.mUseAecMobile;
 
   if ((config.gain_controller1.enabled =
            aPrefs.mAgcOn && !aPrefs.mAgc2Forced)) {
@@ -940,6 +939,7 @@ void AudioInputProcessing::PacketizeAndProcess(AudioProcessingTrack* aTrack,
     }
     float* packet = mInputBuffer.Data();
     mPacketizerInput->Output(packet);
+    mInputDump->Write(packet, samplesPerPacket);
 
     // Downmix from mPacketizerInput->mChannels to mono if needed. We always
     // have floats here, the packetizer performed the conversion.
@@ -1013,6 +1013,20 @@ void AudioInputProcessing::PacketizeAndProcess(AudioProcessingTrack* aTrack,
     mAudioProcessing->ProcessStream(
         deinterleavedPacketizedInputDataChannelPointers.Elements(), inputConfig,
         outputConfig, processedOutputChannelPointers.Elements());
+
+    if (mOutputDump.isNothing()) {
+      mOutputDump.emplace();
+      mOutputDump->Open("AudioProcessingOutput", channelCountInput,
+                        aTrack->mSampleRate);
+    }
+    for (uint32_t f = 0; f < mPacketizerInput->mPacketSize; ++f) {
+      for (uint32_t c = 0; c < channelCountInput; ++c) {
+        packet[f * channelCountInput + c] =
+            processedOutputChannelPointers[c][f];
+      }
+    }
+    mOutputDump->Write(packet,
+                       mPacketizerInput->mPacketSize * channelCountInput);
 
     // If logging is enabled, dump the audio processing stats twice a second
     if (MOZ_LOG_TEST(gMediaManagerLog, LogLevel::Debug) &&
@@ -1232,7 +1246,11 @@ void AudioInputProcessing::EnsurePacketizer(AudioProcessingTrack* aTrack) {
     mChunksInPacketizer.clear();
   }
 
+  mInputDump.reset();
+  mOutputDump.reset();
   mPacketizerInput.emplace(GetPacketSize(aTrack->mSampleRate), channelCount);
+  mInputDump.emplace();
+  mInputDump->Open("AudioProcessingInput", channelCount, aTrack->mSampleRate);
 
   if (needPreBuffering) {
     LOG_FRAME(

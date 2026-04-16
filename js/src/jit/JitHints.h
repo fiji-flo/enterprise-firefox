@@ -65,7 +65,7 @@ class JitHintsMap {
    public:
     explicit IonHint(ScriptKey key) { key_ = key; }
 
-    void initThreshold(uint32_t threshold) { threshold_ = threshold; }
+    void setThreshold(uint32_t threshold) { threshold_ = threshold; }
 
     uint32_t threshold() { return threshold_; }
 

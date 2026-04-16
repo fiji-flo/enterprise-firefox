@@ -1104,11 +1104,10 @@ class MediaDecoderStateMachine::LoopingDecodingState
             OwnerThread(), __func__,
             [this, isAudio, master = RefPtr{mMaster}]() mutable -> void {
               AUTO_PROFILER_LABEL(
-                  nsPrintfCString(
-                      "LoopingDecodingState::RequestDataFromStartPosition(%s)::"
-                      "SeekResolved",
-                      isAudio ? "audio" : "video")
-                      .get(),
+                  isAudio ? "LoopingDecodingState::"
+                            "RequestDataFromStartPosition(audio)::SeekResolved"
+                          : "LoopingDecodingState::"
+                            "RequestDataFromStartPosition(video)::SeekResolved",
                   MEDIA_PLAYBACK);
               if (auto& state = master->mStateObj;
                   state &&
@@ -1143,11 +1142,10 @@ class MediaDecoderStateMachine::LoopingDecodingState
             [this, isAudio, master = RefPtr{mMaster}](
                 const SeekRejectValue& aReject) mutable -> void {
               AUTO_PROFILER_LABEL(
-                  nsPrintfCString("LoopingDecodingState::"
-                                  "RequestDataFromStartPosition(%s)::"
-                                  "SeekRejected",
-                                  isAudio ? "audio" : "video")
-                      .get(),
+                  isAudio ? "LoopingDecodingState::"
+                            "RequestDataFromStartPosition(audio)::SeekRejected"
+                          : "LoopingDecodingState::"
+                            "RequestDataFromStartPosition(video)::SeekRejected",
                   MEDIA_PLAYBACK);
               if (auto& state = master->mStateObj;
                   state &&
@@ -2612,7 +2610,7 @@ class MediaDecoderStateMachine::BufferingState
     }
     if (mMaster->IsVideoDecoding() && !mMaster->HaveEnoughDecodedVideo() &&
         !mMaster->IsTrackingVideoData()) {
-      mMaster->RequestVideoData(TimeUnit());
+      mMaster->RequestVideoData(mMaster->GetMediaTime());
     }
 
     mMaster->ScheduleStateMachineIn(TimeUnit::FromMicroseconds(USECS_PER_S));
@@ -2637,7 +2635,7 @@ class MediaDecoderStateMachine::BufferingState
   void HandleVideoDecoded(VideoData* aVideo) override {
     mMaster->PushVideo(aVideo);
     if (!mMaster->HaveEnoughDecodedVideo()) {
-      mMaster->RequestVideoData(media::TimeUnit());
+      mMaster->RequestVideoData(mMaster->GetMediaTime());
     }
     // This might be the sample we need to exit buffering.
     // Schedule Step() to check it.
@@ -2647,7 +2645,7 @@ class MediaDecoderStateMachine::BufferingState
   void HandleAudioCanceled() override { mMaster->RequestAudioData(); }
 
   void HandleVideoCanceled() override {
-    mMaster->RequestVideoData(media::TimeUnit());
+    mMaster->RequestVideoData(mMaster->GetMediaTime());
   }
 
   void HandleWaitingForAudio() override {
@@ -2663,7 +2661,7 @@ class MediaDecoderStateMachine::BufferingState
   }
 
   void HandleVideoWaited(MediaData::Type aType) override {
-    mMaster->RequestVideoData(media::TimeUnit());
+    mMaster->RequestVideoData(mMaster->GetMediaTime());
   }
 
   void HandleEndOfAudio() override;

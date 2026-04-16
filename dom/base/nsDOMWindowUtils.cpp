@@ -2993,8 +2993,8 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
   if (caretInfo.frame) {
     presShell->ScrollFrameIntoView(
         caretInfo.frame, caretInfo.caretRectRelativeToTextFrame,
-        ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
-        ScrollAxis(WhereToScroll::Center, WhenToScroll::IfNotVisible),
+        AxisScrollParams(WhereToScroll::Center, WhenToScroll::IfNotVisible),
+        AxisScrollParams(WhereToScroll::Center, WhenToScroll::IfNotVisible),
         ScrollFlags::ForZoomToFocusedInput);
   }
 

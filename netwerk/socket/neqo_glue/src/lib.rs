@@ -579,7 +579,7 @@ impl NeqoHttp3Conn {
     fn record_stats_in_glean(&self) {
         use firefox_on_glean::metrics::networking as glean;
         use neqo_common::Ecn;
-        use neqo_transport::{ecn, CongestionEvent, SlowStartExitReason};
+        use neqo_transport::{ecn, SlowStartExitReason};
         use std::cmp::Ordering;
 
         /// The biggest initial congestion window that can be set in neqo. Needs to be kept in sync with neqo.
@@ -812,10 +812,8 @@ impl NeqoHttp3Conn {
             }
 
             glean::http_3_congestion_event_count.accumulate_single_sample_signed(
-                (stats.cc.congestion_events[CongestionEvent::Ecn]
-                    + stats.cc.congestion_events[CongestionEvent::Loss])
-                    .saturating_sub(stats.cc.congestion_events[CongestionEvent::Spurious])
-                    as i64,
+                (stats.cc.congestion_events.ecn + stats.cc.congestion_events.loss)
+                    .saturating_sub(stats.cc.congestion_events.spurious) as i64,
             );
 
             if let Some(peer_max) = stats.pmtud_peer_max_udp_payload {
@@ -826,10 +824,10 @@ impl NeqoHttp3Conn {
         }
 
         // Ignore connections that never had loss induced congestion events (and prevent dividing by zero).
-        if stats.cc.congestion_events[CongestionEvent::Loss] != 0 {
+        if stats.cc.congestion_events.loss != 0 {
             if let Ok(spurious) = i64::try_from(
-                (stats.cc.congestion_events[CongestionEvent::Spurious] * PRECISION_FACTOR_USIZE)
-                    / stats.cc.congestion_events[CongestionEvent::Loss],
+                (stats.cc.congestion_events.spurious * PRECISION_FACTOR_USIZE)
+                    / stats.cc.congestion_events.loss,
             ) {
                 glean::http_3_spurious_congestion_event_ratio
                     .accumulate_single_sample_signed(spurious);
@@ -841,7 +839,7 @@ impl NeqoHttp3Conn {
         }
 
         // Collect congestion event reason metric
-        if let Ok(ce_loss) = i32::try_from(stats.cc.congestion_events[CongestionEvent::Loss]) {
+        if let Ok(ce_loss) = i32::try_from(stats.cc.congestion_events.loss) {
             glean::http_3_congestion_event_reason
                 .get("loss")
                 .add(ce_loss);
@@ -850,7 +848,7 @@ impl NeqoHttp3Conn {
             qwarn!("{msg}");
             debug_assert!(false, "{msg}");
         }
-        if let Ok(ce_ecn) = i32::try_from(stats.cc.congestion_events[CongestionEvent::Ecn]) {
+        if let Ok(ce_ecn) = i32::try_from(stats.cc.congestion_events.ecn) {
             glean::http_3_congestion_event_reason
                 .get("ecn-ce")
                 .add(ce_ecn);

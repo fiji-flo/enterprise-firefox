@@ -8954,7 +8954,8 @@ bool nsDocShell::CanLoadInParentProcess(nsIURI* aURI) {
 #ifdef MOZ_THUNDERBIRD
   if (uri->SchemeIs("imap") || uri->SchemeIs("mailbox") ||
       uri->SchemeIs("news") || uri->SchemeIs("nntp") ||
-      uri->SchemeIs("snews") || uri->SchemeIs("x-moz-ews")) {
+      uri->SchemeIs("snews") || uri->SchemeIs("x-moz-ews") ||
+      uri->SchemeIs("x-moz-graph")) {
     return true;
   }
 #endif

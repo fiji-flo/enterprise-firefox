@@ -22,6 +22,8 @@ const DAU_GROUPID_PREF_NAME = "datareporting.dau.cachedUsageProfileGroupID";
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  LightweightThemeManager:
+    "resource://gre/modules/LightweightThemeManager.sys.mjs",
   CryptoUtils: "moz-src:///services/crypto/modules/utils.sys.mjs",
   DownloadPaths: "resource://gre/modules/DownloadPaths.sys.mjs",
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
@@ -932,6 +934,18 @@ class SelectableProfileServiceClass extends EventEmitter {
     }
   }
 
+  async #updateTitlebar() {
+    let previousCount = this.#cachedProfileCount;
+    this.#cachedProfileCount = await this.getProfileCount();
+
+    // We only need to update the titles if transitioning to or from a single profile.
+    if (previousCount <= 1 || this.#cachedProfileCount <= 1) {
+      for (let win of lazy.EveryWindow.readyWindows) {
+        win.gBrowser.updateTitlebar();
+      }
+    }
+  }
+
   /**
    * Invoked when changes have been made to the database. Sends the observer
    * notification "sps-profiles-updated" indicating that something has changed.
@@ -956,6 +970,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       await this.loadSharedPrefsFromDatabase();
     }
 
+    await this.#updateTitlebar();
     await this.#updateTaskbar();
 
     if (source != "startup") {
@@ -1010,6 +1025,17 @@ class SelectableProfileServiceClass extends EventEmitter {
       await theme.enable();
     } else {
       console.warn(`enableTheme: could not find or install theme ${themeId}`);
+    }
+
+    // If the theme was already active, theme.enable() is a no-op and the
+    // themeObserver won't fire. Re-send the notification so that the
+    // observer picks up the correct colors.
+    let data = lazy.LightweightThemeManager.themeData;
+    if (data?.theme) {
+      Services.obs.notifyObservers(
+        { wrappedJSObject: data },
+        "lightweight-theme-styling-update"
+      );
     }
   }
 
@@ -1576,13 +1602,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       throw new Error(`Unable to insertProfile with values: ${profileData}`);
     }
 
-    this.#cachedProfileCount = await this.getProfileCount();
-
     ProfilesDatastoreService.notify();
-
-    for (let win of lazy.EveryWindow.readyWindows) {
-      win.gBrowser.updateTitlebar();
-    }
 
     return this.getProfile(profileId);
   }
@@ -1607,12 +1627,6 @@ class SelectableProfileServiceClass extends EventEmitter {
     await this.#connection.execute("DELETE FROM Profiles WHERE id = :id;", {
       id: aProfile.id,
     });
-
-    this.#cachedProfileCount = await this.getProfileCount();
-
-    for (let win of lazy.EveryWindow.readyWindows) {
-      win.gBrowser.updateTitlebar();
-    }
 
     ProfilesDatastoreService.notify();
   }

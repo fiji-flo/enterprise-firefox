@@ -5,27 +5,25 @@
 const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "localization", () => {
-  return new Localization([
-    "browser/enterprise/enterprise.ftl",
-    "branding/brand.ftl",
-  ]);
+  return new Localization(
+    ["browser/enterprise/enterprise.ftl", "branding/brand.ftl"],
+    true
+  );
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   ConsoleClient: "resource:///modules/enterprise/ConsoleClient.sys.mjs",
-  EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   isTesting: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+  createEnterpriseLogger:
+    "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
-  return console.createInstance({
-    prefix: "EnterpriseHandler",
-    maxLogLevelPref: lazy.EnterpriseCommon.ENTERPRISE_LOGLEVEL_PREF,
-  });
+  return lazy.createEnterpriseLogger("EnterpriseHandler");
 });
 
-const PROMPT_ON_SIGNOUT_PREF = "enterprise.promptOnSignout";
+const PROMPT_ON_SIGNOUT_PREF = "enterprise.prompt_on_signout";
 const COMPANY_LOGO_URL_PREF = "enterprise.configs.company_logo_url";
 const LEARN_MORE_URL_PREF = "enterprise.configs.learn_more_url";
 
@@ -142,7 +140,7 @@ export const EnterpriseHandler = {
       this._signedInUser = { name, email, pictureUrl: picture };
     } catch (e) {
       // TODO: Bug 2000864 - Handle unsuccessful GET /WHOAMI
-      console.warn(
+      lazy.log.warn(
         "EnterpriseHandler: Unable to initialize enterprise user: ",
         e
       );
@@ -260,7 +258,6 @@ export const EnterpriseHandler = {
     lazy.log.debug(`Setting learn more uri to ${validLearnMoreUrl.href}`);
     learnMoreLink.setAttribute("href", validLearnMoreUrl.href);
 
-    win._isEnterpriseLearnMoreLinkConfigured = true;
     learnMoreLink.addEventListener("click", e => {
       let where = lazy.BrowserUtils.whereToOpenLink(e, false, false);
       if (where == "current") {
@@ -281,8 +278,9 @@ export const EnterpriseHandler = {
     win.PanelUI.showSubView("panelUI-enterprise", element, event);
     const document = element.ownerDocument;
 
-    if (!win._isEnterpriseLearnMoreLinkConfigured) {
+    if (!element._isEnterpriseLearnMoreLinkConfigured) {
       this._setupLearnMoreLink(win);
+      element._isEnterpriseLearnMoreLinkConfigured = true;
     }
 
     const email = document.querySelector(".panelUI-enterprise__email");
@@ -290,7 +288,7 @@ export const EnterpriseHandler = {
       email.hidden = true;
       document.querySelector("#PanelUI-enterprise-email-separator").hidden =
         true;
-      console.warn(
+      lazy.log.warn(
         "Unable to update email in enterprise panel without user information"
       );
       return;
@@ -314,55 +312,126 @@ export const EnterpriseHandler = {
     window.PanelUI.mainView.setAttribute("restricted-enterprise-view", true);
   },
 
-  async onSignOut(window) {
-    const shouldInformOnSignout = Services.prefs.getBoolPref(
-      PROMPT_ON_SIGNOUT_PREF,
-      true
+  _getSignoutPromptParams() {
+    let tabCount = 0;
+    for (let win of Services.wm.getEnumerator("navigator:browser")) {
+      if (!win.closed && win.gBrowser) {
+        tabCount += win.gBrowser.openTabs.length;
+      }
+    }
+
+    const titleId = {
+      id: "enterprise-signout-prompt-title2",
+      args: { tabCount },
+    };
+
+    return {
+      titleId,
+      messageId: { id: "enterprise-signout-prompt-message" },
+      checkLabelId: { id: "enterprise-signout-prompt-checkbox-label" },
+      signoutBtnLabelId: { id: "enterprise-signout-prompt-primary-btn-label" },
+      flags:
+        Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0 +
+        Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1 +
+        Services.prompt.BUTTON_POS_0_DEFAULT,
+    };
+  },
+
+  _handleSignoutPromptResult(buttonPressed, checked) {
+    if (buttonPressed === 1) {
+      return false;
+    }
+    if (!checked) {
+      Services.prefs.setBoolPref(PROMPT_ON_SIGNOUT_PREF, false);
+    }
+    return true;
+  },
+
+  isSignoutPromptEnabled() {
+    return Services.prefs.getBoolPref(PROMPT_ON_SIGNOUT_PREF, true);
+  },
+
+  /**
+   * Synchronous signout prompt for the quit-application-requested observer,
+   * which must return a result before the quit proceeds.
+   *
+   * @param {Window} window
+   * @returns {boolean} true if quit should proceed, false if cancelled.
+   */
+  showSignoutPrompt(window) {
+    if (!this.isSignoutPromptEnabled()) {
+      return true;
+    }
+
+    const params = this._getSignoutPromptParams();
+    const [title, message, checkLabel, signoutBtnLabel] =
+      lazy.localization.formatValuesSync([
+        params.titleId,
+        params.messageId,
+        params.checkLabelId,
+        params.signoutBtnLabelId,
+      ]);
+
+    const checkState = { value: true };
+    const buttonPressed = Services.prompt.confirmEx(
+      window,
+      title,
+      message,
+      params.flags,
+      signoutBtnLabel,
+      null,
+      null,
+      checkLabel,
+      checkState
     );
 
-    if (!shouldInformOnSignout) {
-      this.initiateShutdown();
+    return this._handleSignoutPromptResult(buttonPressed, checkState.value);
+  },
+
+  /**
+   * Handles the signout button in the enterprise panel. Shows an async
+   * in-content dialog that does not block the parent process, then quits.
+   *
+   * @param {Window} window
+   */
+  async onSignOut(window) {
+    if (!Services.prefs.getBoolPref(PROMPT_ON_SIGNOUT_PREF, true)) {
+      await this.initiateShutdown();
       return;
     }
 
+    const params = this._getSignoutPromptParams();
     const [title, message, checkLabel, signoutBtnLabel] =
       await lazy.localization.formatValues([
-        { id: "enterprise-signout-prompt-title" },
-        { id: "enterprise-signout-prompt-message" },
-        { id: "enterprise-signout-prompt-checkbox-label" },
-        { id: "enterprise-signout-prompt-primary-btn-label" },
+        params.titleId,
+        params.messageId,
+        params.checkLabelId,
+        params.signoutBtnLabelId,
       ]);
 
-    const flags =
-      Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0 +
-      Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1 +
-      Services.prompt.BUTTON_POS_0_DEFAULT;
-
-    // buttonPressed will be 0 for Signout and 1 for Cancel
     const result = await Services.prompt.asyncConfirmEx(
       window.browsingContext,
       Services.prompt.MODAL_TYPE_INTERNAL_WINDOW,
       title,
       message,
-      flags,
+      params.flags,
       signoutBtnLabel,
       null,
       null,
       checkLabel,
-      true // checkbox checked
+      true
     );
 
-    if (result.get("buttonNumClicked") === 1) {
-      // User canceled signout. Also ignore any checkbox toggling.
+    if (
+      !this._handleSignoutPromptResult(
+        result.get("buttonNumClicked"),
+        result.get("checked")
+      )
+    ) {
       return;
     }
 
-    if (!result.get("checked")) {
-      // User unchecked the option to be prompted before signout
-      Services.prefs.setBoolPref(PROMPT_ON_SIGNOUT_PREF, result.get("checked"));
-    }
-
-    this.initiateShutdown();
+    await this.initiateShutdown();
   },
 
   initiateShutdown() {
@@ -370,7 +439,9 @@ export const EnterpriseHandler = {
     try {
       Services.felt.performSignout();
     } catch (e) {
-      console.error(`Unable to signout the user: ${e}`);
+      lazy.log.error(`Unable to signout the user: ${e}`);
+    } finally {
+      Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
     }
     // FELT will call shutdownFirefox() to quit us after handling the logout.
   },

@@ -1623,6 +1623,12 @@ setting-group[groupid="aiStatesDescription"] {
   height: 128px;
 }
 
+@media (forced-colors: active) {
+  #etpBannerEl {
+    background-image: url("chrome://browser/content/preferences/etp-advanced-banner.svg");
+  }
+}
+
 #etpLevelWarning {
   --promo-image-position: top;
 }

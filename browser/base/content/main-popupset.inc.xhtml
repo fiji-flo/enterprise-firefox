@@ -71,15 +71,7 @@
     <menuitem id="context_bookmarkTab"
               data-lazy-l10n-id="tab-context-bookmark-tab"/>
     <menuitem id="context_addNote" hidden="true" data-lazy-l10n-id="tab-context-add-note" />
-    <menu id="context_updateNote"
-      hidden="true"
-      data-lazy-l10n-id="tab-context-update-note">
-      <menupopup id="tabUpdateOptionsMenu">
-        <menuitem id="context_editNote" data-lazy-l10n-id="tab-context-edit-note" />
-        <menuitem id="context_deleteNote" data-lazy-l10n-id="tab-context-delete-note" />
-      </menupopup>
-    </menu>
-
+    <menuitem id="context_editNote" hidden="true" data-lazy-l10n-id="tab-context-edit-note" />
     <menu id="context_moveTabOptions"
           data-lazy-l10n-id="tab-context-move-tabs"
           data-l10n-args='{"tabCount": 1}'>
@@ -404,6 +396,10 @@
     <menuseparator/>
     <menuitem data-l10n-id="sidebar-history-context-menu-bookmark-page"
               id="sidebar-history-context-bookmark-page"/>
+    <menuitem data-l10n-id="places-open-all-in-tabs"
+              id="sidebar-history-context-open-all-in-tabs"
+              class="sidebar-history-multiselect-command"/>
+    <menuseparator class="sidebar-history-multiselect-command"/>
     <menuitem data-l10n-id="sidebar-history-context-menu-delete-pages"
               id="sidebar-history-context-delete-pages"
               class="sidebar-history-multiselect-command"/>
@@ -424,6 +420,13 @@
               id="sidebar-synced-tabs-context-bookmark-tab"/>
     <menuitem data-l10n-id="sidebar-context-menu-copy-link"
               id="sidebar-synced-tabs-context-copy-link"/>
+    <menuseparator/>
+    <menuitem data-l10n-id="synced-tabs-context-open-all-in-tabs"
+              id="sidebar-synced-tabs-context-open-all-in-tabs"/>
+    <menuitem data-l10n-id="synced-tabs-context-connect-another-device"
+              id="sidebar-synced-tabs-context-connect-another-device"/>
+    <menuitem data-l10n-id="synced-tabs-context-manage-this-device"
+              id="sidebar-synced-tabs-context-manage-this-device"/>
   </menupopup>
 
   <menupopup id="sidebar-bookmarks-context-menu">
@@ -581,7 +584,7 @@
   <menupopup id="contentAreaContextMenu"
 # read by macOS cocoa code to enable the "services" menu here:
              showservicesmenu="true">
-#include browser-context.inc
+#include browser-context.inc.xhtml
   </menupopup>
 
   <menupopup id="pictureInPictureToggleContextMenu">
@@ -645,8 +648,10 @@
          role="tooltip">
     <html:div class="tab-note-preview-container">
       <html:div class="tab-note-preview-text"></html:div>
-      <!-- Not using a real button here to avoid having to unset default styles -->
-      <html:div role="button" class="tab-note-preview-expand" data-l10n-id="tab-note-preview-expand"></html:div>
+      <html:div class="tab-note-preview-actions">
+        <!-- Not using a real button here to avoid having to unset default styles -->
+        <html:div role="button" tabindex="0" class="tab-note-preview-expand" data-l10n-id="tab-note-preview-expand"></html:div>
+      </html:div>
     </html:div>
   </panel>
 

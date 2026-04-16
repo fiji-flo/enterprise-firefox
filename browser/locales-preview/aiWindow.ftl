@@ -144,7 +144,7 @@ smartwindow-footer-history =
 ## Disclaimer
 ## Text displayed to user to warn user about potential mistakes.
 
-smartwindow-disclaimer = AI can make mistakes
+smartwindow-disclaimer = AI can make mistakes. <a data-l10n-name="report-link">Report any issues</a>.
 
 ## FirefoxView Chats
 ## Chats in this context refers to chats saved from the Smart Window Assistant

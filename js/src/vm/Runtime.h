@@ -366,7 +366,6 @@ struct JSRuntime {
  public:
   JSContext* mainContextFromAnyThread() const { return mainContext_; }
   const void* addressOfMainContext() { return &mainContext_; }
-  js::Fprinter parserWatcherFile;
 
   inline JSContext* mainContextFromOwnThread();
 
@@ -733,7 +732,6 @@ struct JSRuntime {
       randomHashCodeGenerator_;
 
  public:
-  mozilla::HashCodeScrambler randomHashCodeScrambler();
   mozilla::non_crypto::XorShift128PlusRNG forkRandomKeyGenerator();
 
   js::HashNumber randomHashCode();

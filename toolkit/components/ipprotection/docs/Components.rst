@@ -48,6 +48,7 @@ A diagram of all the main components is the following:
          IPPAutoStart["Auto-Start Helper"]
          IPPAutoRestoreHelper["Auto-Restore Helper"]
          IPPNimbusHelper["Nimbus Eligibility Helper"]
+         IPPSessionPrefManager["Session Pref Manager"]
          IPPExceptionsManager
        end
 
@@ -181,6 +182,11 @@ IPPSignInWatcher
 IPPEnrollAndEntitleManager
   Orchestrates the FxA-based enrollment flow with Guardian and updates the
   service when enrollment or entitlement status changes.
+
+IPPSessionPrefManager
+  Sets session-scoped preferences while the
+  proxy is active and resets them when it deactivates, preserving any
+  user-set values.
 
 Browser components (``browser/components/ipprotection``)
 ---------------------------------------------------------

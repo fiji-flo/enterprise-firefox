@@ -22,7 +22,12 @@ import {
   GET_PAGE_CONTENT,
   RUN_SEARCH,
   GET_USER_MEMORIES,
+  GET_NAVIGATION_INFO,
 } from "moz-src:///browser/components/aiwindow/models/Tools.sys.mjs";
+import {
+  expandUrlTokensInToolParams,
+  replaceUrlsWithTokens,
+} from "moz-src:///browser/components/aiwindow/models/ChatUtils.sys.mjs";
 import { compactMessages } from "moz-src:///browser/components/aiwindow/models/PromptOptimizer.sys.mjs";
 
 // Hard limit on how many times run_search can execute per conversation turn.
@@ -46,6 +51,16 @@ ChromeUtils.defineLazyGetter(lazy, "console", () =>
 
 /**
  * @import { ChatConversation } from "moz-src:///browser/components/aiwindow/ui/modules/ChatConversation.sys.mjs"
+ */
+
+/**
+ * Represents a tool call request from the language model.
+ *
+ * @typedef {object} ToolCall
+ * @property {string} id - e.g. "call_91e28da3a0f4469586aaa01c"
+ * @property {"function"} type - Here just "function"
+ * @property {{name: string, arguments: unknown }} function - The name and stringified
+ *   arguments for the function, e.g. { name: "get_user_memories", arguments: "{}" }
  */
 
 /**
@@ -153,10 +168,13 @@ Object.assign(Chat, {
         `Request (${conversation.securityProperties.getLogText()})`,
         rawMessages.at(-1)
       );
-      const compactedMessages = compactMessages(rawMessages);
+      const messages = compactMessages(rawMessages);
+
+      // This is done in-place on the messages.
+      replaceUrlsWithTokens(conversation, messages);
 
       // Debug logging: Record only the latest message being sent to the model
-      logConversationStream(currentTurn, "CHAT SEND", compactedMessages.at(-1));
+      logConversationStream(currentTurn, "CHAT SEND", messages.at(-1));
 
       return engineInstance.runWithGenerator({
         streamOptions: { enabled: true },
@@ -164,12 +182,13 @@ Object.assign(Chat, {
         chatId: conversation.id,
         tool_choice: "auto",
         tools: chatToolsConfig,
-        args: compactedMessages,
+        args: messages,
         ...inferenceParams,
       });
     };
 
     while (true) {
+      /** @type {ToolCall[] | null} */
       let pendingToolCalls = null;
 
       try {
@@ -258,15 +277,22 @@ Object.assign(Chat, {
       }
 
       // @todo Bug 2006159 - Implement parallel tool calling
-      const tool_calls = pendingToolCalls.slice(0, 1).map(toolCall => ({
-        id: toolCall.id,
-        type: "function",
-        function: {
-          name: toolCall.function.name,
-          arguments: toolCall.function.arguments || "{}",
-        },
-      }));
-      conversation.addAssistantMessage("function", { tool_calls });
+
+      // Take the last tool call and ensure the serialized tool calls expand any
+      // URL tokens.
+      const lastToolCall = structuredClone(pendingToolCalls[0]);
+      if (!lastToolCall.function.arguments) {
+        // Ensure that the arguments are always present.
+        lastToolCall.function.arguments = "{}";
+      }
+      expandUrlTokensInToolParams(
+        lastToolCall.function,
+        conversation.tokenToUrl
+      );
+
+      conversation.addAssistantMessage("function", {
+        tool_calls: [lastToolCall],
+      });
 
       lazy.AIWindow.chatStore?.updateConversation(conversation).catch(() => {});
 
@@ -279,6 +305,8 @@ Object.assign(Chat, {
           toolParams = functionSpec?.arguments
             ? JSON.parse(functionSpec.arguments)
             : {};
+
+          expandUrlTokensInToolParams(toolParams, conversation.tokenToUrl);
         } catch {
           const content = {
             tool_call_id: id,
@@ -352,6 +380,9 @@ Object.assign(Chat, {
               break;
             case GET_USER_MEMORIES:
               result = await toolFns.getUserMemories(conversation);
+              break;
+            case GET_NAVIGATION_INFO:
+              result = await toolFns.getNavigationInfo(toolParams);
               break;
             default:
               throw new Error(`No such tool: ${toolName}`);

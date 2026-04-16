@@ -469,7 +469,7 @@ int32_t ChannelSend::SendRtpAudio(AudioFrameType frameType,
       size_t bytes_written = 0;
       int encrypt_status =
           frame_encryptor_->Encrypt(MediaType::AUDIO, rtp_rtcp_->SSRC(),
-                                    /*additional_data=*/nullptr, payload,
+                                    /*additional_data=*/{}, payload,
                                     encrypted_audio_payload, &bytes_written);
       if (encrypt_status != 0) {
         RTC_DLOG(LS_ERROR)
@@ -546,8 +546,10 @@ ChannelSend::ChannelSend(
       frame_encryptor_(frame_encryptor),
       crypto_options_(crypto_options),
       encoder_queue_(env_.task_queue_factory().CreateTaskQueue(
-          "AudioEncoder",
-          TaskQueueFactory::Priority::NORMAL)),
+          "AudioEncoderQueue",
+          env_.field_trials().IsEnabled("WebRTC-MediaTaskQueuePriorities")
+              ? TaskQueueFactory::Priority::kAudio
+              : TaskQueueFactory::Priority::kNormal)),
       encoder_queue_checker_(encoder_queue_.get()),
       encoder_format_("x-unknown", 0, 0) {
   audio_coding_ = AudioCodingModule::Create();
@@ -572,7 +574,7 @@ ChannelSend::ChannelSend(
   configuration.rtcp_packet_type_counter_observer = this;
   configuration.local_media_ssrc = ssrc;
 
-  rtp_rtcp_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, configuration);
+  rtp_rtcp_ = ModuleRtpRtcpImpl2::CreateSendModule(env_, configuration);
   rtp_rtcp_->SetSendingMediaStatus(false);
 
   rtp_sender_audio_ =

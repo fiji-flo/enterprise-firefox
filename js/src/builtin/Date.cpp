@@ -78,11 +78,6 @@ using JS::GetBuiltinClass;
 using JS::TimeClip;
 using JS::ToInteger;
 
-// When this value is non-zero, we'll round the time by this resolution.
-static Atomic<uint32_t, Relaxed> sResolutionUsec;
-// This is not implemented yet, but we will use this to know to jitter the time
-// in the JS shell
-static Atomic<bool, Relaxed> sJitter;
 // The callback we will use for the Gecko implementation of Timer
 // Clamping/Jittering
 static Atomic<JS::ReduceMicrosecondTimePrecisionCallback, Relaxed>
@@ -616,11 +611,6 @@ JS_PUBLIC_API void JS::SetReduceMicrosecondTimePrecisionCallback(
 JS_PUBLIC_API JS::ReduceMicrosecondTimePrecisionCallback
 JS::GetReduceMicrosecondTimePrecisionCallback() {
   return sReduceMicrosecondTimePrecisionCallback;
-}
-
-JS_PUBLIC_API void JS::SetTimeResolutionUsec(uint32_t resolution, bool jitter) {
-  sResolutionUsec = resolution;
-  sJitter = jitter;
 }
 
 #if JS_HAS_INTL_API
@@ -2210,45 +2200,17 @@ static ClippedTime NowAsMillis(JSContext* cx) {
     return TimeClip(int64_t(0));
   }
 
-  double now = PRMJ_Now();
-  bool clampAndJitter = cx->realm()->behaviors().clampAndJitterTime();
-  if (clampAndJitter && sReduceMicrosecondTimePrecisionCallback) {
-    now = sReduceMicrosecondTimePrecisionCallback(
-        now, cx->realm()->behaviors().reduceTimerPrecisionCallerType().value(),
-        cx);
-  } else if (clampAndJitter && sResolutionUsec) {
-    double clamped = floor(now / sResolutionUsec) * sResolutionUsec;
-
-    if (sJitter) {
-      // Calculate a random midpoint for jittering. In the browser, we are
-      // adversarial: Web Content may try to calculate the midpoint themselves
-      // and use that to bypass it's security. In the JS Shell, we are not
-      // adversarial, we want to jitter the time to recreate the operating
-      // environment, but we do not concern ourselves with trying to prevent an
-      // attacker from calculating the midpoint themselves. So we use a very
-      // simple, very fast CRC with a hardcoded seed.
-
-      uint64_t midpoint = mozilla::BitwiseCast<uint64_t>(clamped);
-      midpoint ^= 0x0F00DD1E2BAD2DED;  // XOR in a 'secret'
-      // MurmurHash3 internal component from
-      //   https://searchfox.org/mozilla-central/rev/61d400da1c692453c2dc2c1cf37b616ce13dea5b/dom/canvas/MurmurHash3.cpp#85
-      midpoint ^= midpoint >> 33;
-      midpoint *= uint64_t{0xFF51AFD7ED558CCD};
-      midpoint ^= midpoint >> 33;
-      midpoint *= uint64_t{0xC4CEB9FE1A85EC53};
-      midpoint ^= midpoint >> 33;
-      midpoint %= sResolutionUsec;
-
-      if (now > clamped + midpoint) {  // We're jittering up to the next step
-        now = clamped + sResolutionUsec;
-      } else {  // We're staying at the clamped value
-        now = clamped;
-      }
-    } else {  // No jitter, only clamping
-      now = clamped;
+  int64_t now = PRMJ_Now();
+  if (cx->realm()->behaviors().clampAndJitterTime()) {
+    auto reducePrecisionCallback = *sReduceMicrosecondTimePrecisionCallback;
+    if (reducePrecisionCallback) {
+      double reducedPrecision = reducePrecisionCallback(
+          now,
+          cx->realm()->behaviors().reduceTimerPrecisionCallerType().value(),
+          cx);
+      return TimeClip(reducedPrecision / PRMJ_USEC_PER_MSEC);
     }
   }
-
   return TimeClip(now / PRMJ_USEC_PER_MSEC);
 }
 

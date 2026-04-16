@@ -80,6 +80,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
+if (AppConstants.MOZ_ENTERPRISE) {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    EnterpriseHandler:
+      "resource:///modules/enterprise/EnterpriseHandler.sys.mjs",
+  });
+}
+
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", Ci.nsIBrowserHandler],
   PushService: ["@mozilla.org/push/Service;1", Ci.nsIPushService],
@@ -1540,6 +1547,23 @@ BrowserGlue.prototype = {
     // and also "we're quitting by closing the last window".
 
     if (aQuitType == "restart" || aQuitType == "os-restart") {
+      return;
+    }
+
+    // When Firefox was launched by FELT, show a signout confirmation prompt
+    // instead of the standard quit dialog.
+    if (
+      AppConstants.MOZ_ENTERPRISE &&
+      Services.felt?.isFeltBrowser() &&
+      lazy.EnterpriseHandler.isSignoutPromptEnabled()
+    ) {
+      const promptWindow = lazy.BrowserWindowTracker.getTopWindow({
+        allowFromInactiveWorkspace: true,
+      });
+      if (!lazy.EnterpriseHandler.showSignoutPrompt(promptWindow)) {
+        aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = true;
+        this._quitSource = "unknown";
+      }
       return;
     }
 

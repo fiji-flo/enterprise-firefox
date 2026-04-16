@@ -561,7 +561,7 @@ add_task(async function test_history_context_menu() {
   );
   await promiseRemoved;
   await TestUtils.waitForCondition(
-    () => () => rows[0].mainEl.href !== site,
+    () => rows[0].mainEl.href !== site,
     "The removed entry should no longer be visible."
   );
 
@@ -702,7 +702,7 @@ add_task(async function test_history_context_menu() {
       EventUtils.synthesizeKey("VK_RETURN", {}, dialogWin);
     }
   );
-  await toggleSidebarPanel(window, "viewBookmarksSidebar");
+  await SidebarTestUtils.showPanel(window, "viewBookmarksSidebar");
   let tree =
     SidebarController.browser.contentDocument.getElementById("bookmarks-view");
   let toolbarKey = tree._view._nodeDetails
@@ -757,12 +757,25 @@ add_task(async function test_select_and_remove() {
   }
 
   info("Press Enter key.");
-  EventUtils.synthesizeKey("KEY_Enter", {}, contentWindow);
-  Assert.equal(
-    gBrowser.tabs.length,
-    1,
-    "Enter key does not open pages during multi-selection."
+  const anchorUrl = rows[1].url;
+  const loaded = BrowserTestUtils.browserLoaded(
+    gBrowser.selectedBrowser,
+    false,
+    anchorUrl
   );
+  EventUtils.synthesizeKey("KEY_Enter", {}, contentWindow);
+  await loaded;
+  Assert.equal(
+    gBrowser.selectedBrowser.currentURI.spec,
+    anchorUrl,
+    "Enter key opens the anchor row URL during multi-selection."
+  );
+
+  info("Re-select all pages.");
+  component.lists[0].selectAll();
+  for (let i = 0; i < rows.length; i++) {
+    await promiseRowSelected(i);
+  }
 
   info("Delete from history.");
   const contextMenu = SidebarController.currentContextMenu;
@@ -779,6 +792,7 @@ add_task(async function test_select_and_remove() {
     "The selected pages were removed."
   );
 
+  cleanUpExtraTabs();
   SidebarController.hide();
 });
 

@@ -228,6 +228,11 @@ mozilla::ipc::IPCResult DocAccessibleParent::ProcessShowEvent(
 
 RemoteAccessible* DocAccessibleParent::CreateAcc(
     const AccessibleData& aAccData) {
+  if (aAccData.ID() == 0) {
+    MOZ_ASSERT_UNREACHABLE("An ID of 0 is reserved for the document itself");
+    return nullptr;
+  }
+
   RemoteAccessible* newProxy;
   if ((newProxy = GetAccessible(aAccData.ID()))) {
     // This is a move. Reuse the Accessible; don't destroy it.
@@ -913,6 +918,10 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvBindChildDoc(
   MOZ_ASSERT(CheckDocTree());
 
   auto childDoc = static_cast<DocAccessibleParent*>(aChildDoc.get());
+  if (childDoc->IsShutdown()) {
+    return IPC_FAIL(this, "Attempt to bind a shutdown child doc");
+  }
+
   ipc::IPCResult result = AddChildDoc(childDoc, aID, false);
   MOZ_ASSERT(result);
   MOZ_ASSERT(CheckDocTree());
@@ -929,6 +938,10 @@ ipc::IPCResult DocAccessibleParent::AddChildDoc(DocAccessibleParent* aChildDoc,
   if (aChildDoc->RemoteParent()) {
     return IPC_FAIL(this,
                     "Attempt to add child doc which already has a parent");
+  }
+
+  if (aChildDoc->IsShutdown()) {
+    return IPC_FAIL(this, "Attempt to add a shutdown child doc");
   }
 
   // We do not use GetAccessible here because we want to be sure to not get the
@@ -1026,6 +1039,9 @@ void DocAccessibleParent::Destroy() {
   // If we are already shutdown that is because our containing tab parent is
   // shutting down in which case we don't need to do anything.
   if (mShutdown) {
+    // Just in case there is a cycle in the document heirarchy.
+    mParent = nullptr;
+    mIndexInParent = -1;
     return;
   }
 
@@ -1063,6 +1079,8 @@ void DocAccessibleParent::Destroy() {
     RemoteAccessible* acc = iter.Get()->mProxy;
     MOZ_ASSERT(acc != this);
     if (acc->IsTable()) {
+      // Prevents the invalidation code from trying to walk up the tree.
+      acc->SetParent(nullptr);
       CachedTableAccessible::Invalidate(acc);
     }
     ProxyDestroyed(acc);
@@ -1108,6 +1126,9 @@ void DocAccessibleParent::ActorDestroy(ActorDestroyReason aWhy) {
   if (!mShutdown) {
     ACQUIRE_ANDROID_LOCK
     Destroy();
+  } else if (RemoteParent()) {
+    ACQUIRE_ANDROID_LOCK
+    Unbind();
   }
 }
 

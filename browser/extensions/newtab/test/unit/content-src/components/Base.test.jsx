@@ -5,6 +5,9 @@ import {
 } from "content-src/components/Base/Base";
 import { DiscoveryStreamAdmin } from "content-src/components/DiscoveryStreamAdmin/DiscoveryStreamAdmin";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
+import { ExternalComponentWrapper } from "content-src/components/ExternalComponentWrapper/ExternalComponentWrapper";
+import { TopSites } from "content-src/components/TopSites/TopSites";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { shallow } from "enzyme";
@@ -125,7 +128,7 @@ describe("<BaseContent>", () => {
     assert.lengthOf(wrapper.find(".only-search"), 1);
   });
 
-  it("should update firstVisibleTimestamp if it is visible immediately with no event listener", () => {
+  it("should not attach an event listener for visibility change if it is visible immediately", () => {
     const props = Object.assign({}, DEFAULT_PROPS, {
       document: {
         visibilityState: "visible",
@@ -134,9 +137,8 @@ describe("<BaseContent>", () => {
       },
     });
 
-    const wrapper = shallow(<BaseContent {...props} />);
+    shallow(<BaseContent {...props} />);
     assert.notCalled(props.document.addEventListener);
-    assert.isDefined(wrapper.state("firstVisibleTimestamp"));
   });
   it("should attach an event listener for visibility change if it is not visible", () => {
     const props = Object.assign({}, DEFAULT_PROPS, {
@@ -147,9 +149,8 @@ describe("<BaseContent>", () => {
       },
     });
 
-    const wrapper = shallow(<BaseContent {...props} />);
+    shallow(<BaseContent {...props} />);
     assert.calledWith(props.document.addEventListener, "visibilitychange");
-    assert.notExists(wrapper.state("firstVisibleTimestamp"));
   });
   it("should remove the event listener for visibility change when unmounted", () => {
     const props = Object.assign({}, DEFAULT_PROPS, {
@@ -180,16 +181,266 @@ describe("<BaseContent>", () => {
       },
     });
 
-    const wrapper = shallow(<BaseContent {...props} />);
+    shallow(<BaseContent {...props} />);
     assert.equal(listeners.size, 1);
-    assert.notExists(wrapper.state("firstVisibleTimestamp"));
 
     // Simulate listeners getting called
     props.document.visibilityState = "visible";
     listeners.forEach(l => l());
 
     assert.equal(listeners.size, 0);
-    assert.isDefined(wrapper.state("firstVisibleTimestamp"));
+  });
+});
+
+function makeASRouterMessages({ position, isVisible = true } = {}) {
+  return {
+    isVisible,
+    messageData: {
+      content: {
+        messageType: "ASRouterNewTabMessage",
+        ...(position !== undefined ? { position } : {}),
+      },
+    },
+  };
+}
+
+function findASRouterMessagePositionIndices(wrapper, containerSelector) {
+  const children = wrapper.find(containerSelector).children();
+  const indices = { messageIdx: -1, topSitesIdx: -1, contentFeedIdx: -1 };
+
+  children.forEach((child, i) => {
+    if (
+      child
+        .find(ExternalComponentWrapper)
+        .filterWhere(w => w.prop("type") === "ASROUTER_NEWTAB_MESSAGE").length
+    ) {
+      indices.messageIdx = i;
+    }
+    if (child.find(TopSites).length) {
+      indices.topSitesIdx = i;
+    }
+    if (child.find(DiscoveryStreamBase).length) {
+      indices.contentFeedIdx = i;
+    }
+  });
+
+  return indices;
+}
+
+describe("<BaseContent> Nova layout ASRouterNewTabMessage positions", () => {
+  const DOCUMENT_STUB = {
+    visibilityState: "visible",
+    addEventListener: sinon.stub(),
+    removeEventListener: sinon.stub(),
+  };
+
+  const NOVA_BASE_PROPS = {
+    store: { getState: () => {} },
+    App: { initialized: true },
+    Prefs: {
+      values: {
+        "nova.enabled": true,
+        "feeds.topsites": true,
+      },
+    },
+    Sections: [],
+    DiscoveryStream: {
+      config: { enabled: true },
+      spocs: {},
+      feeds: { loaded: true },
+      showTopicSelection: false,
+    },
+    dispatch: () => {},
+    document: DOCUMENT_STUB,
+  };
+
+  it("does not render ASRouterNewTabMessage when there is no message", () => {
+    const wrapper = shallow(<BaseContent {...NOVA_BASE_PROPS} />);
+    assert.lengthOf(
+      wrapper
+        .find(ExternalComponentWrapper)
+        .filterWhere(w => w.prop("type") === "ASROUTER_NEWTAB_MESSAGE"),
+      0
+    );
+  });
+
+  it("does not render ASRouterNewTabMessage when isVisible is false", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...NOVA_BASE_PROPS}
+        Messages={makeASRouterMessages({ isVisible: false })}
+      />
+    );
+    assert.lengthOf(
+      wrapper
+        .find(ExternalComponentWrapper)
+        .filterWhere(w => w.prop("type") === "ASROUTER_NEWTAB_MESSAGE"),
+      0
+    );
+  });
+
+  it("renders exactly one ASRouterNewTabMessage for any configured position", () => {
+    for (const position of [
+      "ABOVE_TOPSITES",
+      "ABOVE_WIDGETS",
+      "ABOVE_CONTENT_FEED",
+    ]) {
+      const wrapper = shallow(
+        <BaseContent
+          {...NOVA_BASE_PROPS}
+          Messages={makeASRouterMessages({ position })}
+        />
+      );
+      assert.lengthOf(
+        wrapper
+          .find(ExternalComponentWrapper)
+          .filterWhere(w => w.prop("type") === "ASROUTER_NEWTAB_MESSAGE"),
+        1,
+        `expected exactly one message for position ${position}`
+      );
+    }
+  });
+
+  it("renders ASRouterNewTabMessage before TopSites for ABOVE_TOPSITES", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...NOVA_BASE_PROPS}
+        Messages={makeASRouterMessages({ position: "ABOVE_TOPSITES" })}
+      />
+    );
+    const { messageIdx, topSitesIdx } = findASRouterMessagePositionIndices(
+      wrapper,
+      ".content"
+    );
+
+    assert.isAbove(topSitesIdx, -1, "TopSites should be present");
+    assert.isAbove(messageIdx, -1, "message should be present");
+    assert.isBelow(
+      messageIdx,
+      topSitesIdx,
+      "message should come before TopSites"
+    );
+  });
+
+  it("renders ASRouterNewTabMessage after TopSites and before the content feed for ABOVE_WIDGETS", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...NOVA_BASE_PROPS}
+        Messages={makeASRouterMessages({ position: "ABOVE_WIDGETS" })}
+      />
+    );
+    const { messageIdx, topSitesIdx, contentFeedIdx } =
+      findASRouterMessagePositionIndices(wrapper, ".content");
+
+    assert.isAbove(topSitesIdx, -1, "TopSites should be present");
+    assert.isAbove(contentFeedIdx, -1, "content feed should be present");
+    assert.isAbove(messageIdx, -1, "message should be present");
+    assert.isAbove(
+      messageIdx,
+      topSitesIdx,
+      "message should come after TopSites"
+    );
+    assert.isBelow(
+      messageIdx,
+      contentFeedIdx,
+      "message should come before the content feed"
+    );
+  });
+
+  it("renders ASRouterNewTabMessage before the content feed for ABOVE_CONTENT_FEED", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...NOVA_BASE_PROPS}
+        Messages={makeASRouterMessages({ position: "ABOVE_CONTENT_FEED" })}
+      />
+    );
+    const { messageIdx, topSitesIdx, contentFeedIdx } =
+      findASRouterMessagePositionIndices(wrapper, ".content");
+
+    assert.isAbove(topSitesIdx, -1, "TopSites should be present");
+    assert.isAbove(contentFeedIdx, -1, "content feed should be present");
+    assert.isAbove(messageIdx, -1, "message should be present");
+    assert.isAbove(
+      messageIdx,
+      topSitesIdx,
+      "message should come after TopSites"
+    );
+    assert.isBelow(
+      messageIdx,
+      contentFeedIdx,
+      "message should come before the content feed"
+    );
+  });
+});
+
+describe("<BaseContent> non-Nova classic layout ASRouterNewTabMessage positions", () => {
+  const DOCUMENT_STUB = {
+    visibilityState: "visible",
+    addEventListener: sinon.stub(),
+    removeEventListener: sinon.stub(),
+  };
+
+  const NON_NOVA_BASE_PROPS = {
+    store: { getState: () => {} },
+    App: { initialized: true },
+    Prefs: {
+      values: {
+        "nova.enabled": false,
+      },
+    },
+    Sections: [],
+    DiscoveryStream: {
+      config: { enabled: true },
+      spocs: {},
+    },
+    dispatch: () => {},
+    document: DOCUMENT_STUB,
+  };
+
+  it("does not render ASRouterNewTabMessage when there is no message", () => {
+    const wrapper = shallow(<BaseContent {...NON_NOVA_BASE_PROPS} />);
+    assert.lengthOf(
+      wrapper
+        .find(ExternalComponentWrapper)
+        .filterWhere(w => w.prop("type") === "ASROUTER_NEWTAB_MESSAGE"),
+      0
+    );
+  });
+
+  it("does not render ASRouterNewTabMessage when isVisible is false", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...NON_NOVA_BASE_PROPS}
+        Messages={makeASRouterMessages({ isVisible: false })}
+      />
+    );
+    assert.lengthOf(
+      wrapper
+        .find(ExternalComponentWrapper)
+        .filterWhere(w => w.prop("type") === "ASROUTER_NEWTAB_MESSAGE"),
+      0
+    );
+  });
+
+  it("renders ASRouterNewTabMessage before the content area for ABOVE_TOPSITES", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...NON_NOVA_BASE_PROPS}
+        Messages={makeASRouterMessages({ position: "ABOVE_TOPSITES" })}
+      />
+    );
+    const { messageIdx, contentFeedIdx } = findASRouterMessagePositionIndices(
+      wrapper,
+      ".body-wrapper"
+    );
+
+    assert.isAbove(messageIdx, -1, "message should be present");
+    assert.isAbove(contentFeedIdx, -1, "content area should be present");
+    assert.isBelow(
+      messageIdx,
+      contentFeedIdx,
+      "message should come before the content area"
+    );
   });
 });
 

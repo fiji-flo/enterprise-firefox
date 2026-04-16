@@ -864,7 +864,7 @@ describe("DiscoveryStreamFeed", () => {
             title: "",
             sponsor: "",
             sponsored_by_override: undefined,
-            items: [{ id: "data", score: 1, fetchTimestamp: loadTimestamp }],
+            items: [{ id: "data", score: 1 }],
           },
         },
         lastUpdated: loadTimestamp,
@@ -874,7 +874,7 @@ describe("DiscoveryStreamFeed", () => {
 
       assert.deepEqual(
         feed.store.getState().DiscoveryStream.spocs.data.spocs.items[0],
-        { id: "data", score: 1, fetchTimestamp: loadTimestamp }
+        { id: "data", score: 1 }
       );
     });
     it("should normalizeSpocsItems for older spoc data", async () => {
@@ -888,7 +888,7 @@ describe("DiscoveryStreamFeed", () => {
 
       assert.deepEqual(
         feed.store.getState().DiscoveryStream.spocs.data.spocs.items[0],
-        { id: "data", score: 1, fetchTimestamp: 0 }
+        { id: "data", score: 1 }
       );
     });
     it("should return expected data if normalizeSpocsItems returns no spoc data", async () => {
@@ -918,7 +918,7 @@ describe("DiscoveryStreamFeed", () => {
           context: "",
           sponsor: "",
           sponsored_by_override: undefined,
-          items: [{ id: "data", score: 1, fetchTimestamp: 0 }],
+          items: [{ id: "data", score: 1 }],
         },
         placement2: {
           title: "",
@@ -956,7 +956,7 @@ describe("DiscoveryStreamFeed", () => {
           context: "context",
           sponsor: "",
           sponsored_by_override: undefined,
-          items: [{ id: "data", score: 1, fetchTimestamp: 0 }],
+          items: [{ id: "data", score: 1 }],
         },
       });
     });
@@ -1032,7 +1032,6 @@ describe("DiscoveryStreamFeed", () => {
 
       await feed.loadSpocs(feed.store.dispatch);
 
-      console.log(feed.fetchFromEndpoint.firstCall);
       assert.equal(
         feed.fetchFromEndpoint.secondCall.args[0],
         "unifiedAdEndpoint/v1/ads"
@@ -1081,7 +1080,6 @@ describe("DiscoveryStreamFeed", () => {
 
       await feed.loadSpocs(feed.store.dispatch);
 
-      console.log(feed.fetchFromEndpoint.firstCall);
       assert.equal(
         feed.fetchFromEndpoint.secondCall.args[0],
         "unifiedAdEndpoint/v1/ads"

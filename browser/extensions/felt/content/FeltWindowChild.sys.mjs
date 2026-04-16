@@ -2,7 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-console.debug(`FeltExtension: FeltWindowChild.sys.mjs`);
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  createEnterpriseLogger:
+    "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+});
+
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  return lazy.createEnterpriseLogger("FeltWindowChild");
+});
 
 /**
  *
@@ -38,14 +47,14 @@ export class FeltWindowChild extends JSWindowActorChild {
       return false;
     }
 
-    console.debug("FeltWindowChild: Extracting token data");
+    lazy.log.debug("FeltWindowChild: Extracting token data");
     const consoleTokenData = JSON.parse(tokenData.textContent);
     if (
       consoleTokenData &&
       "access_token" in consoleTokenData &&
       consoleTokenData.access_token !== ""
     ) {
-      console.debug("FeltWindowChild: Sending token data to start Firefox");
+      lazy.log.debug("FeltWindowChild: Sending token data to start Firefox");
       this.#tokensSent = true;
       this.processActor.sendAsyncMessage(
         "FeltChild:StartFirefox",

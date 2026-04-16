@@ -534,6 +534,8 @@ add_task(async function test_canvas() {
       true,
       "context-saveimage",
       true,
+      "context-copyimage-contents",
+      true,
       "---",
       null,
       "context-selectall",

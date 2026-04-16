@@ -29,6 +29,8 @@ support-files = [
 
 ["browser_aichat_content_message_event.js"]
 
+["browser_aichat_content_overflow.js"]
+
 ["browser_aichat_message.js"]
 
 ["browser_aichat_open_link.js"]
@@ -154,6 +156,8 @@ skip-if = [
 ["browser_smartwindow_switcher_telemetry.js"]
 
 ["browser_smartwindow_tab_move.js"]
+
+["browser_smartwindow_sidebar_prefs.js"]
 
 ["browser_smartwindow_tab_switching.js"]
 skip-if = [

@@ -140,6 +140,7 @@ skip-if = [
 
 ["browser_aboutdebugging_devtoolstoolbox_target_destroyed.js"]
 skip-if = [
+  "os == 'win' && opt && standalone", # Bug 2026757
   "debug && standalone", # Bug 2026757
 ]
 

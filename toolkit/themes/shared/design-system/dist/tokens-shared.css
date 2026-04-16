@@ -540,7 +540,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media -moz-pref("browser.design-tokens.nova") {
+@media -moz-pref("browser.nova.enabled") {
   @layer tokens-foundation-nova {
     :root,
     :host(.anonymous-content-host) {
@@ -560,7 +560,8 @@
       --border-color-transparent: transparent;
 
       /** button **/
-      --button-background-color: transparent; /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      --button-background-color: transparent;
       --button-background-color-hover: light-dark(var(--color-purple-desaturated-10), var(--color-purple-desaturated-60));
       --button-background-color-active: light-dark(var(--color-purple-desaturated-20), var(--color-purple-desaturated-50));
       --button-background-color-ghost: var(--button-background-color);
@@ -735,7 +736,8 @@
 
       /** table **/
       --table-row-background-color: var(--background-color-canvas);
-      --table-row-background-color-alternate: light-dark(#f0f0f4, var(--color-neutral-80)); /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      /* TODO Bug 1821203 - Gray use needs to be consolidated */
+      --table-row-background-color-alternate: light-dark(#f0f0f4, var(--color-neutral-80));
 
       /** text-color **/
       --text-color: light-dark(var(--color-violet-desaturated-90), var(--color-violet-desaturated-0));
@@ -768,7 +770,8 @@
         --border-color-transparent: CanvasText;
 
         /** button **/
-        --button-background-color: ButtonFace; /* TODO Bug 1821203 - Gray use needs to be consolidated */
+        /* TODO Bug 1821203 - Gray use needs to be consolidated */
+        --button-background-color: ButtonFace;
         --button-background-color-hover: SelectedItemText;
         --button-background-color-active: SelectedItemText;
         --button-background-color-ghost: transparent;
@@ -817,7 +820,8 @@
         --link-color-active: ActiveText;
 
         /** table **/
-        --table-row-background-color-alternate: var(--background-color-canvas); /* TODO Bug 1821203 - Gray use needs to be consolidated */
+        /* TODO Bug 1821203 - Gray use needs to be consolidated */
+        --table-row-background-color-alternate: var(--background-color-canvas);
 
         /** text-color **/
         --text-color: CanvasText;

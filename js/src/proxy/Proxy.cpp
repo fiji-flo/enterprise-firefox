@@ -421,7 +421,9 @@ bool js::ProxyHas(JSContext* cx, HandleObject proxy, HandleValue idVal,
   if (!ToPropertyKey(cx, idVal, &id)) {
     return false;
   }
-
+  if (MOZ_UNLIKELY(!proxy->is<ProxyObject>())) {
+    return HasProperty(cx, proxy, id, result);
+  }
   return Proxy::has(cx, proxy, id, result);
 }
 
@@ -462,7 +464,9 @@ bool js::ProxyHasOwn(JSContext* cx, HandleObject proxy, HandleValue idVal,
   if (!ToPropertyKey(cx, idVal, &id)) {
     return false;
   }
-
+  if (MOZ_UNLIKELY(!proxy->is<ProxyObject>())) {
+    return HasOwnProperty(cx, proxy, id, result);
+  }
   return Proxy::hasOwn(cx, proxy, id, result);
 }
 
@@ -544,6 +548,9 @@ bool js::ProxyGetPropertyByValue(JSContext* cx, HandleObject proxy,
   }
 
   RootedValue receiver(cx, ObjectValue(*proxy));
+  if (MOZ_UNLIKELY(!proxy->is<ProxyObject>())) {
+    return GetProperty(cx, proxy, receiver, id, vp);
+  }
   return Proxy::getInternal(cx, proxy, receiver, id, vp);
 }
 
@@ -617,7 +624,11 @@ bool js::ProxySetPropertyByValue(JSContext* cx, HandleObject proxy,
 
   ObjectOpResult result;
   RootedValue receiver(cx, ObjectValue(*proxy));
-  if (!Proxy::setInternal(cx, proxy, id, val, receiver, result)) {
+  if (MOZ_UNLIKELY(!proxy->is<ProxyObject>())) {
+    if (!SetProperty(cx, proxy, id, val, receiver, result)) {
+      return false;
+    }
+  } else if (!Proxy::setInternal(cx, proxy, id, val, receiver, result)) {
     return false;
   }
   return result.checkStrictModeError(cx, proxy, id, strict);

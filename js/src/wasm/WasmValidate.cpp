@@ -3370,6 +3370,8 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
         const FuncDesc& func = codeMeta->funcs[importFuncIndex];
         uint32_t funcIndex = importFuncIndex;
         importFuncIndex += 1;
+        MOZ_ASSERT(codeMeta->knownFuncImports[funcIndex] ==
+                   BuiltinModuleFuncId::None);
 
         // Skip this import if it doesn't refer to a builtin module. We do have
         // to increment the import function index regardless though.
@@ -3380,10 +3382,12 @@ static bool CheckImportsAgainstBuiltinModules(Decoder& d,
         // Check if this import refers to a builtin module function
         const BuiltinModuleFunc* builtinFunc = nullptr;
         BuiltinModuleFuncId builtinFuncId;
-        if (!ImportMatchesBuiltinModuleFunc(import.field.utf8Bytes(),
-                                            *builtinModule, &builtinFunc,
-                                            &builtinFuncId)) {
-          return d.fail("unrecognized builtin module field");
+        if (!ImportFieldMatchesBuiltinModuleDefinition(
+                import.field.utf8Bytes(), *builtinModule,
+                DefinitionKind::Function, &builtinFunc, &builtinFuncId)) {
+          // Polyfillability: if the field is not found in the builtin module,
+          // it will be resolved from the imports object at instantiation.
+          continue;
         }
 
         const TypeDef& importTypeDef = (*codeMeta->types)[func.typeIndex];

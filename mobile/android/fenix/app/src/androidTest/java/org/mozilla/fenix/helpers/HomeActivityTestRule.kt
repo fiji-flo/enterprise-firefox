@@ -70,6 +70,7 @@ class HomeActivityTestRule(
         isTermsOfServiceAccepted: Boolean = true,
         openLinksInExternalApp: OpenLinksInApp = getOpenLinksInApp(settings),
         hasSeenBrowserToolbarCFR: Boolean = true,
+        hasSeenShakeToSummarizeToolbarCfr: Boolean = true,
         isPrivateModeAndStoriesEntryPointEnabled: Boolean = false,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isPocketEnabled = isPocketEnabled
@@ -91,6 +92,7 @@ class HomeActivityTestRule(
         this.isTermsOfServiceAccepted = isTermsOfServiceAccepted
         this.openLinksInExternalApp = openLinksInExternalApp
         this.hasSeenBrowserToolbarCFR = hasSeenBrowserToolbarCFR
+        this.hasSeenShakeToSummarizeToolbarCfr = hasSeenShakeToSummarizeToolbarCfr
         this.isPrivateModeAndStoriesEntryPointEnabled = isPrivateModeAndStoriesEntryPointEnabled
     }
 
@@ -153,6 +155,7 @@ class HomeActivityTestRule(
             isPageLoadTranslationsPromptEnabled = false,
             isUseNewCrashReporterFlow = useNewCrashReporterFlow,
             isTabSwipeCFREnabled = true,
+            hasSeenShakeToSummarizeToolbarCfr = true,
             isTermsOfServiceAccepted = true,
             isPrivateModeAndStoriesEntryPointEnabled = false,
         )
@@ -201,6 +204,7 @@ class HomeActivityIntentTestRule internal constructor(
         openLinksInExternalApp: OpenLinksInApp = getOpenLinksInApp(settings),
         tabManagerOpeningAnimationEnabled: Boolean = false,
         hasSeenBrowserToolbarCFR: Boolean = true,
+        hasSeenShakeToSummarizeToolbarCfr: Boolean = true,
         isPrivateModeAndStoriesEntryPointEnabled: Boolean = false,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isPocketEnabled = isPocketEnabled
@@ -223,6 +227,7 @@ class HomeActivityIntentTestRule internal constructor(
         this.openLinksInExternalApp = openLinksInExternalApp
         this.tabManagerOpeningAnimationEnabled = tabManagerOpeningAnimationEnabled
         this.hasSeenBrowserToolbarCFR = hasSeenBrowserToolbarCFR
+        this.hasSeenShakeToSummarizeToolbarCfr = hasSeenShakeToSummarizeToolbarCfr
         this.isPrivateModeAndStoriesEntryPointEnabled = isPrivateModeAndStoriesEntryPointEnabled
     }
 
@@ -297,6 +302,7 @@ class HomeActivityIntentTestRule internal constructor(
         openLinksInExternalApp = getOpenLinksInApp(settings)
         tabManagerOpeningAnimationEnabled = settings.tabManagerOpeningAnimationEnabled
         hasSeenBrowserToolbarCFR = settings.hasSeenBrowserToolbarCFR
+        hasSeenShakeToSummarizeToolbarCfr = settings.shakeToSummarizeToolbarCfrShown
         isPrivateModeAndStoriesEntryPointEnabled = settings.privateModeAndStoriesEntryPointEnabled
     }
 
@@ -326,6 +332,7 @@ class HomeActivityIntentTestRule internal constructor(
             shouldUseBottomToolbar = true,
             isPageLoadTranslationsPromptEnabled = false,
             isTabSwipeCFREnabled = true,
+            hasSeenShakeToSummarizeToolbarCfr = true,
             isTermsOfServiceAccepted = true,
             tabManagerOpeningAnimationEnabled = false,
             isPrivateModeAndStoriesEntryPointEnabled = false,

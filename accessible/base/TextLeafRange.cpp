@@ -535,7 +535,7 @@ static dom::Selection* GetDOMSelection(const nsIContent* aStartContent,
   return startFrameSel ? &startFrameSel->NormalSelection() : nullptr;
 }
 
-std::pair<nsIContent*, uint32_t> TextLeafPoint::ToDOMPoint(
+std::pair<RefPtr<nsIContent>, uint32_t> TextLeafPoint::ToDOMPoint(
     bool aIncludeGenerated) const {
   if (!(*this) || !mAcc->IsLocal()) {
     MOZ_ASSERT_UNREACHABLE("Invalid point");
@@ -2490,7 +2490,7 @@ bool TextLeafRange::SetSelection(int32_t aSelectionNum, bool aSetFocus) const {
 
   // Make sure the selection is visible. See bug 1170242.
   domSel->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
-                         ScrollAxis(), ScrollAxis(),
+                         AxisScrollParams(), AxisScrollParams(),
                          ScrollFlags::ScrollOverflowHidden);
 
   if (aSetFocus && mStart == mEnd && !isFocusable) {

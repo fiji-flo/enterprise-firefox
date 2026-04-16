@@ -628,11 +628,6 @@ mozilla::non_crypto::XorShift128PlusRNG& JSRuntime::randomKeyGenerator() {
   return randomKeyGenerator_.ref();
 }
 
-mozilla::HashCodeScrambler JSRuntime::randomHashCodeScrambler() {
-  auto& rng = randomKeyGenerator();
-  return mozilla::HashCodeScrambler(rng.next(), rng.next());
-}
-
 mozilla::non_crypto::XorShift128PlusRNG JSRuntime::forkRandomKeyGenerator() {
   auto& rng = randomKeyGenerator();
   return mozilla::non_crypto::XorShift128PlusRNG(rng.next(), rng.next());

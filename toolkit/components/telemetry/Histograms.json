@@ -4832,48 +4832,6 @@
     "description": "The length of time (in milliseconds) that it takes for the cache worker to generate the cache and return it to the main thread",
     "releaseChannelCollection": "opt-out"
   },
-  "INPUT_EVENT_RESPONSE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": [
-      "perf-telemetry-alerts@mozilla.com",
-      "chutten@mozilla.com"
-    ],
-    "bug_numbers": [1235908, 1511919],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "description": "Time (ms) from the Input event being created to the end of it being handled",
-    "releaseChannelCollection": "opt-out"
-  },
-  "INPUT_EVENT_RESPONSE_COALESCED_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": [
-      "perf-telemetry-alerts@mozilla.com",
-      "chutten@mozilla.com",
-      "gfritzsche@mozilla.com"
-    ],
-    "bug_numbers": [1357457, 1489524],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "releaseChannelCollection": "opt-out",
-    "description": "Time (ms) from the Input event being created to the end of it being handled, but with overlapping events coalesced."
-  },
-  "LOAD_INPUT_EVENT_RESPONSE_MS": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["perf-telemetry-alerts@mozilla.com"],
-    "bug_numbers": [1298101],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 50,
-    "description": "Time (ms) from the Input event being created to the end of it being handled for events handling during page load only"
-  },
   "FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
@@ -10180,42 +10138,6 @@
     "n_values": 3,
     "keyed": true,
     "description": "Users action on blocked download, keyed by verdict type (0=Number of blocked downloads, 1=Confirm block, 2=Confirm unblock)"
-  },
-  "FX_PICTURE_IN_PICTURE_WINDOW_OPEN_DURATION": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["mconley@mozilla.com"],
-    "bug_numbers": [1560590, 1683100, 1756703],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 100,
-    "description": "The length of time (in seconds) that a Picture-in-Picture window was open.",
-    "releaseChannelCollection": "opt-out"
-  },
-  "FX_PICTURE_IN_PICTURE_BACKGROUND_TAB_PLAYING_DURATION": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["mconley@mozilla.com"],
-    "bug_numbers": [1817042],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 100,
-    "description": "The length of time (in seconds) that a video was in Picture-in-Picture mode in a background tab.",
-    "releaseChannelCollection": "opt-out"
-  },
-  "FX_PICTURE_IN_PICTURE_FOREGROUND_TAB_PLAYING_DURATION": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["mconley@mozilla.com"],
-    "bug_numbers": [1817042],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 10000,
-    "n_buckets": 100,
-    "description": "The length of time (in seconds) that a video was in Picture-in-Picture mode in a foreground tab.",
-    "releaseChannelCollection": "opt-out"
   },
   "ORB_JAVASCRIPT_VALIDATION_MS": {
     "record_in_processes": ["main"],

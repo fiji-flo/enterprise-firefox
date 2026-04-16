@@ -497,7 +497,7 @@ already_AddRefed<nsIWidget> BrowserParent::GetDocWidget() const {
       nsContentUtils::WidgetForDocument(mFrameElement->OwnerDoc()));
 }
 
-nsIXULBrowserWindow* BrowserParent::GetXULBrowserWindow() {
+already_AddRefed<nsIXULBrowserWindow> BrowserParent::GetXULBrowserWindow() {
   if (!mFrameElement) {
     return nullptr;
   }
@@ -520,7 +520,7 @@ nsIXULBrowserWindow* BrowserParent::GetXULBrowserWindow() {
 
   nsCOMPtr<nsIXULBrowserWindow> xulBrowserWindow;
   window->GetXULBrowserWindow(getter_AddRefs(xulBrowserWindow));
-  return xulBrowserWindow;
+  return xulBrowserWindow.forget();
 }
 
 uint32_t BrowserParent::GetMaxTouchPoints(Element* aElement) {
@@ -2297,6 +2297,12 @@ bool BrowserParent::SendHandleTap(
         }
       }
     }
+    // SetFocus may have run script (blur handlers) that destroyed this
+    // actor. Callers hold a strong reference to us to reading
+    // mIsDestroyed is safe, but do not send an IPC message in that case.
+    if (mIsDestroyed) {
+      return false;
+    }
   }
   return Manager()->IsInputPriorityEventEnabled()
              ? PBrowserParent::SendHandleTap(
@@ -3815,11 +3821,11 @@ void BrowserParent::SuppressDisplayport(bool aEnabled) {
 
 #ifdef DEBUG
   if (aEnabled) {
-    mActiveSupressDisplayportCount++;
+    mActiveSuppressDisplayportCount++;
   } else {
-    mActiveSupressDisplayportCount--;
+    mActiveSuppressDisplayportCount--;
   }
-  MOZ_ASSERT(mActiveSupressDisplayportCount >= 0);
+  MOZ_ASSERT(mActiveSuppressDisplayportCount >= 0);
 #endif
 
   (void)SendSuppressDisplayport(aEnabled);
@@ -4200,8 +4206,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvMaybeFireEmbedderLoadEvents(
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvScrollRectIntoView(
-    const nsRect& aRect, const ScrollAxis& aVertical,
-    const ScrollAxis& aHorizontal, const ScrollFlags& aScrollFlags,
+    const nsRect& aRect, const AxisScrollParams& aVertical,
+    const AxisScrollParams& aHorizontal, const ScrollFlags& aScrollFlags,
     const int32_t& aAppUnitsPerDevPixel) {
   BrowserBridgeParent* bridge = GetBrowserBridgeParent();
   if (!bridge || !bridge->CanSend()) {

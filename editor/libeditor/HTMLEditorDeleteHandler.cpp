@@ -2408,8 +2408,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     return EditActionResult::HandledResult();
   }
 
-  EditorRawDOMPoint newCaretPosition =
-      HTMLEditUtils::GetGoodCaretPointFor<EditorRawDOMPoint>(
+  EditorDOMPoint newCaretPosition =
+      HTMLEditUtils::GetGoodCaretPointFor<EditorDOMPoint>(
           *mLeafContentInOtherBlock, aDirectionAndAmount);
   if (MOZ_UNLIKELY(!newCaretPosition.IsInContentNode())) {
     NS_WARNING("HTMLEditUtils::GetGoodCaretPointFor() failed");
@@ -2422,6 +2422,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       HTMLEditUtils::ScanInclusiveNextThingWithIgnoringUnnecessaryLineBreak(
           newCaretPosition, PaddingForEmptyBlock::Significant, aEditingHost);
   if (nextThingOfCaretPoint.ReachedBlockBoundary()) {
+    AutoTrackDOMPoint trackNewCaretPosition(aHTMLEditor.RangeUpdaterRef(),
+                                            &newCaretPosition);
     const EditorDOMPoint atBlockBoundary =
         nextThingOfCaretPoint
             .PointAtReachedBlockBoundaryOrEditingHostBoundary<EditorDOMPoint>();
@@ -2433,6 +2435,10 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
           "WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesBefore() "
           "failed");
       return afterLastVisibleThingOrError.propagateErr();
+    }
+    trackNewCaretPosition.Flush(StopTracking::Yes);
+    if (NS_WARN_IF(!newCaretPosition.IsSetAndValidInComposedDoc())) {
+      return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
     }
   }
   rv = aHTMLEditor.CollapseSelectionTo(newCaretPosition);

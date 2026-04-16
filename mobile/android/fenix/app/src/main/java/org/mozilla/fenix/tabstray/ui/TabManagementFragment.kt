@@ -224,8 +224,7 @@ class TabManagementFragment : DialogFragment() {
                 }
                 val tabSelectedState = remember { mutableStateOf<TabsTrayItem.Tab?>(null) }
                 val sceneStrategy = remember {
-                    DialogSceneStrategy<TabManagerNavDestination>() then
-                        BottomSheetSceneStrategy()
+                    listOf(DialogSceneStrategy<TabManagerNavDestination>(), BottomSheetSceneStrategy())
                 }
                 val shouldPerformTransitionAnimation = remember {
                     derivedStateOf {
@@ -280,7 +279,7 @@ class TabManagementFragment : DialogFragment() {
                         transitionSpec = defaultTransitionSpec(),
                         popTransitionSpec = popTransitionSpec(),
                         predictivePopTransitionSpec = defaultPredictivePopTransitionSpec(),
-                        sceneStrategy = sceneStrategy,
+                        sceneStrategies = sceneStrategy,
                         entryProvider = entryProvider {
                             entry<TabManagerNavDestination.Root> {
                                 TabsTray(
@@ -423,6 +422,11 @@ class TabManagementFragment : DialogFragment() {
                                     },
                                     onDeleteTabGroup = {
                                         tabsTrayStore.dispatch(TabGroupAction.DeleteClicked(expandedGroup))
+                                    },
+                                    editTabGroupClick = {
+                                        tabsTrayStore.dispatch(
+                                            action = TabGroupAction.EditTabGroupClicked(group = expandedGroup),
+                                        )
                                     },
                                 )
                             }

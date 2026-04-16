@@ -100,6 +100,9 @@ Push Information
 ``pull_request_number``
    The GitHub pull request number, if any.
 
+``dontbuild``
+   Set (to `true`) when the commit message requested that no tasks run on this push.
+
 Tree Information
 ----------------
 

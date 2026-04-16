@@ -14,12 +14,15 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/messagehandler/MessageHandler.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
+  isParentProcess:
+    "chrome://remote/content/shared/BrowsingContextUtils.sys.mjs",
   NavigableManager: "chrome://remote/content/shared/NavigableManager.sys.mjs",
   OwnershipModel: "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
   processExtraData:
     "chrome://remote/content/webdriver-bidi/modules/Intercept.sys.mjs",
   RealmType: "chrome://remote/content/shared/Realm.sys.mjs",
+  RemoteAgent: "chrome://remote/content/components/RemoteAgent.sys.mjs",
   SessionDataMethod:
     "chrome://remote/content/shared/messagehandler/sessiondata/SessionData.sys.mjs",
   setDefaultAndAssertSerializationOptions:
@@ -455,6 +458,10 @@ class ScriptModule extends RootBiDiModule {
       supportsChromeScope: true,
     });
 
+    // Bug 2030901: this check should be handled by getContextFromTarget via
+    // _getNavigable, but at the moment this would regress other commands.
+    this.#assertParentProcessScriptAccess(context);
+
     const serializationOptionsWithDefaults =
       lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
 
@@ -575,6 +582,10 @@ class ScriptModule extends RootBiDiModule {
       realmId,
       supportsChromeScope: true,
     });
+
+    // Bug 2030901: this check should be handled by getContextFromTarget via
+    // _getNavigable, but at the moment this would regress other commands.
+    this.#assertParentProcessScriptAccess(context);
 
     const serializationOptionsWithDefaults =
       lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
@@ -806,6 +817,16 @@ class ScriptModule extends RootBiDiModule {
     )(ownership);
 
     return true;
+  }
+
+  #assertParentProcessScriptAccess(context) {
+    // `supportsChromeScope` only checks browsingContext.isContent, but about
+    // pages can have isContent=true but still run in parent process.
+    if (!lazy.RemoteAgent.allowSystemAccess && lazy.isParentProcess(context)) {
+      throw new lazy.error.UnsupportedOperationError(
+        `script.evaluate and script.callFunction are not supported for parent process browsing contexts: ${context.id}`
+      );
+    }
   }
 
   #assertResultOwnership(resultOwnership) {

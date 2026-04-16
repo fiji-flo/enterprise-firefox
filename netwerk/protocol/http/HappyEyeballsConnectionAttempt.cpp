@@ -150,6 +150,10 @@ nsresult HappyEyeballsConnectionAttempt::ProcessConnectionResult(
 
   // For 0RTT errors, we should restart the transaction.
   if (PossibleZeroRTTRetryError(aStatus)) {
+    if (mProxyTransaction) {
+      mProxyTransaction->Detach();
+      mProxyTransaction = nullptr;
+    }
     RefPtr<ConnectionEntry> entry(mEntry);
     RefPtr<HappyEyeballsConnectionAttempt> self(this);
     if (entry) {
@@ -275,6 +279,8 @@ nsresult HappyEyeballsConnectionAttempt::ProcessHappyEyeballsOutput() {
       case happy_eyeballs::Output::Tag::Failed: {
         LOG(("happy_eyeballs::Output::Tag::Failed reason=%d",
              static_cast<uint32_t>(event.failed.reason)));
+        MOZ_ASSERT(!mDone);
+        mDone = true;
         RefPtr<HappyEyeballsConnectionAttempt> self(this);
         RefPtr<ConnectionEntry> entry(mEntry);
 
@@ -725,8 +731,48 @@ void HappyEyeballsConnectionAttempt::CloseHttpTransaction(
   mTransaction->Close(reason);
 }
 
-void HappyEyeballsConnectionAttempt::Abandon() {
-  LOG(("HappyEyeballsConnectionAttempt::Abandon %p", this));
+void HappyEyeballsConnectionAttempt::Abandon(bool aReenqueueTransaction) {
+  LOG(("HappyEyeballsConnectionAttempt::Abandon %p aReenqueueTransaction=%d",
+       this, aReenqueueTransaction));
+
+  if (mProxyTransaction) {
+    if (aReenqueueTransaction && mEntry) {
+      // H2/H3 coalescing: the real transaction was removed from the pending
+      // queue by MaybePassHttpTransToEstablisher. Detach it from the proxy
+      // and requeue so it gets dispatched onto the winning connection.
+      nsHttpTransaction* trans =
+          mTransaction ? mTransaction->QueryHttpTransaction() : nullptr;
+      if (trans && !trans->IsDone() && !trans->Connected()) {
+        LOG(("  requeuing claimed transaction %p, detaching proxy %p", trans,
+             mProxyTransaction.get()));
+        mProxyTransaction->Detach();
+        RefPtr<PendingTransactionInfo> pendingTransInfo =
+            new PendingTransactionInfo(trans);
+        mEntry->InsertTransaction(pendingTransInfo);
+      }
+    } else {
+      // Detach the proxy to break the ref cycle between the proxy
+      // transaction and the connection. Close the real transaction
+      // since it was removed from the pending queue and won't be
+      // cleaned up by CancelAllTransactions during shutdown.
+      //
+      // This is safe at each call site:
+      // - Shutdown (CloseAllConnectionAttempts): the transaction is not in
+      //   pending queue, not on an active connection,
+      //   so this is the only path that closes it.
+      // - OnTimeout: the transaction is already closed with
+      //   NS_ERROR_NET_TIMEOUT, so this Close is a no-op (mClosed).
+      // - 0RTT retry (ProcessConnectionResult): the proxy is cleared
+      //   before calling Abandon, so this branch is not reached.
+      mProxyTransaction->Detach();
+      mProxyTransaction = nullptr;
+      if (nsHttpTransaction* trans =
+              mTransaction ? mTransaction->QueryHttpTransaction() : nullptr) {
+        trans->Close(NS_ERROR_ABORT);
+      }
+    }
+  }
+
   mDone = true;
 
   // Cancel all DNS requests

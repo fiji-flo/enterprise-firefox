@@ -252,7 +252,7 @@ with only_when(host_is_osx | target_is_osx):
     )
 
     def mac_sdk_min_version():
-        return "26.2"
+        return "26.4"
 
     @depends(
         "--with-macos-sdk",
@@ -2728,9 +2728,10 @@ def security_hardening_cflags(
 
             if (
                 c_compiler.type == "clang"
-                and c_compiler.version >= "11.0.1"
-                and target.os not in ("WINNT", "OSX", "OpenBSD")
-                and target.cpu in ("x86", "x86_64", "ppc64", "s390x")
+                and target.os not in ("WINNT", "OSX", "OpenBSD", "iOS")
+                and ((c_compiler.version >= "11.0.1" and target.cpu in ("x86", "x86_64", "ppc64", "s390x"))
+                    or
+                     (c_compiler.version >= "18.1.0" and target.cpu == "aarch64"))
             ):
                 flags.append("-fstack-clash-protection")
                 ldflags.append("-fstack-clash-protection")

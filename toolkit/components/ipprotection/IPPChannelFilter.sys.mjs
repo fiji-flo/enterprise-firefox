@@ -343,9 +343,22 @@ export class IPPChannelFilter {
       if (!["http", "https"].includes(uri.scheme)) {
         return true;
       }
-      let principal =
-        channel.loadInfo?.loadingPrincipal ||
-        Services.scriptSecurityManager.getChannelURIPrincipal(channel);
+
+      // Only get the principal from the channel URI when both loadingPrincipal
+      // and triggeringPrincipal are system principals.
+      let { loadingPrincipal, triggeringPrincipal } = channel.loadInfo ?? {};
+      let principal;
+      if (loadingPrincipal && !loadingPrincipal.isSystemPrincipal) {
+        principal = loadingPrincipal;
+      } else if (
+        triggeringPrincipal &&
+        !triggeringPrincipal.isSystemPrincipal
+      ) {
+        principal = triggeringPrincipal;
+      } else {
+        principal =
+          Services.scriptSecurityManager.getChannelURIPrincipal(channel);
+      }
 
       if (IPPChannelFilter.isLocal(principal)) {
         return true;

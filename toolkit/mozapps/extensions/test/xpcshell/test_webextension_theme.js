@@ -48,8 +48,8 @@ add_task(async function setup_to_default_browserish_state() {
 
   await promiseStartupManager();
 
-  if (AppConstants.MOZ_DEV_EDITION) {
-    // Developer Edition selects the wrong theme by default.
+  if (AppConstants.MOZ_DEV_EDITION || AppConstants.MOZ_ENTERPRISE) {
+    // Developer Edition and Firefox Enterprise select the wrong theme by default.
     let defaultTheme = await AddonManager.getAddonByID(DEFAULT_THEME);
     await defaultTheme.enable();
   }

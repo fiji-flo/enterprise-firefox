@@ -12,6 +12,7 @@ internal object TabsTrayTestTag {
     const val BANNER_HANDLE = "$BANNER_ROOT.handle"
     const val NORMAL_TABS_PAGE_BUTTON = "$BANNER_ROOT.normalTabsPageButton"
     const val PRIVATE_TABS_PAGE_BUTTON = "$BANNER_ROOT.privateTabsPageButton"
+    const val TAB_GROUPS_PAGE_BUTTON = "$BANNER_ROOT.tabGroupsPageButton"
     const val SYNCED_TABS_PAGE_BUTTON = "$BANNER_ROOT.syncedTabsPageButton"
 
     const val SELECTION_COUNTER = "$BANNER_ROOT.selectionCounter"
@@ -35,10 +36,12 @@ internal object TabsTrayTestTag {
     private const val TAB_LIST_ROOT = "$TABS_TRAY.tabList"
     const val NORMAL_TABS_LIST = "$TAB_LIST_ROOT.normal"
     const val PRIVATE_TABS_LIST = "$TAB_LIST_ROOT.private"
+    const val TAB_GROUPS_LIST = "$TAB_LIST_ROOT.groups"
     const val SYNCED_TABS_LIST = "$TAB_LIST_ROOT.synced"
 
     const val EMPTY_NORMAL_TABS_LIST = "$NORMAL_TABS_LIST.empty"
     const val EMPTY_PRIVATE_TABS_LIST = "$PRIVATE_TABS_LIST.empty"
+    const val EMPTY_TAB_GROUPS_LIST = "$TAB_GROUPS_LIST.empty"
     const val UNAUTHENTICATED_SYNCED_TABS_PAGE = "$SYNCED_TABS_LIST.unauthenticated"
 
     // Tab items

@@ -5,6 +5,7 @@
 loader: gecko_taskgraph.loader.test:loader
 
 kind-dependencies:
+    - artifact-build
     - build
     - repackage-signing-shippable-l10n-msix
     - repackage-signing-msix
@@ -43,6 +44,11 @@ task-defaults:
     docker-image:
         in-tree: ubuntu2404-test
     fetches:
+        fetch:
+            by-test-platform:
+                win.*:
+                    - win64-ffmpeg-7.1
+                default: []
         toolchain:
             by-test-platform:
                 win.*:
@@ -169,8 +175,12 @@ tasks:
                         default: []
                 standalone:
                     by-test-platform:
-                        linux.*-64(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
-                        windows.*-64-[^-/]+(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
+                        linux.*-64-shippable/opt: ['mozilla-central']
+                        linux.*-64/debug: ['autoland', 'mozilla-central']
+                        linux.*-64/opt: ['autoland']
+                        windows.*-64-[^-/]+-shippable/opt: ['mozilla-central']
+                        windows.*-64-[^-/]+/debug: ['autoland', 'mozilla-central']
+                        windows.*-64-[^-/]+/opt: ['autoland']
                         default: []
                 headless:
                     by-test-platform:
@@ -339,6 +349,7 @@ tasks:
                 webrender-sw:
                     by-test-platform:
                         linux.*64/debug: ['all']
+                        linux.*64-artifact/opt: ['mozilla-central']
                         linux.*64-asan/opt: ['all']
                         linux.*64-tsan/opt: built-projects
                         linux.*64/opt: built-projects
@@ -356,11 +367,16 @@ tasks:
                         default: []
                 standalone:
                     by-test-platform:
-                        linux.*-64(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
-                        windows.*-64-[^-/]+(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
+                        linux.*-64-shippable/opt: ['mozilla-central']
+                        linux.*-64/debug: ['autoland', 'mozilla-central']
+                        linux.*-64/opt: ['autoland']
+                        windows.*-64-[^-/]+-shippable/opt: ['mozilla-central']
+                        windows.*-64-[^-/]+/debug: ['autoland', 'mozilla-central']
+                        windows.*-64-[^-/]+/opt: ['autoland']
                         default: []
                 vertical-tabs:
                     by-test-platform:
+                        .*-artifact.*: []
                         .*-asan.*: []
                         .*-ccov.*: []
                         linux.*64(-shippable)?/.*: ['autoland', 'mozilla-central']
@@ -432,7 +448,12 @@ tasks:
         allow-software-gl-layers: false
         fetches:
             fetch:
-                - ort.jsep.wasm
+                by-test-platform:
+                    win.*:
+                        - win64-ffmpeg-7.1
+                        - ort.jsep.wasm
+                    default:
+                        - ort.jsep.wasm
 
     mochitest-browser-chrome-failures:
         description: "Mochitest browser-chrome failures run"
@@ -565,10 +586,11 @@ tasks:
         tier: default
         max-run-time:
             by-test-platform:
-                .*-asan.*: 1800
+                .*-asan.*: 2400
                 .*-tsan.*: 2400
                 .*-ccov.*: 2400
-                default: 1500
+                .*/debug: 2400
+                default: 1800
         mozharness:
             mochitest-flavor: browser
         instance-size: default
@@ -605,8 +627,12 @@ tasks:
                         default: built-projects
                 standalone:
                     by-test-platform:
-                        linux.*-64(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
-                        windows.*-64-[^-/]+(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
+                        linux.*-64-shippable/opt: ['mozilla-central']
+                        linux.*-64/debug: ['autoland', 'mozilla-central']
+                        linux.*-64/opt: ['autoland']
+                        windows.*-64-[^-/]+-shippable/opt: ['mozilla-central']
+                        windows.*-64-[^-/]+/debug: ['autoland', 'mozilla-central']
+                        windows.*-64-[^-/]+/opt: ['autoland']
                         default: []
                 inc-origin-init: []
         chunks: dynamic
@@ -648,8 +674,12 @@ tasks:
                         default: []
                 standalone:
                     by-test-platform:
-                        linux.*-64(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
-                        windows.*-64-[^-/]+(-shippable)?/(opt|debug): ['autoland', 'mozilla-central']
+                        linux.*-64-shippable/opt: ['mozilla-central']
+                        linux.*-64/debug: ['autoland', 'mozilla-central']
+                        linux.*-64/opt: ['autoland']
+                        windows.*-64-[^-/]+-shippable/opt: ['mozilla-central']
+                        windows.*-64-[^-/]+/debug: ['autoland', 'mozilla-central']
+                        windows.*-64-[^-/]+/opt: ['autoland']
                         default: []
                 http3:
                     by-test-platform:

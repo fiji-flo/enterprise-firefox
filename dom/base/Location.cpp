@@ -29,7 +29,6 @@
 #include "nsIScriptContext.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIURIMutator.h"
-#include "nsIURL.h"
 #include "nsIWebNavigation.h"
 #include "nsJSUtils.h"
 #include "nsNetUtil.h"
@@ -531,22 +530,21 @@ void Location::GetSearch(nsACString& aSearch, nsIPrincipal& aSubjectPrincipal,
   aSearch.SetLength(0);
 
   nsCOMPtr<nsIURI> uri;
-  nsresult result = NS_OK;
+  aRv = GetURI(getter_AddRefs(uri));
+  if (NS_WARN_IF(aRv.Failed()) || !uri) {
+    return;
+  }
 
-  result = GetURI(getter_AddRefs(uri));
+  nsAutoCString search;
+  aRv = uri->GetQuery(search);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
 
-  nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
-
-  if (url) {
-    nsAutoCString search;
-
-    result = url->GetQuery(search);
-
-    if (NS_SUCCEEDED(result) && !search.IsEmpty()) {
-      aSearch.SetCapacity(search.Length() + 1);
-      aSearch.Assign('?');
-      aSearch.Append(search);
-    }
+  if (!search.IsEmpty()) {
+    aSearch.SetCapacity(search.Length() + 1);
+    aSearch.Assign('?');
+    aSearch.Append(search);
   }
 }
 
@@ -559,8 +557,7 @@ void Location::SetSearch(const nsACString& aSearch,
 
   nsCOMPtr<nsIURI> uri;
   aRv = GetURI(getter_AddRefs(uri));
-  nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
-  if (NS_WARN_IF(aRv.Failed()) || !url) {
+  if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
 

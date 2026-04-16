@@ -413,11 +413,11 @@ class ContentParent final : public PContentParent,
   void MaybeBeginShutDown(bool aImmediate = false,
                           bool aIgnoreKeepAlivePref = false);
 
-  TestShellParent* CreateTestShell();
+  already_AddRefed<TestShellParent> CreateTestShell();
 
   bool DestroyTestShell(TestShellParent* aTestShell);
 
-  TestShellParent* GetTestShellSingleton();
+  already_AddRefed<TestShellParent> GetTestShellSingleton();
 
   void ReportChildAlreadyBlocked();
 
@@ -1392,6 +1392,9 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvGetSystemGeolocationPermissionBehavior(
       GetSystemGeolocationPermissionBehaviorResolver&& aResolver);
+
+  static void BroadcastSystemPermissionChanged(PermissionName aName,
+                                               PermissionState aState);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult
   RecvRequestGeolocationPermissionFromUser(

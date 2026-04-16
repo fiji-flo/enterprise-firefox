@@ -160,7 +160,13 @@ nsHttpTransaction::~nsHttpTransaction() {
   LOG(("Destroying nsHttpTransaction @%p\n", this));
 
   if (mTokenBucketCancel) {
-    mTokenBucketCancel->Cancel(NS_ERROR_ABORT);
+    if (OnSocketThread()) {
+      mTokenBucketCancel->Cancel(NS_ERROR_ABORT);
+    } else {
+      MOZ_DIAGNOSTIC_ASSERT(false,
+                            "Token bucket not canceled before off-thread "
+                            "destruction");
+    }
     mTokenBucketCancel = nullptr;
   }
 

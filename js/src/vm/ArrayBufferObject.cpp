@@ -818,11 +818,14 @@ bool ArrayBufferObject::resizeImpl(JSContext* cx, const CallArgs& args) {
     Pages newPages =
         Pages::fromByteLengthExact(newByteLength, obj->wasmPageSize());
     MOZ_RELEASE_ASSERT(WasmArrayBufferSourceMaxPages(obj).isSome());
-    Rooted<ArrayBufferObject*> res(
-        cx,
-        obj->wasmGrowToPagesInPlace(obj->wasmAddressType(), newPages, obj, cx));
-    MOZ_ASSERT_IF(res, res == obj);
-    return !!res;
+    ArrayBufferObject* res =
+        obj->wasmGrowToPagesInPlace(obj->wasmAddressType(), newPages, obj, cx);
+    if (!res) {
+      return false;
+    }
+    MOZ_ASSERT(res == obj);
+    args.rval().setUndefined();
+    return true;
   }
 
   // Steps 7-15.
@@ -1338,6 +1341,22 @@ void ArrayBufferObject::detach(JSContext* cx,
   }
 }
 
+void ResizableArrayBufferObject::notifyViewsAfterResize() {
+  // Update all views of the buffer to account for the buffer having been
+  // resized.
+  auto& innerViews = ObjectRealm::get(this).innerViews.get();
+  if (InnerViewTable::ViewVector* views =
+          innerViews.maybeViewsUnbarriered(this)) {
+    AutoTouchingGrayThings tgt;
+    for (auto& view : *views) {
+      view->notifyBufferResized();
+    }
+  }
+  if (auto* view = firstView()) {
+    view->as<ArrayBufferViewObject>().notifyBufferResized();
+  }
+}
+
 void ResizableArrayBufferObject::resize(size_t newByteLength) {
   MOZ_ASSERT(!isPreparedForAsmJS());
   MOZ_ASSERT(!isWasm());
@@ -1358,21 +1377,7 @@ void ResizableArrayBufferObject::resize(size_t newByteLength) {
   }
 
   setByteLength(newByteLength);
-
-  // Update all views of the buffer to account for the buffer having been
-  // resized.
-
-  auto& innerViews = ObjectRealm::get(this).innerViews.get();
-  if (InnerViewTable::ViewVector* views =
-          innerViews.maybeViewsUnbarriered(this)) {
-    AutoTouchingGrayThings tgt;
-    for (auto& view : *views) {
-      view->notifyBufferResized();
-    }
-  }
-  if (auto* view = firstView()) {
-    view->as<ArrayBufferViewObject>().notifyBufferResized();
-  }
+  notifyViewsAfterResize();
 }
 
 /*
@@ -2138,6 +2143,7 @@ ArrayBufferObject* ArrayBufferObject::wasmGrowToPagesInPlace(
       return nullptr;
     }
     oldBuf->setByteLength(newPages.byteLength());
+    oldBuf->as<ResizableArrayBufferObject>().notifyViewsAfterResize();
     AddCellMemory(oldBuf, newPages.byteLength(),
                   MemoryUse::ArrayBufferContents);
     return oldBuf;
@@ -2844,8 +2850,9 @@ ResizableArrayBufferObject::copyAndDetachSteal(
   MOZ_ASSERT(newByteLength <= ArrayBufferObject::ByteLengthLimit,
              "caller must validate the byte count it passes");
   MOZ_ASSERT(!source->isDetached());
-  MOZ_ASSERT(source->byteLength() >= sourceByteOffset);
-  MOZ_ASSERT(source->byteLength() >= sourceByteOffset + newByteLength);
+  MOZ_ASSERT_IF(newByteLength > 0, source->byteLength() >= sourceByteOffset);
+  MOZ_ASSERT_IF(newByteLength > 0,
+                source->byteLength() >= sourceByteOffset + newByteLength);
 
   AutoSetNewObjectMetadata metadata(cx);
   auto [newBuffer, toFill] = createBufferAndData<ImmutableArrayBufferObject,
@@ -2855,8 +2862,10 @@ ResizableArrayBufferObject::copyAndDetachSteal(
     return nullptr;
   }
 
-  std::uninitialized_copy_n(source->dataPointer() + sourceByteOffset,
-                            newByteLength, toFill);
+  if (newByteLength > 0) {
+    std::uninitialized_copy_n(source->dataPointer() + sourceByteOffset,
+                              newByteLength, toFill);
+  }
 
   return newBuffer;
 }

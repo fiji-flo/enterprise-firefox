@@ -16,6 +16,12 @@ const { AppConstants } = ChromeUtils.importESModule(
  */
 
 /**
+ * The current window mode.
+ *
+ * @typedef {"classic" | "private" | "smartwindow"} WindowMode
+ */
+
+/**
  * @typedef {object} AutofillPlaceholder
  * @property {string} value
  *   The autofill value.
@@ -33,6 +39,8 @@ const { AppConstants } = ChromeUtils.importESModule(
  */
 
 const lazy = XPCOMUtils.declareLazy({
+  AIWindow:
+    "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs",
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   BrowserSearchTelemetry:
     "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
@@ -102,11 +110,10 @@ let px = number => number.toFixed(2) + "px";
 export class UrlbarInput extends HTMLElement {
   static get #markup() {
     return `
-      <hbox class="urlbar-background"/>
-      <hbox class="urlbar-input-container"
-            flex="1"
+      <html:div class="urlbar-background"/>
+      <html:div class="urlbar-input-container"
             pageproxystate="invalid">
-        <moz-urlbar-slot name="remote-control-box"> </moz-urlbar-slot>
+        <html:moz-urlbar-slot name="remote-control-box" />
         <toolbarbutton id="urlbar-searchmode-switcher"
                        class="searchmode-switcher chromeclass-toolbar-additional"
                        align="center"
@@ -139,26 +146,25 @@ ${
                       data-l10n-id="urlbar-searchmode-popup-search-settings-menuitem"/>
           </menupopup>
         </toolbarbutton>
-        <moz-urlbar-slot name="site-info"> </moz-urlbar-slot>
+        <html:moz-urlbar-slot name="site-info" />
         <moz-input-box tooltip="aHTMLTooltip"
                        class="urlbar-input-box"
                        flex="1">
-          <html:input id="urlbar-scheme"
-                      required="required"/>
+          <!-- In the addressbar, there will be an input with id="urlbar-scheme" here. -->
           <html:input class="urlbar-input textbox-input"
                       role="combobox"
                       aria-autocomplete="both"
                       inputmode="mozAwesomebar"
                       data-l10n-id="urlbar-placeholder"/>
         </moz-input-box>
-        <moz-urlbar-slot name="revert-button"> </moz-urlbar-slot>
-        <image class="urlbar-icon urlbar-go-button"
+        <html:moz-urlbar-slot name="revert-button" />
+        <html:img class="urlbar-icon urlbar-go-button"
                role="button"
                keyNav="false"
                data-l10n-id="urlbar-go-button"/>
-        <moz-urlbar-slot name="page-actions" hidden=""> </moz-urlbar-slot>
-      </hbox>
-      <vbox class="urlbarView"
+        <html:moz-urlbar-slot name="page-actions" />
+      </html:div>
+      <html:div class="urlbarView"
             context=""
             role="group"
             tooltip="aHTMLTooltip">
@@ -170,10 +176,10 @@ ${
         </html:div>
         <menupopup class="urlbarView-result-menu"
                    consumeoutsideclicks="false"/>
-        <hbox class="search-one-offs"
+        <html:div class="search-one-offs"
               includecurrentengine="true"
               disabletab="true"/>
-      </vbox>`;
+      </html:div>`;
   }
 
   /** @type {DocumentFragment} */
@@ -342,6 +348,11 @@ ${
 
     if (this.#isAddressbar) {
       this.inputField.id = "urlbar-input";
+
+      let schemeField = document.createElement("input");
+      schemeField.id = "urlbar-scheme";
+      schemeField.required = true;
+      this.inputField.before(schemeField);
     }
     if (this.#sapName == "searchbar") {
       // This adds a native clear button.
@@ -624,6 +635,20 @@ ${
 
   get sapName() {
     return this.#sapName;
+  }
+
+  /**
+   * Gets the window mode for telemetry.
+   *
+   * @returns {WindowMode} The window mode.
+   */
+  get windowMode() {
+    if (this.isPrivate) {
+      return "private";
+    }
+    return lazy.AIWindow.isAIWindowActive(this.window)
+      ? "smartwindow"
+      : "classic";
   }
 
   blur() {
@@ -1245,6 +1270,7 @@ ${
       searchString: typedValue,
       result: selectedResult || this._resultForCurrentValue || null,
       searchSource: this.getSearchSource(event),
+      windowMode: this.windowMode,
     });
 
     if (this.#isAddressbar && URL.canParse(url)) {
@@ -1470,6 +1496,7 @@ ${
         searchString: this._lastSearchString,
         selType: "dismiss",
         searchSource: this.getSearchSource(event),
+        windowMode: this.windowMode,
       });
       this.view.onQueryResultRemoved(result.rowIndex);
       return;
@@ -1512,6 +1539,7 @@ ${
         selType: "canonized",
         searchString: this._lastSearchString,
         searchSource: this.getSearchSource(event),
+        windowMode: this.windowMode,
       });
       this._loadURL(this._untrimmedValue, event, where, openParams, browser);
       return;
@@ -1597,6 +1625,7 @@ ${
             element
           ),
           searchSource: this.getSearchSource(event),
+          windowMode: this.windowMode,
         });
 
         let activeSplitView = this.window.gBrowser.selectedTab.splitview;
@@ -1650,6 +1679,7 @@ ${
               element
             ),
             searchSource: this.getSearchSource(event),
+            windowMode: this.windowMode,
           });
           this.maybeConfirmSearchModeFromResult({
             result,
@@ -1738,6 +1768,7 @@ ${
           selType: "tip",
           searchString: this._lastSearchString,
           searchSource: this.getSearchSource(event),
+          windowMode: this.windowMode,
         });
         return;
       }
@@ -1763,6 +1794,7 @@ ${
               element
             ),
             searchSource: this.getSearchSource(event),
+            windowMode: this.windowMode,
           });
           return;
         }
@@ -1775,6 +1807,7 @@ ${
           selType: "extension",
           searchString: this._lastSearchString,
           searchSource: this.getSearchSource(event),
+          windowMode: this.windowMode,
         });
 
         // The urlbar needs to revert to the loaded url when a command is
@@ -1804,6 +1837,7 @@ ${
             element
           ),
           searchSource: this.getSearchSource(event),
+          windowMode: this.windowMode,
         });
         this.maybeConfirmSearchModeFromResult({
           result,
@@ -1823,6 +1857,7 @@ ${
             element
           ),
           searchSource: this.getSearchSource(event),
+          windowMode: this.windowMode,
         });
         return;
       }
@@ -1835,7 +1870,10 @@ ${
     // Record input history but only in non-private windows.
     if (!this.isPrivate) {
       let input;
-      if (!result.heuristic) {
+      if (
+        !result.heuristic &&
+        result.type != lazy.UrlbarUtils.RESULT_TYPE.SEARCH
+      ) {
         input = this._lastSearchString;
       } else if (
         result.autofill?.type == "adaptive_url" ||
@@ -1898,6 +1936,7 @@ ${
       searchString: this._lastSearchString,
       selType: this.controller.engagementEvent.typeFromElement(result, element),
       searchSource: this.getSearchSource(event),
+      windowMode: this.windowMode,
     });
 
     this.controller.engagementEvent.record(event, {
@@ -1906,6 +1945,7 @@ ${
       searchString: this._lastSearchString,
       selType: this.controller.engagementEvent.typeFromElement(result, element),
       searchSource: this.getSearchSource(event),
+      windowMode: this.windowMode,
     });
 
     if (result.payload.sendAttributionRequest) {
@@ -2064,6 +2104,13 @@ ${
       this._autofillPlaceholder.value = this.value;
       this._autofillPlaceholder.selectionStart = this.value.length;
       this._autofillPlaceholder.selectionEnd = this.value.length;
+    }
+
+    // Reset backspace dismissal tracking when navigating to a non-autofill
+    // result. The placeholder may already be null if the user backspaced away
+    // the autofill text before arrowing down.
+    if (!result.autofill && this._autofillBackspaceState) {
+      this._autofillBackspaceState = null;
     }
     return false;
   }
@@ -3061,6 +3108,7 @@ ${
       this.controller.engagementEvent.record(event, {
         searchString: this._lastSearchString,
         searchSource: this.getSearchSource(event),
+        windowMode: this.windowMode,
       });
     }
 
@@ -3893,6 +3941,7 @@ ${
       searchString: this._lastSearchString,
       selType: element.dataset.command,
       searchSource: this.getSearchSource(event),
+      windowMode: this.windowMode,
     });
 
     if (element.dataset.command == "manage") {
@@ -4960,6 +5009,7 @@ ${
     this.controller.engagementEvent.record(event, {
       searchString: this._lastSearchString,
       searchSource: this.getSearchSource(event),
+      windowMode: this.windowMode,
     });
 
     this.focusedViaMousedown = false;
@@ -5212,6 +5262,7 @@ ${
             this.controller.engagementEvent.record(blurEvent, {
               searchString: this._lastSearchString,
               searchSource: this.getSearchSource(blurEvent),
+              windowMode: this.windowMode,
             });
           }
 
@@ -5236,7 +5287,12 @@ ${
       lazy.UrlbarPrefs.get("autoFillAdaptiveHistoryEnabled") &&
       event.inputType === "deleteContentBackward"
     ) {
-      if (!this._autofillBackspaceState && this._autofillPlaceholder) {
+      if (
+        !this._autofillBackspaceState &&
+        this._autofillPlaceholder &&
+        this._autofillPlaceholder.selectionStart <
+          this._autofillPlaceholder.selectionEnd
+      ) {
         this._autofillBackspaceState = {
           url: this._resultForCurrentValue?.payload?.url,
           count: 0,

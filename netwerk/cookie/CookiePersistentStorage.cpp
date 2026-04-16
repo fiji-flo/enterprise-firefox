@@ -10,6 +10,7 @@
 #include "CookieValidation.h"
 
 #include "mozilla/Components.h"
+#include "mozilla/ErrorNames.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkMetrics.h"
@@ -1016,7 +1017,17 @@ CookiePersistentStorage::OpenDBResult CookiePersistentStorage::TryInitDB(
     rv = mStorageService->OpenUnsharedDatabase(
         mCookieFile, mozIStorageService::CONNECTION_DEFAULT,
         getter_AddRefs(mSyncConn));
-    NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+    if (NS_FAILED(rv)) {
+      const char* errorName = mozilla::GetStaticErrorName(rv);
+      glean::network_cookies::open_error
+          .Get(nsDependentCString(errorName ? errorName : "unknown"))
+          .Add(1);
+      if (rv == NS_ERROR_FILE_NO_DEVICE_SPACE ||
+          rv == NS_ERROR_FILE_ACCESS_DENIED) {
+        return RESULT_FAILURE;
+      }
+      return RESULT_RETRY;
+    }
   }
 
   auto guard = MakeScopeExit([&] { mSyncConn = nullptr; });

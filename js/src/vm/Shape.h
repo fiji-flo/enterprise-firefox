@@ -202,6 +202,7 @@ class ShapeCachePtr {
   void setShapeSetForAdd(ShapeSetForAdd* hash) {
     MOZ_ASSERT(hash);
     MOZ_ASSERT((uintptr_t(hash) & MASK) == 0);
+    MOZ_ASSERT(!isShapeSetForAdd());  // Don't leak the ShapeSet.
     bits = uintptr_t(hash) | SHAPE_SET_FOR_ADD;
   }
 

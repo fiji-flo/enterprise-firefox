@@ -29,6 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarSearchUtils:
     "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
 /**
@@ -41,8 +42,6 @@ class UrlbarInputTestUtils {
   constructor(getUrlbarInputForWindow) {
     this.#urlbar = getUrlbarInputForWindow;
   }
-
-  #urlbar;
 
   /**
    * This maps the categories used by the FX_SEARCHBAR_SELECTED_RESULT_METHOD
@@ -1360,12 +1359,13 @@ class UrlbarInputTestUtils {
    * @returns {UrlbarController} A new controller.
    */
   newMockController(options = {}) {
+    let sapName = options.sapName || "urlbar";
     // Ensure a sapName is defined, as otherwise we'd not get the same
     // ProvidersManager instance across tests.
     if (options.input && !options.input.sapName) {
       Object.defineProperty(options.input, "sapName", {
         get() {
-          return "urlbar";
+          return sapName;
         },
         configurable: true,
       });
@@ -1376,7 +1376,7 @@ class UrlbarInputTestUtils {
           input: {
             isPrivate: false,
             get sapName() {
-              return "urlbar";
+              return sapName;
             },
             onFirstResult() {
               return false;
@@ -1665,6 +1665,44 @@ class UrlbarInputTestUtils {
       }
     }
   }
+
+  /**
+   * Stubs `UrlbarUtils._zonedDateTimeISO()`. Helpful for tests that use
+   * `UrlbarUtils.formatDate()`.
+   *
+   * Browser tests should call this again with a falsey value during cleanup to
+   * remove the stub.
+   *
+   * @param {?string} nowStr
+   *   A string that will be passed to `Temporal.ZonedDateTime.from()`. It should
+   *   include a time zone offset. e.g.: "2025-05-11T00:00:00-07:00[-07:00]"
+   *   A falsey value removes the stub.
+   * @returns {typeof Temporal.ZonedDateTime}
+   *   The fake "now" date as a `ZonedDateTime`.
+   */
+  stubNowZonedDateTime(nowStr) {
+    if (!nowStr) {
+      this.#zonedDateTimeISOStub?.restore();
+      this.#zonedDateTimeISOStub = null;
+      return null;
+    }
+
+    if (!this.#zonedDateTimeISOStub) {
+      this.#zonedDateTimeISOStub = lazy.sinon.stub(
+        UrlbarUtils,
+        "_zonedDateTimeISO"
+      );
+    }
+
+    let global = Cu.getGlobalForObject(UrlbarUtils);
+    let zonedNow = global.Temporal.ZonedDateTime.from(nowStr);
+    this.#zonedDateTimeISOStub.returns(zonedNow);
+
+    return zonedNow;
+  }
+
+  #urlbar;
+  #zonedDateTimeISOStub;
 }
 
 UrlbarInputTestUtils.prototype.formHistory = {

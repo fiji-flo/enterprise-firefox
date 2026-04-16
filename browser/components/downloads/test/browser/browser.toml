@@ -80,9 +80,6 @@ support-files = [
 ]
 
 ["browser_downloads_pauseResume.js"]
-skip-if = [
-  "os == 'win' && standalone", # Bug 2028645
-]
 
 ["browser_downloads_taskbar.js"]
 

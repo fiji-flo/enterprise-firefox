@@ -7,6 +7,7 @@ package mozilla.components.feature.awesomebar.provider
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.delay
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionCategory
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionDate
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatus
 import mozilla.components.concept.awesomebar.optimizedsuggestions.SportSuggestionStatusType
@@ -69,6 +70,7 @@ class SportsOnlineSuggestionProvider(
     private fun AwesomeBar.SportItem.toSuggestionOrNull(): AwesomeBar.SportSuggestion? {
         val hasRequiredFields =
             query.isNotBlank() && sport.isNotBlank()
+        val sportCategory = parseSportCategory(sportCategory)
         val date = parseDate(date)
         val status = parseStatus(status)
         val statusType = parseStatusType(statusType)
@@ -86,6 +88,7 @@ class SportsOnlineSuggestionProvider(
                 score = Int.MAX_VALUE,
                 query = query,
                 sport = sport,
+                sportCategory = sportCategory,
                 date = date,
                 status = status,
                 statusType = statusType,
@@ -163,6 +166,20 @@ class SportsOnlineSuggestionProvider(
     internal fun parseTeam(team: AwesomeBar.SportItem.Team): SportSuggestionTeam? {
         return team.name.takeIf { it.isNotBlank() }?.let {
             SportSuggestionTeam(it, team.score)
+        }
+    }
+
+    @VisibleForTesting
+    internal fun parseSportCategory(sportCategory: String): SportSuggestionCategory {
+        return when (sportCategory) {
+            "baseball" -> SportSuggestionCategory.BASEBALL
+            "basketball" -> SportSuggestionCategory.BASKETBALL
+            "hockey" -> SportSuggestionCategory.HOCKEY
+            "soccer" -> SportSuggestionCategory.SOCCER
+            "football" -> SportSuggestionCategory.FOOTBALL
+            "golf" -> SportSuggestionCategory.GOLF
+            "racing" -> SportSuggestionCategory.RACING
+            else -> SportSuggestionCategory.MISC
         }
     }
 }

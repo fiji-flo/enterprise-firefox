@@ -45,6 +45,7 @@ class OriginAttributesPattern;
 
 namespace dom {
 class ContentChild;
+class ContentParent;
 class WindowContext;
 }  // namespace dom
 
@@ -767,6 +768,9 @@ class PermissionManager final : public nsIPermissionManager,
                                              uint32_t aActionFilter);
 
  public:
+  void TransmitBrowserPermissionsForPrincipal(
+      dom::ContentParent* aContentParent, nsIPrincipal* aPrincipal,
+      uint64_t aBrowserId);
   // Called from ContentChild IPC handlers. These are thin wrappers around
   // the internal methods, asserting we are in the content process.
   void SetBrowserPermissionFromIPC(nsIPrincipal* aPrincipal,

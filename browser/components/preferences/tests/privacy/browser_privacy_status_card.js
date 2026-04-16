@@ -8,7 +8,7 @@ const CARD_NAME = "security-privacy-card";
 const ISSUE_CONTROL_ID = "securityWarningsGroup";
 
 // Some things are set dangerously in the test environment.
-// We can supress these errors!
+// We can suppress these errors!
 const RESET_PROBLEMATIC_TEST_DEFAULTS = [
   [
     "browser.preferences.config_warning.warningAllowFingerprinters.dismissed",

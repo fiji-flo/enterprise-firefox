@@ -76,7 +76,14 @@ class TranslationsMiddleware(
             is TranslationsAction.InitTranslationsBrowserState -> {
                 scope.launch {
                     val engineIsSupported = requestEngineSupport(store)
-                    if (engineIsSupported == true && isTranslationsEnabled()) {
+                    val translationsIsEnabled = isTranslationsEnabled()
+
+                    // The default of [TranslationsBrowserState.isTranslationsEnabled] is true,
+                    // only set when false to prevent an initialization cycle.
+                    if (!translationsIsEnabled) {
+                        store.dispatch(TranslationsAction.SetTranslationsEnabledAction(false))
+                    }
+                    if (engineIsSupported == true && translationsIsEnabled) {
                         initializeBrowserStore(store)
                     }
                 }

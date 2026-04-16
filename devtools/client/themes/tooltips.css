@@ -230,7 +230,7 @@ strong {
 
 /* Tooltip: query container info */
 .devtools-tooltip-query-container {
-  color: var(--theme-arrowpanel-color);
+  color: var(--theme-body-color);
   margin: 0;
   padding: 10px 14px 12px;
   font-size: 12px;

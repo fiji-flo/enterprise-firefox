@@ -98,7 +98,7 @@ using struct mozilla::FontRange from "ipc/nsGUIEventIPC.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using mozilla::dom::EffectsInfo from "mozilla/dom/EffectsInfo.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
-using mozilla::ScrollAxis from "mozilla/PresShellForwards.h";
+using mozilla::AxisScrollParams from "mozilla/PresShellForwards.h";
 using mozilla::ScrollFlags from "mozilla/PresShellForwards.h";
 using struct InputFormData from "mozilla/dom/SessionStoreMessageUtils.h";
 using struct CollectedInputDataValue from "mozilla/dom/SessionStoreMessageUtils.h";
@@ -651,8 +651,8 @@ parent:
      */
     async MaybeFireEmbedderLoadEvents(EmbedderElementEventType aFireEventAtEmbeddingElement);
 
-    async ScrollRectIntoView(nsRect aRect, ScrollAxis aVertical,
-                             ScrollAxis aHorizontal, ScrollFlags aScrollFlags,
+    async ScrollRectIntoView(nsRect aRect, AxisScrollParams aVertical,
+                             AxisScrollParams aHorizontal, ScrollFlags aScrollFlags,
                              int32_t aAppUnitsPerDevPixel);
 
     async ShowDynamicToolbar();

@@ -45,6 +45,13 @@ object BookmarksSelectors {
         groups = listOf("bookmarkEdit"),
     )
 
+    val DELETE_BOOKMARK_BUTTON = Selector(
+        strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
+        value = getStringResource(R.string.bookmark_delete_bookmark_content_description),
+        description = "Delete bookmark button",
+        groups = listOf("bookmarkEdit"),
+    )
+
     val BOOKMARK_TITLE_TEXT = Selector(
         strategy = SelectorStrategy.COMPOSE_BY_TEXT,
         value = "Bookmark title",
@@ -58,5 +65,7 @@ object BookmarksSelectors {
         NAVIGATE_UP_BUTTON,
         EDIT_TITLE_FIELD,
         EDIT_URL_FIELD,
+        DELETE_BOOKMARK_BUTTON,
+        BOOKMARK_TITLE_TEXT,
     )
 }

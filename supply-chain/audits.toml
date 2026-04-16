@@ -4576,7 +4576,7 @@ delta = "0.2.6 -> 0.2.9"
 [[audits.mtu]]
 who = "Oskar Mansfeld <git@omansfeld.net>"
 criteria = "safe-to-deploy"
-delta = "0.3.0 -> 0.3.0@git:2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+delta = "0.3.0 -> 0.3.0@git:7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 importable = false
 
 [[audits.naga]]
@@ -6405,6 +6405,11 @@ criteria = "safe-to-deploy"
 delta = "3.10.1 -> 3.16.0"
 notes = "Big change, but nothing unsafe and lots of it is documentation and convenience APIs"
 
+[[audits.tempfile]]
+who = "Jim Blandy <jimb@red-bean.com>"
+criteria = "safe-to-deploy"
+delta = "3.16.0 -> 3.27.0"
+
 [[audits.termcolor]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -6446,6 +6451,12 @@ who = "Emilio Cobos Álvarez <emilio@crisal.io>"
 criteria = "safe-to-deploy"
 delta = "0.2.12 -> 0.2.14"
 notes = "Minor API additions, trivial no-std support, and minor inlining tweaks."
+
+[[audits.thin-vec]]
+who = "Emilio Cobos Álvarez <emilio@crisal.io>"
+criteria = "safe-to-deploy"
+delta = "0.2.14 -> 0.2.16"
+notes = "All patches either authored or reviewed by me."
 
 [[audits.thiserror]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -8537,7 +8548,7 @@ end = "2024-05-03"
 criteria = "safe-to-deploy"
 user-id = 6825 # Dan Gohman (sunfishcode)
 start = "2021-10-29"
-end = "2024-09-08"
+end = "2027-04-07"
 
 [[trusted.ryu]]
 criteria = "safe-to-deploy"

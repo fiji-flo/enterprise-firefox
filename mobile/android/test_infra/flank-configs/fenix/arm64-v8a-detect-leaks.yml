@@ -35,6 +35,7 @@ gcloud:
     - notPackage org.mozilla.fenix.ui.efficiency.tests
     - notPackage org.mozilla.fenix.ui.efficiency.examples
     - notAnnotation org.mozilla.fenix.customannotations.SkipLeaks
+    - notPackage org.mozilla.fenix.ui.efficiency.navigation.planning
 
   device:
     - model: MediumPhone.arm

@@ -166,8 +166,8 @@
   }
 
   &::before {
-    content: "·";
-    margin: 0 0.4em;
+    content: "•";
+    margin: 0 0.6em;
     opacity: 0.6;
     /* stylelint-disable-next-line media-query-no-invalid */
     @media not -moz-pref("browser.urlbar.nova.featureGate") {

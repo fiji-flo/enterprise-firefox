@@ -326,13 +326,15 @@ export const NET_ERRORS = [
     category: "blocked",
     bodyTitleL10nId: "neterror-blocked-by-policy-page-title",
     introContent: {
-      dataL10nId: "fp-neterror-offline-intro",
-      dataL10nArgs: { hostname: null },
+      dataL10nId: "fp-neterror-blocked-by-policy-intro",
     },
     descriptionParts: [],
     buttons: {
       showTryAgain: false,
       showGoBack: false,
+    },
+    customNetError: {
+      titleL10nId: "neterror-blocked-by-policy-page-title",
     },
     hasNoUserFix: true,
   },
@@ -446,8 +448,7 @@ export const NET_ERRORS = [
     category: "blocked",
     bodyTitleL10nId: "deniedPortAccess-title",
     introContent: {
-      dataL10nId: "fp-neterror-offline-intro",
-      dataL10nArgs: { hostname: null },
+      dataL10nId: "fp-neterror-denied-port-access",
     },
     descriptionParts: [],
     buttons: {
@@ -456,7 +457,6 @@ export const NET_ERRORS = [
     },
     customNetError: {
       titleL10nId: "deniedPortAccess-title",
-      whatCanYouDoL10nId: "certerror-bad-cert-domain-what-can-you-do-about-it",
     },
     hasNoUserFix: true,
   },
@@ -671,7 +671,7 @@ export const NET_ERRORS = [
       whatCanYouDoL10nId: "neterror-net-offline",
     },
     hasNoUserFix: false,
-    image: "chrome://global/skin/illustrations/no-connection.svg",
+    image: NET_ERROR_ILLUSTRATIONS.noConnection,
   },
   {
     id: "networkProtocolError",

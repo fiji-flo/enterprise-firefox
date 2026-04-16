@@ -1317,8 +1317,8 @@ void Shape::dump(js::JSONPrinter& json) const {
 
 template <typename KnownF, typename UnknownF>
 void ForEachObjectFlag(ObjectFlags flags, KnownF known, UnknownF unknown) {
-  uint16_t raw = flags.toRaw();
-  for (uint16_t i = 1; i; i = i << 1) {
+  uint32_t raw = flags.toRaw();
+  for (uint32_t i = 1; i; i = i << 1) {
     if (!(raw & i)) {
       continue;
     }

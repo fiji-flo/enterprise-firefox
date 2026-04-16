@@ -128,6 +128,9 @@ class MOZ_RAII IRGenerator {
 
   bool canOptimizeConstantDataProperty(NativeObject* holder, PropertyInfo prop,
                                        ObjectFuse** objFuse);
+  void emitGuardConstantDataProperty(NativeObject* holder,
+                                     ObjOperandId holderId, PropertyKey key,
+                                     PropertyInfo prop, ObjectFuse* objFuse);
   void emitConstantDataPropertyResult(NativeObject* holder,
                                       ObjOperandId holderId, PropertyKey key,
                                       PropertyInfo prop, ObjectFuse* objFuse);
@@ -142,6 +145,23 @@ class MOZ_RAII IRGenerator {
                                          ObjOperandId holderId, PropertyKey key,
                                          PropertyInfo prop,
                                          ObjectFuse* objFuse);
+
+  bool canOptimizeConstantNativeFunctionProperty(
+      NativeObject* obj, PropertyKey propKey, JSNative nativeFn,
+      NativeObject** holder, mozilla::Maybe<PropertyInfo>* propInfo,
+      ObjectFuse** holderFuse);
+
+  struct DateObjectToNumberInfo {
+    NativeObject* holder = nullptr;
+    ObjectFuse* holderFuse = nullptr;
+    mozilla::Maybe<PropertyInfo> valueOfProp;
+    mozilla::Maybe<PropertyInfo> toPrimitiveProp;
+  };
+  bool canOptimizeDateObjectToNumber(NativeObject* obj,
+                                     DateObjectToNumberInfo* result);
+  NumberOperandId emitGuardDateObjectToNumber(NativeObject* obj,
+                                              ValOperandId valId,
+                                              DateObjectToNumberInfo& info);
 
   gc::AllocSite* maybeCreateAllocSite();
 
@@ -1074,6 +1094,7 @@ class MOZ_RAII UnaryArithIRGenerator : public IRGenerator {
   AttachDecision tryAttachBigIntPtr();
   AttachDecision tryAttachStringInt32();
   AttachDecision tryAttachStringNumber();
+  AttachDecision tryAttachDateToNumber();
 
   void trackAttached(const char* name /* must be a C string literal */);
 

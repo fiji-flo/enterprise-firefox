@@ -1143,6 +1143,14 @@ void DataChannel::EndOfStream() {
   }
 }
 
+RefPtr<dom::RTCDataChannel> DataChannel::GetDomDataChannel() const {
+  MOZ_ASSERT(mDomEventTarget->IsOnCurrentThread());
+  if (NS_IsMainThread()) {
+    return mMainthreadDomDataChannel;
+  }
+  return mWorkerDomDataChannel;
+}
+
 void DataChannelConnection::FinishClose_s(const RefPtr<DataChannel>& aChannel) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
 

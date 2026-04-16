@@ -19,6 +19,7 @@
 #include "mozilla/FileUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/intl/Localization.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/widget/WinTaskbar.h"
 #include "mozilla/WindowsVersion.h"
@@ -36,6 +37,7 @@
 #include "nsIOutputStream.h"
 #include "nsIPrefService.h"
 #include "nsIStringBundle.h"
+#include "nsITimer.h"
 #include "nsIWindowsRegKey.h"
 #include "nsIXULAppInfo.h"
 #include "nsLocalFile.h"
@@ -44,6 +46,7 @@
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
 #include "nsShellService.h"
+#include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsWindowsHelpers.h"
 #include "nsXULAppAPI.h"
@@ -57,6 +60,7 @@
 #include <mbstring.h>
 #include <objbase.h>
 #include <propkey.h>
+#include <uiautomation.h>
 #include <propvarutil.h>
 #include <shellapi.h>
 #include <strsafe.h>
@@ -508,6 +512,35 @@ nsWindowsShellService::LaunchModernSettingsDialogDefaultApps() {
   return ::LaunchModernSettingsDialogDefaultApps() ? NS_OK : NS_ERROR_FAILURE;
 }
 
+static void FocusSetDefaultBrowserButton() {
+  nsCOMPtr<nsISerialEventTarget> serialEventTarget;
+  const nsresult nsr{NS_CreateBackgroundTaskQueue(
+      "FocusSetDefaultBrowserButtonQueue", getter_AddRefs(serialEventTarget))};
+  if (NS_FAILED(nsr)) {
+    return;
+  }
+
+  auto attempts{std::make_shared<int>(0)};
+  auto timer{std::make_shared<nsCOMPtr<nsITimer>>()};
+  auto timerCallback{[attempts, timer](nsITimer* aTimer) {
+    const int kMaxAttempts{40};
+    if (++(*attempts) > kMaxAttempts) {
+      aTimer->Cancel();
+      return;
+    }
+    auto [window, button]{FindSetDefaultBrowserButton()};
+    if (window && button) {
+      FocusElement(window, button);
+      aTimer->Cancel();
+    }
+  }};
+  const uint32_t kRetryDelayMs{500};
+  NS_NewTimerWithCallback(getter_AddRefs(*timer), timerCallback, kRetryDelayMs,
+                          nsITimer::TYPE_REPEATING_SLACK,
+                          "FocusSetDefaultBrowserButtonTimer"_ns,
+                          serialEventTarget);
+}
+
 NS_IMETHODIMP
 nsWindowsShellService::SetDefaultBrowser(bool aForAllUsers) {
   // If running from within a package, don't attempt to set default with
@@ -529,9 +562,14 @@ nsWindowsShellService::SetDefaultBrowser(bool aForAllUsers) {
 
   if (NS_SUCCEEDED(rv)) {
     rv = LaunchModernSettingsDialogDefaultApps();
-    // The above call should never really fail, but just in case
-    // fall back to showing control panel for all defaults
-    if (NS_FAILED(rv)) {
+    if (NS_SUCCEEDED(rv)) {
+      if (Preferences::GetBool("browser.shell.focusSetDefaultBrowserButton",
+                               false)) {
+        FocusSetDefaultBrowserButton();
+      }
+    } else {
+      // The above call should never really fail, but just in case
+      // fall back to showing control panel for all defaults
       rv = LaunchControlPanelDefaultsSelectionUI();
     }
   }

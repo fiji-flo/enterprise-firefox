@@ -829,9 +829,9 @@ export class UrlbarProviderAutofill extends UrlbarProvider {
             (stripped_url COLLATE NOCASE BETWEEN 'www.' || :searchString AND 'www.' || :searchString || X'FFFF')
           )
           AND (:blockingEnabled = 0 OR o.block_until_ms IS NULL OR o.block_until_ms <= :nowMs
-            OR strip_prefix_and_userinfo(h.url) != fixup_url(o.host) || '/')
+            OR fixup_url(h.url) != fixup_url(o.host) || '/')
           AND (:blockingEnabled = 0 OR o.block_pages_until_ms IS NULL OR o.block_pages_until_ms <= :nowMs
-            OR strip_prefix_and_userinfo(h.url) = fixup_url(o.host) || '/')
+            OR fixup_url(h.url) = fixup_url(o.host) || '/')
         ORDER BY is_exact_match DESC, i.use_count DESC, h.frecency DESC, h.id DESC
         LIMIT 1
       )

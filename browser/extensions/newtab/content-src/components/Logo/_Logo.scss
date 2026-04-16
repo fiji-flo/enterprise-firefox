@@ -1,6 +1,13 @@
 .logo-and-wordmark-wrapper {
   // Override default h1 margins
   margin-block: 0;
+
+  .nova-enabled .content & {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+  }
+
 }
 
 .logo-and-wordmark {
@@ -20,6 +27,13 @@
         display: inline-block;
       }
     }
+  }
+
+  .nova-enabled .content & {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
   }
 
   align-items: center;

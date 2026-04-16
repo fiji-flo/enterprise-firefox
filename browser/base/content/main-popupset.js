@@ -96,9 +96,6 @@ document.addEventListener(
             false
           );
           break;
-        case "context_deleteNote":
-          TabContextMenu.deleteTabNotes();
-          break;
         case "context_moveToStart":
           gBrowser.moveTabsToStart(TabContextMenu.contextTab);
           break;

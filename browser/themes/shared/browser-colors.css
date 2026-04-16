@@ -48,14 +48,6 @@
       --focus-outline-color: light-dark(#0061e0, #00ddff);
     }
   }
-
-  @media (prefers-color-scheme: dark) {
-    /* Increase the contrast of urlbar boxes in dark mode.
-       In practice these are bumped-up --button(-hover)-bgcolor rules */
-    --urlbar-box-background-color: color-mix(in srgb, currentColor 16%, transparent);
-    --urlbar-box-background-color-focus: color-mix(in srgb, currentColor 16%, transparent);
-    --urlbar-box-background-color-hover: color-mix(in srgb, currentColor 22%, transparent);
-  }
 }
 
 /**
@@ -71,13 +63,6 @@
     --button-background-color-hover: light-dark(rgba(207, 207, 216, 0.66), rgba(207, 207, 216, 0.2));
     --button-background-color-active: light-dark(rgb(207, 207, 216), rgba(207, 207, 216, 0.4));
     --button-text-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
-
-    --arrowpanel-background: light-dark(white, rgb(66, 65, 77));
-    --arrowpanel-color: light-dark(black, rgb(251, 251, 254));
-    --arrowpanel-border-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
-
-    --arrowpanel-dimmed: light-dark(color-mix(in srgb, currentColor 12%, transparent), color-mix(in srgb, currentColor 17%, transparent));
-    --arrowpanel-dimmed-further: light-dark(color-mix(in srgb, currentColor 20%, transparent), color-mix(in srgb, currentColor 14%, transparent));
 
     --input-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
     --input-bgcolor: light-dark(rgb(255, 255, 255), #42414d);

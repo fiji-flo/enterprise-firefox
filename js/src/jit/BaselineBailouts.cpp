@@ -1750,7 +1750,7 @@ static bool CopyFromRematerializedFrame(JSContext* cx, JitActivation* act,
   // in InitFromBailout.
   if (rematFrame->isDebuggee()) {
     frame->setIsDebuggee();
-    return DebugAPI::handleIonBailout(cx, rematFrame, frame);
+    DebugAPI::handleIonBailout(cx, rematFrame, frame);
   }
 
   return true;

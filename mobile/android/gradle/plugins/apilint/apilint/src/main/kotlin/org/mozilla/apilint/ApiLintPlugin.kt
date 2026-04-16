@@ -114,7 +114,7 @@ class ApiLintPlugin : Plugin<Project> {
                         val apiFile = apiFileProvider.get().asFile
                         val currentApiFile = currentApiFileProvider.get().asFile
 
-                        task.args("--existing", currentApiFile, "--local", apiFile, "--command", extension.helpCommand.get()(name).toString())
+                        task.args("--existing", currentApiFile, "--local", apiFile, "--command", extension.helpCommand.get()(name))
                     }
                 }
 

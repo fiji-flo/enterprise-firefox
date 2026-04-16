@@ -108,8 +108,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2511 use counter metrics (excludes denominators).
-# Total of 389 'page' use counters.
+# Total of 2523 use counter metrics (excludes denominators).
+# Total of 392 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -5432,6 +5432,57 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
+  serial_getports:
+    type: counter
+    description: >
+      Whether a page called called Serial.getPorts.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serial_requestport:
+    type: counter
+    description: >
+      Whether a page called called Serial.requestPort.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serialport_open:
+    type: counter
+    description: >
+      Whether a page called called SerialPort.open.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   window_open_empty_url:
     type: counter
     description: >
@@ -6724,7 +6775,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 389 'document' use counters.
+# Total of 392 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -12047,6 +12098,57 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
+  serial_getports:
+    type: counter
+    description: >
+      Whether a document called called Serial.getPorts.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serial_requestport:
+    type: counter
+    description: >
+      Whether a document called called Serial.requestPort.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serialport_open:
+    type: counter
+    description: >
+      Whether a document called called SerialPort.open.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   window_open_empty_url:
     type: counter
     description: >
@@ -13339,7 +13441,7 @@ use.counter.doc:
     send_in_pings:
       - use-counters
 
-# Total of 65 'dedicated worker' use counters.
+# Total of 67 'dedicated worker' use counters.
 use.counter.worker.dedicated:
   pushmanager_subscribe:
     type: counter
@@ -14446,7 +14548,41 @@ use.counter.worker.dedicated:
     send_in_pings:
       - use-counters
 
-# Total of 65 'shared worker' use counters.
+  serial_getports:
+    type: counter
+    description: >
+      Whether a dedicated worker called called Serial.getPorts.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serialport_open:
+    type: counter
+    description: >
+      Whether a dedicated worker called called SerialPort.open.
+      Compare against `use.counter.dedicated_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+# Total of 67 'shared worker' use counters.
 use.counter.worker.shared:
   pushmanager_subscribe:
     type: counter
@@ -15553,7 +15689,41 @@ use.counter.worker.shared:
     send_in_pings:
       - use-counters
 
-# Total of 65 'service worker' use counters.
+  serial_getports:
+    type: counter
+    description: >
+      Whether a shared worker called called Serial.getPorts.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serialport_open:
+    type: counter
+    description: >
+      Whether a shared worker called called SerialPort.open.
+      Compare against `use.counter.shared_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+# Total of 67 'service worker' use counters.
 use.counter.worker.service:
   pushmanager_subscribe:
     type: counter
@@ -16647,6 +16817,40 @@ use.counter.worker.service:
     type: counter
     description: >
       Whether a service worker called called NotificationOptions.actions.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serial_getports:
+    type: counter
+    description: >
+      Whether a service worker called called Serial.getPorts.
+      Compare against `use.counter.service_workers_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  serialport_open:
+    type: counter
+    description: >
+      Whether a service worker called called SerialPort.open.
       Compare against `use.counter.service_workers_destroyed`
       to calculate the rate.
     bugs:

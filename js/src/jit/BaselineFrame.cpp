@@ -129,7 +129,7 @@ void BaselineFrame::setInterpreterFieldsForPrologue(JSScript* script) {
   }
 }
 
-bool BaselineFrame::initForOsr(InterpreterFrame* fp, uint32_t numStackValues) {
+void BaselineFrame::initForOsr(InterpreterFrame* fp, uint32_t numStackValues) {
   mozilla::PodZero(this);
 
   envChain_ = fp->environmentChain();
@@ -177,11 +177,7 @@ bool BaselineFrame::initForOsr(InterpreterFrame* fp, uint32_t numStackValues) {
   if (fp->isDebuggee()) {
     // For debuggee frames, update any Debugger.Frame objects for the
     // InterpreterFrame to point to the BaselineFrame.
-    if (!DebugAPI::handleBaselineOsr(cx, fp, this)) {
-      return false;
-    }
+    DebugAPI::handleBaselineOsr(cx, fp, this);
     setIsDebuggee();
   }
-
-  return true;
 }

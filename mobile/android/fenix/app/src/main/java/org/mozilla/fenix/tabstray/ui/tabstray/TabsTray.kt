@@ -28,7 +28,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +61,7 @@ import org.mozilla.fenix.tabstray.ui.fab.TabManagerFloatingToolbar
 import org.mozilla.fenix.tabstray.ui.tabpage.NormalTabsPage
 import org.mozilla.fenix.tabstray.ui.tabpage.PrivateTabsPage
 import org.mozilla.fenix.tabstray.ui.tabpage.SyncedTabsPage
+import org.mozilla.fenix.tabstray.ui.tabpage.TabGroupsPage
 import org.mozilla.fenix.tabstray.ui.theme.TabManagerThemeProvider
 import org.mozilla.fenix.theme.FirefoxTheme
 import mozilla.components.browser.storage.sync.Tab as SyncTab
@@ -164,9 +164,13 @@ fun TabsTray(
     onUnlockPbmClick: () -> Unit,
 ) {
     val tabsTrayState by tabsTrayStore.stateFlow.collectAsState()
+    val shouldShowTabGroupsPage = tabsTrayState.config.tabGroupsEnabled
     val pagerState = rememberPagerState(
-        initialPage = Page.pageToPosition(tabsTrayState.selectedPage),
-        pageCount = { Page.entries.size },
+        initialPage = Page.pageToPosition(
+            page = tabsTrayState.selectedPage,
+            shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+        ),
+        pageCount = { Page.visiblePages(shouldShowTabGroupsPage).size },
     )
     val syncedTabCount = remember(tabsTrayState.sync.syncedTabs) {
         tabsTrayState.sync.syncedTabs
@@ -180,14 +184,14 @@ fun TabsTray(
     }
 
     val topAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val isScrolled by remember(topAppBarScrollBehavior.state) {
-        derivedStateOf {
-            topAppBarScrollBehavior.state.collapsedFraction == 1f
-        }
-    }
 
-    LaunchedEffect(tabsTrayState.selectedPage) {
-        pagerState.animateScrollToPage(Page.pageToPosition(tabsTrayState.selectedPage))
+    LaunchedEffect(tabsTrayState.selectedPage, shouldShowTabGroupsPage) {
+        pagerState.animateScrollToPage(
+            Page.pageToPosition(
+                page = tabsTrayState.selectedPage,
+                shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+            ),
+        )
     }
 
     Scaffold(
@@ -207,6 +211,8 @@ fun TabsTray(
                 selectedPage = tabsTrayState.selectedPage,
                 normalTabCount = tabsTrayState.normalTabs.size + tabsTrayState.inactiveTabs.tabs.size,
                 privateTabCount = tabsTrayState.privateBrowsing.tabs.size,
+                shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+                tabGroupCount = tabsTrayState.tabGroups.size,
                 syncedTabCount = syncedTabCount,
                 selectionMode = tabsTrayState.mode,
                 isInDebugMode = tabsTrayState.config.isInDebugMode,
@@ -237,7 +243,6 @@ fun TabsTray(
         floatingActionButton = {
             TabManagerFloatingToolbar(
                 tabsTrayStore = tabsTrayStore,
-                expanded = !isScrolled,
                 isSignedIn = tabsTrayState.sync.isSignedIn,
                 pbmLocked = tabsTrayState.privateBrowsing.isLocked,
                 onOpenNewNormalTabClicked = onOpenNewNormalTabClicked,
@@ -259,7 +264,7 @@ fun TabsTray(
                 state = pagerState,
                 userScrollEnabled = false,
             ) { position ->
-                when (Page.positionToPage(position)) {
+                when (Page.positionToPage(position, shouldShowTabGroupsPage)) {
                     Page.NormalTabs -> {
                         NormalTabsPage(
                             normalTabs = tabsTrayState.normalTabs,
@@ -289,6 +294,9 @@ fun TabsTray(
                             },
                             onDeleteTabGroup = { group ->
                                 tabsTrayStore.dispatch(TabGroupAction.DeleteClicked(group))
+                            },
+                            editTabGroupClick = { group ->
+                                tabsTrayStore.dispatch(TabGroupAction.EditTabGroupClicked(group = group))
                             },
                         )
                     }
@@ -320,6 +328,10 @@ fun TabsTray(
                                 tabsTrayStore.dispatch(TabsTrayAction.SyncedTabsHeaderToggled(i))
                             },
                         )
+                    }
+
+                    Page.TabGroups -> {
+                        TabGroupsPage()
                     }
                 }
             }

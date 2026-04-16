@@ -691,14 +691,6 @@ nsresult nsHttpHandler::AddAcceptAndDictionaryHeaders(
 
             nsAutoCStringN<64> encodedHash = ":"_ns + aDict->GetHash() + ":"_ns;
 
-            // Need to retain access to the dictionary until the request
-            // completes. Note that this includes if the dictionary we offered
-            // gets replaced by another request while we're waiting for a
-            // response; in that case we need to read in a copy of the
-            // dictionary into memory before overwriting it and store in dict
-            // temporarily.
-            aRequest->SetDictionary(aDict);
-
             // We want to make sure that the cache entry doesn't disappear out
             // from under us if we set the header, so do the callback to
             // Prefetch() the entry before adding the headers (so we don't
@@ -710,6 +702,14 @@ nsresult nsHttpHandler::AddAcceptAndDictionaryHeaders(
             if ((aCallback)(aNeedsResume, aDict)) {
               LOG_DICTIONARIES(
                   ("Setting Available-Dictionary: %s", encodedHash.get()));
+              // Need to retain access to the dictionary until the request
+              // completes. Note that this includes if the dictionary we offered
+              // gets replaced by another request while we're waiting for a
+              // response; in that case we need to read in a copy of the
+              // dictionary into memory before overwriting it and store in dict
+              // temporarily.
+              aRequest->SetDictionary(aDict);
+
               nsresult rv = aRequest->SetHeader(
                   nsHttp::Available_Dictionary, encodedHash, false,
                   nsHttpHeaderArray::eVarietyRequestOverride);
@@ -729,7 +729,7 @@ nsresult nsHttpHandler::AddAcceptAndDictionaryHeaders(
               return aRequest->SetHeader(
                   nsHttp::Accept_Encoding, self->mDictionaryAcceptEncodings,
                   false, nsHttpHeaderArray::eVarietyRequestOverride);
-            }
+            }  // else probably Prefetch failed
             return NS_OK;
           });
     }

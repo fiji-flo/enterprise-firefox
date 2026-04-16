@@ -129,7 +129,7 @@ abstract class BasePage(
     // Page readiness verification (CMD + LOC)
     // ------------------------------------------------------------
 
-    private fun mozWaitForPageToLoad(timeout: Long = 10_000, interval: Long = 500): Boolean {
+    private fun mozWaitForPageToLoad(timeout: Long = 10_000, interval: Long = 100): Boolean {
         val rep = rep()
         val requiredSelectors = mozGetSelectorsByGroup("requiredForPage")
         val deadline = System.currentTimeMillis() + timeout
@@ -206,6 +206,35 @@ abstract class BasePage(
 
         if (!allPresent) throw AssertionError("Not all elements in group '$group' are present")
         return this
+    }
+
+    fun mozVerifyElementAbsent(selector: Selector): BasePage {
+        val rep = rep()
+        rep?.startCmd(safeId("verify_absent", selector.description), "Verifying '${selector.description}' is absent...", 1)
+        rep?.startLoc(safeId("loc", selector.description), "Attempting to locate '${selector.description}'...", 2)
+        val present = mozVerifyElement(selector, applyPreconditions = false)
+        rep?.endLoc(success = !present, message = if (!present) notFound(selector.description) else found(selector.description))
+        rep?.endCmd(success = !present, message = if (!present) "'${selector.description}' correctly absent" else "'${selector.description}' unexpectedly present")
+        if (present) throw AssertionError("Element '${selector.description}' was expected to be absent but is visible")
+        return this
+    }
+
+    fun mozVerify(selector: Selector, timeout: Long = 5_000, interval: Long = 500): BasePage {
+        val rep = rep()
+        rep?.startCmd(safeId("verify", selector.description), "Verifying '${selector.description}' is present...", 1)
+        val deadline = System.currentTimeMillis() + timeout
+        while (System.currentTimeMillis() < deadline) {
+            rep?.startLoc(safeId("loc", selector.description), "Attempting to locate '${selector.description}'...", 2)
+            val present = mozVerifyElement(selector, applyPreconditions = false)
+            rep?.endLoc(success = present, message = if (present) found(selector.description) else notFound(selector.description))
+            if (present) {
+                rep?.endCmd(success = true, message = "'${selector.description}' verified")
+                return this
+            }
+            android.os.SystemClock.sleep(interval)
+        }
+        rep?.endCmd(success = false, message = "'${selector.description}' not found after ${timeout}ms")
+        throw AssertionError("'${selector.description}' not found on screen after ${timeout}ms")
     }
 
     // ------------------------------------------------------------
@@ -457,6 +486,7 @@ abstract class BasePage(
 
             SelectorStrategy.ESPRESSO_BY_TEXT -> onView(withText(selector.value))
             SelectorStrategy.ESPRESSO_BY_CONTENT_DESC -> onView(withContentDescription(selector.value))
+            SelectorStrategy.ESPRESSO_BY_RES_NAME -> onView(androidx.test.espresso.matcher.ViewMatchers.withResourceName(org.hamcrest.Matchers.containsString(selector.value)))
 
             SelectorStrategy.UIAUTOMATOR2_BY_CLASS -> {
                 val obj = mDevice.findObject(By.clazz(selector.value))
@@ -567,12 +597,11 @@ abstract class BasePage(
             rep?.endLoc(success = true, message = found(selector.description))
         }
 
-        // handle element type mapping here for different locator libraries
-        // TODO (I. RIOS 3/20/2026): add Espresso and UIAutomator support
         try {
             when (element) {
-                // add Espresso and UIAutomator apis later
                 is SemanticsNodeInteraction -> element.performTextClearance()
+                is ViewInteraction -> element.perform(androidx.test.espresso.action.ViewActions.clearText())
+                is UiObject -> element.clearTextField()
                 else -> throw AssertionError("Unsupported element type (${element::class.simpleName}) for selector: ${selector.description}")
             }
 

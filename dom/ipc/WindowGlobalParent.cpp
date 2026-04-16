@@ -10,7 +10,6 @@
 #include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/BounceTrackingProtection.h"
-#include "mozilla/BounceTrackingStorageObserver.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
 #include "mozilla/ContentBlockingAllowList.h"
@@ -43,6 +42,7 @@
 #include "mozilla/dom/Navigation.h"
 #include "mozilla/dom/NavigatorLogin.h"
 #include "mozilla/dom/PBackgroundSessionStorageCache.h"
+#include "mozilla/dom/SerialManagerParent.h"
 #include "mozilla/dom/UseCounterMetrics.h"
 #include "mozilla/dom/WebAuthnTransactionParent.h"
 #include "mozilla/dom/WebIdentityParent.h"
@@ -95,6 +95,20 @@ extern mozilla::LazyLogModule gSHIPBFCacheLog;
 extern mozilla::LazyLogModule gUseCountersLog;
 
 namespace mozilla::dom {
+
+/**
+ * Accumulated page use counter data for a given top-level content document.
+ */
+struct PageUseCounters {
+  // The number of page use counter data messages we are still waiting for.
+  uint32_t mWaiting = 0;
+
+  // Whether we have received any page use counter data.
+  bool mReceivedAny = false;
+
+  // The accumulated page use counters.
+  UseCounters mUseCounters;
+};
 
 WindowGlobalParent::WindowGlobalParent(
     CanonicalBrowsingContext* aBrowsingContext, uint64_t aInnerWindowId,
@@ -1131,20 +1145,6 @@ void WindowGlobalParent::DrawSnapshotInternal(gfx::CrossProcessPaint* aPaint,
       });
 }
 
-/**
- * Accumulated page use counter data for a given top-level content document.
- */
-struct PageUseCounters {
-  // The number of page use counter data messages we are still waiting for.
-  uint32_t mWaiting = 0;
-
-  // Whether we have received any page use counter data.
-  bool mReceivedAny = false;
-
-  // The accumulated page use counters.
-  UseCounters mUseCounters;
-};
-
 mozilla::ipc::IPCResult WindowGlobalParent::RecvExpectPageUseCounters(
     const MaybeDiscarded<WindowContext>& aTop) {
   if (aTop.IsNull()) {
@@ -1808,8 +1808,7 @@ void WindowGlobalParent::SetShouldReportHasBlockedOpaqueResponse(
 
 IPCResult WindowGlobalParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
-    nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
-    const nsTArray<CookieStruct>& aCookies) {
+    nsIURI* aHost, bool aIsThirdParty, const nsTArray<CookieStruct>& aCookies) {
   // Get CookieServiceParent via
   // ContentParent->NeckoParent->CookieServiceParent.
   ContentParent* contentParent = GetContentParent();
@@ -1823,15 +1822,8 @@ IPCResult WindowGlobalParent::RecvSetCookies(
   NS_ENSURE_TRUE(csParent, IPC_OK());
   auto* cs = static_cast<net::CookieServiceParent*>(csParent);
 
-  return cs->SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,
-                        aIsThirdParty, aCookies, GetBrowsingContext());
-}
-
-IPCResult WindowGlobalParent::RecvOnInitialStorageAccess() {
-  DebugOnly<nsresult> rv =
-      BounceTrackingStorageObserver::OnInitialStorageAccess(this);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to notify storage access");
-  return IPC_OK();
+  return cs->SetCookies(aBaseDomain, aOriginAttributes, aHost, aIsThirdParty,
+                        aCookies, GetBrowsingContext());
 }
 
 IPCResult WindowGlobalParent::RecvRecordUserActivationForBTP() {
@@ -1867,7 +1859,18 @@ IPCResult WindowGlobalParent::RecvRecordUserInteractionForPermissions() {
   if (permMgr) {
     (void)permMgr->UpdateLastInteractionForPrincipal(principal);
   }
+  return IPC_OK();
+}
 
+already_AddRefed<PSerialManagerParent>
+WindowGlobalParent::AllocPSerialManagerParent() {
+  return MakeAndAddRef<SerialManagerParent>();
+}
+
+mozilla::ipc::IPCResult WindowGlobalParent::RecvPSerialManagerConstructor(
+    PSerialManagerParent* aActor) {
+  auto* manager = static_cast<SerialManagerParent*>(aActor);
+  manager->Init(BrowsingContext()->GetBrowserId());
   return IPC_OK();
 }
 

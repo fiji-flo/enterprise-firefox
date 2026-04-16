@@ -538,6 +538,12 @@ void LIRGenerator::visitReturnFromCtor(MReturnFromCtor* ins) {
 
 void LIRGenerator::visitBoxNonStrictThis(MBoxNonStrictThis* ins) {
   MOZ_ASSERT(ins->type() == MIRType::Object);
+
+  if (ins->input()->type() == MIRType::Object) {
+    redefine(ins, ins->input());
+    return;
+  }
+
   MOZ_ASSERT(ins->input()->type() == MIRType::Value);
 
   auto* lir = new (alloc()) LBoxNonStrictThis(useBox(ins->input()));
@@ -5044,16 +5050,6 @@ void LIRGenerator::visitObjectKeys(MObjectKeys* ins) {
 
 void LIRGenerator::visitObjectKeysFromIterator(MObjectKeysFromIterator* ins) {
   MOZ_CRASH("ObjectKeysFromIterator is purely for recovery purposes.");
-}
-
-void LIRGenerator::visitObjectKeysLength(MObjectKeysLength* ins) {
-  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
-  MOZ_ASSERT(ins->type() == MIRType::Int32);
-
-  auto* lir =
-      new (alloc()) LObjectKeysLength(useRegisterAtStart(ins->object()));
-  defineReturn(lir, ins);
-  assignSafepoint(lir, ins);
 }
 
 void LIRGenerator::visitStringSplit(MStringSplit* ins) {

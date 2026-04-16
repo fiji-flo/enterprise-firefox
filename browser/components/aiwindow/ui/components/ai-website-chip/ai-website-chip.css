@@ -11,7 +11,8 @@
   --chip-text-color: var(--color-gray-100);
   --chip-text-color-deemphasized: color-mix(in srgb, var(--color-gray-100) 69%, transparent);
   --chip-text-color-empty: color-mix(in srgb, var(--color-gray-100) 60%, transparent);
-  --chip-label-mask-size: 1em;
+  --chip-hover-text-color: var(--chip-text-color);
+  --chip-selected-text-color: var(--chip-text-color);
 
   --context-chip-hover-background-color: light-dark(color-mix(in srgb, var(--color-violet-50) 15%, transparent), var(--color-violet-110));
   --context-chip-background-color: light-dark(var(--color-violet-0), var(--color-violet-80));
@@ -19,6 +20,31 @@
   --context-chip-border-color: light-dark(transparent, var(--color-violet-80));
   --context-chip-hover-border-color: light-dark(color-mix(in srgb, var(--color-violet-20) 50%, transparent), var(--color-violet-80));
   --context-chip-remove-hover-background-color: light-dark(transparent, var(--color-violet-80));
+  --context-chip-hover-label-color: var(--context-chip-label-color);
+
+  --chip-label-mask-size: 1em;
+
+  @media (forced-colors) {
+    --chip-border-color: var(--button-border-color);
+    --chip-hover-border-color: var(--button-border-color-hover);
+    --chip-selected-border-color: var(--button-border-color-selected);
+    --chip-hover-background-color: var(--button-background-color-hover);
+    --chip-selected-background-color: var(--button-background-color-selected);
+    --chip-text-color: var(--button-text-color);
+    --chip-text-color-deemphasized: var(--button-text-color);
+    --text-color-deemphasized: var(--chip-text-color-deemphasized);
+    --chip-text-color-empty: var(--chip-text-color);
+    --chip-hover-text-color: var(--button-text-color-hover);
+    --chip-selected-text-color: var(--button-text-color-selected);
+
+    --context-chip-background-color: var(--button-background-color);
+    --context-chip-hover-background-color: var(--button-background-color-hover);
+    --context-chip-label-color: var(--button-text-color);
+    --context-chip-border-color: var(--button-border-color);
+    --context-chip-hover-border-color: var(--button-border-color-hover);
+    --context-chip-remove-hover-background-color: var(--button-background-color-hover);
+    --context-chip-hover-label-color: var(--button-text-color-hover);
+  }
 }
 
 /* Shared base styles */
@@ -82,11 +108,12 @@ button.chip {
 }
 
 .chip-remove-icon {
-  -moz-context-properties: fill;
   box-sizing: border-box;
   width: var(--size-item-small);
   height: var(--size-item-small);
   padding: var(--space-xxsmall);
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 /* Type: In-line */
@@ -118,9 +145,13 @@ button.chip {
   word-break: break-all;
 }
 
-:host([type="in-line"]) .chip:hover .chip-label,
 :host([type="in-line"]) .chip-at {
   color: var(--text-color, var(--chip-text-color));
+}
+
+:host([type="in-line"]) .chip:hover .chip-label,
+:host([type="in-line"]) .chip:hover .chip-at {
+  color: var(--text-color, var(--chip-hover-text-color));
 }
 
 :host([type="in-line"]) .chip[data-empty] .chip-label {
@@ -134,7 +165,8 @@ button.chip {
   --background-color-box: var(--context-chip-background-color);
 
   padding: var(--space-small);
-  border: 1px solid var(--context-chip-border-color);
+  border: 1px solid;
+  border-color: var(--context-chip-border-color);
   background-color: var(--background-color-box);
 
   &:hover {
@@ -167,6 +199,10 @@ button.chip {
   }
 }
 
+:host([type="context-chip"]) .chip:hover .chip-label {
+  color: var(--context-chip-hover-label-color);
+}
+
 :host([type="context-chip"]) .chip-label {
   --text-color: var(--context-chip-label-color);
 
@@ -185,4 +221,5 @@ button.chip {
 :host([selected]) .chip:not(:hover) {
   background-color: var(--chip-selected-background-color);
   border-color: var(--chip-selected-border-color);
+  color: var(--chip-selected-text-color);
 }

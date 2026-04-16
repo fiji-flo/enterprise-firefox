@@ -353,6 +353,10 @@ bool SavedFrame::HashPolicy::match(SavedFrame* existing, const Lookup& lookup) {
     return false;
   }
 
+  if (existing->getMutedErrors() != lookup.mutedErrors) {
+    return false;
+  }
+
   return true;
 }
 

@@ -1177,17 +1177,19 @@ export class HTTP3Server {
     // Execute the regex on the input string
     let match = regex.exec(result.output);
 
-    if (match) {
-      // Extract the ports as an array of numbers
-      let ports = match.slice(1, 7).map(Number);
-      this._port = ports[0];
-      this._reverse_proxy_port = ports[3];
-      this._no_response_port = ports[4];
-      this._masque_proxy_port = ports[5];
-      return ports[0];
+    if (!match) {
+      throw new Error(
+        `HTTP3Server: unexpected server output: ${result.output.slice(0, 500)}`
+      );
     }
 
-    return undefined;
+    // Extract the ports as an array of numbers
+    let ports = match.slice(1, 7).map(Number);
+    this._port = ports[0];
+    this._reverse_proxy_port = ports[3];
+    this._no_response_port = ports[4];
+    this._masque_proxy_port = ports[5];
+    return ports[0];
   }
 }
 

@@ -7,11 +7,17 @@
 #include "gc/PublicIterators.h"
 #include "vm/JSObject.h"
 
+#include "gc/AtomMarking-inl.h"
 #include "gc/Marking-inl.h"
 #include "gc/StoreBuffer-inl.h"
 
 using namespace js;
 using namespace js::gc;
+
+void js::gc::MarkSymbolForWeakMapReadBarrier(JS::Zone* zone, JS::Symbol* sym) {
+  MOZ_ASSERT(zone && !zone->isAtomsZone());
+  zone->runtimeFromMainThread()->gc.atomMarking.inlinedMarkAtom(zone, sym);
+}
 
 WeakMapBase::WeakMapBase(JSObject* memOf, Zone* zone)
     : memberOf(memOf), zone_(zone) {

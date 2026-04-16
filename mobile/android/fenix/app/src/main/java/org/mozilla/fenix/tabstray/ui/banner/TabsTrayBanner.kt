@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
 import mozilla.components.compose.base.text.Text
+import mozilla.components.ui.tabcounter.TabCounter
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Banner
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
@@ -67,16 +68,14 @@ private const val TAB_COUNT_SHOW_CFR = 6
 private val RowHeight = 48.dp
 private val TabIndicatorRoundedCornerDp = 100.dp
 
-// Reflects TopAppBarTitleInset private val value in AppBar code
-// https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/AppBar.kt;l=3487?q=TopAppBarTitleInset&sq
-private val TopAppBarTitleInset = 16.dp
-
 /**
  * Top-level UI for displaying the banner in [TabsTray].
  *
  * @param selectedPage The current page the Tabs Tray is on.
  * @param normalTabCount The total number of open normal tabs.
  * @param privateTabCount The total number of open private tabs.
+ * @param shouldShowTabGroupsPage Whether to show the tab groups page.
+ * @param tabGroupCount The total number of open tab groups.
  * @param syncedTabCount The total number of open synced tabs.
  * @param selectionMode [TabsTrayState.Mode] indicating the current selection mode (e.g., normal, multi-select).
  * @param isInDebugMode True for debug variant or if secret menu is enabled for this session.
@@ -106,6 +105,8 @@ fun TabsTrayBanner(
     selectedPage: Page,
     normalTabCount: Int,
     privateTabCount: Int,
+    shouldShowTabGroupsPage: Boolean,
+    tabGroupCount: Int,
     syncedTabCount: Int,
     selectionMode: Mode,
     isInDebugMode: Boolean,
@@ -170,6 +171,8 @@ fun TabsTrayBanner(
                 selectedPage = selectedPage,
                 normalTabCount = normalTabCount,
                 privateTabCount = privateTabCount,
+                shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+                tabGroupCount = tabGroupCount,
                 syncedTabCount = syncedTabCount,
                 statusBarHeight = statusBarHeight,
                 onTabPageIndicatorClicked = onTabPageIndicatorClicked,
@@ -241,28 +244,33 @@ private fun BannerPadding(
  * @param selectedPage The currently-active tab [Page].
  * @param normalTabCount The amount of open Normal tabs.
  * @param privateTabCount The amount of open Private tabs.
+ * @param shouldShowTabGroupsPage Whether to show the tab groups page.
+ * @param tabGroupCount The amount of tab groups.
  * @param syncedTabCount The amount of synced tabs.
  * @param statusBarHeight The height of the system status bar.
  * @param onTabPageIndicatorClicked Invoked when the user clicks on a tab page button. Passes along the
  * [Page] that was clicked.
  */
-@Suppress("DEPRECATION", "LongMethod")
+@Suppress("LongParameterList")
 @Composable
 private fun TabPageBanner(
     selectedPage: Page,
     normalTabCount: Int,
     privateTabCount: Int,
+    shouldShowTabGroupsPage: Boolean,
+    tabGroupCount: Int,
     syncedTabCount: Int,
     statusBarHeight: Dp,
     onTabPageIndicatorClicked: (Page) -> Unit,
 ) {
     val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val selectedTabIndex = Page.pageToPosition(selectedPage)
+    val selectedTabIndex = Page.pageToPosition(
+        page = selectedPage,
+        shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+    )
 
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Column(
-            modifier = Modifier.padding(end = TopAppBarTitleInset),
-        ) {
+        Column {
             Spacer(
                 modifier = Modifier
                     .height(statusBarHeight)
@@ -288,71 +296,113 @@ private fun TabPageBanner(
                 },
                 divider = {},
             ) {
-                val privateTabDescription = stringResource(
-                    id = R.string.tabs_header_private_tabs_counter_title,
-                    privateTabCount.toString(),
+                TabPageBannerTabs(
+                    selectedPage = selectedPage,
+                    normalTabCount = normalTabCount,
+                    privateTabCount = privateTabCount,
+                    shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+                    tabGroupCount = tabGroupCount,
+                    syncedTabCount = syncedTabCount,
+                    inactiveColor = inactiveColor,
+                    onTabPageIndicatorClicked = onTabPageIndicatorClicked,
                 )
-                val normalTabDescription = stringResource(
-                    id = R.string.tabs_header_normal_tabs_counter_title,
-                    normalTabCount.toString(),
-                )
-                val syncedTabDescription = stringResource(
-                    id = R.string.tabs_header_synced_tabs_counter_title,
-                    syncedTabCount.toString(),
-                )
-
-                Tab(
-                    selected = selectedPage == Page.PrivateTabs,
-                    onClick = { onTabPageIndicatorClicked(Page.PrivateTabs) },
-                    modifier = Modifier
-                        .testTag(TabsTrayTestTag.PRIVATE_TABS_PAGE_BUTTON)
-                        .semantics {
-                            contentDescription = privateTabDescription
-                        }
-                        .height(RowHeight),
-                    unselectedContentColor = inactiveColor,
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.tabs_header_private_tabs_title),
-                        style = FirefoxTheme.typography.button,
-                    )
-                }
-
-                Tab(
-                    selected = selectedPage == Page.NormalTabs,
-                    onClick = { onTabPageIndicatorClicked(Page.NormalTabs) },
-                    modifier = Modifier
-                        .testTag(TabsTrayTestTag.NORMAL_TABS_PAGE_BUTTON)
-                        .semantics {
-                            contentDescription = normalTabDescription
-                        }
-                        .height(RowHeight),
-                    unselectedContentColor = inactiveColor,
-                ) {
-                    Text(
-                        text = stringResource(R.string.tabs_header_normal_tabs_title),
-                        style = FirefoxTheme.typography.button,
-                    )
-                }
-
-                Tab(
-                    selected = selectedPage == Page.SyncedTabs,
-                    onClick = { onTabPageIndicatorClicked(Page.SyncedTabs) },
-                    modifier = Modifier
-                        .testTag(TabsTrayTestTag.SYNCED_TABS_PAGE_BUTTON)
-                        .semantics {
-                            contentDescription = syncedTabDescription
-                        }
-                        .height(RowHeight),
-                    unselectedContentColor = inactiveColor,
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.tabs_header_synced_tabs_title),
-                        style = FirefoxTheme.typography.button,
-                    )
-                }
             }
         }
+    }
+}
+
+@Suppress("LongParameterList")
+@Composable
+private fun TabPageBannerTabs(
+    selectedPage: Page,
+    normalTabCount: Int,
+    privateTabCount: Int,
+    shouldShowTabGroupsPage: Boolean,
+    tabGroupCount: Int,
+    syncedTabCount: Int,
+    inactiveColor: Color,
+    onTabPageIndicatorClicked: (Page) -> Unit,
+) {
+    val privateTabDescription = stringResource(
+        id = R.string.tabs_header_private_tabs_counter_title,
+        privateTabCount.toString(),
+    )
+    val normalTabDescription = stringResource(
+        id = R.string.tabs_header_normal_tabs_counter_title,
+        normalTabCount.toString(),
+    )
+    val tabGroupsDescription = pluralStringResource(
+        id = R.plurals.tabs_header_tab_group_counter_title,
+        count = tabGroupCount,
+        tabGroupCount,
+    )
+    val syncedTabDescription = stringResource(
+        id = R.string.tabs_header_synced_tabs_counter_title,
+        syncedTabCount.toString(),
+    )
+
+    BannerTab(
+        selected = selectedPage == Page.PrivateTabs,
+        testTag = TabsTrayTestTag.PRIVATE_TABS_PAGE_BUTTON,
+        contentDescription = privateTabDescription,
+        inactiveColor = inactiveColor,
+        onClick = { onTabPageIndicatorClicked(Page.PrivateTabs) },
+    ) {
+        Icon(painterResource(iconsR.drawable.mozac_ic_private_mode_24), null)
+    }
+
+    BannerTab(
+        selected = selectedPage == Page.NormalTabs,
+        testTag = TabsTrayTestTag.NORMAL_TABS_PAGE_BUTTON,
+        contentDescription = normalTabDescription,
+        inactiveColor = inactiveColor,
+        onClick = { onTabPageIndicatorClicked(Page.NormalTabs) },
+    ) {
+        TabCounter(tabCount = normalTabCount)
+    }
+
+    if (shouldShowTabGroupsPage) {
+        BannerTab(
+            selected = selectedPage == Page.TabGroups,
+            testTag = TabsTrayTestTag.TAB_GROUPS_PAGE_BUTTON,
+            contentDescription = tabGroupsDescription,
+            inactiveColor = inactiveColor,
+            onClick = { onTabPageIndicatorClicked(Page.TabGroups) },
+        ) {
+            Icon(painterResource(iconsR.drawable.mozac_ic_tab_group_24), null)
+        }
+    }
+
+    BannerTab(
+        selected = selectedPage == Page.SyncedTabs,
+        testTag = TabsTrayTestTag.SYNCED_TABS_PAGE_BUTTON,
+        contentDescription = syncedTabDescription,
+        inactiveColor = inactiveColor,
+        onClick = { onTabPageIndicatorClicked(Page.SyncedTabs) },
+    ) {
+        Icon(painterResource(iconsR.drawable.mozac_ic_sync_tabs_24), null)
+    }
+}
+
+@Composable
+private fun BannerTab(
+    selected: Boolean,
+    testTag: String,
+    contentDescription: String,
+    inactiveColor: Color,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Tab(
+        selected = selected,
+        onClick = onClick,
+        modifier = Modifier
+            .testTag(testTag)
+            .semantics { this.contentDescription = contentDescription }
+            .height(RowHeight),
+        unselectedContentColor = inactiveColor,
+    ) {
+        content()
     }
 }
 
@@ -527,6 +577,15 @@ private fun TabsTrayBannerPreview() {
 
 @PreviewLightDark
 @Composable
+private fun TabsTrayBannerWithTabGroupsPreview() {
+    TabsTrayBannerPreviewRoot(
+        selectedPage = Page.TabGroups,
+        shouldShowTabGroupsPage = true,
+    )
+}
+
+@PreviewLightDark
+@Composable
 private fun TabsTrayBannerAutoClosePreview() {
     TabsTrayBannerPreviewRoot(shouldShowTabAutoCloseBanner = true)
 }
@@ -559,6 +618,7 @@ private fun TabsTrayBannerPreviewRoot(
     shouldShowTabAutoCloseBanner: Boolean = false,
     shouldShowLockPbmBanner: Boolean = false,
     shouldShowAddToTabGroupButton: Boolean = false,
+    shouldShowTabGroupsPage: Boolean = false,
 ) {
     val tabsTrayStore = remember {
         TabsTrayStore(
@@ -576,6 +636,8 @@ private fun TabsTrayBannerPreviewRoot(
                 selectedPage = state.selectedPage,
                 normalTabCount = 0,
                 privateTabCount = 0,
+                shouldShowTabGroupsPage = shouldShowTabGroupsPage,
+                tabGroupCount = 0,
                 syncedTabCount = 0,
                 selectionMode = state.mode,
                 isInDebugMode = false,

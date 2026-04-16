@@ -825,13 +825,30 @@ static bool ResolveLocale(JSContext* cx,
   }
   durationFormat->setLocale(locale);
 
-  auto nu = resolved.extension(UnicodeExtensionKey::NumberingSystem);
-  MOZ_ASSERT(nu, "resolved numbering system is non-null");
-  durationFormat->setNumberingSystem(nu);
+  if (auto nu = resolved.extension(UnicodeExtensionKey::NumberingSystem)) {
+    durationFormat->setNumberingSystem(nu);
+  } else {
+    durationFormat->setNumberingSystem(cx->names().default_);
+  }
 
   MOZ_ASSERT(durationFormat->isLocaleResolved(),
              "locale successfully resolved");
   return true;
+}
+
+static JSLinearString* ResolveNumberingSystem(
+    JSContext* cx, Handle<DurationFormatObject*> durationFormat) {
+  MOZ_ASSERT(durationFormat->isLocaleResolved());
+
+  auto* numberingSystem = durationFormat->getNumberingSystem();
+  if (numberingSystem == cx->names().default_) {
+    numberingSystem = DefaultNumberingSystem(cx, durationFormat->getLocale());
+    if (!numberingSystem) {
+      return nullptr;
+    }
+    durationFormat->setNumberingSystem(numberingSystem);
+  }
+  return numberingSystem;
 }
 
 /**
@@ -852,15 +869,20 @@ static JSString* GetTimeSeparator(
     return nullptr;
   }
 
-  auto numberingSystem = EncodeAscii(cx, durationFormat->getNumberingSystem());
+  auto* numberingSystem = ResolveNumberingSystem(cx, durationFormat);
   if (!numberingSystem) {
+    return nullptr;
+  }
+
+  auto numberingSystemChars = EncodeAscii(cx, numberingSystem);
+  if (!numberingSystemChars) {
     return nullptr;
   }
 
   FormatBuffer<char16_t, INITIAL_CHAR_BUFFER_SIZE> separator(cx);
   auto result = mozilla::intl::DateTimeFormat::GetTimeSeparator(
       mozilla::MakeStringSpan(locale.get()),
-      mozilla::MakeStringSpan(numberingSystem.get()), separator);
+      mozilla::MakeStringSpan(numberingSystemChars.get()), separator);
   if (result.isErr()) {
     ReportInternalError(cx, result.unwrapErr());
     return nullptr;
@@ -994,12 +1016,19 @@ static mozilla::intl::NumberFormat* NewDurationNumberFormat(
   }
 
   // ICU expects numberingSystem as a Unicode locale extensions on locale.
+  //
+  // We don't add any Unicode extension keywords when the default values can be
+  // used, because ICU optimizes for this case.
 
   Rooted<JSLinearString*> localeStr(cx, durationFormat->getLocale());
 
   JS::RootedVector<UnicodeExtensionKeyword> keywords(cx);
-  if (!keywords.emplaceBack("nu", durationFormat->getNumberingSystem())) {
-    return nullptr;
+
+  auto* numberingSystem = durationFormat->getNumberingSystem();
+  if (numberingSystem != cx->names().default_) {
+    if (!keywords.emplaceBack("nu", numberingSystem)) {
+      return nullptr;
+    }
   }
 
   auto locale = FormatLocale(cx, localeStr, keywords);
@@ -2100,8 +2129,12 @@ static bool durationFormat_resolvedOptions(JSContext* cx,
     return false;
   }
 
+  auto* numberingSystem = ResolveNumberingSystem(cx, durationFormat);
+  if (!numberingSystem) {
+    return false;
+  }
   if (!options.emplaceBack(NameToId(cx->names().numberingSystem),
-                           StringValue(durationFormat->getNumberingSystem()))) {
+                           StringValue(numberingSystem))) {
     return false;
   }
 

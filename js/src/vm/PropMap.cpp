@@ -1087,18 +1087,13 @@ void PropMap::forEachPropMapFlag(uintptr_t flags, KnownF known,
 }
 
 const char* PropMapTypeToString(const js::PropMap* map) {
-  if (map->isLinked()) {
-    return "js::LinkedPropMap";
+  if (map->isDictionary()) {
+    return "js::DictionaryPropMap";
   }
-
-  if (map->isShared()) {
-    if (map->isCompact()) {
-      return "js::CompactPropMap";
-    }
-    return "js::NormalPropMap";
+  if (map->isCompact()) {
+    return "js::CompactPropMap";
   }
-
-  return "js::DictionaryPropMap";
+  return "js::NormalPropMap";
 }
 
 void PropMap::dumpFields(js::JSONPrinter& json) const {

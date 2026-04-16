@@ -967,9 +967,11 @@ async function verifyConfirmationHint(
       BrowserTestUtils.isVisible(hintElem.anchorNode),
       "hint anchorNode is visible"
     );
-    Assert.equal(
-      hintElem.anchorNode.id,
-      anchorID,
+    let matchedAnchor = Array.isArray(anchorID)
+      ? anchorID.includes(hintElem.anchorNode.id)
+      : hintElem.anchorNode.id == anchorID;
+    Assert.ok(
+      matchedAnchor,
       "Hint should be anchored on the expected notification icon"
     );
     info("verifyConfirmationHint, hint is shown and has its anchorNode");

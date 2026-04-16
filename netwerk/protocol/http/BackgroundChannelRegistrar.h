@@ -28,7 +28,7 @@ class BackgroundChannelRegistrar final : public nsIBackgroundChannelRegistrar {
   explicit BackgroundChannelRegistrar();
 
   // Singleton accessors
-  static already_AddRefed<nsIBackgroundChannelRegistrar> GetOrCreate();
+  static already_AddRefed<BackgroundChannelRegistrar> GetOrCreate();
 
  private:
   virtual ~BackgroundChannelRegistrar();

@@ -216,6 +216,7 @@ fp-neterror-net-timeout-intro = The server at <strong>{ $hostname }</strong> is 
 #   $responsestatustext (String) - HTTP response status text (e.g., "Not Found", always in English).
 fp-neterror-http-error-intro = The server at <strong>{ $hostname }</strong> sent back an error: { $responsestatus } { $responsestatustext }
 fp-neterror-coop-coep-intro = { -brand-short-name } didn’t load this page because it looks like the security configuration doesn’t match the previous page.
+fp-neterror-blocked-by-policy-intro = Your organization has blocked access to this page or website.
 fp-neterror-http-auth-disabled-intro = Someone pretending to be the site could try to steal things like your username, password, or email.
 fp-neterror-http-auth-disabled-secure-connection = This site requires a secure connection, and you can’t add an exception to visit it.
 
@@ -235,3 +236,5 @@ fp-learn-more-about-https-connections = Learn about HTTPS connections
 
 fp-neterror-vpn-error-title = Couldn’t connect to VPN
 fp-neterror-vpn-error-description = Try again in a few minutes.
+
+fp-neterror-denied-port-access = This address uses a network port which is normally used for purposes other than Web browsing. { -brand-short-name } has canceled the request for your protection.

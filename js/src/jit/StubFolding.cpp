@@ -314,6 +314,20 @@ static bool TryFoldingGuardShapes(JSContext* cx, ICFallbackStub* fallback,
         } else {
           writer.guardMultipleShapes(objId, shapeObj);
         }
+        if (shapeSuccess) {
+          // If a stub contains duplicate GuardShape ops that share a stub field
+          // because of stub field deduplication, then we could reach this point
+          // more than once. We could technically support this case, but it is
+          // rare enough, and hard enough to reason about, that it is simplest
+          // to give up here.
+          JitSpew(JitSpew_StubFolding,
+                  "Shape field at offset %u was used by multiple GuardShapes "
+                  "(icScript: %p) with %zu shapes (%s:%u:%u)",
+                  fallback->pcOffset(), icScript, shapeList.length(),
+                  script->filename(), script->lineno(),
+                  script->column().oneOriginValue());
+          return true;
+        }
         shapeSuccess = true;
         break;
       }

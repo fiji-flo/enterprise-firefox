@@ -734,24 +734,19 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
 
       RefPtr<AddrHostRecord> addrUnspecRec = do_QueryObject(unspecRec);
       MOZ_ASSERT(addrUnspecRec);
-      MOZ_ASSERT(addrUnspecRec->addr_info || addrUnspecRec->negative,
-                 "Entry should be resolved or negative.");
-
       LOG(("  Trying AF_UNSPEC entry for host [%s] af: %s.\n",
            PromiseFlatCString(aHost).get(),
            (af == PR_AF_INET) ? "AF_INET" : "AF_INET6"));
 
-      // We need to lock in case any other thread is reading
-      // addr_info.
-      MutexAutoLock lock(addrRec->addr_info_lock);
-
-      addrRec->addr_info = nullptr;
-      addrRec->addr_info_gencnt++;
-      if (unspecRec->negative) {
-        aRec->negative = unspecRec->negative;
-        aRec->CopyExpirationTimesAndFlagsFrom(unspecRec);
-      } else if (addrUnspecRec->addr_info) {
-        MutexAutoLock lock(addrUnspecRec->addr_info_lock);
+      // Scope the unspec lock to read and filter addresses, then
+      // release it before acquiring addrRec's lock. Both are the same
+      // lock class so holding them simultaneously trips the deadlock
+      // detector.
+      RefPtr<AddrInfo> filteredAddrInfo;
+      {
+        MutexAutoLock unspecLock(addrUnspecRec->addr_info_lock);
+        MOZ_ASSERT(addrUnspecRec->addr_info || addrUnspecRec->negative,
+                   "Entry should be resolved or negative.");
         if (addrUnspecRec->addr_info) {
           // Search for any valid address in the AF_UNSPEC entry
           // in the cache (not blocklisted and from the right
@@ -764,14 +759,26 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
             }
           }
           if (!addresses.IsEmpty()) {
-            addrRec->addr_info = new AddrInfo(
+            filteredAddrInfo = new AddrInfo(
                 addrUnspecRec->addr_info->Hostname(),
                 addrUnspecRec->addr_info->CanonicalHostname(),
                 addrUnspecRec->addr_info->ResolverType(),
                 addrUnspecRec->addr_info->TRRType(), std::move(addresses));
-            addrRec->addr_info_gencnt++;
-            aRec->CopyExpirationTimesAndFlagsFrom(unspecRec);
           }
+        }
+      }
+
+      {
+        MutexAutoLock lock(addrRec->addr_info_lock);
+        addrRec->addr_info = nullptr;
+        addrRec->addr_info_gencnt++;
+        if (unspecRec->negative) {
+          aRec->negative = unspecRec->negative;
+          aRec->CopyExpirationTimesAndFlagsFrom(unspecRec);
+        } else if (filteredAddrInfo) {
+          addrRec->addr_info = std::move(filteredAddrInfo);
+          addrRec->addr_info_gencnt++;
+          aRec->CopyExpirationTimesAndFlagsFrom(unspecRec);
         }
       }
       // Now check if we have a new record.
@@ -811,7 +818,7 @@ void nsHostResolver::DetachCallback(
   RefPtr<nsResolveHostCallback> callback(aCallback);
 
   {
-    mozilla::AutoReadLock dbLock(mDBLock);
+    mozilla::AutoWriteLock dbLock(mDBLock);
     MutexAutoLock queueLock(mQueue.mLock);
 
     nsAutoCString originSuffix;
@@ -1296,7 +1303,6 @@ bool nsHostResolver::GetHostToLookup(nsHostRecord** result) {
 
 void nsHostResolver::PrepareRecordExpirationAddrRecord(
     AddrHostRecord* rec) const {
-  // NOTE: rec->addr_info_lock is already held by parent
   MOZ_ASSERT(((bool)rec->addr_info) != rec->negative);
   mQueue.mLock.AssertCurrentThreadOwns();
   if (!rec->addr_info) {
@@ -1585,7 +1591,7 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
       addrRec->addr_info_gencnt++;
     }
 
-    PrepareRecordExpirationAddrRecord(addrRec);
+    PrepareRecordExpirationAddrRecord(addrRec.get());
   }
 
   if (LOG_ENABLED()) {
@@ -1855,8 +1861,13 @@ void nsHostResolver::ThreadFunc() {
     if (RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec)) {
       if (!mShutdown) {
         TimeDuration elapsed = TimeStamp::Now() - startTime;
+        int gencnt;
+        {
+          MutexAutoLock lock(addrRec->addr_info_lock);
+          gencnt = addrRec->addr_info_gencnt;
+        }
         if (NS_SUCCEEDED(status)) {
-          if (!addrRec->addr_info_gencnt) {
+          if (!gencnt) {
             // Time for initial lookup.
             glean::networking::dns_lookup_time.AccumulateRawDuration(elapsed);
           } else if (!getTtl) {
@@ -1935,15 +1946,17 @@ void nsHostResolver::GetDNSCacheEntries(nsTArray<DNSCacheEntries>* args) {
                                  rec->pb, rec->mTrrServer.get());
 
     RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec);
-    if (addrRec && addrRec->addr_info) {
+    if (addrRec) {
       MutexAutoLock lock(addrRec->addr_info_lock);
-      for (const auto& addr : addrRec->addr_info->Addresses()) {
-        nsCString addrStr;
-        if (addr.ToString(addrStr)) {
-          info.hostaddr.AppendElement(std::move(addrStr));
+      if (addrRec->addr_info) {
+        for (const auto& addr : addrRec->addr_info->Addresses()) {
+          nsCString addrStr;
+          if (addr.ToString(addrStr)) {
+            info.hostaddr.AppendElement(std::move(addrStr));
+          }
         }
+        info.TRR = addrRec->addr_info->IsTRR();
       }
-      info.TRR = addrRec->addr_info->IsTRR();
     }
 
     args->AppendElement(std::move(info));

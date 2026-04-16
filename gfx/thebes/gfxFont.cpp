@@ -1074,7 +1074,6 @@ gfxFont::RoundingFlags gfxFont::GetRoundOffsetsToPixels(
 gfxHarfBuzzShaper* gfxFont::GetHarfBuzzShaper() {
   if (!mHarfBuzzShaper) {
     auto* shaper = new gfxHarfBuzzShaper(this);
-    shaper->Initialize();
     if (!mHarfBuzzShaper.compareExchange(nullptr, shaper)) {
       delete shaper;
     }
@@ -2679,7 +2678,7 @@ bool gfxFont::RenderColorGlyph(DrawTarget* aDrawTarget, gfxContext* aContext,
     // We need the hbShaper to get color glyph bounds, so check that it's
     // usable.
     hbShaper = GetHarfBuzzShaper();
-    if (!hbShaper && !hbShaper->IsInitialized()) {
+    if (!hbShaper) {
       return false;
     }
     if (aTextDrawer) {
@@ -3325,15 +3324,6 @@ bool gfxFont::ProcessShapedWordInternal(
     if (!mWordCache) {
       mWordCache = MakeUnique<HashMap<WordCacheKey, UniquePtr<gfxShapedWord>,
                                       WordCacheKey::HashPolicy>>();
-    } else {
-      // If the cache is getting too big, flush it and start over.
-      uint32_t wordCacheMaxEntries =
-          gfxPlatform::GetPlatform()->WordCacheMaxEntries();
-      if (mWordCache->count() > wordCacheMaxEntries) {
-        // Flush the cache if it is getting overly big.
-        NS_WARNING("flushing shaped-word cache");
-        ClearCachedWordsLocked();
-      }
     }
 
     // Update key so that it references the text stored in the newShapedWord,

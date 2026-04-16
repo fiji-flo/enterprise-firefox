@@ -224,22 +224,6 @@ class MediaSendChannelInterface {
       const RtpParameters& parameters,
       SetParametersCallback callback = nullptr) = 0;
 
-  // Sets a callback that will be invoked whenever the RTP parameters are
-  // changed. The callback is invoked on the worker thread.
-  //
-  // This callback is intended to inform the RtpSender that parameters of
-  // its associated media channel have changed including due to functions
-  // invoked on the channel object outside of the RtpSender. Once the Channel
-  // object has been merged with the RtpTransceiver, and MediaSendChannel is
-  // consistently accessed through the RtpSender, we should be able to remove
-  // this callback.
-  //
-  // Note for implementations: It's important that the callback is not invoked
-  // if the parameters haven't actually changed.
-  virtual void SetOnRtpSendParametersChanged(
-      absl::AnyInvocable<void(std::optional<uint32_t>, const RtpParameters&)>
-          callback) = 0;
-
   virtual void SetEncoderToPacketizerFrameTransformer(
       uint32_t ssrc,
       scoped_refptr<FrameTransformerInterface> frame_transformer) = 0;
@@ -254,6 +238,10 @@ class MediaSendChannelInterface {
   // Called whenever the list of sending SSRCs changes.
   virtual void SetSsrcListChangedCallback(
       absl::AnyInvocable<void(const std::set<uint32_t>&)> callback) = 0;
+  // Called whenever the parameters change autonomously on the worker thread.
+  // This is used for cache invalidation on the signaling thread.
+  virtual void SetParametersChangedCallback(
+      absl::AnyInvocable<void()> callback) {}
 };
 
 class MediaReceiveChannelInterface {
@@ -278,11 +266,9 @@ class MediaReceiveChannelInterface {
   // Sets the abstract interface class for sending RTP/RTCP data.
   virtual void SetInterface(MediaChannelNetworkInterface* iface) = 0;
   // Called on the network when an RTP packet is received.
-  virtual void OnPacketReceived(const RtpPacketReceived& packet) = 0;
+  virtual void OnPacketReceived(RtpPacketReceived packet) = 0;
   // Gets the current unsignaled receive stream's SSRC, if there is one.
   virtual std::optional<uint32_t> GetUnsignaledSsrc() const = 0;
-  // Sets the local SSRC for listening to incoming RTCP reports.
-  virtual void ChooseReceiverReportSsrc(const std::set<uint32_t>& choices) = 0;
   // This is currently a workaround because of the demuxer state being managed
   // across two separate threads. Once the state is consistently managed on
   // the same thread (network), this workaround can be removed.
@@ -611,7 +597,7 @@ struct VideoSenderInfo : public MediaSenderInfo {
   std::optional<uint64_t> qp_sum;
   VideoContentType content_type = VideoContentType::UNSPECIFIED;
   // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-psnrsum
-  webrtc::EncodedImage::Psnr psnr_sum;
+  EncodedImage::Psnr psnr_sum;
   uint32_t psnr_measurements = 0;
   uint32_t frames_sent = 0;
   // https://w3c.github.io/webrtc-stats/#dom-rtcvideosenderstats-hugeframessent

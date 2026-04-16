@@ -1104,15 +1104,6 @@ class ScrollContainerFrame : public nsContainerFrame,
   void LayoutScrollbarPartAtRect(const ScrollReflowInput&,
                                  ReflowInput& aKidReflowInput, const nsRect&);
 
-  /**
-   * Override this to return false if computed bsize/min-bsize/max-bsize
-   * should NOT be propagated to child content.
-   * nsListControlFrame uses this.
-   */
-  virtual bool ShouldPropagateComputedBSizeToScrolledContent() const {
-    return true;
-  }
-
   PhysicalAxes GetOverflowAxes() const;
 
   MOZ_CAN_RUN_SCRIPT nsresult FireScrollPortEvent();

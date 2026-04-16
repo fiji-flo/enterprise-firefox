@@ -1127,11 +1127,7 @@ inline bool JSONReviveHandler<CharT>::finishObjectMember(
 
   Rooted<ParseRecordObject*> memberRecord(context(),
                                           parseRecordStack.popCopy());
-  // Removes the member's key from the stack
-  parseRecordStack.popBack();
-
   Rooted<JS::PropertyKey> key(context(), (*properties)->back().id);
-
   return parseRecordStack.back()->addEntries(context(), key, memberRecord);
 }
 

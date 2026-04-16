@@ -613,66 +613,73 @@ nsresult nsHttpChannel::PrepareToConnect() {
       mURI, mLoadInfo->GetExternalContentPolicyType(), &mRequestHead, IsHTTPS(),
       this, nsHttpChannel::StaticSuspend,
       [self = RefPtr(this)](bool aNeedsResume, DictionaryCacheEntry* aDict) {
-        self->mDictDecompress = aDict;
         if (aNeedsResume) {
           LOG_DICTIONARIES(("Resuming after getting Dictionary headers"));
           self->Resume();
         }
-        if (self->mDictDecompress) {
-          LOG_DICTIONARIES(
-              ("Added dictionary header for %p, DirectoryCacheEntry %p",
-               self.get(), aDict));
-          AUTO_PROFILER_FLOW_MARKER(
-              "nsHttpHandler::AddAcceptAndDictionaryHeaders Add "
-              "Available-Dictionary",
-              NETWORK, Flow::FromPointer(self));
-          // mDictDecompress is set if we added Available-Dictionary
-          self->mDictDecompress->InUse();
-          self->mUsingDictionary = true;
+        if (!aDict) {
+          return true;
+        }
+        LOG_DICTIONARIES(
+            ("Added dictionary header for %p, DictionaryCacheEntry %p",
+             self.get(), aDict));
+        AUTO_PROFILER_FLOW_MARKER(
+            "nsHttpHandler::AddAcceptAndDictionaryHeaders Add "
+            "Available-Dictionary",
+            NETWORK, Flow::FromPointer(self));
+        // These need to be set before calling prefetch
+        self->mDictDecompress = aDict;
+        self->mDictDecompress->InUse();
+        self->mUsingDictionary = true;
+        // If this fails, we won't add the dictionary and the
+        // Available-Dictionary header.
+        if (NS_SUCCEEDED(aDict->Prefetch(
+                GetLoadContextInfo(self), self->mShouldSuspendForDictionary,
+                [self](nsresult aResult) {
+                  // this is called when the prefetch is complete to
+                  // un-Suspend the channel
+                  PROFILER_MARKER("Dictionary Prefetch", NETWORK,
+                                  MarkerTiming::IntervalEnd(), FlowMarker,
+                                  Flow::FromPointer(self));
+                  if (NS_FAILED(aResult)) {
+                    LOG(
+                        ("nsHttpChannel::SetupChannelForTransaction [this=%p] "
+                         "Dictionary prefetch failed: 0x%08" PRIx32,
+                         self.get(), static_cast<uint32_t>(aResult)));
+                    if (self->mUsingDictionary) {
+                      self->mDictDecompress->UseCompleted();
+                      self->mUsingDictionary = false;
+                    }
+                    self->mDictDecompress = nullptr;
+                    if (self->mSuspendedForDictionary) {
+                      self->mSuspendedForDictionary = false;
+                      self->Cancel(aResult);
+                      self->Resume();
+                    }
+                    return;
+                  }
+                  MOZ_ASSERT(self->mDictDecompress->DictionaryReady());
+                  if (self->mSuspendedForDictionary) {
+                    LOG(
+                        ("nsHttpChannel::SetupChannelForTransaction [this=%p] "
+                         "Resuming channel "
+                         "suspended for Dictionary",
+                         self.get()));
+                    self->mSuspendedForDictionary = false;
+                    self->Resume();
+                  }
+                }))) {
           PROFILER_MARKER("Dictionary Prefetch", NETWORK,
                           MarkerTiming::IntervalStart(), FlowMarker,
                           Flow::FromPointer(self));
-          // XXX if this fails, retry the connection (we assume that the
-          // DictionaryCacheEntry has been removed).  Failure should be only in
-          // weird cases like no storage service.
-          return NS_SUCCEEDED(self->mDictDecompress->Prefetch(
-              GetLoadContextInfo(self), self->mShouldSuspendForDictionary,
-              [self](nsresult aResult) {
-                // this is called when the prefetch is complete to
-                // un-Suspend the channel
-                PROFILER_MARKER("Dictionary Prefetch", NETWORK,
-                                MarkerTiming::IntervalEnd(), FlowMarker,
-                                Flow::FromPointer(self));
-                if (NS_FAILED(aResult)) {
-                  LOG(
-                      ("nsHttpChannel::SetupChannelForTransaction [this=%p] "
-                       "Dictionary prefetch failed: 0x%08" PRIx32,
-                       self.get(), static_cast<uint32_t>(aResult)));
-                  if (self->mUsingDictionary) {
-                    self->mDictDecompress->UseCompleted();
-                    self->mUsingDictionary = false;
-                  }
-                  self->mDictDecompress = nullptr;
-                  if (self->mSuspendedForDictionary) {
-                    self->mSuspendedForDictionary = false;
-                    self->Cancel(aResult);
-                    self->Resume();
-                  }
-                  return;
-                }
-                MOZ_ASSERT(self->mDictDecompress->DictionaryReady());
-                if (self->mSuspendedForDictionary) {
-                  LOG(
-                      ("nsHttpChannel::SetupChannelForTransaction [this=%p] "
-                       "Resuming channel "
-                       "suspended for Dictionary",
-                       self.get()));
-                  self->mSuspendedForDictionary = false;
-                  self->Resume();
-                }
-              }));
+          return true;
         }
-        return true;
+        // Need to undo these if we're not going to be able to use the dict
+        self->mDictDecompress->UseCompleted();
+        self->mDictDecompress = nullptr;
+        self->mUsingDictionary = false;
+        LOG_DICTIONARIES(("** Prefetch failed!!!!"));
+        return false;
       });
   if (NS_FAILED(rv)) return rv;
 
@@ -3787,6 +3794,19 @@ nsresult nsHttpChannel::ContinueProcessNormal3() {
   // Finish post-ParseDictionary work, must be done after waiting if Suspended
   if (mCacheEntry && !LoadCacheEntryIsReadOnly()) {
     if (mIsDictionaryCompressed || mDictSaving) {
+      if (MOZ_LOG_TEST(mozilla::net::gDictionaryLog,
+                       mozilla::LogLevel::Debug)) {
+        nsAutoCString ceDebug;
+        if (mResponseHead) {
+          (void)mResponseHead->GetHeader(nsHttp::Content_Encoding, ceDebug);
+        }
+        LOG_DICTIONARIES(
+            ("ContinueProcessNormal3 [this=%p] dictCompressed=%d "
+             "dictSaving=%p Content-Encoding='%s' ApplyConversion=%d "
+             "HasApplied=%d",
+             this, mIsDictionaryCompressed, mDictSaving.get(), ceDebug.get(),
+             LoadApplyConversion(), LoadHasAppliedConversion()));
+      }
       LOG(("Decompressing before saving into cache [channel=%p]", this));
       rv = DoInstallCacheListener(mIsDictionaryCompressed || mDictSaving, 0);
       if (NS_FAILED(rv)) {
@@ -3834,6 +3854,22 @@ nsresult nsHttpChannel::ContinueProcessNormal3() {
   if (!mIsDictionaryCompressed && !mDictSaving) {
     // install cache listener if we still have a cache entry open
     if (mCacheEntry && !LoadCacheEntryIsReadOnly()) {
+      if (MOZ_LOG_TEST(mozilla::net::gDictionaryLog,
+                       mozilla::LogLevel::Debug) &&
+          mResponseHead) {
+        nsAutoCString ceCheck;
+        (void)mResponseHead->GetHeader(nsHttp::Content_Encoding, ceCheck);
+        if (!ceCheck.IsEmpty()) {
+          nsAutoCString uadCheck;
+          (void)mResponseHead->GetHeader(nsHttp::Use_As_Dictionary, uadCheck);
+          LOG_DICTIONARIES(
+              ("WARNING: Saving cache entry with Content-Encoding='%s' "
+               "without decompression (mDictSaving=%p "
+               "Use-As-Dictionary='%s') for %s [this=%p]",
+               ceCheck.get(), mDictSaving.get(), uadCheck.get(), mSpec.get(),
+               this));
+        }
+      }
       rv = InstallCacheListener();
       if (NS_FAILED(rv)) return rv;
     }
@@ -6340,23 +6376,40 @@ nsresult nsHttpChannel::DoInstallCacheListener(bool aSaveDecompressed,
       StoreHasAppliedConversion(true);
 
     } else {
-      LOG_DICTIONARIES(("Didn't install decompressor before tee"));
-      // This should never happen when we have dictionary-compressed content
-      // or are saving a dictionary, as decompression is required
-      if (aSaveDecompressed) {
-        nsAutoCString contentEncoding;
-        (void)mResponseHead->GetHeader(nsHttp::Content_Encoding,
-                                       contentEncoding);
-
+      nsAutoCString contentEncoding;
+      (void)mResponseHead->GetHeader(nsHttp::Content_Encoding, contentEncoding);
+      if (contentEncoding.IsEmpty()) {
+        // No Content-Encoding — data is already raw. Normal for dictionary
+        // responses served without transfer encoding.
         LOG_DICTIONARIES(
-            ("FATAL: Failed to install decompressor before cache tee. "
-             "Content-Encoding='%s'",
-             contentEncoding.get()));
-
-        // Force clear Content-Encoding to prevent cache corruption
-        LOG_DICTIONARIES(("Forcing Content-Encoding to empty"));
-        (void)mResponseHead->SetHeaderOverride(nsHttp::Content_Encoding, ""_ns);
-        (void)mResponseHead->SetHeaderOverride(nsHttp::Content_Length, ""_ns);
+            ("No decompressor needed before tee (no Content-Encoding)"));
+      } else if (mIsDictionaryCompressed) {
+        // dcb/dcz can only be decompressed in the parent process with
+        // the dictionary. If we can't install the decompressor, this is
+        // fatal — the content process can't decode it.
+        LOG_DICTIONARIES(
+            ("FATAL: Cannot decompress dcb/dcz content. "
+             "Content-Encoding='%s' ApplyConversion=%d HasApplied=%d "
+             "[this=%p]",
+             contentEncoding.get(), LoadApplyConversion(),
+             LoadHasAppliedConversion(), this));
+        Cancel(NS_ERROR_INVALID_CONTENT_ENCODING);
+        return NS_ERROR_INVALID_CONTENT_ENCODING;
+      } else if (mDictSaving) {
+        // Saving a dictionary but can't install a decompressor — we'd store
+        // compressed data with a hash computed over compressed bytes. Cancel
+        // the dictionary save but leave Content-Encoding for downstream
+        // decompression.
+        LOG_DICTIONARIES(
+            ("Cannot save dictionary without decompressor. "
+             "Content-Encoding='%s' ApplyConversion=%d HasApplied=%d "
+             "[this=%p]. Canceling dictionary save.",
+             contentEncoding.get(), LoadApplyConversion(),
+             LoadHasAppliedConversion(), this));
+        MOZ_DIAGNOSTIC_ASSERT(false, "Can't save dictionary uncompressed");
+        mCacheEntry->SetDictionary(nullptr);
+        DictionaryCache::RemoveDictionary(nsCString(mDictSaving->GetURI()));
+        mDictSaving = nullptr;
       }
     }
     // We may have modified Content-Encoding; make sure cache metadata
@@ -7576,8 +7629,16 @@ void nsHttpChannel::MaybeResolveProxyAndBeginConnect() {
   // settings if we are never going to make a network connection.
   if (!mProxyInfo &&
       !(mLoadFlags & (LOAD_ONLY_FROM_CACHE | LOAD_NO_NETWORK_IO)) &&
-      !BypassProxy() && NS_SUCCEEDED(ResolveProxy())) {
-    return;
+      !BypassProxy()) {
+    nsCOMPtr<nsIProtocolProxyService> pps =
+        mozilla::components::ProtocolProxy::Service();
+    nsCOMPtr<nsIProtocolProxyService2> pps2 = do_QueryInterface(pps);
+    if (pps2 && pps2->IsEffectivelyDirect()) {
+      mozilla::glean::networking::proxy_fast_path_used.Add(1);
+      MaybeStartDNSPrefetch();
+    } else if (NS_SUCCEEDED(ResolveProxy())) {
+      return;
+    }
   }
 
   if (!gHttpHandler->Active()) {
@@ -8020,6 +8081,9 @@ void nsHttpChannel::MaybeStartDNSPrefetch() {
   // be correct, and even when it isn't, the timing still represents _a_
   // valid DNS lookup timing for the site, even if it is not _the_
   // timing we used.
+  if (mDNSPrefetch) {
+    return;
+  }
   if ((mLoadFlags & (LOAD_NO_NETWORK_IO | LOAD_ONLY_FROM_CACHE)) ||
       LoadAuthRedirectedChannel()) {
     return;
@@ -10496,6 +10560,17 @@ nsHttpChannel::RetargetDeliveryTo(nsISerialEventTarget* aNewTarget) {
   if (aNewTarget->IsOnCurrentThread()) {
     NS_WARNING("Retargeting delivery to same thread");
     return NS_OK;
+  }
+  // Dictionary operations (saving, decompressing dcb/dcz, or using a
+  // dictionary for decompression) require the main thread for hash
+  // accumulation, origin metadata writes, and dictionary data access.
+  if (mDictSaving || mIsDictionaryCompressed || mDictDecompress) {
+    LOG(
+        ("nsHttpChannel::RetargetDeliveryTo %p refused — dictionary "
+         "operations active (saving=%p, compressed=%d, decompress=%p)\n",
+         this, mDictSaving.get(), mIsDictionaryCompressed,
+         mDictDecompress.get()));
+    return NS_ERROR_NOT_AVAILABLE;
   }
   if (!mTransactionPump && !mCachePump) {
     LOG(("nsHttpChannel::RetargetDeliveryTo %p %p no pump available\n", this,

@@ -38,7 +38,7 @@ class VoiceSearchAIControlFeature(
     }
 
     companion object : AIFeatureMetadata {
-        override val id: AIFeatureMetadata.FeatureId = AIFeatureMetadata.FeatureId("ai.voice.search")
+        override val id: AIFeatureMetadata.FeatureId = AIFeatureMetadata.FeatureId("voiceSearch")
         override val description: AIFeatureMetadata.Description = AIFeatureMetadata.Description(
             titleRes = R.string.ai_controls_voice_search_title,
             descriptionRes = R.string.ai_controls_voice_search_description,

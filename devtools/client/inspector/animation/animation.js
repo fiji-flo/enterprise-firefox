@@ -845,8 +845,8 @@ class AnimationInspector extends EventEmitter {
   }
 
   /**
-   * Nullify animationFront, remove the listener that might have been set on it, as well
-   * as listeners on AnimationPlayer fronts.
+   * Nullify animationsFront, remove the listener that might have been set on it, as well
+   * as listeners on Animation fronts.
    *
    * @param {object} options
    * @param {boolean} options.force: Set to true to force updating the panel, even if

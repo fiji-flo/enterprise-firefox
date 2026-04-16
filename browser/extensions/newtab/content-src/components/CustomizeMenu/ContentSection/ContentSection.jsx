@@ -297,7 +297,9 @@ export class ContentSection extends React.PureComponent {
                 pressed={weatherEnabled || null}
                 ontoggle={this.onPreferenceSelect}
                 onToggle={this.onPreferenceSelect}
-                data-preference="showWeather"
+                data-preference={
+                  novaEnabled ? "widgets.weather.enabled" : "showWeather"
+                }
                 data-event-source="WEATHER"
                 data-l10n-id="newtab-custom-weather-toggle"
               />

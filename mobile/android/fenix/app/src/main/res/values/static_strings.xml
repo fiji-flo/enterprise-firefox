@@ -85,6 +85,8 @@
     <string name="preferences_sync_debug_temporary_auth_error_button_title">Simulate temporary account auth error</string>
     <!-- Button title for simulating an FxA permanent auth error inside the Sync Debug menu -->
     <string name="preferences_sync_debug_permanent_auth_error_button_title">Simulate permanent account auth error</string>
+    <!-- Label for enabling the Compose wallpaper background on the homepage -->
+    <string name="preferences_debug_settings_compose_wallpaper" translatable="false">Enable Compose Wallpaper</string>
     <!-- Label for enabling the Homepage Search Bar -->
     <string name="preferences_debug_settings_homepage_searchbar" translatable="false">Enable Homepage Search Bar</string>
     <!-- Label for enabling Homepage as a New Tab -->
@@ -153,16 +155,22 @@
     <string name="preferences_debug_settings_enable_longfox" translatable="false">Enable Longfox</string>
 
     <!-- Search suggestions title for Firefox Suggest Online -->
-    <string name="firefox_suggest_online_header" tools:ignore="BrandUsage" translatable="false">Firefox Suggest Online</string>
+    <string name="firefox_suggest_online_header" translatable="false" tools:ignore="BrandUsage">Firefox Suggest Online</string>
 
     <!-- Label for toggling the native android share sheet feature -->
     <string name="preferences_debug_settings_native_android_share_sheet" translatable="false">Enable Native Android Share Sheet</string>
+
+    <!-- Google Lens prototype related strings -->
+    <string name="preferences_debug_settings_google_lens_integration" translatable="false">Enable Google Lens Integration</string>
+    <!-- Lens image search button content description -->
+    <string name="lens_search_content_description">Search with image</string>
 
     <!-- Label for toggling the Tab Search feature -->
     <string name="preferences_tab_search_feature" translatable="false">Enable Tab Search</string>
 
     <!-- Label for toggling the Tab Groups feature -->
     <string name="preferences_tab_groups_feature" translatable="false">Enable Tab Groups</string>
+    <string name="preferences_tab_groups_drag_and_drop" translatable="false">Enable Tab Groups Drag and Drop</string>
 
     <!-- Label for toggling the Tab Manager opening animation -->
     <string name="preferences_tab_manager_opening_animation" translatable="false">Enable Tab Manager opening animation</string>
@@ -170,6 +178,9 @@
     <string name="preferences_terms_of_use_accepted" translatable="false">Terms of Use accepted</string>
     <string name="preferences_terms_of_use_debug_timer" translatable="false">30s ToU timer enabled</string>
     <string name="preferences_terms_of_use_latest_update_date" translatable="false">Set latest ToU update date to now</string>
+
+  <!-- Label for enabling IPProtection through secret settings -->
+    <string name="preferences_debug_settings_ip_protection" translatable="false">Enable IP Protection UI</string>
 
     <!-- Label for enabling LNA blocking -->
     <string name="preferences_debug_settings_enable_lna_blocking" translatable="false">Enable LNA request blocking</string>
@@ -351,52 +362,39 @@
     <!-- The description used in a confirmation dialog when restoring the application to its defaults by turning off any experimental features. -->
     <string name="firefox_labs_restore_defaults_dialog_message">Resetting experimental features will restart %s.</string>
 
-    <!-- Preference for page summaries -->
-    <string name="preferences_page_summaries">Page summaries</string>
+    <!-- Debug drawer tab group tools -->
+    <!-- The title of the debug drawer tab to help populate tab groups-->
+    <string name="debug_drawer_tab_group_tools_title">Tab Group Tools</string>
+    <!-- The title of the tab group count section in Tab Group Tools. -->
+    <string name="debug_drawer_tab_group_tools_count_title">Tab Group Counts</string>
+    <!-- The label of the open tab group count category of the tab group count section in Tab Group Tools. -->
+    <string name="debug_drawer_tab_group_tools_count_open">Open Groups</string>
+    <!-- The label of the closed tab group count category of the tab group count section in Tab Group Tools. -->
+    <string name="debug_drawer_tab_group_tools_count_closed">Closed Groups</string>
+    <!-- The label of the total tab group count category of the tab group count section in Tab Group Tools. -->
+    <string name="debug_drawer_tab_group_tools_count_total">Total Groups</string>
+    <!-- The title for adding tab groups in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_tool_title">Add Tab Groups</string>
+    <!-- The label for specifying the quantity of tab groups to add in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_quantity_label">Number of Groups to add</string>
+    <!-- The label for specifying the number of tabs to add per tab group in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_tabs_label">Tabs per Group</string>
+    <!-- The error message of the text field in the tab group creation tool when the text field is empty. -->
+    <string name="debug_drawer_tab_group_tools_quantity_empty_error">Text field is empty</string>
+    <!-- The error message of the text field in the tab group creation tool when the text field has negative integers. -->
+    <string name="debug_drawer_tab_group_tools_quantity_non_digits_error">Please enter positive numbers only</string>
+    <!-- The error message of the text field in the tab group creation tool when the text field is 0. -->
+    <string name="debug_drawer_tab_group_tools_quantity_non_zero_error">Please enter a number greater than zero</string>
+    <!-- The error message of the text field in the tab group creation tool when the text field is a quantity greater
+    than the max tab groups. %1$s is the maximum number of tabs that can be generated in one operation. -->
+    <string name="debug_drawer_tab_group_tools_quantity_exceed_max_error">Exceeded the maximum number of tab groups (%1$s) that can be generated in one operation</string>
+    <!--  The button text to add an open tab group in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_button_open">Add open group</string>
+    <!--  The button text to add an closed tab group in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_button_closed">Add closed group</string>
+    <!--  The button text to generate example tab groups in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_button_auto_populate">Auto-populate tab groups</string>
+    <!--  The button text to close all tab groups in the tab group creation tool. -->
+    <string name="debug_drawer_tab_group_tools_creation_button_remove_all">Remove all tab groups</string>
 
-    <!-- AI Controls settings -->
-    <!-- Label for the secret settings preference to enable AI controls -->
-    <string name="preferences_debug_settings_ai_controls">Enable AI controls</string>
-    <!-- Title for the AI controls settings screen -->
-    <string name="preferences_ai_controls">AI controls</string>
-    <!-- Headline text for the AI controls banner. %s is the name of the app (for example "Firefox"). -->
-    <string name="ai_controls_banner_headline">You always have a choice in %s</string>
-    <!-- Supporting text for the AI controls banner -->
-    <string name="ai_controls_banner_supporting_text">That includes whether to use features enhanced with AI. </string>
-    <!-- Link text for learning more about AI controls -->
-    <string name="ai_controls_learn_more">Learn more</string>
-    <!-- Title for the block AI enhancements toggle -->
-    <string name="ai_controls_block_ai_title">Block AI enhancements</string>
-    <!-- Description for the block AI enhancements toggle. %s is the name of the app (for example "Firefox"). -->
-    <string name="ai_controls_block_ai_description">Blocking means you won’t see new or current AI enhancements in %s, or popups about them.</string>
-    <!-- Link text to see what AI enhancements are and aren’t included -->
-    <string name="ai_controls_see_whats_included">See what is and isn’t included </string>
-    <!-- Banner text shown when AI enhancements are blocked -->
-    <string name="ai_controls_blocked_info_banner">New and current AI enhancements are blocked by default. Unblock specific features below.</string>
-    <!-- Section header for the AI-powered features list -->
-    <string name="ai_controls_ai_powered_features">AI-powered features</string>
-    <!-- Title for the translations AI feature toggle -->
-    <string name="ai_controls_translations_title">Translations</string>
-    <!-- Description for the translations AI feature toggle -->
-    <string name="ai_controls_translations_description">All translations stay private on your device. </string>
-    <!-- Link text to navigate to more translations settings -->
-    <string name="ai_controls_more_translations_settings" tools:ignore="UnusedResources">More translations settings</string>
-    <!-- Link text to navigate to more page summary settings -->
-    <string name="ai_controls_more_page_summary_settings">More page summary settings</string>
-    <!-- Title for the voice search AI feature toggle -->
-    <string name="ai_controls_voice_search_title">Voice search</string>
-    <!-- Description for the voice search AI feature toggle -->
-    <string name="ai_controls_voice_search_description">Audio is converted to text by Google Speech Services.</string>
-    <!-- Title for the block AI enhancements confirmation dialog -->
-    <string name="ai_controls_block_dialog_title">Block AI enhancements?</string>
-    <!-- Body text for the block AI enhancements confirmation dialog. %1$s is the name of the app (for example "Firefox"). -->
-    <string name="ai_controls_block_dialog_body">You won’t see new or current AI enhancements in %1$s, or pop-ups about them. Afterwards, you can unblock anything you want to keep using.\n\nBlocking also affects extensions that use AI provided by %1$s.</string>
-    <!-- Label shown above the list of features that will be blocked in the block AI dialog -->
-    <string name="ai_controls_block_dialog_what_will_be_blocked">What will be blocked:</string>
-    <!-- Cancel button text in the block AI enhancements confirmation dialog -->
-    <string name="ai_controls_block_dialog_cancel">Cancel</string>
-    <!-- Block button text in the block AI enhancements confirmation dialog -->
-    <string name="ai_controls_block_dialog_block">Block</string>
-    <!-- Title for the shake to summarize toggle in page summaries and customize settings -->
-    <string name="preferences_shake_to_summarize">Shake to summarize</string>
 </resources>

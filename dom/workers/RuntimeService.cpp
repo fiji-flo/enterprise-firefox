@@ -1202,22 +1202,6 @@ bool RuntimeService::RegisterWorker(WorkerPrivate& aWorkerPrivate) {
     AssertIsOnMainThread();
   }
 
-  nsCString sharedWorkerScriptSpec;
-  if (isSharedWorker) {
-    AssertIsOnMainThread();
-
-    nsCOMPtr<nsIURI> scriptURI = aWorkerPrivate.GetResolvedScriptURI();
-    NS_ASSERTION(scriptURI, "Null script URI!");
-
-    nsresult rv = scriptURI->GetSpec(sharedWorkerScriptSpec);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("GetSpec failed?!");
-      return false;
-    }
-
-    NS_ASSERTION(!sharedWorkerScriptSpec.IsEmpty(), "Empty spec!");
-  }
-
   bool exemptFromPerDomainMax = false;
   if (isServiceWorker) {
     AssertIsOnMainThread();

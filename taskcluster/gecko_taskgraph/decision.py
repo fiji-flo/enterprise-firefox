@@ -405,15 +405,14 @@ def get_decision_parameters(graph_config, options):
         )
         parameters.update(PER_PROJECT_PARAMETERS["default"])
 
+    if parameters.get("tasks_for", "").startswith("github-pull-request"):
+        parameters["optimize_strategies"] = (
+            "gecko_taskgraph.optimize:project.pull_request"
+        )
+
     # `target_tasks_method` has higher precedence than `project` parameters
     if options.get("target_tasks_method"):
         parameters["target_tasks_method"] = options["target_tasks_method"]
-
-    # ..but can be overridden by the commit message: if it contains the special
-    # string "DONTBUILD" and this is an on-push decision task, then use the
-    # special 'nothing' target task method.
-    if "DONTBUILD" in commit_message and options["tasks_for"] == "hg-push":
-        parameters["target_tasks_method"] = "nothing"
 
     if options.get("include_push_tasks"):
         get_existing_tasks(options.get("rebuild_kinds", []), parameters, graph_config)
@@ -437,6 +436,13 @@ def get_decision_parameters(graph_config, options):
 
     if options.get("optimize_target_tasks") is not None:
         parameters["optimize_target_tasks"] = options["optimize_target_tasks"]
+
+    # If the commit message contains "DONTBUILD" and this is an on-push
+    # decision task, mark it so the morph phase can drop all tasks and so
+    # that is_backstop knows not to count this push as a backstop.
+    parameters["dontbuild"] = (
+        "DONTBUILD" in commit_message and options["tasks_for"] == "hg-push"
+    )
 
     # Determine if this should be a backstop push.
     parameters["backstop"] = is_backstop(parameters)

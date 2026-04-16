@@ -45,11 +45,6 @@ BrowsingContext* BrowserHost::GetBrowsingContext() const {
   return mRoot->GetBrowsingContext();
 }
 
-nsILoadContext* BrowserHost::GetLoadContext() const {
-  RefPtr<nsILoadContext> loadContext = mRoot->GetLoadContext();
-  return loadContext;
-}
-
 bool BrowserHost::CanRecv() const { return mRoot && mRoot->CanRecv(); }
 
 a11y::DocAccessibleParent* BrowserHost::GetTopLevelDocAccessible() const {

@@ -10,26 +10,36 @@ class CssQueryContainerTooltipHelper {
   /**
    * Fill the tooltip with container information.
    */
-  async setContent(data, tooltip) {
+  async setContentAndShowContainerHighlighter(data, tooltip) {
     const res = await data.rule.domRule.getQueryContainerForNode(
       data.ancestorIndex,
       data.rule.inherited ||
-        data.rule.elementStyle.ruleView.inspector.selection.nodeFront
+        data.rule.elementStyle.ruleView.inspector.selection.nodeFront,
+      data.conditionIndex
     );
 
-    const fragment = this.#getTemplate(res, tooltip);
-    tooltip.panel.innerHTML = "";
-    tooltip.panel.appendChild(fragment);
+    if (res.node) {
+      const inspector = data.rule.elementStyle.ruleView.inspector;
+      await inspector.highlighters.showHighlighterTypeForNode(
+        inspector.highlighters.TYPES.BOXMODEL,
+        res.node
+      );
+      tooltip.once("hidden", () => {
+        inspector.highlighters.hideHighlighterType(
+          inspector.highlighters.TYPES.BOXMODEL
+        );
+      });
+    }
 
-    // Size the content.
-    tooltip.setContentSize({ width: 267 });
+    const fragment = this.#getTemplate(res, tooltip);
+    await tooltip.setLocalizedFragment(fragment, { width: "auto" });
   }
 
   /**
    * Get the template of the tooltip.
    *
-   * @param {object} data
-   * @param {NodeFront} data.node
+   * @param {object} data: returned value of StyleRuleActor.getQueryContainerForNode
+   * @param {NodeFront|null} data.node
    * @param {string} data.containerType
    * @param {string} data.inlineSize
    * @param {string} data.blockSize
@@ -45,97 +55,118 @@ class CssQueryContainerTooltipHelper {
     tooltipContainer.classList.add("devtools-tooltip-query-container");
     templateNode.content.appendChild(tooltipContainer);
 
-    const nodeContainer = doc.createElementNS(XHTML_NS, "header");
-    tooltipContainer.append(nodeContainer);
-
-    const containerQueryLabel = doc.createElementNS(XHTML_NS, "span");
-    containerQueryLabel.classList.add("property-name");
-    containerQueryLabel.appendChild(doc.createTextNode(`query container`));
-
-    const nodeEl = doc.createElementNS(XHTML_NS, "span");
-    nodeEl.classList.add("objectBox-node");
-    nodeContainer.append(doc.createTextNode("<"), nodeEl);
-
-    const nodeNameEl = doc.createElementNS(XHTML_NS, "span");
-    nodeNameEl.classList.add("tag-name");
-    nodeNameEl.appendChild(
-      doc.createTextNode(data.node.nodeName.toLowerCase())
-    );
-
-    nodeEl.appendChild(nodeNameEl);
-
-    if (data.node.id) {
-      const idEl = doc.createElementNS(XHTML_NS, "span");
-      idEl.classList.add("attribute-name");
-      idEl.appendChild(doc.createTextNode(`#${data.node.id}`));
-      nodeEl.appendChild(idEl);
-    }
-
-    for (const attr of data.node.attributes) {
-      if (attr.name !== "class") {
-        continue;
-      }
-      for (const cls of attr.value.split(/\s/)) {
-        const el = doc.createElementNS(XHTML_NS, "span");
-        el.classList.add("attribute-name");
-        el.appendChild(doc.createTextNode(`.${cls}`));
-        nodeEl.appendChild(el);
-      }
-    }
-    nodeContainer.append(doc.createTextNode(">"));
-
-    const ul = doc.createElementNS(XHTML_NS, "ul");
-    tooltipContainer.appendChild(ul);
-
-    const containerTypeEl = doc.createElementNS(XHTML_NS, "li");
-    const containerTypeLabel = doc.createElementNS(XHTML_NS, "span");
-    containerTypeLabel.classList.add("property-name");
-    containerTypeLabel.appendChild(doc.createTextNode(`container-type`));
-
-    const containerTypeValue = doc.createElementNS(XHTML_NS, "span");
-    containerTypeValue.classList.add("property-value");
-    containerTypeValue.appendChild(doc.createTextNode(data.containerType));
-
-    containerTypeEl.append(
-      containerTypeLabel,
-      doc.createTextNode(": "),
-      containerTypeValue
-    );
-    ul.appendChild(containerTypeEl);
-
-    const inlineSizeEl = doc.createElementNS(XHTML_NS, "li");
-
-    const inlineSizeLabel = doc.createElementNS(XHTML_NS, "span");
-    inlineSizeLabel.classList.add("property-name");
-    inlineSizeLabel.appendChild(doc.createTextNode(`inline-size`));
-
-    const inlineSizeValue = doc.createElementNS(XHTML_NS, "span");
-    inlineSizeValue.classList.add("property-value");
-    inlineSizeValue.appendChild(doc.createTextNode(data.inlineSize));
-
-    inlineSizeEl.append(
-      inlineSizeLabel,
-      doc.createTextNode(": "),
-      inlineSizeValue
-    );
-    ul.appendChild(inlineSizeEl);
-
-    if (data.containerType != "inline-size") {
-      const blockSizeEl = doc.createElementNS(XHTML_NS, "li");
-      const blockSizeLabel = doc.createElementNS(XHTML_NS, "span");
-      blockSizeLabel.classList.add("property-name");
-      blockSizeLabel.appendChild(doc.createTextNode(`block-size`));
-
-      const blockSizeValue = doc.createElementNS(XHTML_NS, "span");
-      blockSizeValue.classList.add("property-value");
-      blockSizeValue.appendChild(doc.createTextNode(data.blockSize));
-
-      blockSizeEl.append(
-        blockSizeLabel,
-        doc.createTextNode(": "),
-        blockSizeValue
+    if (!data.node) {
+      tooltipContainer.setAttribute(
+        "data-l10n-id",
+        "css-selector-container-query-condition-no-container"
       );
-      ul.appendChild(blockSizeEl);
+      tooltipContainer.setAttribute(
+        "data-l10n-args",
+        JSON.stringify({ name: data.containerName })
+      );
+    } else {
+      const nodeContainer = doc.createElementNS(XHTML_NS, "header");
+      tooltipContainer.append(nodeContainer);
+
+      const nodeEl = doc.createElementNS(XHTML_NS, "span");
+      nodeEl.classList.add("objectBox-node");
+      nodeContainer.append(doc.createTextNode("<"), nodeEl);
+
+      const nodeNameEl = doc.createElementNS(XHTML_NS, "span");
+      nodeNameEl.classList.add("tag-name");
+      nodeNameEl.appendChild(
+        doc.createTextNode(data.node.nodeName.toLowerCase())
+      );
+
+      nodeEl.appendChild(nodeNameEl);
+
+      if (data.node.id) {
+        const idEl = doc.createElementNS(XHTML_NS, "span");
+        idEl.classList.add("attribute-name");
+        idEl.appendChild(doc.createTextNode(`#${data.node.id}`));
+        nodeEl.appendChild(idEl);
+      }
+
+      for (const attr of data.node.attributes) {
+        if (attr.name !== "class") {
+          continue;
+        }
+        for (const cls of attr.value.split(/\s/)) {
+          const el = doc.createElementNS(XHTML_NS, "span");
+          el.classList.add("attribute-name");
+          el.appendChild(doc.createTextNode(`.${cls}`));
+          nodeEl.appendChild(el);
+        }
+      }
+      nodeContainer.append(doc.createTextNode(">"));
+
+      const ul = doc.createElementNS(XHTML_NS, "ul");
+      tooltipContainer.appendChild(ul);
+
+      if (data.containerName) {
+        const containerNameEl = doc.createElementNS(XHTML_NS, "li");
+        const containerNameLabel = doc.createElementNS(XHTML_NS, "span");
+        containerNameLabel.classList.add("property-name");
+        containerNameLabel.append(`container-name`);
+
+        const containerNameValue = doc.createElementNS(XHTML_NS, "span");
+        containerNameValue.classList.add("property-value");
+        containerNameValue.append(data.containerName);
+
+        containerNameEl.append(containerNameLabel, ": ", containerNameValue);
+        ul.appendChild(containerNameEl);
+      }
+
+      const containerTypeEl = doc.createElementNS(XHTML_NS, "li");
+      const containerTypeLabel = doc.createElementNS(XHTML_NS, "span");
+      containerTypeLabel.classList.add("property-name");
+      containerTypeLabel.appendChild(doc.createTextNode(`container-type`));
+
+      const containerTypeValue = doc.createElementNS(XHTML_NS, "span");
+      containerTypeValue.classList.add("property-value");
+      containerTypeValue.appendChild(doc.createTextNode(data.containerType));
+
+      containerTypeEl.append(
+        containerTypeLabel,
+        doc.createTextNode(": "),
+        containerTypeValue
+      );
+      ul.appendChild(containerTypeEl);
+
+      const inlineSizeEl = doc.createElementNS(XHTML_NS, "li");
+
+      const inlineSizeLabel = doc.createElementNS(XHTML_NS, "span");
+      inlineSizeLabel.classList.add("property-name");
+      inlineSizeLabel.appendChild(doc.createTextNode(`inline-size`));
+
+      const inlineSizeValue = doc.createElementNS(XHTML_NS, "span");
+      inlineSizeValue.classList.add("property-value");
+      inlineSizeValue.appendChild(doc.createTextNode(data.inlineSize));
+
+      inlineSizeEl.append(
+        inlineSizeLabel,
+        doc.createTextNode(": "),
+        inlineSizeValue
+      );
+      ul.appendChild(inlineSizeEl);
+
+      if (data.containerType != "inline-size") {
+        const blockSizeEl = doc.createElementNS(XHTML_NS, "li");
+        const blockSizeLabel = doc.createElementNS(XHTML_NS, "span");
+        blockSizeLabel.classList.add("property-name");
+        blockSizeLabel.appendChild(doc.createTextNode(`block-size`));
+
+        const blockSizeValue = doc.createElementNS(XHTML_NS, "span");
+        blockSizeValue.classList.add("property-value");
+        blockSizeValue.appendChild(doc.createTextNode(data.blockSize));
+
+        blockSizeEl.append(
+          blockSizeLabel,
+          doc.createTextNode(": "),
+          blockSizeValue
+        );
+        ul.appendChild(blockSizeEl);
+      }
     }
 
     return doc.importNode(templateNode.content, true);

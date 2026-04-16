@@ -7,6 +7,7 @@ import { useDispatch, useSelector, batch } from "react-redux";
 import { Lists } from "./Lists/Lists";
 import { FocusTimer } from "./FocusTimer/FocusTimer";
 import { WeatherForecast } from "./WeatherForecast/WeatherForecast";
+import { Weather as WeatherWidget } from "./Weather/Weather";
 import { MessageWrapper } from "content-src/components/MessageWrapper/MessageWrapper";
 import { WidgetsFeatureHighlight } from "../DiscoveryStreamComponents/FeatureHighlight/WidgetsFeatureHighlight";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
@@ -23,6 +24,8 @@ const PREF_WIDGETS_LISTS_ENABLED = "widgets.lists.enabled";
 const PREF_WIDGETS_SYSTEM_LISTS_ENABLED = "widgets.system.lists.enabled";
 const PREF_WIDGETS_TIMER_ENABLED = "widgets.focusTimer.enabled";
 const PREF_WIDGETS_SYSTEM_TIMER_ENABLED = "widgets.system.focusTimer.enabled";
+const PREF_WIDGETS_WEATHER_ENABLED = "widgets.weather.enabled";
+const PREF_WIDGETS_SYSTEM_WEATHER_ENABLED = "widgets.system.weather.enabled";
 const PREF_WIDGETS_SYSTEM_WEATHER_FORECAST_ENABLED =
   "widgets.system.weatherForecast.enabled";
 const PREF_WIDGETS_MAXIMIZED = "widgets.maximized";
@@ -67,6 +70,37 @@ export function resetTimerToDefaults(dispatch, timerType) {
   );
 }
 
+function renderWeather({
+  novaEnabled,
+  weatherEnabled,
+  weatherForecastEnabled,
+  weatherSize,
+  dispatch,
+  handleUserInteraction,
+  isMaximized,
+  widgetsMayBeMaximized,
+}) {
+  if (novaEnabled) {
+    return (
+      weatherEnabled &&
+      weatherSize !== "small" && (
+        <WeatherWidget dispatch={dispatch} size={weatherSize || "medium"} />
+      )
+    );
+  }
+  return (
+    weatherForecastEnabled && (
+      <WeatherForecast
+        dispatch={dispatch}
+        handleUserInteraction={handleUserInteraction}
+        isMaximized={isMaximized}
+        widgetsMayBeMaximized={widgetsMayBeMaximized}
+      />
+    )
+  );
+}
+
+// eslint-disable-next-line complexity
 function Widgets() {
   const prefs = useSelector(state => state.Prefs.values);
   const weatherData = useSelector(state => state.Weather);
@@ -86,6 +120,8 @@ function Widgets() {
     prefs.trainhopConfig?.widgets?.timerEnabled;
   const nimbusWeatherForecastTrainhopEnabled =
     prefs.trainhopConfig?.widgets?.weatherForecastEnabled;
+  const nimbusWeatherTrainhopEnabled =
+    prefs.trainhopConfig?.widgets?.weatherEnabled;
   const nimbusMaximizedTrainhopEnabled =
     prefs.trainhopConfig?.widgets?.maximized;
   const feedbackEnabled =
@@ -139,6 +175,23 @@ function Widgets() {
     weatherData?.initialized &&
     isWeatherEnabled;
 
+  const weatherSystemEnabled =
+    nimbusWeatherTrainhopEnabled || prefs[PREF_WIDGETS_SYSTEM_WEATHER_ENABLED];
+
+  const weatherEnabled =
+    weatherSystemEnabled &&
+    weatherData?.initialized &&
+    isWeatherEnabled &&
+    prefs[PREF_WIDGETS_WEATHER_ENABLED];
+  // Bug 2013978 will replace these hardcoded per-widget checks with a registry.
+  const weatherWidgetInRow =
+    weatherEnabled && prefs[PREF_WEATHER_SIZE] !== "small";
+  const anyWidgetInRow =
+    listsEnabled ||
+    timerEnabled ||
+    (!novaEnabled && weatherForecastEnabled) ||
+    weatherWidgetInRow;
+
   // Widget size is "small" only when maximize feature is enabled and widgets
   // are currently minimized. Otherwise defaults to "medium".
   const widgetSize = widgetsMayBeMaximized && !isMaximized ? "small" : "medium";
@@ -165,9 +218,14 @@ function Widgets() {
     batch(() => {
       dispatch(ac.SetPref(PREF_WIDGETS_LISTS_ENABLED, false));
       dispatch(ac.SetPref(PREF_WIDGETS_TIMER_ENABLED, false));
-      // If weather forecast widget is visible, turn off the weather
-      if (weatherForecastEnabled) {
+      // @nova-cleanup(remove-conditional): Remove the !novaEnabled guard and the
+      // weatherForecastEnabled branch entirely. Keep only the weatherEnabled branch,
+      // removing the size check once the weather widget always lives in the row.
+      if (!novaEnabled && weatherForecastEnabled) {
         dispatch(ac.SetPref("showWeather", false));
+      }
+      if (weatherWidgetInRow) {
+        dispatch(ac.SetPref(PREF_WIDGETS_WEATHER_ENABLED, false));
       }
 
       const telemetryData = {
@@ -212,7 +270,7 @@ function Widgets() {
       }
 
       // Send telemetry for weather widget if it was visible when hiding all widgets
-      if (weatherForecastEnabled) {
+      if (weatherForecastEnabled || weatherWidgetInRow) {
         dispatch(
           ac.OnlyToMain({
             type: at.WIDGETS_ENABLED,
@@ -336,7 +394,7 @@ function Widgets() {
     }
   }
 
-  if (!(listsEnabled || timerEnabled || weatherForecastEnabled)) {
+  if (!anyWidgetInRow) {
     return null;
   }
 
@@ -399,14 +457,16 @@ function Widgets() {
               widgetsMayBeMaximized={widgetsMayBeMaximized}
             />
           )}
-          {weatherForecastEnabled && (
-            <WeatherForecast
-              dispatch={dispatch}
-              handleUserInteraction={handleUserInteraction}
-              isMaximized={isMaximized}
-              widgetsMayBeMaximized={widgetsMayBeMaximized}
-            />
-          )}
+          {renderWeather({
+            novaEnabled,
+            weatherEnabled,
+            weatherForecastEnabled,
+            weatherSize: prefs[PREF_WEATHER_SIZE],
+            dispatch,
+            handleUserInteraction,
+            isMaximized,
+            widgetsMayBeMaximized,
+          })}
         </div>
         {feedbackEnabled && (
           <a

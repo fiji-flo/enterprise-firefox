@@ -2445,9 +2445,19 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
 
   bool isProxy = js::IsProxy(aObj);
   JS::Rooted<JSObject*> expandoObject(aCx);
+  JS::Rooted<JS::Value> expandoRollbackToken(aCx);
   if (isProxy) {
-    expandoObject = DOMProxyHandler::GetAndClearExpandoObject(aObj);
+    expandoObject =
+        DOMProxyHandler::GetAndClearExpandoObject(aObj, &expandoRollbackToken);
   }
+  auto resetExpando = MakeScopeExit([&]() {
+    // We must clear the expando object from `aObj`, since otherwise it will be
+    // copied as part of JS_CloneObject. But on an error, it needs to be
+    // restored.
+    if (expandoObject) {
+      DOMProxyHandler::RestoreExpando(aObj, expandoRollbackToken);
+    }
+  });
 
   JSAutoRealm newAr(aCx, newGlobal);
 
@@ -2488,9 +2498,12 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
     propertyHolder = nullptr;
   }
 
+  // We've made it far enough to be able to mutate the source. Cleared slots
+  // will not be observed even if a failure occurs after this point.
+  resetExpando.release();
+
   // We've set up |newobj|, so we make it own the native by setting its reserved
-  // slot and nulling out the reserved slot of |obj|. Update the wrapper cache
-  // to keep everything consistent in case GC moves newobj.
+  // slot and nulling out the reserved slot of |obj|.
   //
   // NB: It's important to do this _after_ copying the properties to
   // propertyHolder. Otherwise, an object with |foo.x === foo| will
@@ -2514,16 +2527,23 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
 
   nsWrapperCache* cache = nullptr;
   CallQueryInterface(native, &cache);
-  cache->UpdateWrapperForNewGlobal(native, newobj);
+
+  // For preserved wrappers the store buffer keeps mWrapper consistent across
+  // the transplant. For non-preserved wrappers clear mWrapper so that
+  // JSObjectsTenured doesn't follow a stale pointer if nursery GC fires.
+  bool preserving = cache->PreservingWrapper();
+  if (preserving) {
+    cache->UpdateWrapperForNewGlobal(native, newobj);
+  } else {
+    cache->ClearWrapper();
+  }
 
   aObj = xpc::TransplantObjectRetainingXrayExpandos(aCx, aObj, newobj);
   if (!aObj) {
     MOZ_CRASH();
   }
 
-  // Update the wrapper cache again if transplanting didn't use newobj but
-  // returned some other object.
-  if (aObj != newobj) {
+  if (!preserving || aObj != newobj) {
     MOZ_ASSERT(UnwrapDOMObjectToISupports(aObj) == native);
     cache->UpdateWrapperForNewGlobal(native, aObj);
   }
@@ -2751,28 +2771,6 @@ void ConstructJSImplementation(const char* aContractId,
 
 bool NormalizeUSVString(nsAString& aString) {
   return EnsureUTF16Validity(aString);
-}
-
-bool NormalizeUSVString(binding_detail::FakeString<char16_t>& aString) {
-  uint32_t upTo = Utf16ValidUpTo(aString);
-  uint32_t len = aString.Length();
-  if (upTo == len) {
-    return true;
-  }
-  // This is the part that's different from EnsureUTF16Validity with an
-  // nsAString& argument, because we don't want to ensure mutability in our
-  // BeginWriting() in the common case and nsAString's EnsureMutable is not
-  // public.  This is a little annoying; I wish we could just share the more or
-  // less identical code!
-  if (!aString.EnsureMutable()) {
-    return false;
-  }
-
-  char16_t* ptr = aString.BeginWriting();
-  auto span = Span(ptr, len);
-  span[upTo] = 0xFFFD;
-  EnsureUtf16ValiditySpan(span.From(upTo + 1));
-  return true;
 }
 
 bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,

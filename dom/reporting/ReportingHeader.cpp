@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "js/GCAPI.h"
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/OriginAttributes.h"
@@ -391,7 +392,7 @@ ReportingHeader::ParseReportToHeader(nsIHttpChannel* aChannel, nsIURI* aURI,
     return nullptr;
   }
 
-  dom::ReportingHeaderValue data;
+  RootedDictionary<dom::ReportingHeaderValue> data(cx);
   if (!data.Init(cx, jsonValue)) {
     // Ignore error in favor of generic message to avoid logspam (bug 2020662).
     JS_ClearPendingException(cx);

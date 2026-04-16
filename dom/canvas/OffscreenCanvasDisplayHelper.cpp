@@ -304,6 +304,10 @@ bool OffscreenCanvasDisplayHelper::CommitFrameToCompositor(
     }
   }
 
+  if (!mCanvasElement || !mImageContainer) {
+    return false;
+  }
+
   // We save any current surface because we might need it in GetSnapshot. If we
   // are on a worker thread and not WebGL, then this will be the only way we can
   // access the pixel data on the main thread.

@@ -76,6 +76,20 @@ object MainMenuSelectors {
         groups = listOf("bookmarkActions"),
     )
 
+    val EDIT_BOOKMARK_BUTTON = Selector(
+        strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
+        value = getStringResource(R.string.browser_menu_edit_bookmark),
+        description = "Edit bookmark button",
+        groups = listOf("editBookmarkActions"),
+    )
+
+    val FIND_IN_PAGE_BUTTON = Selector(
+        strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
+        value = getStringResource(R.string.browser_menu_find_in_page),
+        description = "Main menu Find in page button",
+        groups = listOf(),
+    )
+
     // TODO (M. Barone 3/20/2026): add getting 'appName' to our base helpers
     val DEFAULT_BROWSER_BANNER_TITLE = Selector(
         strategy = SelectorStrategy.COMPOSE_BY_TEXT,
@@ -108,6 +122,8 @@ object MainMenuSelectors {
         SIGN_IN_BUTTON,
         SETTINGS_BUTTON,
         BOOKMARK_THIS_PAGE_BUTTON,
+        EDIT_BOOKMARK_BUTTON,
+        FIND_IN_PAGE_BUTTON,
         DEFAULT_BROWSER_BANNER_TITLE,
         DEFAULT_BROWSER_BANNER_SUBTITLE,
         DEFAULT_BROWSER_BANNER_DISMISS,

@@ -1150,7 +1150,7 @@ dependencies = [
 [[package]]
 name = "coreaudio-sys-utils"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/cubeb-coreaudio-rs?rev=5b689a7f90086e07c271ad1cf79325ee06112ab6#5b689a7f90086e07c271ad1cf79325ee06112ab6"
+source = "git+https://github.com/mozilla/cubeb-coreaudio-rs?rev=0bb8a45a040e85d313eb18deb36570e87df3a6af#0bb8a45a040e85d313eb18deb36570e87df3a6af"
 dependencies = [
  "core-foundation-sys",
  "coreaudio-sys",
@@ -1499,7 +1499,7 @@ dependencies = [
 [[package]]
 name = "cubeb-coreaudio"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/cubeb-coreaudio-rs?rev=5b689a7f90086e07c271ad1cf79325ee06112ab6#5b689a7f90086e07c271ad1cf79325ee06112ab6"
+source = "git+https://github.com/mozilla/cubeb-coreaudio-rs?rev=0bb8a45a040e85d313eb18deb36570e87df3a6af#0bb8a45a040e85d313eb18deb36570e87df3a6af"
 dependencies = [
  "atomic",
  "audio-mixer",
@@ -1518,7 +1518,7 @@ dependencies = [
 [[package]]
 name = "cubeb-pulse"
 version = "0.5.0"
-source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=a1936adf8e0fb0637b48436f92f833c8c48a0fee#a1936adf8e0fb0637b48436f92f833c8c48a0fee"
+source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c#c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c"
 dependencies = [
  "cubeb-backend",
  "pulse",
@@ -2785,6 +2785,7 @@ dependencies = [
  "rust_minidump_writer_linux",
  "shell_windows",
  "signature_cache",
+ "ssl_tokens_cache",
  "static_prefs",
  "storage",
  "trust-anchors",
@@ -3917,6 +3918,7 @@ dependencies = [
  "rusqlite 0.37.0",
  "serde",
  "serde_json",
+ "skv",
  "storage_variant",
  "tempfile",
  "thin-vec",
@@ -4993,7 +4995,7 @@ dependencies = [
 [[package]]
 name = "mtu"
 version = "0.3.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "bindgen 0.72.0",
  "cfg_aliases",
@@ -5036,8 +5038,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-bin"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "cfg_aliases",
  "clap",
@@ -5062,8 +5064,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-common"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "enum-map",
  "env_logger",
@@ -5076,8 +5078,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-crypto"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "bindgen 0.72.0",
  "enum-map",
@@ -5095,8 +5097,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-http3"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "enumset",
  "http",
@@ -5114,8 +5116,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-qpack"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "log",
  "neqo-common",
@@ -5128,8 +5130,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-transport"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "enum-map",
  "enumset",
@@ -5148,8 +5150,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-udp"
-version = "0.25.0"
-source = "git+https://github.com/mozilla/neqo?tag=v0.25.0#2fce249a5c03eef63a4a1a748c7a0c1dea497b9b"
+version = "0.26.0"
+source = "git+https://github.com/mozilla/neqo?tag=v0.26.0#7c0b85f4c7d60bfb74b7be5a64551a4a5c5c0c6b"
 dependencies = [
  "cfg_aliases",
  "libc",
@@ -6036,7 +6038,7 @@ dependencies = [
 [[package]]
 name = "pulse"
 version = "0.3.0"
-source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=a1936adf8e0fb0637b48436f92f833c8c48a0fee#a1936adf8e0fb0637b48436f92f833c8c48a0fee"
+source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c#c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c"
 dependencies = [
  "bitflags 2.10.0",
  "pulse-ffi",
@@ -6045,7 +6047,7 @@ dependencies = [
 [[package]]
 name = "pulse-ffi"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=a1936adf8e0fb0637b48436f92f833c8c48a0fee#a1936adf8e0fb0637b48436f92f833c8c48a0fee"
+source = "git+https://github.com/mozilla/cubeb-pulse-rs?rev=c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c#c0b3bce1f1d1cc565a2ccacd9c38e945ef8d033c"
 dependencies = [
  "libc",
 ]
@@ -6855,6 +6857,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
 
 [[package]]
+name = "skv"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "futures",
+ "hashbrown 0.16.0",
+ "rusqlite 0.37.0",
+ "serde",
+ "serde_json",
+ "thiserror 1.999.999",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6925,6 +6940,20 @@ dependencies = [
  "rusqlite 0.37.0",
  "tempfile",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "ssl_tokens_cache"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "flate2",
+ "log",
+ "nsstring",
+ "rustc-hash 2.1.1",
+ "serde",
+ "static_assertions",
+ "tempfile",
 ]
 
 [[package]]
@@ -7282,7 +7311,9 @@ dependencies = [
 
 [[package]]
 name = "thin-vec"
-version = "0.2.14"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "259cdf8ed4e4aca6f1e9d011e10bd53f524a2d0637d7b28450f6c64ac298c4c6"
 
 [[package]]
 name = "thiserror"
@@ -8497,6 +8528,7 @@ name = "widget_windows"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "moz_task",
  "nserror",
  "nsstring",
  "thin-vec",

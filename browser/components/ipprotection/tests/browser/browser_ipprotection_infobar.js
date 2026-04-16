@@ -10,6 +10,9 @@ const { BANDWIDTH } = ChromeUtils.importESModule(
   "chrome://browser/content/ipprotection/ipprotection-constants.mjs"
 );
 
+const BANDWIDTH_WARNING_DISMISSED_PREF =
+  "browser.ipProtection.bandwidthWarningDismissedThreshold";
+
 function dispatchUsageEvent(remainingPercent) {
   // Use realistic byte values: 50 GB max bandwidth
   const maxBytes = BigInt(BANDWIDTH.MAX_IN_GB) * BigInt(BANDWIDTH.BYTES_IN_GB);
@@ -89,8 +92,8 @@ add_task(async function test_90_percent_notification() {
     "Notification has high warning priority"
   );
   Assert.ok(
-    REGEX_WHOLE_NUMBER.test(notification.messageL10nArgs.usageLeft),
-    "90% notification shows GB rounded to whole number"
+    REGEX_DECIMAL.test(notification.messageL10nArgs.usageLeft),
+    "90% notification shows GB rounded to one decimal place"
   );
 
   window.gNotificationBox.removeNotification(notification);
@@ -211,8 +214,8 @@ add_task(async function test_90_percent_overrides_75_percent() {
 
   Assert.ok(notification90, "90% notification exists");
   Assert.ok(
-    REGEX_WHOLE_NUMBER.test(notification90.messageL10nArgs.usageLeft),
-    "90% notification shows GB rounded to whole number"
+    REGEX_DECIMAL.test(notification90.messageL10nArgs.usageLeft),
+    "90% notification shows GB rounded to one decimal place"
   );
   Assert.equal(notification75, null, "75% notification does not exist");
 
@@ -355,6 +358,322 @@ add_task(
     IPProtectionInfobarManager.uninit();
   }
 );
+
+add_task(async function test_dismissed_75_stays_dismissed() {
+  Services.prefs.setIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0);
+  IPProtectionInfobarManager.init();
+
+  dispatchUsageEvent(0.2);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to appear"
+  );
+
+  window.gNotificationBox
+    .getNotificationWithValue("ip-protection-bandwidth-warning-75")
+    .dismiss();
+
+  await TestUtils.waitForCondition(
+    () =>
+      !window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to be removed after dismiss"
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0),
+    75,
+    "Dismissed pref is set to 75 after dismissal"
+  );
+
+  dispatchUsageEvent(0.2);
+  await TestUtils.waitForTick();
+
+  Assert.equal(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    ),
+    null,
+    "75% notification does not reappear after being dismissed"
+  );
+
+  Services.prefs.clearUserPref(BANDWIDTH_WARNING_DISMISSED_PREF);
+  IPProtectionInfobarManager.uninit();
+});
+
+add_task(async function test_dismissed_75_still_allows_90() {
+  Services.prefs.setIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0);
+  IPProtectionInfobarManager.init();
+
+  dispatchUsageEvent(0.2);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to appear"
+  );
+
+  window.gNotificationBox
+    .getNotificationWithValue("ip-protection-bandwidth-warning-75")
+    .dismiss();
+
+  await TestUtils.waitForCondition(
+    () =>
+      !window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to be removed after dismiss"
+  );
+
+  dispatchUsageEvent(0.05);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-90"
+      ),
+    "Wait for 90% notification to appear"
+  );
+
+  Assert.ok(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-90"
+    ),
+    "90% notification appears even after 75% was dismissed"
+  );
+
+  window.gNotificationBox.removeNotification(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-90"
+    )
+  );
+  Services.prefs.clearUserPref(BANDWIDTH_WARNING_DISMISSED_PREF);
+  IPProtectionInfobarManager.uninit();
+});
+
+add_task(async function test_dismissed_90_stays_dismissed() {
+  Services.prefs.setIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0);
+  IPProtectionInfobarManager.init();
+
+  dispatchUsageEvent(0.05);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-90"
+      ),
+    "Wait for 90% notification to appear"
+  );
+
+  window.gNotificationBox
+    .getNotificationWithValue("ip-protection-bandwidth-warning-90")
+    .dismiss();
+
+  await TestUtils.waitForCondition(
+    () =>
+      !window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-90"
+      ),
+    "Wait for 90% notification to be removed after dismiss"
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0),
+    90,
+    "Dismissed pref is set to 90 after dismissal"
+  );
+
+  dispatchUsageEvent(0.05);
+  await TestUtils.waitForTick();
+
+  Assert.equal(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-90"
+    ),
+    null,
+    "90% notification does not reappear after being dismissed"
+  );
+
+  Services.prefs.clearUserPref(BANDWIDTH_WARNING_DISMISSED_PREF);
+  IPProtectionInfobarManager.uninit();
+});
+
+add_task(async function test_bandwidth_reset_clears_dismissed_state() {
+  Services.prefs.setIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0);
+  IPProtectionInfobarManager.init();
+
+  dispatchUsageEvent(0.2);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to appear"
+  );
+
+  window.gNotificationBox
+    .getNotificationWithValue("ip-protection-bandwidth-warning-75")
+    .dismiss();
+
+  await TestUtils.waitForCondition(
+    () =>
+      !window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to be removed after dismiss"
+  );
+
+  Assert.equal(
+    Services.prefs.getIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0),
+    75,
+    "Dismissed pref is 75 after dismissal"
+  );
+
+  dispatchUsageEvent(1);
+  await TestUtils.waitForTick();
+
+  Assert.equal(
+    Services.prefs.getIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0),
+    0,
+    "Dismissed pref is reset to 0 after bandwidth resets"
+  );
+
+  dispatchUsageEvent(0.2);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to reappear after bandwidth reset"
+  );
+
+  Assert.ok(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    ),
+    "75% notification reappears after bandwidth resets"
+  );
+
+  window.gNotificationBox.removeNotification(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    )
+  );
+  Services.prefs.clearUserPref(BANDWIDTH_WARNING_DISMISSED_PREF);
+  IPProtectionInfobarManager.uninit();
+});
+
+add_task(async function test_dismissed_state_persists_through_sign_out() {
+  Services.prefs.setIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0);
+  setupService({ isSignedIn: true, isEnrolledAndEntitled: true });
+  IPProtectionService.updateState();
+
+  IPProtectionInfobarManager.init();
+
+  dispatchUsageEvent(0.2);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to appear"
+  );
+
+  window.gNotificationBox
+    .getNotificationWithValue("ip-protection-bandwidth-warning-75")
+    .dismiss();
+
+  await TestUtils.waitForCondition(
+    () =>
+      !window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to be removed after dismiss"
+  );
+
+  setupService({ isSignedIn: false });
+  IPProtectionService.updateState();
+  await TestUtils.waitForTick();
+
+  setupService({ isSignedIn: true, isEnrolledAndEntitled: true });
+  IPProtectionService.updateState();
+
+  dispatchUsageEvent(0.2);
+  await TestUtils.waitForTick();
+
+  Assert.equal(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    ),
+    null,
+    "75% notification stays dismissed after sign out and back in"
+  );
+  Assert.equal(
+    Services.prefs.getIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0),
+    75,
+    "Dismissed pref persists through sign out"
+  );
+
+  Services.prefs.clearUserPref(BANDWIDTH_WARNING_DISMISSED_PREF);
+  IPProtectionInfobarManager.uninit();
+  cleanupService();
+});
+
+add_task(async function test_infobar_shown_in_new_window() {
+  IPProtectionInfobarManager.init();
+
+  dispatchUsageEvent(0.2);
+
+  await TestUtils.waitForCondition(
+    () =>
+      window.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to appear in original window"
+  );
+
+  Assert.ok(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    ),
+    "75% notification exists in original window"
+  );
+
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+
+  await TestUtils.waitForCondition(
+    () =>
+      newWin.gNotificationBox.getNotificationWithValue(
+        "ip-protection-bandwidth-warning-75"
+      ),
+    "Wait for 75% notification to appear in new window"
+  );
+
+  Assert.ok(
+    newWin.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    ),
+    "75% notification is shown in new window"
+  );
+
+  await BrowserTestUtils.closeWindow(newWin);
+  window.gNotificationBox.removeNotification(
+    window.gNotificationBox.getNotificationWithValue(
+      "ip-protection-bandwidth-warning-75"
+    )
+  );
+  IPProtectionInfobarManager.uninit();
+});
 
 add_task(async function test_handles_missing_usage_data() {
   IPProtectionInfobarManager.init();

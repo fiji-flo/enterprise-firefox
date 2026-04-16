@@ -95,6 +95,7 @@ class SidebarManager extends EventTarget {
     this.checkForPinnedTabsComplete = false;
   }
   #initialized = false;
+  #savedVisibility = null;
   init() {
     lazy.CustomizableUI.addListener(this);
 
@@ -223,11 +224,24 @@ class SidebarManager extends EventTarget {
    */
   handleVerticalTabsPrefChange(isEnabled, resetVisibility = true) {
     if (!isEnabled) {
-      // horizontal tabs can only have visibility of "hide-sidebar"
+      const currentVisibility = Services.prefs.getStringPref(
+        VISIBILITY_SETTING_PREF,
+        "always-show"
+      );
+      if (currentVisibility == "expand-on-hover") {
+        this.#savedVisibility = currentVisibility;
+      }
       Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "hide-sidebar");
     } else if (resetVisibility) {
-      // only reset visibility pref when switching to vertical tabs and explictly indicated
-      Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "always-show");
+      if (this.#savedVisibility) {
+        Services.prefs.setStringPref(
+          VISIBILITY_SETTING_PREF,
+          this.#savedVisibility
+        );
+        this.#savedVisibility = null;
+      } else {
+        Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "always-show");
+      }
     }
   }
 

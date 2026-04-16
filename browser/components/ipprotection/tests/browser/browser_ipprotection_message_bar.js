@@ -447,8 +447,8 @@ add_task(async function test_warning_message_l10n_args_at_80_percent_used() {
   const l10nArgs = JSON.parse(messageBar.messageLinkL10nArgs);
   Assert.equal(
     l10nArgs.usageLeft,
-    (remaining / BANDWIDTH.BYTES_IN_GB).toFixed(1),
-    "usageLeft should be a decimal GB value when 75% <= pctUsed < 90%"
+    parseFloat((remaining / BANDWIDTH.BYTES_IN_GB).toFixed(1)),
+    "usageLeft should be the GB value rounded to nearest 0.1"
   );
 
   await closePanel();
@@ -727,4 +727,95 @@ add_task(async function test_no_message_bar_when_signed_out_with_warning() {
   await closePanel();
   await SpecialPowers.popPrefEnv();
   Services.prefs.clearUserPref("browser.ipProtection.bandwidthThreshold");
+});
+
+/**
+ * Tests that the bandwidth warning message bar is dismissed when the panel
+ * transitions to the paused state.
+ */
+add_task(async function test_no_message_bar_when_paused() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ipProtection.bandwidth.enabled", true]],
+  });
+
+  const maxBytes = BANDWIDTH.MAX_IN_GB * BANDWIDTH.BYTES_IN_GB;
+
+  let content = await openPanel({
+    unauthenticated: false,
+    error: "",
+    bandwidthWarning: false,
+  });
+
+  let messageBarLoadedPromise = BrowserTestUtils.waitForMutationCondition(
+    content.shadowRoot,
+    { childList: true, subtree: true },
+    () => content.shadowRoot.querySelector("ipprotection-message-bar")
+  );
+
+  IPPProxyManager.dispatchEvent(
+    new CustomEvent("IPPProxyManager:UsageChanged", {
+      bubbles: true,
+      composed: true,
+      detail: {
+        usage: new ProxyUsage(
+          String(maxBytes),
+          String(maxBytes * BANDWIDTH.SECOND_THRESHOLD),
+          "2026-03-01T00:00:00.000Z"
+        ),
+      },
+    })
+  );
+
+  await messageBarLoadedPromise;
+  Assert.ok(
+    content.shadowRoot.querySelector("ipprotection-message-bar"),
+    "Message bar should be present after bandwidth warning threshold is reached"
+  );
+
+  let messageBarUnloadedPromise = BrowserTestUtils.waitForMutationCondition(
+    content.shadowRoot,
+    { childList: true, subtree: true },
+    () => !content.shadowRoot.querySelector("ipprotection-message-bar")
+  );
+
+  await setPanelState({
+    unauthenticated: false,
+    paused: true,
+    bandwidthWarning: true,
+    bandwidthUsage: {
+      remaining: maxBytes * BANDWIDTH.SECOND_THRESHOLD,
+      max: maxBytes,
+    },
+    error: "",
+  });
+
+  await messageBarUnloadedPromise;
+
+  Assert.ok(
+    !content.shadowRoot.querySelector("ipprotection-message-bar"),
+    "Message bar should be dismissed when VPN transitions to paused state"
+  );
+
+  await closePanel();
+  await SpecialPowers.popPrefEnv();
+  Services.prefs.clearUserPref("browser.ipProtection.bandwidthThreshold");
+
+  let resetPromise = BrowserTestUtils.waitForEvent(
+    IPPUsageHelper,
+    "IPPUsageHelper:StateChanged"
+  );
+  IPPProxyManager.dispatchEvent(
+    new CustomEvent("IPPProxyManager:UsageChanged", {
+      bubbles: true,
+      composed: true,
+      detail: {
+        usage: new ProxyUsage(
+          String(maxBytes),
+          String(maxBytes),
+          "2026-03-01T00:00:00.000Z"
+        ),
+      },
+    })
+  );
+  await resetPromise;
 });

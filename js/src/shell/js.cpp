@@ -247,6 +247,7 @@ bool SetContextOptions(JSContext* cx, const OptionParser& op);
 bool SetContextWasmOptions(JSContext* cx, const OptionParser& op);
 bool SetContextJITOptions(JSContext* cx, const OptionParser& op);
 bool SetContextGCOptions(JSContext* cx, const OptionParser& op);
+bool ApplyBenchmarkMode(JSContext* cx, const OptionParser& op);
 bool InitModuleLoader(JSContext* cx, const OptionParser& op);
 
 #ifdef FUZZING_JS_FUZZILLI
@@ -857,6 +858,9 @@ struct MOZ_STACK_CLASS EnvironmentPreparer
 
 const char* shell::selfHostedXDRPath = nullptr;
 bool shell::encodeSelfHostedCode = false;
+enum class BenchmarkMode { Off, Enable, Strict };
+static BenchmarkMode sBenchmarkMode = BenchmarkMode::Off;
+
 bool shell::enableCodeCoverage = false;
 bool shell::enableDisassemblyDumps = false;
 bool shell::offthreadBaselineCompilation = false;
@@ -9103,20 +9107,25 @@ class TransplantableDOMProxyHandler final : public ForwardingProxyHandler {
   bool isConstructor(JSObject* obj) const override { return false; }
 
   // Simplified implementation of |DOMProxyHandler::GetAndClearExpandoObject|.
-  static JSObject* GetAndClearExpandoObject(JSObject* obj) {
-    const Value& v = GetProxyPrivate(obj);
+  static JSObject* GetAndClearExpandoObject(
+      JSObject* obj, JS::MutableHandle<JS::Value> restoreToken) {
+    Value v = GetProxyPrivate(obj);
+    restoreToken.set(v);
     if (v.isUndefined()) {
       return nullptr;
     }
 
-    JSObject* expandoObject = &v.toObject();
     SetProxyPrivate(obj, UndefinedValue());
-    return expandoObject;
+    return &v.toObject();
+  }
+
+  static void RestoreExpando(JSObject* obj, const JS::Value& restoreToken) {
+    SetProxyPrivate(obj, restoreToken);
   }
 
   // Simplified implementation of |DOMProxyHandler::EnsureExpandoObject|.
   static JSObject* EnsureExpandoObject(JSContext* cx, JS::HandleObject obj) {
-    const Value& v = GetProxyPrivate(obj);
+    Value v = GetProxyPrivate(obj);
     if (v.isObject()) {
       return &v.toObject();
     }
@@ -9196,11 +9205,21 @@ static bool TransplantObject(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   bool isProxy = IsProxy(source);
-  RootedObject expandoObject(cx);
+  Rooted<JSObject*> expandoObject(cx);
+  Rooted<JS::Value> expandoRollbackToken(cx);
   if (isProxy) {
-    expandoObject =
-        TransplantableDOMProxyHandler::GetAndClearExpandoObject(source);
+    expandoObject = TransplantableDOMProxyHandler::GetAndClearExpandoObject(
+        source, &expandoRollbackToken);
   }
+  auto resetExpando = MakeScopeExit([&]() {
+    // We must clear the expando object from `source`, since otherwise it will
+    // be copied as part of JS_CloneObject. But on an error, it needs to be
+    // restored.
+    if (expandoObject) {
+      TransplantableDOMProxyHandler::RestoreExpando(source,
+                                                    expandoRollbackToken);
+    }
+  });
 
   JSAutoRealm ar(cx, newGlobal);
 
@@ -9236,6 +9255,10 @@ static bool TransplantObject(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  // We've made it far enough to be able to mutate the source. Cleared slots
+  // will not be observed even if a failure occurs after this point.
+  resetExpando.release();
+
   JS::SetReservedSlot(target, DOM_OBJECT_SLOT,
                       JS::GetReservedSlot(source, DOM_OBJECT_SLOT));
   JS::SetReservedSlot(source, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
@@ -9246,21 +9269,21 @@ static bool TransplantObject(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   source = JS_TransplantObject(cx, source, target);
-  if (!source) {
-    return false;
-  }
+  MOZ_RELEASE_ASSERT(source, "JS_TransplantObject is infallible");
+
+  AutoEnterOOMUnsafeRegion oomUnsafe;
 
   RootedObject copyTo(cx);
   if (isProxy) {
     copyTo = TransplantableDOMProxyHandler::EnsureExpandoObject(cx, source);
     if (!copyTo) {
-      return false;
+      oomUnsafe.crash("source of transplant is corrupted");
     }
   } else {
     copyTo = source;
   }
   if (!JS_CopyOwnPropertiesAndPrivateFields(cx, copyTo, propertyHolder)) {
-    return false;
+    oomUnsafe.crash("source of transplant is corrupted");
   }
 
   args.rval().setUndefined();
@@ -12740,6 +12763,10 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if (!ApplyBenchmarkMode(cx, op)) {
+    return 1;
+  }
+
   JS_SetTrustedPrincipals(cx, &ShellPrincipals::fullyTrusted);
   JS_SetSecurityCallbacks(cx, &ShellPrincipals::securityCallbacks);
 
@@ -12922,6 +12949,10 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "trace-regexp-parser", "Trace regexp parsing") ||
       !op.addBoolOption('\0', "trace-regexp-assembler",
                         "Trace regexp assembler") ||
+      !op.addBoolOption('\0', "trace-regexp-compiler",
+                        "Trace regexp compiler") ||
+      !op.addBoolOption('\0', "trace-regexp-graph-building",
+                        "Trace regexp graph building") ||
       !op.addBoolOption('\0', "trace-regexp-interpreter",
                         "Trace regexp interpreter") ||
       !op.addBoolOption('\0', "trace-regexp-peephole",
@@ -13150,6 +13181,13 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "more-compartments",
                         "Make newGlobal default to creating a new "
                         "compartment.") ||
+      !op.addBoolOption('\0', "benchmark-mode",
+                        "Configure the shell for realistic benchmarking. "
+                        "Prints warnings for detected issues.") ||
+      !op.addBoolOption('\0', "strict-benchmark-mode",
+                        "Like --benchmark-mode but refuses to run if the "
+                        "build config is wrong or conflicting settings "
+                        "exist.") ||
       !op.addBoolOption('\0', "fuzzing-safe",
                         "Don't expose functions that aren't safe for "
                         "fuzzers to call") ||
@@ -13352,12 +13390,24 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
         (getenv("MOZ_FUZZING_SAFE") && getenv("MOZ_FUZZING_SAFE")[0] != '0');
   }
 
+  if (op.getBoolOption("strict-benchmark-mode")) {
+    sBenchmarkMode = BenchmarkMode::Strict;
+  } else if (op.getBoolOption("benchmark-mode")) {
+    sBenchmarkMode = BenchmarkMode::Enable;
+  }
+
   for (MultiStringRange args = op.getMultiStringOption("setpref");
        !args.empty(); args.popFront()) {
     if (!SetPref(args.front())) {
       return false;
     }
   }
+
+#if defined(DEBUG) || defined(NIGHTLY_BUILD) || defined(JS_GC_ZEAL)
+  if (sBenchmarkMode != BenchmarkMode::Off) {
+    JS::Prefs::setAtStartup_extra_gc_poisoning(false);
+  }
+#endif
 
   // Override pref values for prefs that have a custom shell flag.
   // If you're adding a new feature, consider using --setpref instead.
@@ -14173,6 +14223,12 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
   if (op.getBoolOption("trace-regexp-assembler")) {
     jit::JitOptions.trace_regexp_assembler = true;
   }
+  if (op.getBoolOption("trace-regexp-compiler")) {
+    jit::JitOptions.trace_regexp_compiler = true;
+  }
+  if (op.getBoolOption("trace-regexp-graph-building")) {
+    jit::JitOptions.trace_regexp_graph_building = true;
+  }
   if (op.getBoolOption("trace-regexp-interpreter")) {
     jit::JitOptions.trace_regexp_bytecodes = true;
   }
@@ -14425,6 +14481,147 @@ bool SetContextGCOptions(JSContext* cx, const OptionParser& op) {
     cx->runtime()->gc.getZealBits(&gZealBits, &gZealFrequency, &nextScheduled);
   }
 #endif
+
+  return true;
+}
+
+bool ApplyBenchmarkMode(JSContext* cx, const OptionParser& op) {
+  if (sBenchmarkMode == BenchmarkMode::Off) {
+    return true;
+  }
+
+  bool isStrict = (sBenchmarkMode == BenchmarkMode::Strict);
+  bool hasErrors = false;
+
+  auto warn = [](const char* msg) {
+    fprintf(stderr, "--benchmark-mode: WARNING: %s\n", msg);
+  };
+
+  auto issue = [&](const char* msg) {
+    hasErrors = true;
+    if (isStrict) {
+      fprintf(stderr, "--benchmark-mode: ERROR: %s\n", msg);
+    } else {
+      warn(msg);
+    }
+  };
+
+  // Build configuration checks.
+#ifdef JS_DEBUG
+  issue("This is a DEBUG build. Use an optimized, non-debug build.");
+#endif
+#ifdef MOZ_ASAN
+  issue("This is an AddressSanitizer (ASan) build.");
+#endif
+#ifdef MOZ_TSAN
+  issue("This is a ThreadSanitizer (TSan) build.");
+#endif
+#ifdef MOZ_MSAN
+  issue("This is a MemorySanitizer (MSan) build.");
+#endif
+#if defined(JS_SIMULATOR)
+  issue("Running on a CPU simulator.");
+#endif
+#ifdef FUZZING
+  issue("This is a fuzzing build.");
+#endif
+#ifdef JS_GC_ZEAL
+  warn(
+      "Build has GC zeal support (JS_GC_ZEAL). "
+      "This may indicate a non-optimized build.");
+#endif
+
+  // Runtime option checks.
+#ifdef JS_GC_ZEAL
+  if (op.getStringOption("gc-zeal") != nullptr) {
+    issue("--gc-zeal is active.");
+  }
+#endif
+
+  if (op.getBoolOption("code-coverage")) {
+    issue("--code-coverage adds instrumentation overhead.");
+  }
+
+  if (op.getBoolOption("ion-check-range-analysis")) {
+    issue("--ion-check-range-analysis adds runtime checks.");
+  }
+
+  if (op.getBoolOption("ion-extra-checks")) {
+    issue("--ion-extra-checks adds runtime checks.");
+  }
+
+  if (op.getBoolOption("emit-interpreter-entry")) {
+    issue("--emit-interpreter-entry adds overhead.");
+  }
+
+  if (op.getBoolOption("enable-ic-frame-pointers")) {
+    issue("--enable-ic-frame-pointers adds overhead to IC stubs.");
+  }
+
+  if (op.getBoolOption("no-ion")) {
+    issue("IonMonkey JIT is disabled (--no-ion).");
+  }
+
+  if (op.getBoolOption("no-baseline")) {
+    issue("Baseline compiler is disabled (--no-baseline).");
+  }
+
+  if (op.getBoolOption("no-threads")) {
+    issue("Helper threads are disabled (--no-threads).");
+  }
+
+  if (op.getBoolOption("fuzzing-safe")) {
+    issue("--fuzzing-safe is set.");
+  }
+
+#ifdef WASM_SUPPORTS_HUGE_MEMORY
+  // Wasm checks
+  if (JS::Prefs::wasm_disable_huge_memory()) {
+    issue("huge memory disabled");
+  }
+#endif
+
+  if (!JS::ContextOptionsRef(cx).wasmIon() ||
+      !JS::ContextOptionsRef(cx).wasmBaseline()) {
+    issue("missing wasm compiler");
+  }
+  if (JS::Prefs::wasm_test_serialization()) {
+    issue("testing serialization");
+  }
+  if (JS::Prefs::wasm_lazy_tiering_synchronous()) {
+    issue("tiering test configuration");
+  }
+
+  if (jit::JitOptions.spectreIndexMasking ||
+      jit::JitOptions.spectreObjectMitigations ||
+      jit::JitOptions.spectreStringMitigations ||
+      jit::JitOptions.spectreValueMasking ||
+      jit::JitOptions.spectreJitToCxxCalls) {
+    issue("Spectre mitigations are enabled.");
+  }
+
+  // Apply benchmark-mode overrides.
+  jit::JitOptions.spectreIndexMasking = false;
+  jit::JitOptions.spectreObjectMitigations = false;
+  jit::JitOptions.spectreStringMitigations = false;
+  jit::JitOptions.spectreValueMasking = false;
+  jit::JitOptions.spectreJitToCxxCalls = false;
+
+  // See the default set for
+  // javascript.options.content_process_write_protect_code
+#if !defined(XP_OPENBSD)
+  jit::JitOptions.maybeSetWriteProtectCode(false);
+#endif
+
+  JS::ContextOptionsRef(cx).setAsyncStack(false);
+
+  jit::JitOptions.fullDebugChecks = false;
+
+  if (isStrict && hasErrors) {
+    fprintf(stderr,
+            "--benchmark-mode: Refusing to run due to errors listed above.\n");
+    return false;
+  }
 
   return true;
 }

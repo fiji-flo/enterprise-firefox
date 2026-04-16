@@ -222,6 +222,11 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_compose_wallpaper).apply {
+            isChecked = context.settings().shouldUseComposeWallpaper
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_homepage_searchbar).apply {
             isVisible = true
             isChecked = context.settings().enableHomepageSearchBar
@@ -404,6 +409,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_ip_protection).apply {
+            isVisible = Config.channel.isDebug
+            isChecked = context.settings().isIPProtectionEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_persistent_debug_menu).apply {
             isVisible = true
             isChecked = context.settings().isDebugMenuPersistentlyRevealed
@@ -464,8 +475,14 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
         }
 
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_tab_groups).apply {
-            isVisible = Config.channel.isDebug
+            isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().tabGroupsEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_tab_groups_drag_and_drop).apply {
+            isVisible = Config.channel.isDebug
+            isChecked = context.settings().tabGroupsDragAndDropEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
@@ -483,6 +500,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_longfox).apply {
             isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().longfoxEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_google_lens_integration).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = context.settings().googleLensIntegrationEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
     }

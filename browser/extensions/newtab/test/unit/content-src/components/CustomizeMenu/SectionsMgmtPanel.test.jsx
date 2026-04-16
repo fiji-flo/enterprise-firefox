@@ -609,4 +609,30 @@ describe("<SectionsMgmtPanel>", () => {
     assert.equal(panel.find("h1").length, 1);
     assert.equal(panel.find("h3").length, 2);
   });
+
+  it("should render without throwing when feed data has failed status (no sections)", () => {
+    const stateWithFailedFeed = {
+      ...DEFAULT_STATE,
+      DiscoveryStream: {
+        ...DEFAULT_STATE.DiscoveryStream,
+        feeds: {
+          data: {
+            "https://example.com/feed": {
+              data: { status: "failed" },
+            },
+          },
+        },
+      },
+    };
+
+    wrapper = mount(
+      <WrapWithProvider state={stateWithFailedFeed}>
+        <SectionsMgmtPanel {...DEFAULT_PROPS} showPanel={true} />
+      </WrapWithProvider>
+    );
+
+    assert.ok(wrapper.find("moz-box-button").exists());
+    const emptyStates = wrapper.find(".topic-list-empty-state");
+    assert.equal(emptyStates.length, 2);
+  });
 });

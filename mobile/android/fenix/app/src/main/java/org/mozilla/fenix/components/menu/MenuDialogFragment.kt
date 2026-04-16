@@ -548,6 +548,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         store.stateFlow.map { state -> state.summarizationMenuState }
                     }.collectAsState(initial = SummarizationMenuState.Default)
 
+                    val ipProtectionMenuState by remember {
+                        store.stateFlow.map { state -> state.ipProtectionMenuState }
+                    }.collectAsState(initial = store.state.ipProtectionMenuState)
+
                     val contentState: Route by remember { mutableStateOf(initRoute) }
 
                     var shouldShowMenuBanner by
@@ -672,6 +676,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isDownloadHighlighted = isDownloadHighlighted,
                                     webExtensionMenuCount = webExtensionsCount,
                                     isAllWebExtensionsDisabled = isAllWebExtensionsDisabled,
+                                    showIPProtection = settings.isIPProtectionAvailable,
+                                    ipProtectionMenuState = ipProtectionMenuState,
                                     onMozillaAccountButtonClick = {
                                         store.dispatch(
                                             MenuAction.Navigate.MozillaAccount(
@@ -755,6 +761,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         selectedTab?.let {
                                             store.dispatch(MenuAction.Navigate.Share)
                                         }
+                                    },
+                                    onIPProtectionClick = {
+                                        // Toggle handled by the feature observing IPProtectionStore.
+                                        // Dispatch is a no-op placeholder until bug 2030143.
+                                    },
+                                    onIPProtectionNavigate = {
+                                        store.dispatch(MenuAction.Navigate.IPProtectionSettings)
                                     },
                                     moreSettingsSubmenu = {
                                         MoreSettingsSubmenu(

@@ -204,6 +204,13 @@ sealed class MenuAction : Action {
     data class InitializeSummarizationMenuState(val state: SummarizationMenuState) : MenuAction()
 
     /**
+     * [MenuAction] dispatched to update the IP protection menu item state.
+     *
+     * @property state The new [IPProtectionMenuState].
+     */
+    data class UpdateIPProtectionMenuState(val state: IPProtectionMenuState) : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.
      */
     sealed class Navigate : MenuAction() {
@@ -342,5 +349,10 @@ sealed class MenuAction : Action {
          * [Navigate] action dispatched when stopping the current page from loading.
          */
         data object Stop : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating to the IP Protection settings screen.
+         */
+        data object IPProtectionSettings : Navigate()
     }
 }

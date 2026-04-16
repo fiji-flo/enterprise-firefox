@@ -235,6 +235,15 @@ async function createBackupAndRecover(
     options.replaceCurrentProfile || false
   );
 
+  let postRecoveryPath = PathUtils.join(
+    recoveredProfilePath,
+    BackupService.POST_RECOVERY_FILE_NAME
+  );
+  let postRecoveryData = null;
+  if (await IOUtils.exists(postRecoveryPath)) {
+    postRecoveryData = await IOUtils.readJSON(postRecoveryPath);
+  }
+
   await maybeRemovePath(archivePath);
   await maybeRemovePath(fakeProfilePath);
   await maybeRemovePath(recoveredProfilePath);
@@ -259,6 +268,7 @@ async function createBackupAndRecover(
     currentSelectableProfile,
     setAvatarStub,
     setThemeAsyncStub,
+    postRecoveryData,
     restoreStartedEvents,
     restoreID,
   };
@@ -349,6 +359,7 @@ add_task(async function test_legacy_backup_into_selectable_profile() {
     recoverFromSnapshotFolderSpy,
     recoverFromSnapshotFolderIntoSelectableProfileSpy,
     setThemeAsyncStub,
+    postRecoveryData,
   } = await createBackupAndRecover(sandbox, true, false);
 
   Assert.ok(
@@ -375,6 +386,12 @@ add_task(async function test_legacy_backup_into_selectable_profile() {
     setThemeAsyncStub.firstCall.args[0].themeId,
     "default-theme@mozilla.org",
     "Should fall back to default theme when backup has no prefs.js"
+  );
+  Assert.ok(postRecoveryData, "Post-recovery data should be written");
+  Assert.equal(
+    postRecoveryData.selectable_profile?.themeId,
+    "default-theme@mozilla.org",
+    "Post-recovery should schedule enableTheme with the legacy backup's theme"
   );
 
   sandbox.restore();

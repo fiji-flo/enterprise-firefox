@@ -8077,7 +8077,20 @@ void PromiseObject::dumpOwnStringContent(js::GenericPrinter& out) const {}
 
   JSObject* obj = &val.toObject();
   if (!obj->is<PromiseObject>()) {
-    *canSkip = false;
+    // If the awaited value is a non-promise object, we can still skip the await
+    // if there's no user code called on this path; that means no
+    // - getter then property. This is avoided by using GetPropertyPure
+    // - callable then property. This is checked by IsCallable.
+    Value thenVal;
+    if (!GetPropertyPure(cx, obj, NameToId(cx->names().then), &thenVal)) {
+      // Couldn't check thenable value!
+      *canSkip = false;
+      return true;
+    }
+
+    // If we got a then value, still can skip if it's
+    // not callable.
+    *canSkip = !IsCallable(thenVal);
     return true;
   }
 
@@ -8123,8 +8136,12 @@ void PromiseObject::dumpOwnStringContent(js::GenericPrinter& out) const {}
   }
 
   JSObject* obj = &val.toObject();
-  PromiseObject* promise = &obj->as<PromiseObject>();
-  resolved.set(promise->value());
+  if (obj->is<PromiseObject>()) {
+    PromiseObject* promise = &obj->as<PromiseObject>();
+    resolved.set(promise->value());
+  } else {
+    resolved.setObject(*obj);
+  }
 
   return true;
 }

@@ -664,9 +664,13 @@ void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
   //
   // "Nothing else is yet known to keep the base alive" == "the base is not
   // currently forwarded".
+  //
+  // If something else depends on this string, then avoid this cloning to make
+  // sure we have a reference to the base string (without adding additional
+  // complexity to maintain one.)
   bool baseKnownLiveYet = IsForwarded(root);
   bool cloneToSaveSpace =
-      !baseKnownLiveYet &&
+      !baseKnownLiveYet && !str->isDependedOn() &&
       JSDependentString::smallComparedToBase(str->length(), root->length());
 
   if (!cloneToSaveSpace) {

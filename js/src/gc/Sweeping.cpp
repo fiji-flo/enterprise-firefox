@@ -861,7 +861,8 @@ bool Zone::findSweepGroupEdges(Zone* atomsZone) {
     }
   }
 
-  if (gcFinalizationRegistriesMayHaveSymbolRegistrations_ &&
+  if (atomsZone->wasGCStarted() &&
+      gcFinalizationRegistriesMayHaveSymbolRegistrations_ &&
       !atomsZone->addSweepGroupEdgeTo(this)) {
     return false;
   }
@@ -1378,32 +1379,14 @@ IncrementalProgress GCRuntime::endMarkingSweepGroup(JS::GCContext* gcx,
   return Finished;
 }
 
-// Causes the given WeakCache to be swept when run.
-class ImmediateSweepWeakCacheTask : public GCParallelTask {
-  Zone* zone;
-  JS::detail::WeakCacheBase& cache;
+using WeakCacheToSweepVector = Vector<WeakCacheToSweep, 8, SystemAllocPolicy>;
 
- public:
-  ImmediateSweepWeakCacheTask(GCRuntime* gc, Zone* zone,
-                              JS::detail::WeakCacheBase& wc)
-      : GCParallelTask(gc, gcstats::PhaseKind::SWEEP_WEAK_CACHES),
-        zone(zone),
-        cache(wc) {}
-
-  ImmediateSweepWeakCacheTask(ImmediateSweepWeakCacheTask&& other) noexcept
-      : GCParallelTask(std::move(other)),
-        zone(other.zone),
-        cache(other.cache) {}
-
-  ImmediateSweepWeakCacheTask(const ImmediateSweepWeakCacheTask&) = delete;
-
-  void run(AutoLockHelperThreadState& lock) override {
-    AutoUnlockHelperThreadState unlock(lock);
-    AutoSetThreadIsSweeping threadIsSweeping(zone);
-    SweepingTracer trc(gc->rt);
-    cache.traceWeak(&trc, JS::detail::WeakCacheBase::Lock);
-  }
-};
+static size_t ImmediateSweepWeakCache(GCRuntime* gc,
+                                      const WeakCacheToSweep& item) {
+  AutoSetThreadIsSweeping threadIsSweeping(item.zone);
+  SweepingTracer trc(gc->rt);
+  return item.cache->traceWeak(&trc, JS::detail::WeakCacheBase::Lock);
+}
 
 void GCRuntime::updateAtomsBitmap() {
   atomMarking.refineZoneBitmapsForCollectedZones(this);
@@ -1608,9 +1591,6 @@ void JS::Zone::sweepObjectsWithWeakPointers(JSTracer* trc) {
   });
 }
 
-using WeakCacheTaskVector =
-    mozilla::Vector<ImmediateSweepWeakCacheTask, 0, SystemAllocPolicy>;
-
 // Call a functor for all weak caches that need to be swept in the current
 // sweep group.
 template <typename Functor>
@@ -1632,12 +1612,12 @@ static inline bool IterateWeakCaches(GCRuntime* gc, Functor f) {
   return true;
 }
 
-static bool PrepareWeakCacheTasks(GCRuntime* gc,
-                                  WeakCacheTaskVector* immediateTasks) {
-  // Start incremental sweeping for caches that support it or add to a vector
-  // of sweep tasks to run on a helper thread.
+static bool PrepareWeakCacheSweeping(GCRuntime* gc,
+                                     WeakCacheToSweepVector* immediateCaches) {
+  // Start incremental sweeping for caches that support it and add remaining
+  // caches to a vector to be swept immediately by helper threads.
 
-  MOZ_ASSERT(immediateTasks->empty());
+  MOZ_ASSERT(immediateCaches->empty());
 
   bool ok =
       IterateWeakCaches(gc, [&](JS::detail::WeakCacheBase* cache, Zone* zone) {
@@ -1650,11 +1630,11 @@ static bool PrepareWeakCacheTasks(GCRuntime* gc,
           return true;
         }
 
-        return immediateTasks->emplaceBack(gc, zone, *cache);
+        return immediateCaches->emplaceBack(cache, zone);
       });
 
   if (!ok) {
-    immediateTasks->clearAndFree();
+    immediateCaches->clearAndFree();
   }
 
   return ok;
@@ -1797,28 +1777,26 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JS::GCContext* gcx,
         this, &GCRuntime::sweepObjectsWithWeakPointers,
         PhaseKind::SWEEP_WEAK_POINTERS, GCUse::Sweeping, lock);
 
-    WeakCacheTaskVector sweepCacheTasks;
+    WeakCacheToSweepVector immediateCaches;
     bool canSweepWeakCachesOffThread =
-        PrepareWeakCacheTasks(this, &sweepCacheTasks);
+        PrepareWeakCacheSweeping(this, &immediateCaches);
     if (canSweepWeakCachesOffThread) {
       weakCachesToSweep.ref().emplace(currentSweepGroup);
-      for (auto& task : sweepCacheTasks) {
-        startTask(task, lock);
-      }
     }
 
     {
+      VectorIterator<WeakCacheToSweepVector> work(immediateCaches);
+      AutoRunParallelWork sweepImmediate(
+          this, ImmediateSweepWeakCache, PhaseKind::SWEEP_WEAK_CACHES,
+          GCUse::Sweeping, work, SliceBudget::unlimited(), lock);
+
       AutoUnlockHelperThreadState unlock(lock);
       sweepJitDataOnMainThread(gcx);
 
       if (!canSweepWeakCachesOffThread) {
-        MOZ_ASSERT(sweepCacheTasks.empty());
+        MOZ_ASSERT(immediateCaches.empty());
         SweepAllWeakCachesOnMainThread(this);
       }
-    }
-
-    for (auto& task : sweepCacheTasks) {
-      joinTask(task, lock);
     }
   }
 

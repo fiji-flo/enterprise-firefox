@@ -332,4 +332,20 @@ class TabGroupReducerTest {
 
         assertEquals(expectedState, resultState)
     }
+
+    @Test
+    fun `WHEN the user clicks to edit an existing tab group THEN navigate to the edit flow`() {
+        val group = createTabGroup()
+        val initialState = TabsTrayState()
+        val resultState = TabGroupActionReducer.reduce(
+            state = initialState,
+            action = TabGroupAction.EditTabGroupClicked(group = group),
+        )
+        val expectedState = initialState.copy(
+            tabGroupFormState = group.initializeTabGroupForm(),
+            backStack = initialState.backStack + EditTabGroup,
+        )
+
+        assertEquals(expectedState, resultState)
+    }
 }

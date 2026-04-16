@@ -1,5 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -619,7 +617,7 @@ static uint32_t CollectTextAreaElement(Document* aDocument,
     }
     DOMString autocomplete;
     textArea->GetAutocomplete(autocomplete);
-    if (autocomplete.AsAString().EqualsLiteral("off")) {
+    if (autocomplete.EqualsLiteral("off")) {
       continue;
     }
     nsAutoString id;
@@ -762,7 +760,7 @@ static uint32_t CollectSelectElement(Document* aDocument,
       select->GetValue(selectVal);
       size += AppendEntry(select, id,
                           SingleSelect{static_cast<uint32_t>(selectedIndex),
-                                       selectVal.AsAString()},
+                                       std::move(selectVal)},
                           aFormData);
     } else {
       HTMLOptionsCollection* options = select->GetOptions();
@@ -876,7 +874,7 @@ void SessionStoreUtils::CollectFromTextAreaElement(Document& aDocument,
     }
     DOMString autocomplete;
     textArea->GetAutocomplete(autocomplete);
-    if (autocomplete.AsAString().EqualsLiteral("off")) {
+    if (autocomplete.EqualsLiteral("off")) {
       continue;
     }
     nsAutoString id;
@@ -997,11 +995,9 @@ void SessionStoreUtils::CollectFromSelectElement(Document& aDocument,
     if (!select->Multiple()) {
       // <select>s without the multiple attribute are hard to determine the
       // default value, so assume we don't have the default.
-      DOMString selectVal;
-      select->GetValue(selectVal);
       CollectedNonMultipleSelectValue val;
       val.mSelectedIndex = select->SelectedIndex();
-      val.mValue = selectVal.AsAString();
+      select->GetValue(val.mValue);
       AppendValueToCollectedData(select, id, val, aGeneratedCount, args...);
     } else {
       // <select>s with the multiple attribute are easier to determine the

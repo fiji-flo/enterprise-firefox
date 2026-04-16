@@ -72,6 +72,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.LensAction.LensRequested
 import org.mozilla.fenix.components.appstate.AppAction.QrScannerAction.QrScannerRequested
 import org.mozilla.fenix.components.appstate.AppAction.SearchAction.SearchEnded
 import org.mozilla.fenix.components.appstate.AppAction.SearchAction.SearchEngineSelected
@@ -84,6 +85,7 @@ import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.ext.toolbarHintRes
 import org.mozilla.fenix.search.EditPageEndActionsInteractions.ClearSearchClicked
+import org.mozilla.fenix.search.EditPageEndActionsInteractions.LensButtonClicked
 import org.mozilla.fenix.search.EditPageEndActionsInteractions.QrScannerClicked
 import org.mozilla.fenix.search.EditPageEndActionsInteractions.VoiceSearchButtonClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorClicked
@@ -92,6 +94,7 @@ import org.mozilla.fenix.search.SearchSelectorEvents.SearchSettingsItemClicked
 import org.mozilla.fenix.search.ext.searchEngineShortcuts
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.telemetry.ACTION_CLEAR_CLICKED
+import org.mozilla.fenix.telemetry.ACTION_LENS_CLICKED
 import org.mozilla.fenix.telemetry.ACTION_MICROPHONE_CLICKED
 import org.mozilla.fenix.telemetry.ACTION_QR_CLICKED
 import org.mozilla.fenix.telemetry.ACTION_SEARCH_ENGINE_SELECTOR_CLICKED
@@ -127,6 +130,7 @@ internal sealed class SearchSelectorEvents : BrowserToolbarEvent {
 internal sealed class EditPageEndActionsInteractions : BrowserToolbarEvent {
     data object ClearSearchClicked : EditPageEndActionsInteractions()
     data object QrScannerClicked : EditPageEndActionsInteractions()
+    data object LensButtonClicked : EditPageEndActionsInteractions()
 
     data object VoiceSearchButtonClicked : SearchSelectorEvents()
 }
@@ -160,6 +164,7 @@ class BrowserToolbarSearchMiddleware(
     private var syncCurrentSearchEngineJob: Job? = null
     private var syncAvailableSearchEnginesJob: Job? = null
     private var observeQRScannerInputJob: Job? = null
+    private var observeLensInputJob: Job? = null
     private var observeVoiceInputJob: Job? = null
     private var updateAutocompleteJob: Job? = null
 
@@ -198,6 +203,10 @@ class BrowserToolbarSearchMiddleware(
                     appStore.dispatch(AppAction.QrScannerAction.QrScannerDismissed)
                 }
                 observeQRScannerInputJob?.cancel()
+                if (observeLensInputJob?.isActive == true) {
+                    appStore.dispatch(AppAction.LensAction.LensDismissed)
+                }
+                observeLensInputJob?.cancel()
                 observeVoiceInputJob?.cancel()
             }
 
@@ -297,6 +306,14 @@ class BrowserToolbarSearchMiddleware(
             )
             observeQrScannerInput(store)
             appStore.dispatch(QrScannerRequested)
+        }
+
+        is LensButtonClicked -> {
+            Toolbar.buttonTapped.record(
+                Toolbar.ButtonTappedExtra(source = SOURCE_ADDRESS_BAR, item = ACTION_LENS_CLICKED),
+            )
+            observeLensInput()
+            appStore.dispatch(LensRequested)
         }
 
         is VoiceSearchButtonClicked -> {
@@ -545,14 +562,25 @@ class BrowserToolbarSearchMiddleware(
                 ),
             )
         } else if (isValidSearchEngine) {
-            add(
-                ActionButtonRes(
-                    drawableResId = iconsR.drawable.mozac_ic_qr_code_24,
-                    contentDescription = qrR.string.mozac_feature_qr_scanner,
-                    state = ActionButton.State.DEFAULT,
-                    onClick = QrScannerClicked,
-                ),
-            )
+            if (settings.googleLensIntegrationEnabled && isGoogleSearchEngine(selectedSearchEngine)) {
+                add(
+                    ActionButtonRes(
+                        drawableResId = iconsR.drawable.mozac_ic_image_24,
+                        contentDescription = R.string.lens_search_content_description,
+                        state = ActionButton.State.DEFAULT,
+                        onClick = LensButtonClicked,
+                    ),
+                )
+            } else {
+                add(
+                    ActionButtonRes(
+                        drawableResId = iconsR.drawable.mozac_ic_qr_code_24,
+                        contentDescription = qrR.string.mozac_feature_qr_scanner,
+                        state = ActionButton.State.DEFAULT,
+                        onClick = QrScannerClicked,
+                    ),
+                )
+            }
         }
     }
 
@@ -581,6 +609,32 @@ class BrowserToolbarSearchMiddleware(
                     }
                 }
         }
+    }
+
+    private fun observeLensInput() {
+        observeLensInputJob = null
+        observeLensInputJob = appStore.observeWhileActive {
+            distinctUntilChangedBy { it.lensState.resultUrl }
+                .collect {
+                    if (!it.lensState.resultUrl.isNullOrEmpty()) {
+                        observeLensInputJob?.cancel()
+
+                        val resultUrl = it.lensState.resultUrl
+                        appStore.dispatch(AppAction.LensAction.LensResultConsumed)
+                        components.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                            searchTermOrURL = resultUrl,
+                            newTab = appStore.state.searchState.sourceTabId == null,
+                            flags = EngineSession.LoadUrlFlags.external(),
+                            private = browsingModeManager.mode.isPrivate,
+                        )
+                        navController.navigate(R.id.action_global_browser)
+                    }
+                }
+        }
+    }
+
+    private fun isGoogleSearchEngine(searchEngine: SearchEngine?): Boolean {
+        return searchEngine?.id?.startsWith("google") == true
     }
 
     private fun observeVoiceInputResults(

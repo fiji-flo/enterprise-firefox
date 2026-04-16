@@ -181,6 +181,7 @@ const AI_WINDOW_CONFIG = {
           ],
         },
         primary_button: {
+          disabled: "hasActiveSingleSelect",
           label: {
             string_id: "aiwindow-firstrun-button",
           },

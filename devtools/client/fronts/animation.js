@@ -9,11 +9,11 @@ const {
   registerFront,
 } = require("resource://devtools/shared/protocol.js");
 const {
-  animationPlayerSpec,
+  animationSpec,
   animationsSpec,
 } = require("resource://devtools/shared/specs/animation.js");
 
-class AnimationPlayerFront extends FrontClassWithSpec(animationPlayerSpec) {
+class AnimationFront extends FrontClassWithSpec(animationSpec) {
   constructor(conn, targetFront, parentFront) {
     super(conn, targetFront, parentFront);
 
@@ -75,7 +75,7 @@ class AnimationPlayerFront extends FrontClassWithSpec(animationPlayerSpec) {
   }
 
   /**
-   * Executed when the AnimationPlayerActor emits a "changed" event. Used to
+   * Executed when the AnimationActor emits a "changed" event. Used to
    * update the local knowledge of the state.
    */
   onChanged(partialState) {
@@ -206,7 +206,7 @@ class AnimationPlayerFront extends FrontClassWithSpec(animationPlayerSpec) {
   }
 }
 
-registerFront(AnimationPlayerFront);
+registerFront(AnimationFront);
 
 class AnimationsFront extends FrontClassWithSpec(animationsSpec) {
   constructor(client, targetFront, parentFront) {

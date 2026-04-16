@@ -59,6 +59,7 @@ export function parseConversationRow(row) {
       row.getResultByName("security_properties")
     ),
     seenUrls: Array.isArray(seenUrlsArray) ? seenUrlsArray : [],
+    memoriesToggled: row.getResultByName("memories_toggled"),
   });
 }
 
@@ -175,4 +176,24 @@ export function getRoleLabel(role) {
   }
 
   return "";
+}
+
+/**
+ * Returns whether the sidebar should be open for a given tab state and the
+ * sidebarOpenByDefault pref value. The state's keepSidebarOpen field drives
+ * the decision:
+ * - true: user explicitly opened the sidebar for this tab
+ * - false: user explicitly closed it
+ * - null/undefined: no explicit preference, defer to the pref
+ *
+ * @param {object|null|undefined} state - The tab state object
+ * @param {boolean} sidebarOpenByDefault
+ * @returns {boolean}
+ */
+export function getKeepSidebarOpenState(state, sidebarOpenByDefault) {
+  const keepSidebarOpen = state?.keepSidebarOpen;
+  return (
+    keepSidebarOpen === true ||
+    (keepSidebarOpen == null && sidebarOpenByDefault)
+  );
 }

@@ -18,6 +18,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   isBlockingShutdown: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   shouldNotCloseWindow:
     "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+  createEnterpriseLogger:
+    "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+});
+
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  return lazy.createEnterpriseLogger("Felt");
 });
 
 this.felt = class extends ExtensionAPI {
@@ -129,7 +135,9 @@ this.felt = class extends ExtensionAPI {
       }
 
       if (!win) {
-        console.error("FeltExtension: No browser window available to open URL");
+        lazy.log.error(
+          "FeltExtension: No browser window available to open URL"
+        );
         return;
       }
 
@@ -137,7 +145,7 @@ this.felt = class extends ExtensionAPI {
         win.openTrustedLinkIn(url, "tab");
         win.focus();
       } catch (err) {
-        console.error("FeltExtension: Failed to open forwarded URL", url, err);
+        lazy.log.error("FeltExtension: Failed to open forwarded URL", url, err);
       }
     },
 
@@ -169,7 +177,7 @@ this.felt = class extends ExtensionAPI {
           args,
         });
       } catch (err) {
-        console.error("FeltExtension: Failed to open forwarded window", err);
+        lazy.log.error("FeltExtension: Failed to open forwarded window", err);
       }
     },
   };
@@ -218,13 +226,13 @@ this.felt = class extends ExtensionAPI {
       try {
         Services.felt.sendExtensionReady();
       } catch (e) {
-        console.error("FeltExtension: Failed to send extension ready:", e);
+        lazy.log.error("FeltExtension: Failed to send extension ready:", e);
       }
     }
   }
 
   receiveMessage(message) {
-    console.debug(`FeltExtension: ${message.name} handling ...`);
+    lazy.log.debug(`FeltExtension: ${message.name} handling ...`);
     switch (message.name) {
       case "FeltParent:FirefoxNormalExit": {
         Services.ppmm.removeMessageListener(
@@ -267,7 +275,7 @@ this.felt = class extends ExtensionAPI {
 
       case "FeltParent:FirefoxAbnormalExit": {
         const success = Services.felt.makeBackgroundProcess(false);
-        console.debug(`FeltExtension: makeBackgroundProcess? ${success}`);
+        lazy.log.debug(`FeltExtension: makeBackgroundProcess? ${success}`);
         this.showWindow("felt-browser-error-multiple-crashes");
         break;
       }
@@ -295,18 +303,18 @@ this.felt = class extends ExtensionAPI {
         Services.startup.enterLastWindowClosingSurvivalArea();
         this.closeWindow();
         const success = Services.felt.makeBackgroundProcess(true);
-        console.debug(`FeltExtension: makeBackgroundProcess? ${success}`);
+        lazy.log.debug(`FeltExtension: makeBackgroundProcess? ${success}`);
         break;
       }
 
       default:
-        console.debug(`FeltExtension: ${message.name} NOT HANDLED`);
+        lazy.log.debug(`FeltExtension: ${message.name} NOT HANDLED`);
         break;
     }
   }
 
   windowObserver(subject, topic) {
-    console.debug(`FeltExtension: topic=${topic}`);
+    lazy.log.debug(`FeltExtension: topic=${topic}`);
     if (topic === "domwindowopened") {
       Services.startup.exitLastWindowClosingSurvivalArea();
     }
@@ -320,7 +328,7 @@ this.felt = class extends ExtensionAPI {
   }
 
   closeWindow() {
-    console.debug(`FeltExtension: closeWindow: this._win=${this._win}`);
+    lazy.log.debug(`FeltExtension: closeWindow: this._win=${this._win}`);
     if (lazy.shouldNotCloseWindow()) {
       // Some tests needs to run code on FELT while Browser is running, and
       // this requires the window to be kept alive.
@@ -357,7 +365,7 @@ this.felt = class extends ExtensionAPI {
   }
 
   onShutdown(isAppShutdown) {
-    console.debug(`FeltExtension: onShutdown: ${isAppShutdown}`);
+    lazy.log.debug(`FeltExtension: onShutdown: ${isAppShutdown}`);
 
     if (isAppShutdown) {
       return;

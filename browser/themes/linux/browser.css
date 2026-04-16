@@ -147,7 +147,7 @@
 }
 
 /**
- * Override the --arrowpanel-padding so the background extends
+ * Override the --panel-padding so the background extends
  * to the sides and bottom of the panel.
  */
 #UITourTooltipButtons {

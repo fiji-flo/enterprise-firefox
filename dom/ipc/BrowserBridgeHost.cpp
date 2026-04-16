@@ -31,10 +31,6 @@ BrowsingContext* BrowserBridgeHost::GetBrowsingContext() const {
   return mBridge->GetBrowsingContext();
 }
 
-nsILoadContext* BrowserBridgeHost::GetLoadContext() const {
-  return mBridge->GetLoadContext();
-}
-
 bool BrowserBridgeHost::CanRecv() const {
   return mBridge && mBridge->CanRecv();
 }

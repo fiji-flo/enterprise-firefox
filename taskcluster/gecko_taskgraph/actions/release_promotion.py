@@ -422,6 +422,7 @@ def release_promotion_action(
     parameters["required_signoffs"] = get_required_signoffs(input, parameters)
     parameters["signoff_urls"] = get_signoff_urls(input, parameters)
 
+    parameters["dontbuild"] = False
     # make parameters read-only
     parameters = Parameters(**parameters)
 

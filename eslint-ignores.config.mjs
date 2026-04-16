@@ -58,10 +58,6 @@ export default [
   // Test files that are really json not js, and don't need to be linted.
   "browser/components/sessionstore/test/unit/data/sessionstore_valid.js",
   "browser/components/sessionstore/test/unit/data/sessionstore_invalid.js",
-  // This file is split into two in order to keep it as a valid json file
-  // for documentation purposes (policies.json) but to be accessed by the
-  // code as a .sys.mjs (schema.sys.mjs)
-  "browser/components/enterprisepolicies/schemas/schema.sys.mjs",
   // Include the Storybook config files.
   "!browser/components/storybook/.storybook/",
   "!browser/components/storybook/.storybook/*.js",

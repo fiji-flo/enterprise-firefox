@@ -489,6 +489,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
                                     browserStore = components.core.store,
                                     inactiveTabsEnabled = settings().inactiveTabsAreEnabled,
                                     loginsStorage = components.core.passwordsStorage,
+                                    tabGroupRepository = components.core.tabGroupRepository,
                                 )
                             }
                         } else {

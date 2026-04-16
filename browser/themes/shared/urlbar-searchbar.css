@@ -88,6 +88,7 @@ toolbar[inactive="true"] .urlbar,
   flex: 1;
   box-sizing: border-box;
   will-change: translate;
+  -moz-user-focus: ignore;
 
   /* Reset UA popover rules */
   width: initial;
@@ -235,7 +236,7 @@ toolbar[inactive="true"] .urlbar,
 }
 
 [open] > .urlbar-background {
-  border-color: var(--arrowpanel-border-color);
+  border-color: var(--panel-border-color);
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.13);
 
   /* The border moves outwards in the open state, so increase the radius
@@ -312,6 +313,9 @@ toolbar[inactive="true"] .urlbar,
   border: var(--urlbar-container-border-width) solid transparent;
   padding: var(--urlbar-container-padding);
   min-width: 0;
+  display: flex;
+  flex: 1;
+  box-sizing: border-box;
 }
 
 .urlbar-container[breakout] {
@@ -669,10 +673,18 @@ toolbar[inactive="true"] .urlbar,
   }
 }
 
-.urlbar-go-button,
+.urlbar-go-button {
+  content: url("chrome://browser/skin/forward.svg");
+  height: auto;
+  width: auto;
+}
+
 .search-go-button {
   list-style-image: url("chrome://browser/skin/forward.svg");
+}
 
+.urlbar-go-button,
+.search-go-button {
   &:-moz-locale-dir(rtl) {
     transform: scaleX(-1);
   }
@@ -1064,7 +1076,7 @@ toolbar[inactive="true"] .urlbar,
   }
 
   .widget-overflow-list > & {
-    margin: var(--arrowpanel-menuitem-margin);
+    margin: var(--panel-menuitem-margin);
     width: auto;
 
     :root[lwtheme] & > #searchbar {

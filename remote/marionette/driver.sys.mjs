@@ -22,6 +22,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   getMarionetteCommandsActorProxy:
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.sys.mjs",
+  isParentProcess:
+    "chrome://remote/content/shared/BrowsingContextUtils.sys.mjs",
   l10n: "chrome://remote/content/marionette/l10n.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   Marionette: "chrome://remote/content/components/Marionette.sys.mjs",
@@ -3957,6 +3959,15 @@ export class GeckoDriver {
       line,
       async,
     };
+
+    // Script evaluation against parent process contexts should only be allowed
+    // if allowSystemAccess is true.
+    const context = this.getBrowsingContext();
+    if (!lazy.RemoteAgent.allowSystemAccess && lazy.isParentProcess(context)) {
+      throw new lazy.error.UnsupportedOperationError(
+        `ExecuteScript and ExecuteAsyncScript are not supported for parent process browsing contexts: ${context.id}`
+      );
+    }
 
     return this.#getActor().executeScript(script, args, opts);
   }

@@ -58,7 +58,6 @@ function sanitizeGlobal(g) {
     fullcompartmentchecks: function () { },
     setIonCheckGraphCoherency: function () { },
     enableShellAllocationMetadataBuilder: function () { },
-    setTimeResolution: function () { },
     options: function () { return "tracejit,methodjit,typeinfer"; },
     setJitCompilerOption: function () { },
     clearLastWarning: function () { },

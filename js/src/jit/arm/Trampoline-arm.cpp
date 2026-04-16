@@ -207,7 +207,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     masm.push(r0);  // jitcode
 
-    using Fn = bool (*)(BaselineFrame* frame, InterpreterFrame* interpFrame,
+    using Fn = void (*)(BaselineFrame* frame, InterpreterFrame* interpFrame,
                         uint32_t numStackValues);
     masm.setupUnalignedABICall(scratch);
     masm.passABIArg(framePtrScratch);  // BaselineFrame
@@ -221,9 +221,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     MOZ_ASSERT(jitcode != ReturnReg);
 
-    Label error;
     masm.addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), sp);
-    masm.branchIfFalseBool(ReturnReg, &error);
 
     // If OSR-ing, then emit instrumentation for setting lastProfilerFrame
     // if profiler instrumentation is enabled.
@@ -238,14 +236,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     }
 
     masm.jump(jitcode);
-
-    // OOM: frame epilogue, load error value, discard return address and return.
-    masm.bind(&error);
-    masm.mov(FramePointer, sp);
-    masm.pop(FramePointer);
-    masm.addPtr(Imm32(sizeof(uintptr_t)), sp);  // Return address.
-    masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-    masm.jump(&returnLabel);
 
     masm.bind(&notOsr);
     // Load the scope chain in R1.

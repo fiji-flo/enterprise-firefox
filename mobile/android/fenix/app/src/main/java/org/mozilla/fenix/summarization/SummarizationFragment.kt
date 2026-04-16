@@ -27,6 +27,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.suspendCancellableCoroutine
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.pageextraction.ContentParams
 import mozilla.components.feature.summarize.SummarizationState
 import mozilla.components.feature.summarize.SummarizationUi
 import mozilla.components.feature.summarize.ViewDismissed
@@ -39,8 +40,6 @@ import mozilla.components.feature.summarize.settings.SummarizeSettingsState
 import mozilla.components.feature.summarize.settings.SummarizeSettingsStore
 import mozilla.components.feature.summarize.settings.summarizeSettingsReducer
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
-import mozilla.components.support.utils.ext.left
-import mozilla.components.support.utils.ext.right
 import mozilla.components.support.utils.ext.top
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.requireComponents
@@ -53,10 +52,12 @@ import com.google.android.material.R as materialR
 /**
  * Gets the content for a given engine session.
  */
-private fun EngineSession?.asPageContentExtractor(): PageContentExtractor = {
+private fun EngineSession?.asPageContentExtractor(): PageContentExtractor = { options ->
     runCatching {
+        val options = ContentParams(removeBoilerplate = options.shouldUseReaderModeContent)
         suspendCancellableCoroutine { continuation ->
             this!!.getPageContent(
+                options = options,
                 onResult = { content ->
                     continuation.resume(content)
                 },
@@ -78,6 +79,7 @@ private fun EngineSession?.asPageMetadataExtractor(): PageMetadataExtractor = {
                             structuredDataTypes = metadata.structuredDataTypes,
                             wordCount = metadata.wordCount,
                             language = metadata.language,
+                            isReaderable = metadata.isReaderable,
                         ),
                     )
                 },
@@ -143,7 +145,7 @@ class SummarizationFragment : BottomSheetDialogFragment() {
                 ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { view, insets ->
                     // edge-to-edge workaround
                     // exclude the bottom insets so that we can handle the insets in compose
-                    view.setPadding(insets.left(), insets.top(), insets.right(), 0)
+                    view.setPadding(0, insets.top(), 0, 0)
                     insets
                 }
                 bottomSheet.setBackgroundResource(android.R.color.transparent)
@@ -161,9 +163,8 @@ class SummarizationFragment : BottomSheetDialogFragment() {
         val state by storeViewModel.store.stateFlow.collectAsStateWithLifecycle()
         LaunchedEffect(state) {
             when (state) {
-                SummarizationState.Finished.LearnMoreAboutShakeConsent -> {
+                SummarizationState.LearnMoreAboutShakeConsent -> {
                     openLearnMoreLink()
-                    dismiss()
                 }
                 is SummarizationState.Finished -> {
                     dismiss()

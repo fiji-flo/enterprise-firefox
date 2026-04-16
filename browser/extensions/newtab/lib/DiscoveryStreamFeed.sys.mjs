@@ -1357,12 +1357,7 @@ export class DiscoveryStreamFeed {
               const { data: blockedResults } =
                 await this.filterBlocked(capResult);
 
-              const { data: spocsWithFetchTimestamp } = this.addFetchTimestamp(
-                blockedResults,
-                fetchTimestamp
-              );
-
-              let items = spocsWithFetchTimestamp;
+              let items = blockedResults;
 
               // We only need to rank if we don't have contextual ads.
               if (!this.isContextualAds) {
@@ -1574,22 +1569,6 @@ export class DiscoveryStreamFeed {
       return { data: filteredItems };
     }
     return { data };
-  }
-
-  // Add the fetch timestamp property to each spoc returned to communicate how
-  // old the spoc is in telemetry when it is used by the client
-  addFetchTimestamp(spocs, fetchTimestamp) {
-    if (spocs && spocs.length) {
-      return {
-        data: spocs.map(s => {
-          return {
-            ...s,
-            fetchTimestamp,
-          };
-        }),
-      };
-    }
-    return { data: spocs };
   }
 
   // For backwards compatibility, older spoc endpoint don't have flight_id,

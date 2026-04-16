@@ -188,6 +188,15 @@ class MessageLogger:
         # Message buffering
         self.buffered_messages = []
 
+        # Per-test saved buffers for shutdown leak detection. When enabled,
+        # buffers are saved at test_end so they can be dumped if the test
+        # is later found to have leaked.
+        self._saved_buffers = None
+        self._current_test_name = None
+
+    def enable_saved_buffers(self):
+        self._saved_buffers = {}
+
     def setManifest(self, name):
         self._manifest = name
 
@@ -295,6 +304,7 @@ class MessageLogger:
             self.buffering = False
             if self.buffered_messages:
                 self.dump_buffered()
+            self.dump_saved_buffer(message.get("test"))
 
             # Logging the error message
             self.logger.log_raw(message)
@@ -312,12 +322,16 @@ class MessageLogger:
         # If a test ended, we clean the buffer
         if message["action"] == "test_end":
             self.is_test_running = False
+            if self._saved_buffers is not None and self.buffered_messages:
+                self._saved_buffers[self._current_test_name] = self.buffered_messages
             self.buffered_messages = []
+            self._current_test_name = None
             self.restore_buffering = self.restore_buffering or self.buffering
             self.buffering = False
 
         if message["action"] == "test_start":
             self.is_test_running = True
+            self._current_test_name = message.get("test")
             if self.restore_buffering:
                 self.restore_buffering = False
                 self.buffering = True
@@ -331,9 +345,12 @@ class MessageLogger:
     def flush(self):
         sys.stdout.flush()
 
-    def dump_buffered(self):
+    def dump_buffered(self, messages=None):
+        if messages is None:
+            messages = self.buffered_messages
+            self.buffered_messages = []
         last_timestamp = None
-        for buf in self.buffered_messages:
+        for buf in messages:
             # pylint --py3k W1619
             timestamp = datetime.fromtimestamp(buf["time"] / 1000).strftime("%H:%M:%S")
             if timestamp != last_timestamp:
@@ -342,8 +359,18 @@ class MessageLogger:
 
             self.logger.log_raw(buf)
         self.logger.info("Buffered messages finished")
-        # Cleaning the list of buffered messages
-        self.buffered_messages = []
+
+    def dump_saved_buffer(self, test_name):
+        if self._saved_buffers is None or test_name not in self._saved_buffers:
+            return
+        messages = self._saved_buffers.pop(test_name)
+        if not messages:
+            return
+        self.logger.info(
+            f"Dumping buffered messages from {test_name} "
+            "that leaked a window or docshell"
+        )
+        self.dump_buffered(messages)
 
     def finish(self):
         self.dump_buffered()
@@ -1526,9 +1553,17 @@ class MochitestDesktop:
         self.mozHttp2Server = None
         self.dohServer = None
         if options.useHttp3Server:
+            options.dohServerPort = self.findFreePort(socket.SOCK_STREAM)
+            options.http3ServerPort = self.findFreePort(socket.SOCK_DGRAM)
+            self.log.info(f"use doh server at port: {options.dohServerPort}")
+            self.log.info(f"use http3 server at port: {options.http3ServerPort}")
             self.startHttp3Server(options)
             self.startDoHServer(options, options.http3ServerPort, "h3")
         elif options.useHttp2Server:
+            options.dohServerPort = self.findFreePort(socket.SOCK_STREAM)
+            options.http2ServerPort = self.findFreePort(socket.SOCK_STREAM)
+            self.log.info(f"use doh server at port: {options.dohServerPort}")
+            self.log.info(f"use http2 server at port: {options.http2ServerPort}")
             self.startHttp2Server(options)
             self.startDoHServer(options, options.http2ServerPort, "h2")
 
@@ -2316,18 +2351,8 @@ toolbar#nav-bar {
             "ws": options.sslPort,
         }
 
-        if options.useHttp3Server:
-            options.dohServerPort = self.findFreePort(socket.SOCK_STREAM)
-            options.http3ServerPort = self.findFreePort(socket.SOCK_DGRAM)
+        if getattr(options, "dohServerPort", None) is not None:
             proxyOptions["dohServerPort"] = options.dohServerPort
-            self.log.info(f"use doh server at port: {options.dohServerPort}")
-            self.log.info(f"use http3 server at port: {options.http3ServerPort}")
-        elif options.useHttp2Server:
-            options.dohServerPort = self.findFreePort(socket.SOCK_STREAM)
-            options.http2ServerPort = self.findFreePort(socket.SOCK_STREAM)
-            proxyOptions["dohServerPort"] = options.dohServerPort
-            self.log.info(f"use doh server at port: {options.dohServerPort}")
-            self.log.info(f"use http2 server at port: {options.http2ServerPort}")
         return proxyOptions
 
     def merge_base_profiles(self, options, category):
@@ -2475,7 +2500,6 @@ toolbar#nav-bar {
             profile=options.profilePath,
             addons=extensions,
             locations=self.locations,
-            proxy=self.proxy(options),
             allowlistpaths=sandbox_allowlist_paths,
         )
 
@@ -3864,6 +3888,9 @@ toolbar#nav-bar {
             if self.startServers(options, debuggerInfo) is False:
                 return 1
 
+            # Write proxy prefs now that server ports are finalized.
+            self.profile.set_proxy(self.proxy(options))
+
             if self.mozHttp2Server is not None:
                 for key, value in self.mozHttp2Server.ports().items():
                     self.browserEnv[key] = value
@@ -4219,6 +4246,9 @@ toolbar#nav-bar {
             self.restartAfterFailure = restartAfterFailure
             self.browserProcessId = None
             self.stackFixerFunction = self.stackFixer()
+
+            if shutdownLeaks:
+                harness.message_logger.enable_saved_buffers()
 
         def processOutputLine(self, line):
             """per line handler of output for mozprocess"""

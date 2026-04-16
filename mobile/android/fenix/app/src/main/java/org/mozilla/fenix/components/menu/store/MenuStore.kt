@@ -92,6 +92,10 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.InitializeSummarizationMenuState -> state.copyWithSummarizationMenuState {
             action.state
         }
+
+        is MenuAction.UpdateIPProtectionMenuState -> state.copy(
+            ipProtectionMenuState = action.state,
+        )
     }
 }
 

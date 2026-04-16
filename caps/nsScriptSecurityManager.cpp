@@ -219,13 +219,6 @@ bool nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
                                 sStrictFileOriginPolicy);
 }
 
-// SecurityHashURI is consistent with SecurityCompareURIs because
-// NS_SecurityHashURI is consistent with NS_SecurityCompareURIs.  See
-// nsNetUtil.h.
-uint32_t nsScriptSecurityManager::SecurityHashURI(nsIURI* aURI) {
-  return NS_SecurityHashURI(aURI);
-}
-
 bool nsScriptSecurityManager::IsHttpOrHttpsAndCrossOrigin(nsIURI* aUriA,
                                                           nsIURI* aUriB) {
   if (!aUriA || !net::SchemeIsHttpOrHttps(aUriA) || !aUriB ||

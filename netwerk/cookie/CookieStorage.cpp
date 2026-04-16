@@ -206,11 +206,12 @@ bool CookieStorage::FindCookie(const nsACString& aBaseDomain,
   }
 
   const CookieEntry::ArrayType& cookies = entry->GetCookies();
+  uint32_t targetHash = Cookie::ComputeKeyHash(aName, aHost, aPath);
   for (CookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
     Cookie* cookie = cookies[i];
 
-    if (aHost.Equals(cookie->Host()) && aPath.Equals(cookie->Path()) &&
-        aName.Equals(cookie->Name())) {
+    if (cookie->KeyHash() == targetHash && aHost.Equals(cookie->Host()) &&
+        aPath.Equals(cookie->Path()) && aName.Equals(cookie->Name())) {
       aIter = CookieListIter(entry, i);
       return true;
     }
@@ -899,7 +900,9 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
         purgedList = PurgeCookies(aCurrentTimeInUsec, mMaxNumberOfCookies,
                                   mCookiePurgeAge);
         uint32_t purgedLength = 0;
-        purgedList->GetLength(&purgedLength);
+        if (purgedList) {
+          purgedList->GetLength(&purgedLength);
+        }
         mozilla::glean::networking::cookie_purge_max.AccumulateSingleSample(
             purgedLength);
       }

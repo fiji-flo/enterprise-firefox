@@ -61,7 +61,6 @@ bool JitHintsMap::recordIonCompilation(JSScript* script) {
   auto p = ionHintMap_.lookupForAdd(key);
   IonHint* hint = nullptr;
   if (p) {
-    // Don't modify existing threshold values.
     hint = p->value();
     updateAsRecentlyUsed(hint);
   } else {
@@ -75,7 +74,10 @@ bool JitHintsMap::recordIonCompilation(JSScript* script) {
       script->warmUpCountAtLastICStub(),
       script->jitScript()->hasPretenuredAllocSites());
 
-  hint->initThreshold(threshold);
+  // Don't lower an existing threshold.
+  if (threshold > hint->threshold()) {
+    hint->setThreshold(threshold);
+  }
   return true;
 }
 

@@ -5251,7 +5251,7 @@
      * @param {boolean} options.animate
      *   Whether or not to animate closing.
      * @param {boolean} options.suppressWarnAboutClosingWindow
-     *   This will supress the warning about closing a window with the last tab.
+     *   This will suppress the warning about closing a window with the last tab.
      * @param {boolean} options.skipPermitUnload
      *   Skips the before unload checks for the tabs. Only set this to true when
      *   using it in tandem with `runBeforeUnloadForTabs`.
@@ -5462,7 +5462,7 @@
      * @param {boolean} [options.animate]
      *   Whether or not to animate closing, defaults to true.
      * @param {boolean} [options.suppressWarnAboutClosingWindow]
-     *   This will supress the warning about closing a window with the last tab.
+     *   This will suppress the warning about closing a window with the last tab.
      * @param {boolean} [options.skipPermitUnload]
      *   Skips the before unload checks for the tabs. Only set this to true when
      *   using it in tandem with `runBeforeUnloadForTabs`.
@@ -7029,6 +7029,23 @@
       if (element.splitview) {
         element = element.splitview;
       }
+      // When moving backwards, placing an element at tabIndex works trivially.
+      // When moving forwards to a higher tabIndex, we need to increase the
+      // index to account for the fact that the act of moving (multiple) tabs
+      // causes all following tabs to have a decreased index.
+      let movingForwards = false;
+      if (this.isTab(element)) {
+        movingForwards = tabIndex > element._tPos;
+      } else {
+        // tab group or split view (mutually exclusive with being pinned).
+        let tabsInElement = element.tabs;
+        movingForwards = tabIndex > tabsInElement[0]._tPos;
+        if (movingForwards) {
+          // -1 because element will be *after* tabIndex instead of at it.
+          tabIndex += tabsInElement.length - 1;
+          tabIndex = Math.min(tabIndex, this.tabs.length);
+        }
+      }
       this.#handleTabMove(
         element,
         () => {
@@ -7038,15 +7055,14 @@
           }
           if (neighbor?.splitview) {
             neighbor = neighbor.splitview;
-          }
-          let useAfter = false;
-          if (this.isTab(element)) {
-            useAfter = neighbor && tabIndex > element._tPos;
-          } else if (this.isSplitViewWrapper(element)) {
-            useAfter = neighbor && tabIndex >= this.tabs.length - 1;
+            if (neighbor === element) {
+              // Already inside the same split view, don't move.
+              // If you want to swap tabs, use splitview.reverseTabs() instead.
+              return;
+            }
           }
 
-          if (useAfter) {
+          if (movingForwards && neighbor) {
             neighbor.after(element);
           } else {
             this.tabContainer.insertBefore(element, neighbor);
@@ -10365,7 +10381,7 @@ var TabContextMenu = {
     }
 
     let contextAddNote = document.getElementById("context_addNote");
-    let contextUpdateNote = document.getElementById("context_updateNote");
+    let contextEditNote = document.getElementById("context_editNote");
     if (gBrowser._tabNotesEnabled) {
       // Tab notes behaviour is disabled if a user has a selection of tabs that
       // contains more than one canonical URL.
@@ -10377,7 +10393,7 @@ var TabContextMenu = {
 
       contextAddNote.disabled =
         multiselectingDiverseUrls || !this.TabNotes.isEligible(this.contextTab);
-      contextUpdateNote.disabled = multiselectingDiverseUrls;
+      contextEditNote.disabled = multiselectingDiverseUrls;
 
       this.removeNewBadge(contextAddNote);
       if (
@@ -10388,11 +10404,11 @@ var TabContextMenu = {
 
       this.TabNotes.has(this.contextTab).then(hasNote => {
         contextAddNote.hidden = hasNote;
-        contextUpdateNote.hidden = !hasNote;
+        contextEditNote.hidden = !hasNote;
       });
     } else {
       contextAddNote.hidden = true;
-      contextUpdateNote.hidden = true;
+      contextEditNote.hidden = true;
     }
 
     // Split View
@@ -11004,14 +11020,6 @@ var TabContextMenu = {
   removeNewBadge(menuItem) {
     menuItem.removeAttribute("badge");
     menuItem.classList.remove("badge-new");
-  },
-
-  deleteTabNotes() {
-    for (let tab of this.contextTabs) {
-      this.TabNotes.delete(tab, {
-        telemetrySource: this.TabNotes.TELEMETRY_SOURCE.TAB_CONTEXT_MENU,
-      });
-    }
   },
 };
 

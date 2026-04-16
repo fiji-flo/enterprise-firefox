@@ -67,6 +67,15 @@ export class ContextMenuChild extends JSWindowActorChild {
         });
       }
 
+      case "ContextMenu:Canvas:CopyImage": {
+        let target = lazy.ContentDOMReference.resolve(
+          message.data.targetIdentifier
+        );
+        return new Promise(resolve => {
+          target.toBlob(blob => resolve(blob.arrayBuffer()));
+        });
+      }
+
       case "ContextMenu:Hiding": {
         this.context = null;
         this.target = null;

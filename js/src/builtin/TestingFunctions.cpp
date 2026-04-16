@@ -665,6 +665,35 @@ static bool GetBuildConfiguration(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  // True when the build is suitable for --strict-benchmark-mode (no debug,
+  // sanitizers, simulators, or fuzzing). Must stay in sync with the
+  // compile-time checks in ApplyBenchmarkMode in js.cpp.
+  {
+    bool suitable = true;
+#ifdef JS_DEBUG
+    suitable = false;
+#endif
+#ifdef MOZ_ASAN
+    suitable = false;
+#endif
+#ifdef MOZ_TSAN
+    suitable = false;
+#endif
+#ifdef MOZ_MSAN
+    suitable = false;
+#endif
+#if defined(JS_SIMULATOR)
+    suitable = false;
+#endif
+#ifdef FUZZING
+    suitable = false;
+#endif
+    value = BooleanValue(suitable);
+  }
+  if (!JS_SetProperty(cx, info, "benchmark-suitable", value)) {
+    return false;
+  }
+
   if (args.length() == 1) {
     RootedString str(cx, ToString(cx, args[0]));
     if (!str) {
@@ -1364,8 +1393,15 @@ static bool WasmGlobalExtractLane(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedObject proto(
       cx, GlobalObject::getOrCreatePrototype(cx, JSProto_WasmGlobal));
+  if (!proto) {
+    return false;
+  }
   Rooted<WasmGlobalObject*> result(
       cx, WasmGlobalObject::create(cx, val, false, proto));
+  if (!result) {
+    return false;
+  }
+
   args.rval().setObject(*result.get());
   return true;
 }
@@ -6329,10 +6365,8 @@ static bool Deserialize(JSContext* cx, unsigned argc, Value* vp) {
                                  &args[0].toObject().as<CloneBufferObject>());
 
   JS::CloneDataPolicy policy;
+  Maybe<JS::StructuredCloneScope> scopeOption;
 
-  JS::StructuredCloneScope scope =
-      obj->isSynthetic() ? JS::StructuredCloneScope::DifferentProcess
-                         : JS::StructuredCloneScope::SameProcess;
   if (args.get(1).isObject()) {
     RootedObject opts(cx, &args[1].toObject());
     if (!opts) {
@@ -6374,21 +6408,27 @@ static bool Deserialize(JSContext* cx, unsigned argc, Value* vp) {
       if (!str) {
         return false;
       }
-      auto maybeScope = ParseCloneScope(cx, str);
-      if (!maybeScope) {
+      scopeOption = ParseCloneScope(cx, str);
+      if (!scopeOption) {
         JS_ReportErrorASCII(cx, "Invalid structured clone scope");
         return false;
       }
-
-      if (*maybeScope < scope) {
-        JS_ReportErrorASCII(cx,
-                            "Cannot use less restrictive scope "
-                            "than the deserialized clone buffer's scope");
-        return false;
-      }
-
-      scope = *maybeScope;
     }
+  }
+
+  // Determine the scope after reading options, since option getters may
+  // modify the clone buffer.
+  JS::StructuredCloneScope scope =
+      obj->isSynthetic() ? JS::StructuredCloneScope::DifferentProcess
+                         : JS::StructuredCloneScope::SameProcess;
+  if (scopeOption.isSome()) {
+    if (*scopeOption < scope) {
+      JS_ReportErrorASCII(cx,
+                          "Cannot use less restrictive scope "
+                          "than the deserialized clone buffer's scope");
+      return false;
+    }
+    scope = *scopeOption;
   }
 
   if (scope > JS::StructuredCloneScope::SameProcess &&
@@ -9328,32 +9368,6 @@ static bool IsConstructor(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool SetTimeResolution(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  RootedObject callee(cx, &args.callee());
-
-  if (!args.requireAtLeast(cx, "setTimeResolution", 2)) {
-    return false;
-  }
-
-  if (!args[0].isInt32()) {
-    ReportUsageErrorASCII(cx, callee, "First argument must be an Int32.");
-    return false;
-  }
-  int32_t resolution = args[0].toInt32();
-
-  if (!args[1].isBoolean()) {
-    ReportUsageErrorASCII(cx, callee, "Second argument must be a Boolean");
-    return false;
-  }
-  bool jitter = args[1].toBoolean();
-
-  JS::SetTimeResolutionUsec(resolution, jitter);
-
-  args.rval().setUndefined();
-  return true;
-}
-
 static bool ScriptedCallerGlobal(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -11109,11 +11123,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "getCoreCount()",
 "  Get the number of CPU cores from the platform layer.  Typically this\n"
 "  means the number of hyperthreads on systems where that makes sense.\n"),
-
-    JS_FN_HELP("setTimeResolution", SetTimeResolution, 2, 0,
-"setTimeResolution(resolution, jitter)",
-"  Enables time clamping and jittering. Specify a time resolution in\n"
-"  microseconds and whether or not to jitter\n"),
 
     JS_FN_HELP("scriptedCallerGlobal", ScriptedCallerGlobal, 0, 0,
 "scriptedCallerGlobal()",

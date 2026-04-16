@@ -263,6 +263,9 @@ add_task(async function test_prune_old() {
 
 add_task(async function test_schedule_maintenance() {
   let m = await getManager();
+  // Make sure the cleanupPings() maintenance is run (though we can't test much
+  // more about it).
+  m._disableGleanPing = false;
   await m.createEventsFile("1", "crash.main.3", DUMMY_DATE, "id1", "{}");
 
   let oldDate = new Date(
@@ -274,6 +277,7 @@ add_task(async function test_schedule_maintenance() {
   let crashes = await m.getCrashes();
   Assert.equal(crashes.length, 1);
   Assert.equal(crashes[0].id, "id1");
+  Assert.ok(m._cleanupPingsResult);
 });
 
 const crashId = "3cb67eba-0dc7-6f78-6a569a0e-172287ec";
@@ -461,6 +465,42 @@ add_task(
     Assert.equal(store.crashesCount, store.HIGH_WATER_DAILY_THRESHOLD + 1);
   }
 );
+
+add_task(async function test_sendUnsubmittedPings() {
+  let m = await getManager();
+
+  let store = await m._getStore();
+  store.addCrash(
+    m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT],
+    m.CRASH_TYPE_CRASH,
+    "unsubmitted-crash",
+    DUMMY_DATE,
+    {}
+  );
+  store.addCrash(
+    m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT],
+    m.CRASH_TYPE_CRASH,
+    "submitted-crash",
+    DUMMY_DATE,
+    {}
+  );
+  Assert.ok(store.setPingSubmitted("submitted-crash"));
+
+  {
+    const crashes = store.crashesWithoutPingSubmissions();
+    Assert.equal(crashes.length, 1);
+    Assert.equal(crashes[0].id, "unsubmitted-crash");
+  }
+
+  m._disableGleanPing = false;
+
+  await m.sendUnsubmittedPings();
+
+  Assert.ok(m._gleanPingPromise);
+  await m._gleanPingPromise;
+
+  Assert.equal(store.crashesWithoutPingSubmissions().length, 0);
+});
 
 add_task(async function test_addCrash() {
   let m = await getManager();
@@ -717,6 +757,31 @@ add_task(async function test_glean_crash_ping() {
   // crate.
 });
 
+const TELEMETRY_ENABLE_PREF = "datareporting.healthreport.uploadEnabled";
+
+add_task(async function test_glean_crash_ping_disabled_by_telemetry_pref() {
+  let m = await getManager();
+  m._disableGleanPing = false;
+
+  const originalPref = Services.prefs.getBoolPref(TELEMETRY_ENABLE_PREF);
+  Services.prefs.setBoolPref(TELEMETRY_ENABLE_PREF, false);
+
+  try {
+    let id = await m.createDummyDump();
+
+    await m.addCrash(
+      m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT],
+      m.CRASH_TYPE_CRASH,
+      id,
+      DUMMY_DATE,
+      {}
+    );
+    Assert.equal(m._gleanPingPromise, null);
+  } finally {
+    Services.prefs.setBoolPref(TELEMETRY_ENABLE_PREF, originalPref);
+  }
+});
+
 add_task(async function test_generateSubmissionID() {
   let m = await getManager();
 
@@ -898,4 +963,29 @@ add_task(async function test_telemetryHistogram() {
     keys.sort(),
     "Some crash types do not match"
   );
+});
+
+add_task(async function start_shutdown() {
+  Services.startup.advanceShutdownPhase(
+    Services.startup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+  );
+});
+
+// NOTE: Any tests after this point will behave as if the browser is shutting
+// down.
+
+add_task(async function test_pings_not_submitted_during_shutdown() {
+  let m = await getManager();
+  await m.addCrash(
+    m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT],
+    m.CRASH_TYPE_CRASH,
+    "shutdown-crash",
+    DUMMY_DATE,
+    {}
+  );
+
+  let store = await m._getStore();
+  const crashes = store.crashesWithoutPingSubmissions();
+  Assert.equal(crashes.length, 1);
+  Assert.equal(crashes[0].id, "shutdown-crash");
 });

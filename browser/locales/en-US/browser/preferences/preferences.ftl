@@ -1076,6 +1076,10 @@ home-prefs-sections-rows-option =
 
 ## Search Section
 
+# Header for the search section ("search" is a noun).
+search-section =
+    .heading = Search
+
 search-engine-group =
     .label = Default search engine
 search-default-engine =

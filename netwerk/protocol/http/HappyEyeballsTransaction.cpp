@@ -135,10 +135,15 @@ void HappyEyeballsTransaction::Close(nsresult reason) {
   trans->SetHappyEyeballsProxy(nullptr);
 
   if (NS_SUCCEEDED(reason) || mConnectedCallbackInvoked ||
-      reason == NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED) {
+      reason == NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED || mCancelled) {
     trans->Close(mCancelled ? mCancelReason : reason);
     return;
   }
+
+  // Cancel any pending token bucket entry so the raw ATokenBucketEvent*
+  // pointer in EventTokenBucket::mEvents doesn't dangle after we drop
+  // our reference to the inner transaction.
+  trans->CancelPacing(mCancelled ? mCancelReason : reason);
 
   // Clear the inner transaction's connection reference to avoid leaking the
   // Http3Session. The connection was set by Http3Stream to point to the

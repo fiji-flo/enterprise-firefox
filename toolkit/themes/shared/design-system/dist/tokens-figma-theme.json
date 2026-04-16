@@ -644,6 +644,26 @@
     "dark": "rgba(21, 20, 26, 0.4)",
     "forcedColors": "{HCM Theme$CanvasText}"
   },
+  "message-bar/background/color": {
+    "light": "{Theme$background/color/information}",
+    "dark": "{Theme$background/color/information}",
+    "forcedColors": "{Theme$background/color/information}"
+  },
+  "message-bar/border/color": {
+    "light": "oklch(from {Theme$message-bar/icon/color} l c h / 20%)",
+    "dark": "oklch(from {Theme$message-bar/icon/color} l c h / 20%)",
+    "forcedColors": "{Theme$border/color}"
+  },
+  "message-bar/icon/color": {
+    "light": "{Theme$icon/color/information}",
+    "dark": "{Theme$icon/color/information}",
+    "forcedColors": "{Theme$icon/color/information}"
+  },
+  "message-bar/text/color": {
+    "light": "{Theme$text/color}",
+    "dark": "{Theme$text/color}",
+    "forcedColors": "{Theme$text/color}"
+  },
   "toggle/background/color": {
     "light": "{Theme$button/background/color}",
     "dark": "{Theme$button/background/color}",

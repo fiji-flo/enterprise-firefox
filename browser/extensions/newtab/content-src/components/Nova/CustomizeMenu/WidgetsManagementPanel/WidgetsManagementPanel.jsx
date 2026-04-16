@@ -139,7 +139,7 @@ function WidgetsManagementPanel({
                   pressed={weatherEnabled || null}
                   ontoggle={onToggleWidget}
                   onToggle={onToggleWidget}
-                  data-preference="showWeather"
+                  data-preference="widgets.weather.enabled"
                   data-event-source="WEATHER"
                   data-l10n-id="newtab-custom-widget-weather-toggle"
                 />

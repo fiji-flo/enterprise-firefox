@@ -423,6 +423,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     .tile {
       background-color: var(--button-background-color);
 
+      @include wallpaper-contrast-fix;
+
       .icon-wrapper {
         background-image: url('chrome://global/skin/icons/plus-20.svg');
         background-size: cover;

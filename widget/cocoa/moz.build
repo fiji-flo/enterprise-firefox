@@ -148,8 +148,6 @@ RESOURCE_FILES.cursors += [
     "cursors/sizeSE@2x.png",
     "cursors/sizeSW.png",
     "cursors/sizeSW@2x.png",
-    "cursors/vtIBeam.png",
-    "cursors/vtIBeam@2x.png",
     "cursors/zoomIn.png",
     "cursors/zoomIn@2x.png",
     "cursors/zoomOut.png",

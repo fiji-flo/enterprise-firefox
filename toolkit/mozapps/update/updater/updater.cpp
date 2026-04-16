@@ -3011,7 +3011,8 @@ static int PopulategMARStrings() {
   int rv = UPDATE_SETTINGS_FILE_CHANNEL;
 #  ifdef XP_MACOSX
   if (gInvocation != UpdaterInvocation::Second) {
-    if (auto marChannels = UpdateSettingsUtil::GetAcceptedMARChannelsValue()) {
+    if (std::optional<std::string> marChannels =
+            UpdateSettingsUtil::GetAcceptedMARChannelsValue()) {
       rv = ReadMARChannelIDsFromBuffer(marChannels->data(), &gMARStrings);
     }
   }
@@ -3022,7 +3023,7 @@ static int PopulategMARStrings() {
                NS_T("%s/update-settings.ini"), gInstallDirPath);
   rv = ReadMARChannelIDsFromPath(updateSettingsPath, &gMARStrings);
 #  endif
-  return rv;
+  return rv == OK ? OK : UPDATE_SETTINGS_FILE_CHANNEL;
 }
 #endif  // MOZ_VERIFY_MAR_SIGNATURE
 
@@ -3394,7 +3395,6 @@ int NS_main(int argc, NS_tchar** argv) {
   if (argc == 4 && (strstr(argv[1], "-dmgInstall") != 0)) {
     isDMGInstall = true;
     if (isElevated) {
-      PerformInstallationFromDMG(argc, argv);
       freeArguments(argc, argv);
       CleanupElevatedMacUpdate(true);
       return 0;
@@ -3699,18 +3699,22 @@ int NS_main(int argc, NS_tchar** argv) {
       threadArgs.argc = suiArgc;
       threadArgs.argv = suiArgv.get();
       threadArgs.marChannelID = "";
+      bool shouldServeElevatedUpdate = true;
 
-#ifdef MOZ_VERIFY_MAR_SIGNATURE
+#  ifdef MOZ_VERIFY_MAR_SIGNATURE
       int rv = PopulategMARStrings();
       if (rv != OK) {
+        shouldServeElevatedUpdate = false;
         WriteStatusFile(UPDATE_SETTINGS_FILE_CHANNEL);
         fprintf(stderr,
                 "Unable to start unelevated update process to serve elevated "
                 "updater due to inability to retrieve MAR channels.");
       } else {
         threadArgs.marChannelID = gMARStrings.MARChannelID.get();
-#endif // MOZ_VERIFY_MAR_SIGNATURE
+      }
+#  endif  // MOZ_VERIFY_MAR_SIGNATURE
 
+      if (shouldServeElevatedUpdate) {
         Thread t1;
         if (t1.Run(ServeElevatedUpdateThreadFunc, &threadArgs) == 0) {
           // Show an indeterminate progress bar while an elevated update is in
@@ -3720,9 +3724,7 @@ int NS_main(int argc, NS_tchar** argv) {
           }
         }
         t1.Join();
-#ifdef MOZ_VERIFY_MAR_SIGNATURE
       }
-#endif // MOZ_VERIFY_MAR_SIGNATURE
     }
 
     LaunchCallbackAndPostProcessApps(argc, argv, std::move(umaskContext));

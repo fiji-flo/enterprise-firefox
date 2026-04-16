@@ -194,6 +194,7 @@ struct SetHTMLOptions;
 struct SetHTMLUnsafeOptions;
 enum class ShadowRootMode : uint8_t;
 class ShadowRoot;
+enum class SlotAssignmentMode : uint8_t;
 struct StructuredSerializeOptions;
 struct SynthesizeMouseEventData;
 struct SynthesizeMouseEventOptions;
@@ -3644,7 +3645,8 @@ class nsContentUtils {
   static nsIContent* AttachDeclarativeShadowRoot(
       nsIContent* aHost, mozilla::dom::ShadowRootMode aMode, bool aIsClonable,
       bool aIsSerializable, bool aDelegatesFocus, bool aCustomElementRegistry,
-      const nsAString&);
+      mozilla::dom::SlotAssignmentMode aSlotAssignment,
+      const nsAString& aReferenceTarget);
 
   static bool NavigationMustBeAReplace(nsIURI& aURI, const Document& aDocument);
 

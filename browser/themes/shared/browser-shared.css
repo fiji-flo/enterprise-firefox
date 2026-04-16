@@ -12,6 +12,7 @@
 @import url("chrome://browser/skin/tabbrowser/fullscreen-and-pointerlock.css");
 @import url("chrome://browser/skin/tabbrowser/tab.tokens.css");
 @import url("chrome://browser/skin/tabbrowser/tabs.css");
+@import url("chrome://browser/skin/tabbrowser/tab-groups-list.css");
 @import url("chrome://browser/skin/tabbrowser/tab-hover-preview.css");
 @import url("chrome://browser/skin/toolbarbuttons.css");
 @import url("chrome://browser/skin/toolbarbutton-icons.css");
@@ -662,8 +663,8 @@ menupopup::part(drop-indicator) {
    themes cannot set */
 #DateTimePickerPanel {
   color-scheme: env(-moz-content-preferred-color-scheme);
-  --arrowpanel-background: Field;
-  --arrowpanel-color: FieldText;
+  --panel-background: Field;
+  --panel-color: FieldText;
 }
 
 #widget-overflow .webextension-popup-browser {
@@ -954,7 +955,7 @@ menupopup::part(drop-indicator) {
 
 #cfr-notification-footer-text-and-addon-info {
   display: block;
-  padding: 10px var(--arrowpanel-padding);
+  padding: 10px var(--panel-padding);
 }
 
 #cfr-notification-feature-steps {

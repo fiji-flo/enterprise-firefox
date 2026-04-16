@@ -8,6 +8,7 @@ import {
   BANDWIDTH,
   LINKS,
 } from "chrome://browser/content/ipprotection/ipprotection-constants.mjs";
+import { formatRemainingBandwidth } from "chrome://browser/content/ipprotection/ipprotection-utils.mjs";
 
 const { ERRORS } = ChromeUtils.importESModule(
   "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs"
@@ -217,22 +218,16 @@ export default class IPProtectionContentElement extends MozLitElement {
     let messageType = "info";
 
     if (this.state.bandwidthWarning && this.state.bandwidthUsage) {
-      messageId = "ipprotection-message-bandwidth-warning";
       messageType = "warning";
-      const bandwidthRemaining =
-        this.state.bandwidthUsage.remaining / BANDWIDTH.BYTES_IN_GB;
+      const { value: usageLeft, useGB } = formatRemainingBandwidth(
+        this.state.bandwidthUsage.remaining
+      );
       const maxUsage = this.state.bandwidthUsage.max / BANDWIDTH.BYTES_IN_GB;
-      const pctUsed = (100 * (maxUsage - bandwidthRemaining)) / maxUsage;
-      let usageLeft = Math.round(bandwidthRemaining);
 
-      if (pctUsed >= 75 && pctUsed < 90) {
-        usageLeft = bandwidthRemaining.toFixed(1);
-      } else if (bandwidthRemaining < 1) {
-        messageId = "ipprotection-message-bandwidth-warning-mb";
-        usageLeft = Math.floor(
-          this.state.bandwidthUsage.remaining / BANDWIDTH.BYTES_IN_MB
-        );
-      }
+      messageId = useGB
+        ? "ipprotection-message-bandwidth-warning"
+        : "ipprotection-message-bandwidth-warning-mb";
+
       messageLinkL10nArgs = JSON.stringify({
         usageLeft,
         maxUsage,
@@ -316,16 +311,29 @@ export default class IPProtectionContentElement extends MozLitElement {
 
   errorTemplate() {
     const isNetworkError = this.state.error === ERRORS.NETWORK;
+    const isCatastrophicError = this.state.error === ERRORS.CATASTROPHIC;
 
-    const headerL10nId = isNetworkError
-      ? "ipprotection-connection-status-network-error-title"
-      : "ipprotection-connection-status-generic-error-title";
+    let headerL10nId = "ipprotection-connection-status-generic-error-title";
+    let descriptionL10nId =
+      "ipprotection-connection-status-generic-error-description";
+    let errorType = ERRORS.GENERIC;
+    let imageSrc = null;
 
-    const descriptionL10nId = isNetworkError
-      ? "ipprotection-connection-status-network-error-description"
-      : "ipprotection-connection-status-generic-error-description";
-
-    const errorType = isNetworkError ? ERRORS.NETWORK : ERRORS.GENERIC;
+    if (isNetworkError) {
+      headerL10nId = "ipprotection-connection-status-network-error-title";
+      descriptionL10nId =
+        "ipprotection-connection-status-network-error-description";
+      errorType = ERRORS.NETWORK;
+      imageSrc =
+        "chrome://browser/content/ipprotection/assets/states/ipprotection-info.svg";
+    } else if (isCatastrophicError) {
+      headerL10nId = "ipprotection-connection-status-blocked-error-title";
+      descriptionL10nId =
+        "ipprotection-connection-status-generic-error-try-again";
+      errorType = ERRORS.CATASTROPHIC;
+      imageSrc =
+        "chrome://browser/content/ipprotection/assets/states/ipprotection-error.svg";
+    }
 
     return html`
       <ipprotection-status-box
@@ -333,13 +341,13 @@ export default class IPProtectionContentElement extends MozLitElement {
         .descriptionL10nId=${descriptionL10nId}
         .type=${errorType}
       >
-        ${isNetworkError
+        ${imageSrc
           ? html`
               <img
                 slot="image"
                 role="presentation"
                 class="icon"
-                src="chrome://browser/content/ipprotection/assets/states/ipprotection-info.svg"
+                src=${imageSrc}
               />
             `
           : null}
@@ -383,17 +391,18 @@ export default class IPProtectionContentElement extends MozLitElement {
       ? "site-exclusion-toggle-disabled-1"
       : "site-exclusion-toggle-enabled-1";
     return html` <div id="site-exclusion-control">
-      <moz-toggle
-        data-l10n-id=${siteExclusionToggleStateL10nId}
-        data-l10n-attrs="label"
-        id="site-exclusion-toggle"
-        iconsrc="chrome://browser/content/ipprotection/assets/shield-vpn-exceptions.svg"
-        inputlayout="inline-end"
-        ?pressed=${!hasExclusion}
-        @toggle=${this.handleToggleUseVPN}
-      >
-      </moz-toggle>
-    </div>`;
+        <moz-toggle
+          data-l10n-id=${siteExclusionToggleStateL10nId}
+          data-l10n-attrs="label"
+          id="site-exclusion-toggle"
+          iconsrc="chrome://browser/content/ipprotection/assets/shield-vpn-exceptions.svg"
+          inputlayout="inline-end"
+          ?pressed=${!hasExclusion}
+          @toggle=${this.handleToggleUseVPN}
+        >
+        </moz-toggle>
+      </div>
+      <hr role="separator" />`;
   }
 
   footerTemplate() {
@@ -468,14 +477,16 @@ export default class IPProtectionContentElement extends MozLitElement {
       if (
         (this.state.onboardingMessage || this.state.bandwidthWarning) &&
         !this._messageDismissed &&
-        !this.state.unauthenticated
+        !this.state.unauthenticated &&
+        !this.state.paused
       ) {
         this._showMessageBar = true;
       } else if (
-        !this.state.onboardingMessage &&
-        !this.state.bandwidthWarning
+        (!this.state.onboardingMessage && !this.state.bandwidthWarning) ||
+        this.state.paused
       ) {
         // Remove the message bar if we can no longer render messages before they were dismissed
+        // or when in the paused state.
         this._showMessageBar = false;
       }
 

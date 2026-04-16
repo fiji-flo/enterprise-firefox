@@ -172,7 +172,7 @@
     }
   }
 
-  &[rich-suggestion][type="search"] {
+  &[type="rich-search"] {
     :root:not([uidensity="compact"]) & {
       min-height: 46px;
     }
@@ -228,7 +228,8 @@
       }
     }
 
-    &[has-url] > .urlbarView-row-inner > .urlbarView-url {
+    &[has-url] > .urlbarView-row-inner > .urlbarView-url,
+    &[has-explanation] > .urlbarView-row-inner > .urlbarView-explanation {
       margin-top: 2px;
 
       /* urlbarView-url is forced to be LTR for RTL locales, so set the padding based on
@@ -295,7 +296,8 @@
   direction: ltr !important;
 }
 
-.urlbarView-url:-moz-locale-dir(rtl) {
+.urlbarView-url:-moz-locale-dir(rtl),
+.urlbarView-explanation:-moz-locale-dir(rtl) {
   /* .urlbarView-url can grow due to `flex-grow: 1`, so without `text-align:
      right`, the URL text would be left-aligned within .urlbarView-url for RTL
      due to the `direction: ltr` rule.  .urlbarView-title does not have this
@@ -676,7 +678,7 @@
 
   .urlbarView-title:empty + .urlbarView-tags:empty + &,
   /* This targets both rich and non-rich results, so not using the child selector here. */
-  .urlbarView-row:is([type=search], [restyled-search]):not([selected], [show-action-text], :hover) &,
+  .urlbarView-row:is([type=search], [type=rich-search], [restyled-search]):not([selected], [show-action-text], :hover) &,
   .urlbarView-row:not([has-action], [has-url], [restyled-search]) & {
     display: none;
   }
@@ -722,7 +724,7 @@
   /* If action visibility can be toggled the height should always stay the same. */
   .urlbarView-row[has-url]:is([type=remotetab], [sponsored]):is([selected], :hover) > .urlbarView-row-inner > .urlbarView-no-wrap > &,
   /* This targets both rich and non-rich results, so not using the child selector here. */
-  .urlbarView-row:is([type=search], [restyled-search]):not([selected], [show-action-text], :hover) &,
+  .urlbarView-row:is([type=search], [type=rich-search], [restyled-search]):not([selected], [show-action-text], :hover) &,
   .urlbarView[action-override] .urlbarView-row[type=switchtab] > .urlbarView-row-inner > .urlbarView-no-wrap > & {
     visibility: hidden;
     width: 0;
@@ -834,9 +836,10 @@
   }
 }
 
-/* URLs */
+/* URLs and result explanations */
 
-.urlbarView-url {
+.urlbarView-url,
+.urlbarView-explanation {
   flex-grow: 1;
   flex-shrink: 1;
   font-size: var(--urlbarView-small-font-size);
@@ -855,6 +858,19 @@
     /* Use visibility:collapse instead of display:none since the latter can
        confuse the overflow state of these elements when their content
        changes while they're hidden (bug 1549787). */
+    visibility: collapse;
+  }
+}
+
+.urlbarView-explanation {
+  visibility: collapse;
+}
+
+.urlbarView-row[has-explanation]:is([selected], :hover) > .urlbarView-row-inner {
+  > .urlbarView-explanation {
+    visibility: visible;
+  }
+  > .urlbarView-url {
     visibility: collapse;
   }
 }
@@ -1803,8 +1819,9 @@
   fill-opacity: var(--urlbar-icon-fill-opacity);
 }
 
-/* Nova style */
-.urlbarView-row[nova] {
+/* Rows with the URL at the bottom */
+
+.urlbarView-row.with-bottom-url {
   .urlbarView-title {
     font-weight: var(--font-weight-semibold);
   }
@@ -1858,7 +1875,7 @@
 #PopupSearchAutoComplete {
   --panel-color: var(--toolbar-field-focus-color);
   --panel-background: var(--toolbar-field-focus-background-color);
-  --panel-border-color: var(--arrowpanel-border-color);
+  --panel-border-color: inherit;
 }
 
 #PopupSearchAutoComplete::part(content) {

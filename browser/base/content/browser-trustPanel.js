@@ -349,12 +349,12 @@ class TrustPanel {
     let icon = document.getElementById("trust-icon-container");
     icon.className = this.#isSecurePage() ? "secure" : "insecure";
 
-    if (this.#isURILoadedFromFile) {
-      icon.classList.add("file");
-    }
-
     if (!this.#trackingProtectionEnabled) {
       icon.classList.add("inactive");
+    }
+
+    if (this.#isAboutNetErrorPage) {
+      icon.classList.add("warning");
     }
 
     icon.setAttribute("tooltiptext", this.#tooltipText());

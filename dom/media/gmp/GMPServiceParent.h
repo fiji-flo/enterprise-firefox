@@ -60,7 +60,7 @@ class GeckoMediaPluginServiceParent final
   NS_DECL_MOZIGECKOMEDIAPLUGINCHROMESERVICE
   NS_DECL_NSIOBSERVER
 
-  RefPtr<GenericPromise> EnsureInitialized();
+  RefPtr<GenericNonExclusivePromise> EnsureInitialized();
   RefPtr<GenericPromise> AsyncAddPluginDirectory(const nsAString& aDirectory);
 
   // GMP thread access only
@@ -234,7 +234,7 @@ class GeckoMediaPluginServiceParent final
   // Synchronization for barrier that ensures we've loaded GMPs from
   // MOZ_GMP_PATH before allowing GetContentParentFrom() to proceed.
   Monitor mInitPromiseMonitor;
-  MozMonitoredPromiseHolder<GenericPromise> mInitPromise;
+  MozMonitoredPromiseHolder<GenericNonExclusivePromise> mInitPromise;
   bool mLoadPluginsFromDiskComplete;
 
   // Hashes nodeId to the hashtable of storage for that nodeId.

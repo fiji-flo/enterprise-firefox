@@ -1505,10 +1505,11 @@ class _ConfirmDialog extends (external_React_default()).PureComponent {
     }), this._renderModalMessage()), /*#__PURE__*/external_React_default().createElement("section", {
       className: "button-group"
     }, /*#__PURE__*/external_React_default().createElement("moz-button-group", null, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      type: "ghost",
       onClick: this._handleCancelBtn,
       "data-l10n-id": this.props.data.cancel_button_string_id
     }), /*#__PURE__*/external_React_default().createElement("moz-button", {
-      type: "primary",
+      type: "destructive",
       onClick: this._handleConfirmBtn,
       "data-l10n-id": this.props.data.confirm_button_string_id,
       "data-l10n-args": JSON.stringify(this.props.data.confirm_button_string_args)
@@ -1913,7 +1914,7 @@ class _ContextMenuItem extends (external_React_default()).PureComponent {
       onKeyDown: this.onKeyDown,
       onKeyUp: this.onKeyUp,
       ref: option.first ? this.focusFirst : null,
-      "aria-haspopup": option.id === "newtab-menu-edit-topsites" ? "dialog" : null
+      "aria-haspopup": option.ariaHasPopup || null
     }, /*#__PURE__*/external_React_default().createElement("span", {
       "data-l10n-id": option.string_id || option.id
     })));
@@ -2004,7 +2005,6 @@ const LinkMenuOptions = {
         is_sponsored: !!site.sponsored_tile_id,
         event_source: "CONTEXT_MENU",
         topic: site.topic,
-        firstVisibleTimestamp: site.firstVisibleTimestamp,
         tile_id: site.tile_id,
         recommendation_id: site.recommendation_id,
         scheduled_corpus_item_id: site.scheduled_corpus_item_id,
@@ -2128,6 +2128,7 @@ const LinkMenuOptions = {
   DeleteUrl: (site, index, eventSource, isEnabled, siteInfo) => ({
     id: "newtab-menu-delete-history",
     icon: "delete",
+    ariaHasPopup: "dialog",
     action: {
       type: actionTypes.DIALOG_OPEN,
       data: {
@@ -2229,6 +2230,7 @@ const LinkMenuOptions = {
   EditTopSite: (site, index) => ({
     id: "newtab-menu-edit-topsites",
     icon: "edit",
+    ariaHasPopup: "dialog",
     action: {
       type: actionTypes.TOP_SITES_EDIT,
       data: { index },
@@ -2252,6 +2254,7 @@ const LinkMenuOptions = {
   }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
+    ariaHasPopup: "dialog",
     action: {
       // Open the confirmation dialog to block a section.
       type: actionTypes.DIALOG_OPEN,
@@ -2283,6 +2286,20 @@ const LinkMenuOptions = {
           actionCreators.AlsoToMain({
             type: actionTypes.DIALOG_CLOSE,
           }),
+          actionCreators.OnlyToOneContent(
+            {
+              type: actionTypes.SHOW_TOAST_MESSAGE,
+              data: {
+                toastId: "blockSectionToast",
+                showNotifications: true,
+                toastData: {
+                  l10nId: "newtab-section-toast-block",
+                  topic: title,
+                },
+              },
+            },
+            "ActivityStream:Content"
+          ),
         ],
         // Pass Fluent strings to ConfirmDialog component for the copy
         // of the prompt to block sections.
@@ -2292,7 +2309,7 @@ const LinkMenuOptions = {
         ],
         confirm_button_string_id: "newtab-section-block-topic-button",
         confirm_button_string_args: { topic: title },
-        cancel_button_string_id: "newtab-section-cancel-button",
+        cancel_button_string_id: "newtab-section-block-cancel-button",
       },
     },
     userEvent: "DIALOG_OPEN",
@@ -2301,8 +2318,9 @@ const LinkMenuOptions = {
     sectionPersonalization,
     sectionKey,
     sectionPosition,
+    title,
   }) => ({
-    id: "newtab-menu-section-unfollow",
+    id: "newtab-menu-section-unfollow-topic",
     action: actionCreators.AlsoToMain({
       type: actionTypes.SECTION_PERSONALIZATION_SET,
       data: (({ [sectionKey]: _sectionKey, ...remaining }) => remaining)(
@@ -2317,6 +2335,17 @@ const LinkMenuOptions = {
         event_source: "CONTEXT_MENU",
       },
     }),
+    toast: actionCreators.OnlyToOneContent(
+      {
+        type: actionTypes.SHOW_TOAST_MESSAGE,
+        data: {
+          toastId: "unfollowSectionToast",
+          showNotifications: true,
+          toastData: { l10nId: "newtab-section-toast-unfollow", topic: title },
+        },
+      },
+      "ActivityStream:Content"
+    ),
     userEvent: "SECTION_UNFOLLOW",
   }),
   ManageSponsoredContent: () => ({
@@ -2414,6 +2443,7 @@ class _LinkMenu extends (external_React_default()).PureComponent {
       const {
         action,
         impression,
+        toast,
         id,
         type,
         userEvent: eventName
@@ -2438,6 +2468,9 @@ class _LinkMenu extends (external_React_default()).PureComponent {
             }, action.data);
           }
           dispatch(action);
+          if (toast) {
+            dispatch(toast);
+          }
           if (eventName) {
             let value;
             // Bug 1958135: Pass additional info to ac.OPEN_NEW_WINDOW event
@@ -2446,8 +2479,6 @@ class _LinkMenu extends (external_React_default()).PureComponent {
                 card_type,
                 corpus_item_id,
                 event_source,
-                fetchTimestamp,
-                firstVisibleTimestamp,
                 format,
                 is_section_followed,
                 received_rank,
@@ -2464,8 +2495,6 @@ class _LinkMenu extends (external_React_default()).PureComponent {
                 card_type,
                 corpus_item_id,
                 event_source,
-                fetchTimestamp,
-                firstVisibleTimestamp,
                 format,
                 received_rank,
                 recommendation_id,
@@ -2655,7 +2684,6 @@ class _DSLinkMenu extends (external_React_default()).PureComponent {
         recommendation_id: this.props.recommendation_id,
         corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
-        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
         topic: this.props.topic,
@@ -3059,7 +3087,6 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             shim: link.shim
           } : {}),
           recommendation_id: link.recommendation_id,
-          fetchTimestamp: link.fetchTimestamp,
           corpus_item_id: link.corpus_item_id,
           scheduled_corpus_item_id: link.scheduled_corpus_item_id,
           recommended_at: link.recommended_at,
@@ -3078,8 +3105,7 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             is_section_followed: link.is_section_followed,
             layout_name: link.sectionLayoutName
           } : {})
-        })),
-        firstVisibleTimestamp: props.firstVisibleTimestamp
+        }))
       };
       props.dispatch(actionCreators.DiscoveryStreamImpressionStats(impressionData));
       this.impressionCardGuids = cards.map(link => link.id);
@@ -3796,8 +3822,6 @@ class _DSCard extends (external_React_default()).PureComponent {
           ...(this.props.shim && this.props.shim.click ? {
             shim: this.props.shim.click
           } : {}),
-          fetchTimestamp: this.props.fetchTimestamp,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
           corpus_item_id: this.props.corpus_item_id,
           scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
           recommended_at: this.props.recommended_at,
@@ -4113,7 +4137,6 @@ class _DSCard extends (external_React_default()).PureComponent {
           shim: this.props.shim.impression
         } : {}),
         recommendation_id: this.props.recommendation_id,
-        fetchTimestamp: this.props.fetchTimestamp,
         corpus_item_id: this.props.corpus_item_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
@@ -4138,8 +4161,7 @@ class _DSCard extends (external_React_default()).PureComponent {
         } : {})
       }],
       dispatch: this.props.dispatch,
-      source: this.props.type,
-      firstVisibleTimestamp: this.props.firstVisibleTimestamp
+      source: this.props.type
     }), ctaButtonVariant === "variant-b" && /*#__PURE__*/external_React_default().createElement("div", {
       className: "cta-header"
     }, "Shop Now"), /*#__PURE__*/external_React_default().createElement(DefaultMeta, {
@@ -4191,8 +4213,6 @@ class _DSCard extends (external_React_default()).PureComponent {
       section: this.props.section,
       section_position: this.props.sectionPosition,
       is_section_followed: this.props.sectionFollowed,
-      fetchTimestamp: this.props.fetchTimestamp,
-      firstVisibleTimestamp: this.props.firstVisibleTimestamp,
       format: format ? format : getActiveCardSize(window.innerWidth, this.props.sectionsClassNames, this.props.section, this.props.flightId),
       isSectionsCard: this.props.mayHaveSectionsCards,
       topic: this.props.topic,
@@ -4526,7 +4546,6 @@ function AdBannerContextMenu({
     site: {
       // Props we want to pass on for new ad types that come from Unified Ads API
       block_key: spoc.block_key,
-      fetchTimestamp: spoc.fetchTimestamp,
       flight_id: spoc.flight_id,
       format: spoc.format,
       id: spoc.id,
@@ -4643,7 +4662,6 @@ const PREF_PROMOCARD_VISIBLE = "discoverystream.promoCard.visible";
  *
  * @param spoc
  * @param dispatch
- * @param firstVisibleTimestamp
  * @param row
  * @param type
  * @param prefs
@@ -4653,7 +4671,6 @@ const PREF_PROMOCARD_VISIBLE = "discoverystream.promoCard.visible";
 const AdBanner = ({
   spoc,
   dispatch,
-  firstVisibleTimestamp,
   row,
   type,
   prefs
@@ -4700,8 +4717,6 @@ const AdBanner = ({
         ...(spoc.shim?.click ? {
           shim: spoc.shim.click
         } : {}),
-        fetchTimestamp: spoc.fetchTimestamp,
-        firstVisibleTimestamp,
         format: spoc.format,
         ...(sectionsEnabled ? {
           section: spoc.format,
@@ -4755,8 +4770,7 @@ const AdBanner = ({
         shim: spoc.shim.impression
       } : {})
     }],
-    dispatch: dispatch,
-    firstVisibleTimestamp: firstVisibleTimestamp
+    dispatch: dispatch
   }), /*#__PURE__*/external_React_default().createElement("div", {
     className: "ad-banner-content"
   }, /*#__PURE__*/external_React_default().createElement("img", {
@@ -4939,7 +4953,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
           url: rec.url,
           id: rec.id,
           shim: rec.shim,
-          fetchTimestamp: rec.fetchTimestamp,
           type: this.props.type,
           context: rec.context,
           sponsor: rec.sponsor,
@@ -4953,7 +4966,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
           ctaButtonSponsors: ctaButtonSponsors,
           ctaButtonVariant: ctaButtonVariant,
           recommendation_id: rec.recommendation_id,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
           mayHaveSectionsCards: mayHaveSectionsCards,
           corpus_item_id: rec.corpus_item_id,
           scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
@@ -5033,7 +5045,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
             key: `dscard-${spocToRender.id}`,
             dispatch: this.props.dispatch,
             type: this.props.type,
-            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
             row: row,
             prefs: prefs
           }));
@@ -6600,6 +6611,7 @@ const INITIAL_STATE = {
     showNotifications: false,
     toastCounter: 0,
     toastId: "",
+    toastData: {},
     // This queue is reset each time SHOW_TOAST_MESSAGE is ran.
     // For can be a queue in the future, but for now is one item
     toastQueue: [],
@@ -7498,6 +7510,7 @@ function Notifications(prevState = INITIAL_STATE.Notifications, action) {
         showNotifications: action.data.showNotifications,
         toastCounter: prevState.toastCounter + 1,
         toastId: action.data.toastId,
+        toastData: action.data.toastData ?? {},
         toastQueue: [action.data.toastId],
       };
     case actionTypes.HIDE_TOAST_MESSAGE: {
@@ -8165,11 +8178,71 @@ function ShortcutFeatureHighlight({
     outsideClickCallback: handleDismiss
   }));
 }
+;// CONCATENATED MODULE: ./content-src/lib/asrouter-message-utils.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+const ASROUTER_NEWTAB_MESSAGE_POSITIONS = Object.freeze({
+  ABOVE_TOPSITES: "ABOVE_TOPSITES",
+  ABOVE_WIDGETS: "ABOVE_WIDGETS",
+  ABOVE_CONTENT_FEED: "ABOVE_CONTENT_FEED",
+});
+
+/**
+ * Returns true if the Messages state has a visible message whose messageType
+ * matches componentId.
+ *
+ * @param {object} messagesProp - The Messages slice of Redux state ({ messageData, isVisible }).
+ * @param {string} componentId - The messageType value to match against.
+ * @returns {boolean}
+ */
+function shouldShowOMCHighlight(messagesProp, componentId) {
+  const messageData = messagesProp?.messageData;
+  const isVisible = messagesProp?.isVisible;
+  if (!messageData || Object.keys(messageData).length === 0 || !isVisible) {
+    return false;
+  }
+  return messageData?.content?.messageType === componentId;
+}
+
+/**
+ * Returns true if the Messages state has a visible ASRouterNewTabMessage whose
+ * configured position matches currentPosition.  When no position is set on the
+ * message, it defaults to ABOVE_TOPSITES.
+ *
+ * @param {object} messagesProps - The Messages slice of Redux state ({ messageData, isVisible }).
+ * @param {string} componentId - The messageType value to match against (e.g. "ASRouterNewTabMessage").
+ * @param {string} currentPosition - One of the ASROUTER_NEWTAB_MESSAGE_POSITIONS values.
+ * @returns {boolean}
+ */
+function shouldShowASRouterNewTabMessage(
+  messagesProps,
+  componentId,
+  currentPosition
+) {
+  const messageData = messagesProps?.messageData;
+  if (!messageData) {
+    return false;
+  }
+
+  const configuredPosition =
+    messageData.content?.position ??
+    ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_TOPSITES;
+
+  if (configuredPosition === currentPosition) {
+    return shouldShowOMCHighlight(messagesProps, componentId);
+  }
+
+  return false;
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/TopSite.jsx
 function TopSite_extends() { return TopSite_extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, TopSite_extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -8202,7 +8275,6 @@ class TopSiteLink extends (external_React_default()).PureComponent {
     };
     this.onDragEvent = this.onDragEvent.bind(this);
     this.onKeyPress = this.onKeyPress.bind(this);
-    this.shouldShowOMCHighlight = this.shouldShowOMCHighlight.bind(this);
   }
 
   /*
@@ -8363,13 +8435,6 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       selectedColor
     };
   }
-  shouldShowOMCHighlight(componentId) {
-    const messageData = this.props.Messages?.messageData;
-    if (!messageData || Object.keys(messageData).length === 0) {
-      return false;
-    }
-    return messageData?.content?.messageType === componentId;
-  }
   render() {
     const {
       children,
@@ -8524,7 +8589,7 @@ class TopSiteLink extends (external_React_default()).PureComponent {
     }), title), /*#__PURE__*/external_React_default().createElement("span", {
       className: "sponsored-label",
       "data-l10n-id": "newtab-topsite-sponsored"
-    }))), isAddButton && this.shouldShowOMCHighlight("ShortcutHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+    }))), isAddButton && shouldShowOMCHighlight(this.props.Messages, "ShortcutHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
       dispatch: this.props.dispatch,
       onClick: e => e.stopPropagation()
     }, /*#__PURE__*/external_React_default().createElement(ShortcutFeatureHighlight, {
@@ -9031,15 +9096,23 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       } else if (i >= maxNarrowVisibleIndex) {
         slotProps.className = "hide-for-narrow";
       }
+      const {
+        key: slotKey,
+        ...restSlotProps
+      } = slotProps;
       let topSiteLink = null;
       // Use a placeholder if the link is empty or it's rendering a sponsored
       // tile for the about:home startup cache.
       if (!link || props.App.isForStartupCache.TopSites && isSponsored(link)) {
         if (link) {
-          topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps));
+          topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({
+            key: slotKey
+          }, restSlotProps, commonProps));
         }
       } else if (topSites[i]?.isAddButton) {
-        topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSiteAddButton, TopSite_extends({}, slotProps, commonProps, {
+        topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSiteAddButton, TopSite_extends({
+          key: slotKey
+        }, restSlotProps, commonProps, {
           setRef: i === this.state.focusedIndex ? el => {
             this.focusedRef = el;
           } : () => {},
@@ -9052,10 +9125,11 @@ class _TopSiteList extends (external_React_default()).PureComponent {
         }));
       } else {
         topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSite, TopSite_extends({
+          key: slotKey,
           link: link,
           activeIndex: this.state.activeIndex,
           onActivate: this.onActivate
-        }, slotProps, commonProps, {
+        }, restSlotProps, commonProps, {
           colors: props.colors,
           setRef: i === this.state.focusedIndex ? el => {
             this.focusedRef = el;
@@ -9790,10 +9864,7 @@ class Section extends (external_React_default()).PureComponent {
       dispatch: this.props.dispatch,
       isWebExtension: this.props.isWebExtension
     }, !shouldShowEmptyState && /*#__PURE__*/external_React_default().createElement("ul", {
-      className: "section-list",
-      style: {
-        padding: 0
-      }
+      className: "section-list"
     }, cards), shouldShowEmptyState && /*#__PURE__*/external_React_default().createElement("div", {
       className: "section-empty-state"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -9868,21 +9939,33 @@ function Highlights_extends() { return Highlights_extends = Object.assign ? Obje
 
 
 
+
+
+// @nova-cleanup(remove-pref): Remove PREF_NOVA_ENABLED
+const Highlights_PREF_NOVA_ENABLED = "nova.enabled";
 class _Highlights extends (external_React_default()).PureComponent {
   render() {
     const section = this.props.Sections.find(s => s.id === "highlights");
     if (!section || !section.enabled) {
       return null;
     }
+
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, always show title
+    const novaEnabled = this.props.Prefs.values[Highlights_PREF_NOVA_ENABLED];
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: "ds-highlights sections-list"
-    }, /*#__PURE__*/external_React_default().createElement(SectionIntl, Highlights_extends({}, section, {
+    }, novaEnabled && /*#__PURE__*/external_React_default().createElement("h2", {
+      className: "ds-highlights-title"
+    }, /*#__PURE__*/external_React_default().createElement(FluentOrText, {
+      message: section.title
+    })), /*#__PURE__*/external_React_default().createElement(SectionIntl, Highlights_extends({}, section, {
       isFixed: true
     })));
   }
 }
 const Highlights = (0,external_ReactRedux_namespaceObject.connect)(state => ({
-  Sections: state.Sections
+  Sections: state.Sections,
+  Prefs: state.Prefs
 }))(_Highlights);
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/HorizontalRule/HorizontalRule.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -10127,15 +10210,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
   function getMaxTiles(responsiveLayouts) {
     return responsiveLayouts
       .flatMap(responsiveLayout => responsiveLayout)
-      .reduce((acc, t) => {
-        acc[t.columnCount] = t.tiles.length;
-
-        // Update maxTile if current tile count is greater
-        if (!acc.maxTile || t.tiles.length > acc.maxTile) {
-          acc.maxTile = t.tiles.length;
-        }
-        return acc;
-      }, {});
+      .reduce((max, t) => Math.max(max, t.tiles.length), 0);
   }
 
   const placeholderComponent = component => {
@@ -10347,7 +10422,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
       let currentPosition = 0;
       data.sections.forEach(section => {
         // We assume the count for the breakpoint with the most tiles.
-        const { maxTile } = getMaxTiles(section?.layout?.responsiveLayouts);
+        const maxTile = getMaxTiles(section?.layout?.responsiveLayouts);
         for (let i = 0; i < maxTile; i++) {
           if (section.data[i]) {
             section.data[i] = {
@@ -10419,6 +10494,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
  */
 function SectionContextMenu({
   type = "DISCOVERY_STREAM",
+  buttonType = "icon",
   title,
   source,
   index,
@@ -10428,12 +10504,12 @@ function SectionContextMenu({
   sectionPersonalization,
   sectionPosition
 }) {
-  // Initial context menu options: block this section only.
-  const SECTIONS_CONTEXT_MENU_OPTIONS = ["SectionBlock"];
-  const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
+  const SECTIONS_CONTEXT_MENU_OPTIONS = [];
   if (following) {
     SECTIONS_CONTEXT_MENU_OPTIONS.push("SectionUnfollow");
   }
+  SECTIONS_CONTEXT_MENU_OPTIONS.push("SectionBlock");
+  const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
   const onClick = e => {
     e.preventDefault();
     setShowContextMenu(!showContextMenu);
@@ -10442,12 +10518,13 @@ function SectionContextMenu({
     setShowContextMenu(!showContextMenu);
   };
   return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "section-context-menu"
+    className: `section-context-menu${showContextMenu ? " context-menu-open" : ""}`
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
-    type: "icon",
+    type: buttonType,
     size: "default",
     iconsrc: "chrome://global/skin/icons/more.svg",
     title: title || source,
+    "aria-expanded": showContextMenu,
     onClick: onClick
   }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
     onUpdate: onUpdate,
@@ -10462,6 +10539,72 @@ function SectionContextMenu({
       sectionPosition,
       title
     }
+  }));
+}
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/SectionFollowButton/SectionFollowButton.jsx
+function SectionFollowButton_extends() { return SectionFollowButton_extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, SectionFollowButton_extends.apply(null, arguments); }
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
+const ADD_ICON = "chrome://global/skin/icons/plus.svg";
+const CHECK_ICON = "chrome://global/skin/icons/check.svg";
+const CLOSE_ICON = "chrome://global/skin/icons/close.svg";
+function SectionFollowButton({
+  following,
+  onFollowClick,
+  onUnfollowClick
+}) {
+  const [isHovered, setIsHovered] = (0,external_React_namespaceObject.useState)(false);
+  const [justFollowed, setJustFollowed] = (0,external_React_namespaceObject.useState)(false);
+  // This key is incremented on mouse leave / blur to remount moz-button and
+  // restore it to its icon-only state.
+  const [remountKey, setRemountKey] = (0,external_React_namespaceObject.useState)(0);
+  const isJustFollowed = following && isHovered && justFollowed;
+  const isUnfollowing = following && isHovered && !justFollowed;
+  let followButtonL10nId = "newtab-section-follow-button";
+  let icon = ADD_ICON;
+  let buttonType = "default";
+  if (isJustFollowed) {
+    followButtonL10nId = "newtab-section-following-button";
+    icon = CHECK_ICON;
+    buttonType = "primary";
+  } else if (isUnfollowing) {
+    followButtonL10nId = "newtab-section-unfollow-button";
+    icon = CLOSE_ICON;
+    buttonType = "destructive";
+  } else if (isHovered) {
+    buttonType = "primary";
+  } else if (following) {
+    icon = CHECK_ICON;
+  }
+  const handleFollowClick = () => {
+    setJustFollowed(true);
+    onFollowClick();
+  };
+  const hoverHandlers = {
+    onMouseEnter: () => setIsHovered(true),
+    onMouseLeave: () => {
+      setIsHovered(false);
+      setJustFollowed(false);
+      setRemountKey(k => k + 1);
+    },
+    onFocus: () => setIsHovered(true),
+    onBlur: () => {
+      setIsHovered(false);
+      setJustFollowed(false);
+      setRemountKey(k => k + 1);
+    }
+  };
+  return /*#__PURE__*/external_React_default().createElement("div", SectionFollowButton_extends({
+    className: `section-follow${following ? " following" : ""}`
+  }, hoverHandlers), /*#__PURE__*/external_React_default().createElement("moz-button", {
+    key: remountKey,
+    type: buttonType,
+    iconsrc: icon,
+    onClick: following ? onUnfollowClick : handleFollowClick,
+    "data-l10n-id": isHovered ? followButtonL10nId : null
   }));
 }
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/InterestPicker/InterestPicker.jsx
@@ -10656,16 +10799,18 @@ const PersonalizedCard = ({
     iconSrc: "chrome://global/skin/icons/close.svg",
     onClick: onDismiss,
     "data-l10n-id": "newtab-card-dismiss-button"
-  })), /*#__PURE__*/external_React_default().createElement("div", {
-    className: "personalized-card-inner"
-  }, /*#__PURE__*/external_React_default().createElement("img", {
+  })), /*#__PURE__*/external_React_default().createElement("img", {
     src: kitFox,
     alt: ""
-  }), /*#__PURE__*/external_React_default().createElement("h2", null, messageData.content.cardTitle), /*#__PURE__*/external_React_default().createElement("p", null, messageData.content.cardMessage), /*#__PURE__*/external_React_default().createElement("div", {
+  }), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "personalized-card-inner"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "personalized-card-message-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("h2", null, messageData.content.cardTitle), /*#__PURE__*/external_React_default().createElement("p", null, messageData.content.cardMessage)), /*#__PURE__*/external_React_default().createElement("div", {
     className: "personalized-card-cta-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "primary",
-    class: "personalized-card-cta",
+    class: "personalized-card-button",
     onClick: () => onToggleClick("open-personalization-panel")
   }, messageData.content.ctaText), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
     className: "personalized-card-link",
@@ -10760,8 +10905,7 @@ const BriefingCard = ({
   headlines = [],
   lastUpdated,
   selectedTopics,
-  isFollowed,
-  firstVisibleTimestamp
+  isFollowed
 }) => {
   const [showTimestamp, setShowTimestamp] = (0,external_React_namespaceObject.useState)(false);
   const [timeAgo, setTimeAgo] = (0,external_React_namespaceObject.useState)("");
@@ -10822,8 +10966,6 @@ const BriefingCard = ({
         card_type: "organic",
         recommendation_id: headline.recommendation_id,
         tile_id: headline.id,
-        fetchTimestamp: headline.fetchTimestamp,
-        firstVisibleTimestamp,
         corpus_item_id: headline.corpus_item_id,
         scheduled_corpus_item_id: headline.scheduled_corpus_item_id,
         recommended_at: headline.recommended_at,
@@ -10890,7 +11032,6 @@ const BriefingCard = ({
       id: headline.id,
       pos: headline.pos,
       recommendation_id: headline.recommendation_id,
-      fetchTimestamp: headline.fetchTimestamp,
       corpus_item_id: headline.corpus_item_id,
       scheduled_corpus_item_id: headline.scheduled_corpus_item_id,
       recommended_at: headline.recommended_at,
@@ -10906,8 +11047,7 @@ const BriefingCard = ({
       } : {})
     })),
     dispatch: dispatch,
-    source: "DAILY_BRIEFING",
-    firstVisibleTimestamp: firstVisibleTimestamp
+    source: "DAILY_BRIEFING"
   }));
 };
 
@@ -10915,6 +11055,8 @@ const BriefingCard = ({
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
 
 
 
@@ -10946,9 +11088,14 @@ const PREF_INFERRED_PERSONALIZATION_USER = "discoverystream.sections.personaliza
 const PREF_DAILY_BRIEF_SECTIONID = "discoverystream.dailyBrief.sectionId";
 const PREF_DAILY_BRIEF_ENABLED = "discoverystream.dailyBrief.enabled";
 const CardSections_PREF_SPOCS_STARTUPCACHE_ENABLED = "discoverystream.spocs.startupCache.enabled";
+// @nova-cleanup(remove-pref): Remove PREF_NOVA_ENABLED
+const CardSections_PREF_NOVA_ENABLED = "nova.enabled";
 
 // Feed URL
 const CURATED_RECOMMENDATIONS_FEED_URL = "https://merino.services.mozilla.com/api/v1/curated-recommendations";
+
+// Divides evenly by 2, 3, and 4 to avoid orphan cards in any column layout.
+const DEFAULT_MAX_TILES = 12;
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
@@ -10986,15 +11133,7 @@ function getLayoutData(responsiveLayouts, index) {
 
 // function to determine amount of tiles shown per section per viewport
 function getMaxTiles(responsiveLayouts) {
-  return responsiveLayouts.flatMap(responsiveLayout => responsiveLayout).reduce((acc, t) => {
-    acc[t.columnCount] = t.tiles.length;
-
-    // Update maxTile if current tile count is greater
-    if (!acc.maxTile || t.tiles.length > acc.maxTile) {
-      acc.maxTile = t.tiles.length;
-    }
-    return acc;
-  }, {});
+  return responsiveLayouts.flatMap(responsiveLayout => responsiveLayout).reduce((max, t) => Math.max(max, t.tiles.length), 0) || DEFAULT_MAX_TILES;
 }
 
 /**
@@ -11008,29 +11147,24 @@ function getMaxTiles(responsiveLayouts) {
 const prefToArray = (pref = "") => {
   return pref.split(",").map(item => item.trim()).filter(item => item);
 };
-function shouldShowOMCHighlight(messageData, componentId) {
-  if (!messageData || Object.keys(messageData).length === 0) {
-    return false;
-  }
-  return messageData?.content?.messageType === componentId;
-}
 function CardSection({
   sectionPosition,
   section,
   dispatch,
   type,
-  firstVisibleTimestamp,
   ctaButtonVariant,
   ctaButtonSponsors,
   anySectionsFollowed,
-  placeholder,
+  spocsLoading,
   activeColumnLayout,
-  syncLayoutOnFocus
+  syncLayoutOnFocus,
+  gridRef
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const Messages = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
   const {
     messageData
-  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
+  } = Messages;
   const {
     sectionPersonalization,
     feeds
@@ -11040,9 +11174,7 @@ function CardSection({
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.App);
   const [focusedPosition, setFocusedPosition] = (0,external_React_namespaceObject.useState)(0);
   const onCardFocus = position => {
-    if (Number.isInteger(position)) {
-      setFocusedPosition(position);
-    }
+    setFocusedPosition(position);
   };
   const handleCardKeyDown = e => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
@@ -11092,6 +11224,8 @@ function CardSection({
   const dailyBriefEnabled = prefs.trainhopConfig?.dailyBriefing?.enabled || prefs[PREF_DAILY_BRIEF_ENABLED];
   const dailyBriefSectionId = prefs.trainhopConfig?.dailyBriefing?.sectionId || prefs[PREF_DAILY_BRIEF_SECTIONID];
   const mayHaveSectionsPersonalization = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
+  // @nova-cleanup(remove-conditional): Remove novaEnabled, always use Nova layout
+  const novaEnabled = prefs[CardSections_PREF_NOVA_ENABLED];
   const {
     sectionKey,
     title,
@@ -11139,7 +11273,18 @@ function CardSection({
         event_source: "MOZ_BUTTON"
       }
     }));
-  }, [dispatch, sectionPersonalization, sectionKey, sectionPosition]);
+    dispatch(actionCreators.OnlyToOneContent({
+      type: actionTypes.SHOW_TOAST_MESSAGE,
+      data: {
+        toastId: "followSectionToast",
+        showNotifications: true,
+        toastData: {
+          l10nId: "newtab-section-toast-follow",
+          topic: title
+        }
+      }
+    }, "ActivityStream:Content"));
+  }, [dispatch, sectionPersonalization, sectionKey, sectionPosition, title]);
   const onUnfollowClick = (0,external_React_namespaceObject.useCallback)(() => {
     const updatedSectionData = {
       ...sectionPersonalization
@@ -11159,14 +11304,21 @@ function CardSection({
         event_source: "MOZ_BUTTON"
       }
     }));
-  }, [dispatch, sectionPersonalization, sectionKey, sectionPosition]);
-  let {
-    maxTile
-  } = getMaxTiles(responsiveLayouts);
-  if (placeholder) {
-    // We need a number that divides evenly by 2, 3, and 4.
-    // So it can be displayed without orphans in grids with 2, 3, and 4 columns.
-    maxTile = 12;
+    dispatch(actionCreators.OnlyToOneContent({
+      type: actionTypes.SHOW_TOAST_MESSAGE,
+      data: {
+        toastId: "unfollowSectionToast",
+        showNotifications: true,
+        toastData: {
+          l10nId: "newtab-section-toast-unfollow",
+          topic: title
+        }
+      }
+    }, "ActivityStream:Content"));
+  }, [dispatch, sectionPersonalization, sectionKey, sectionPosition, title]);
+  let maxTile = DEFAULT_MAX_TILES;
+  if (!spocsLoading) {
+    maxTile = getMaxTiles(responsiveLayouts);
   }
   const shouldShowBriefingCard = sectionKey === dailyBriefSectionId && dailyBriefEnabled;
   const getBriefingData = () => {
@@ -11218,8 +11370,7 @@ function CardSection({
           headlines: briefingHeadlines,
           lastUpdated: briefingLastUpdated,
           selectedTopics: selectedTopics,
-          isFollowed: following,
-          firstVisibleTimestamp: firstVisibleTimestamp
+          isFollowed: following
         }));
         continue;
       }
@@ -11236,7 +11387,7 @@ function CardSection({
       // 1. No recommendation is available.
       // 2. The item is flagged as a placeholder.
       // 3. Spocs are loading for with spocs startup cache disabled.
-      const isPlaceholder = !rec || rec.placeholder || placeholder || rec.flight_id && !spocsStartupCacheEnabled && isForStartupCache.DiscoveryStream;
+      const isPlaceholder = !rec || rec.placeholder || spocsLoading || rec.flight_id && !spocsStartupCacheEnabled && isForStartupCache.DiscoveryStream;
       if (isPlaceholder) {
         cards.push(/*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
           key: `dscard-${currentIndex}`
@@ -11282,7 +11433,6 @@ function CardSection({
         url: rec.url,
         id: rec.id,
         shim: rec.shim,
-        fetchTimestamp: rec.fetchTimestamp,
         type: type,
         context: rec.context,
         sponsor: rec.sponsor,
@@ -11294,7 +11444,6 @@ function CardSection({
         context_type: rec.context_type,
         bookmarkGuid: rec.bookmarkGuid,
         recommendation_id: rec.recommendation_id,
-        firstVisibleTimestamp: firstVisibleTimestamp,
         corpus_item_id: rec.corpus_item_id,
         scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
         recommended_at: rec.recommended_at,
@@ -11326,7 +11475,7 @@ function CardSection({
     className: "section-context-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: following ? "section-follow following" : "section-follow"
-  }, followable !== false && !anySectionsFollowed && sectionPosition === 0 && shouldShowOMCHighlight(messageData, "FollowSectionButtonHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+  }, followable !== false && !anySectionsFollowed && sectionPosition === 0 && shouldShowOMCHighlight(Messages, "FollowSectionButtonHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
     dispatch: dispatch
   }, /*#__PURE__*/external_React_default().createElement(FollowSectionButtonHighlight, {
     verticalPosition: "inset-block-center",
@@ -11334,7 +11483,7 @@ function CardSection({
     dispatch: dispatch,
     feature: "FEATURE_FOLLOW_SECTION_BUTTON",
     messageData: messageData
-  })), followable !== false && !anySectionsFollowed && sectionPosition === 0 && shouldShowOMCHighlight(messageData, "FollowSectionButtonAltHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+  })), followable !== false && !anySectionsFollowed && sectionPosition === 0 && shouldShowOMCHighlight(Messages, "FollowSectionButtonAltHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
     dispatch: dispatch
   }, /*#__PURE__*/external_React_default().createElement(FollowSectionButtonHighlight, {
     verticalPosition: "inset-block-center",
@@ -11376,9 +11525,24 @@ function CardSection({
     className: "section-title-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("h2", {
     className: "section-title"
-  }, title), subtitle && /*#__PURE__*/external_React_default().createElement("p", {
+  }, title), mayHaveSectionsPersonalization && novaEnabled && followable !== false && /*#__PURE__*/external_React_default().createElement(SectionFollowButton, {
+    following: following,
+    onFollowClick: onFollowClick,
+    onUnfollowClick: onUnfollowClick
+  }), subtitle && /*#__PURE__*/external_React_default().createElement("p", {
     className: "section-subtitle"
-  }, subtitle)), mayHaveSectionsPersonalization ? sectionContextWrapper : null), /*#__PURE__*/external_React_default().createElement("div", {
+  }, subtitle)), mayHaveSectionsPersonalization && (novaEnabled ? /*#__PURE__*/external_React_default().createElement(SectionContextMenu, {
+    dispatch: dispatch,
+    index: sectionPosition,
+    following: following,
+    sectionPersonalization: sectionPersonalization,
+    sectionKey: sectionKey,
+    title: title,
+    type: type,
+    sectionPosition: sectionPosition,
+    buttonType: "ghost"
+  }) : sectionContextWrapper)), /*#__PURE__*/external_React_default().createElement("div", {
+    ref: gridRef,
     className: `ds-section-grid ds-card-grid`,
     onFocusCapture: syncLayoutOnFocus,
     onKeyDown: handleCardKeyDown
@@ -11389,26 +11553,44 @@ function CardSections({
   feed,
   dispatch,
   type,
-  firstVisibleTimestamp,
   ctaButtonVariant,
   ctaButtonSponsors,
-  placeholder
+  spocsLoading
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const {
     spocs,
     sectionPersonalization
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
+  const Messages = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
   const {
     messageData
-  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
+  } = Messages;
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
   const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
+  // @nova-cleanup(remove-conditional): Remove novaEnabled check once classic path is gone
+  const novaEnabled = prefs[CardSections_PREF_NOVA_ENABLED];
+  const gridRef = (0,external_React_namespaceObject.useRef)(null);
   const [activeColumnLayout, setActiveColumnLayout] = (0,external_React_namespaceObject.useState)(() => getActiveColumnLayout(window.innerWidth));
-  const syncLayoutOnFocus = (0,external_React_namespaceObject.useCallback)(() => {
-    const nextLayout = getActiveColumnLayout(window.innerWidth);
+  (0,external_React_namespaceObject.useLayoutEffect)(() => {
+    if (!novaEnabled || !gridRef.current) {
+      return;
+    }
+    const val = parseInt(getComputedStyle(gridRef.current).getPropertyValue("--sections-col-count"), 10);
+    if (Number.isInteger(val)) {
+      setActiveColumnLayout(`col-${val}`);
+    }
+  }, [novaEnabled]);
+  const syncLayoutOnFocus = (0,external_React_namespaceObject.useCallback)(e => {
+    let nextLayout = getActiveColumnLayout(window.innerWidth);
+    if (novaEnabled) {
+      const val = parseInt(getComputedStyle(e.currentTarget).getPropertyValue("--sections-col-count"), 10);
+      if (Number.isInteger(val)) {
+        nextLayout = `col-${val}`;
+      }
+    }
     setActiveColumnLayout(currLayout => currLayout === nextLayout ? currLayout : nextLayout);
-  }, []);
+  }, [novaEnabled]);
 
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
@@ -11422,7 +11604,7 @@ function CardSections({
   // Used to determine if we should show FollowSectionButtonHighlight
   const anySectionsFollowed = sectionPersonalization && Object.values(sectionPersonalization).some(section => section?.isFollowed);
   let sectionsData = data.sections;
-  if (placeholder) {
+  if (spocsLoading) {
     // To clean up the placeholder state for sections if the whole section is loading still.
     sectionsData = [{
       ...sectionsData[0],
@@ -11452,13 +11634,13 @@ function CardSections({
     section: section,
     dispatch: dispatch,
     type: type,
-    firstVisibleTimestamp: firstVisibleTimestamp,
     ctaButtonVariant: ctaButtonVariant,
     ctaButtonSponsors: ctaButtonSponsors,
     anySectionsFollowed: anySectionsFollowed,
-    placeholder: placeholder,
+    spocsLoading: spocsLoading,
     activeColumnLayout: activeColumnLayout,
-    syncLayoutOnFocus: syncLayoutOnFocus
+    syncLayoutOnFocus: syncLayoutOnFocus,
+    gridRef: sectionPosition === 0 ? gridRef : undefined
   }));
 
   // Add a billboard/leaderboard IAB ad to the sectionsToRender array (if enabled/possible).
@@ -11479,7 +11661,6 @@ function CardSections({
         key: `dscard-${spocToRender.id}`,
         dispatch: dispatch,
         type: type,
-        firstVisibleTimestamp: firstVisibleTimestamp,
         row: row,
         prefs: prefs
       }));
@@ -11500,7 +11681,7 @@ function CardSections({
   }
   function displayP13nCard() {
     if (messageData && Object.keys(messageData).length >= 1) {
-      if (shouldShowOMCHighlight(messageData, "PersonalizedCard") && prefs[PREF_INFERRED_PERSONALIZATION_USER]) {
+      if (shouldShowOMCHighlight(Messages, "PersonalizedCard") && prefs[PREF_INFERRED_PERSONALIZATION_USER]) {
         const row = messageData.content.position;
         sectionsToRender.splice(row, 0, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
           dispatch: dispatch,
@@ -12188,7 +12369,8 @@ function Lists({
   const badgeEnabled = (nimbusBadgeEnabled || nimbusBadgeTrainhopEnabled) ?? prefs[PREF_WIDGETS_LISTS_BADGE_ENABLED] ?? false;
   const badgeLabel = (nimbusBadgeLabel || nimbusBadgeTrainhopLabel) ?? prefs[PREF_WIDGETS_LISTS_BADGE_LABEL] ?? "";
   return /*#__PURE__*/external_React_default().createElement("article", {
-    className: `lists widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""}`,
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check; always apply col-4 and size class after Nova ships
+    className: `lists widget ${novaEnabled ? `col-4 ${widgetSize}-widget` : ""} ${isSmallSize ? "is-small" : ""} ${isMaximized ? "is-maximized" : ""}`,
     ref: el => {
       listsRef.current = [el];
     }
@@ -13123,7 +13305,8 @@ const FocusTimer = ({
     return () => el.removeEventListener("click", listener);
   }, [handleChangeSize]);
   return timerData ? /*#__PURE__*/external_React_default().createElement("article", {
-    className: `focus-timer widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""}`,
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check; always apply col-4 and size class after Nova ships
+    className: `focus-timer widget ${novaEnabled ? `col-4 ${widgetSize}-widget` : ""} ${isSmallSize ? "is-small" : ""} ${isMaximized ? "is-maximized" : ""}`,
     ref: el => {
       timerRef.current = [el];
     }
@@ -13249,6 +13432,7 @@ function EditableTimerFields({
 }) {
   return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
     contentEditable: "true",
+    suppressContentEditableWarning: true,
     ref: minutesRef,
     className: "timer-set-minutes",
     onKeyDown: props.onKeyDown,
@@ -13258,6 +13442,7 @@ function EditableTimerFields({
     tabIndex: tabIndex
   }, formatTime(props.timeLeft).split(":")[0]), ":", /*#__PURE__*/external_React_default().createElement("span", {
     contentEditable: "true",
+    suppressContentEditableWarning: true,
     ref: secondsRef,
     className: "timer-set-seconds",
     onKeyDown: props.onKeyDown,
@@ -13718,7 +13903,7 @@ function WeatherForecast({
     })));
   }
   return /*#__PURE__*/external_React_default().createElement("article", {
-    className: `weather-forecast-widget widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""} ${isSmallSize ? " small-widget" : ""} ${hasError ? "forecast-error-state" : ""}`,
+    className: `weather-forecast-widget widget ${novaEnabled ? "col-4" : ""} ${isMaximized ? "is-maximized" : ""} ${isSmallSize ? " is-small" : ""} ${hasError ? "forecast-error-state" : ""}`,
     ref: el => {
       forecastRef.current = [el];
     }
@@ -13796,6 +13981,419 @@ function WeatherForecast({
   })));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/Widgets/Weather/Weather.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+const Weather_USER_ACTION_TYPES = {
+  CHANGE_LOCATION: "change_location",
+  DETECT_LOCATION: "detect_location",
+  CHANGE_TEMP_UNIT: "change_temperature_units",
+  CHANGE_SIZE: "change_size",
+  LEARN_MORE: "learn_more",
+  OPT_IN_ACCEPTED: "opt_in_accepted",
+  PROVIDER_LINK_CLICK: "provider_link_click"
+};
+const Weather_PREF_WEATHER_SIZE = "widgets.weather.size";
+function Weather_Weather({
+  dispatch,
+  size
+}) {
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const weatherData = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Weather);
+  const impressionFired = (0,external_React_namespaceObject.useRef)(false);
+  const errorTelemetrySent = (0,external_React_namespaceObject.useRef)(false);
+  const errorRef = (0,external_React_namespaceObject.useRef)(null);
+  const sizeSubmenuRef = (0,external_React_namespaceObject.useRef)(null);
+  const currentWeatherSize = prefs[Weather_PREF_WEATHER_SIZE] || "medium";
+  const handleChangeSize = (0,external_React_namespaceObject.useCallback)(newSize => {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: Weather_PREF_WEATHER_SIZE,
+          value: newSize
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: Weather_USER_ACTION_TYPES.CHANGE_SIZE,
+          action_value: newSize,
+          widget_size: newSize
+        }
+      }));
+    });
+  }, [dispatch]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const el = sizeSubmenuRef.current;
+    if (!el) {
+      return undefined;
+    }
+    const listener = e => {
+      const item = e.composedPath().find(node => node.dataset?.size);
+      if (item) {
+        handleChangeSize(item.dataset.size);
+      }
+    };
+    el.addEventListener("click", listener);
+    return () => el.removeEventListener("click", listener);
+  }, [handleChangeSize]);
+  const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
+    if (impressionFired.current) {
+      return;
+    }
+    impressionFired.current = true;
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.WIDGETS_IMPRESSION,
+      data: {
+        widget_name: "weather",
+        widget_size: size
+      }
+    }));
+  }, [dispatch, size]);
+  const weatherRef = useIntersectionObserver(handleIntersection);
+  const weatherExperimentEnabled = prefs.trainhopConfig?.weather?.enabled;
+  const isWeatherEnabled = prefs["widgets.weather.enabled"] && (prefs["widgets.system.weather.enabled"] || weatherExperimentEnabled);
+  const WEATHER_SUGGESTION = weatherData?.suggestions?.[0];
+  const HOURLY_FORECASTS = weatherData?.hourlyForecasts ?? [];
+  const showForecast = size === "medium" || size === "large";
+  const hasError = !WEATHER_SUGGESTION?.current_conditions || !WEATHER_SUGGESTION?.forecast || showForecast && !HOURLY_FORECASTS[0];
+  const handleErrorIntersection = (0,external_React_namespaceObject.useCallback)(entries => {
+    const entry = entries.find(e => e.isIntersecting);
+    if (entry && !errorTelemetrySent.current) {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.WIDGETS_ERROR,
+        data: {
+          widget_name: "weather",
+          widget_size: size,
+          error_type: "load_error"
+        }
+      }));
+      errorTelemetrySent.current = true;
+    }
+  }, [dispatch, size]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    if (errorRef.current && !errorTelemetrySent.current) {
+      const observer = new IntersectionObserver(handleErrorIntersection);
+      observer.observe(errorRef.current);
+      return () => {
+        observer.disconnect();
+      };
+    }
+    return undefined;
+  }, [handleErrorIntersection, hasError]);
+  if (!weatherData?.initialized || !isWeatherEnabled) {
+    return null;
+  }
+  const weatherOptIn = prefs["system.showWeatherOptIn"];
+  const nimbusWeatherOptInEnabled = prefs.trainhopConfig?.weather?.weatherOptInEnabled;
+  const isOptInEnabled = weatherOptIn || nimbusWeatherOptInEnabled;
+  const optInDisplayed = prefs["weather.optInDisplayed"];
+  const optInUserChoice = prefs["weather.optInAccepted"];
+  const showOptInState = isOptInEnabled && optInDisplayed && !optInUserChoice;
+  const {
+    searchActive
+  } = weatherData;
+  function handleChangeLocation() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.BroadcastToContent({
+        type: actionTypes.WEATHER_SEARCH_ACTIVE,
+        data: true
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: Weather_USER_ACTION_TYPES.CHANGE_LOCATION,
+          widget_size: size
+        }
+      }));
+    });
+  }
+  function handleDetectLocation() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.WEATHER_USER_OPT_IN_LOCATION
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: Weather_USER_ACTION_TYPES.DETECT_LOCATION,
+          widget_size: size
+        }
+      }));
+    });
+  }
+  function handleChangeTempUnit(unit) {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: "weather.temperatureUnits",
+          value: unit
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: Weather_USER_ACTION_TYPES.CHANGE_TEMP_UNIT,
+          widget_size: size,
+          action_value: unit
+        }
+      }));
+    });
+  }
+  function handleHideWeather() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.SET_PREF,
+        data: {
+          name: "widgets.weather.enabled",
+          value: false
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_ENABLED,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          enabled: false,
+          widget_size: size
+        }
+      }));
+    });
+  }
+  function handleLearnMore() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.OPEN_LINK,
+        data: {
+          url: "https://support.mozilla.org/kb/firefox-new-tab-widgets"
+        }
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "context_menu",
+          user_action: Weather_USER_ACTION_TYPES.LEARN_MORE,
+          widget_size: size
+        }
+      }));
+    });
+  }
+  function handleProviderLinkClick() {
+    dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.WIDGETS_USER_EVENT,
+      data: {
+        widget_name: "weather",
+        widget_source: "widget",
+        user_action: Weather_USER_ACTION_TYPES.PROVIDER_LINK_CLICK,
+        widget_size: size
+      }
+    }));
+  }
+
+  // Bug 2029823 - Opt-in UI to be implemented
+  // eslint-disable-next-line no-unused-vars
+  function handleAcceptOptIn() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.WEATHER_USER_OPT_IN_LOCATION
+      }));
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.WEATHER_OPT_IN_PROMPT_SELECTION,
+        data: "accepted opt-in"
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "widget",
+          user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
+          widget_size: size,
+          action_value: true
+        }
+      }));
+    });
+  }
+
+  // Bug 2029823 - Opt-in UI to be implemented
+  // eslint-disable-next-line no-unused-vars
+  function handleRejectOptIn() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.SetPref("weather.optInAccepted", false));
+      dispatch(actionCreators.SetPref("weather.optInDisplayed", false));
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.WEATHER_OPT_IN_PROMPT_SELECTION,
+        data: "rejected opt-in"
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "widget",
+          user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
+          widget_size: size,
+          action_value: false
+        }
+      }));
+    });
+  }
+  function renderContextMenu() {
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: "weather-context-menu-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      className: "weather-context-menu-button",
+      "data-l10n-id": "newtab-menu-section-tooltip",
+      iconSrc: "chrome://global/skin/icons/more.svg",
+      menuId: "weather-widget-context-menu",
+      type: "ghost",
+      size: "small"
+    }), /*#__PURE__*/external_React_default().createElement("panel-list", {
+      id: "weather-widget-context-menu"
+    }, !isOptInEnabled && (prefs["weather.temperatureUnits"] === "f" ? /*#__PURE__*/external_React_default().createElement("panel-item", {
+      "data-l10n-id": "newtab-weather-menu-change-temperature-units-celsius",
+      onClick: () => handleChangeTempUnit("c")
+    }) : /*#__PURE__*/external_React_default().createElement("panel-item", {
+      "data-l10n-id": "newtab-weather-menu-change-temperature-units-fahrenheit",
+      onClick: () => handleChangeTempUnit("f")
+    })), prefs["weather.locationSearchEnabled"] && /*#__PURE__*/external_React_default().createElement("panel-item", {
+      "data-l10n-id": "newtab-weather-menu-change-location",
+      onClick: handleChangeLocation
+    }), isOptInEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
+      "data-l10n-id": "newtab-weather-menu-detect-my-location",
+      onClick: handleDetectLocation
+    }), prefs["widgets.system.enabled"] && prefs["widgets.enabled"] && /*#__PURE__*/external_React_default().createElement("panel-item", {
+      submenu: "weather-widget-size-submenu",
+      "data-l10n-id": "newtab-widget-menu-change-size"
+    }, /*#__PURE__*/external_React_default().createElement("panel-list", {
+      ref: sizeSubmenuRef,
+      slot: "submenu",
+      id: "weather-widget-size-submenu"
+    }, ["small", "medium", "large"].map(s => /*#__PURE__*/external_React_default().createElement("panel-item", {
+      key: s,
+      type: "checkbox",
+      checked: currentWeatherSize === s || undefined,
+      "data-size": s,
+      "data-l10n-id": `newtab-widget-size-${s}`
+    })))), /*#__PURE__*/external_React_default().createElement("panel-item", {
+      "data-l10n-id": "newtab-widget-menu-hide",
+      onClick: handleHideWeather
+    }), /*#__PURE__*/external_React_default().createElement("panel-item", {
+      "data-l10n-id": "newtab-weather-menu-learn-more",
+      onClick: handleLearnMore
+    })));
+  }
+  return /*#__PURE__*/external_React_default().createElement("article", {
+    className: `weather-widget col-4 ${size}-widget${hasError ? " weather-error-state" : ""}`,
+    ref: el => {
+      weatherRef.current = [el];
+    }
+  }, !hasError && /*#__PURE__*/external_React_default().createElement("a", {
+    className: "weather-anchor",
+    href: showForecast ? HOURLY_FORECASTS[0].url || "#" : WEATHER_SUGGESTION.forecast.url || "#",
+    "aria-label": weatherData.locationData.city,
+    onClick: handleProviderLinkClick
+  }), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "widget-title-bar"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "widget-title"
+  }, searchActive ? /*#__PURE__*/external_React_default().createElement(LocationSearch, {
+    outerClassName: ""
+  }) : /*#__PURE__*/external_React_default().createElement("h3", null, weatherData.locationData.city)), renderContextMenu()), hasError && /*#__PURE__*/external_React_default().createElement("div", {
+    className: "forecast-error",
+    ref: errorRef
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "icon icon-info-warning"
+  }), " ", /*#__PURE__*/external_React_default().createElement("p", {
+    "data-l10n-id": "newtab-weather-error-not-available"
+  })), showOptInState ?
+  /*#__PURE__*/
+  // Bug 2029823 - Opt-in UI placeholder
+  external_React_default().createElement("div", {
+    className: "weather-opt-in-container"
+  }) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-container"
+  }, !hasError && /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-conditions-view"
+  }, /*#__PURE__*/external_React_default().createElement("a", {
+    "data-l10n-id": "newtab-weather-see-forecast-description",
+    "data-l10n-args": "{\"provider\": \"AccuWeather\xAE\"}",
+    "data-l10n-attrs": "aria-description",
+    href: WEATHER_SUGGESTION.forecast.url,
+    className: "weather-info-link",
+    onClick: handleProviderLinkClick
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-icon-column"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: `weather-icon iconId${WEATHER_SUGGESTION.current_conditions.icon_id}`
+  })), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-info-column"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-info-row"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "temperature-unit"
+  }, WEATHER_SUGGESTION.current_conditions.temperature[prefs["weather.temperatureUnits"]], "\xB0", prefs["weather.temperatureUnits"]), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "high-low-row"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "high-temperature"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "arrow-icon arrow-up",
+    "data-l10n-id": "newtab-weather-high"
+  }), WEATHER_SUGGESTION.forecast.high[prefs["weather.temperatureUnits"]], "\xB0"), /*#__PURE__*/external_React_default().createElement("span", {
+    className: "low-temperature"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "arrow-icon arrow-down",
+    "data-l10n-id": "newtab-weather-low"
+  }), WEATHER_SUGGESTION.forecast.low[prefs["weather.temperatureUnits"]], "\xB0"))), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-info-description"
+  }, WEATHER_SUGGESTION.current_conditions.summary)))), !hasError && showForecast && /*#__PURE__*/external_React_default().createElement("div", {
+    className: "forecast-row"
+  }, /*#__PURE__*/external_React_default().createElement("p", {
+    className: "today-forecast",
+    "data-l10n-id": "newtab-weather-todays-forecast"
+  }), /*#__PURE__*/external_React_default().createElement("ul", {
+    className: "forecast-row-items"
+  }, HOURLY_FORECASTS.map(slot => /*#__PURE__*/external_React_default().createElement("li", {
+    key: slot.epoch_date_time
+  }, /*#__PURE__*/external_React_default().createElement("span", null, slot.temperature[prefs["weather.temperatureUnits"]], "\xB0"), /*#__PURE__*/external_React_default().createElement("span", {
+    className: `weather-icon iconId${slot.icon_id}`,
+    "aria-label": slot.summary,
+    role: "img"
+  }), /*#__PURE__*/external_React_default().createElement("span", null, (() => {
+    const date = new Date(slot.date_time);
+    const hours = date.getHours() % 12 || 12;
+    return `${hours}:${String(date.getMinutes()).padStart(2, "0")}`;
+  })())))))), !hasError && /*#__PURE__*/external_React_default().createElement("div", {
+    className: "forecast-footer"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "sponsored-text",
+    "aria-hidden": "true",
+    "data-l10n-id": "newtab-weather-sponsored",
+    "data-l10n-args": "{\"provider\": \"AccuWeather\xAE\"}"
+  }), showForecast && /*#__PURE__*/external_React_default().createElement("a", {
+    className: "full-forecast",
+    href: HOURLY_FORECASTS[0]?.url || "#",
+    onClick: handleProviderLinkClick,
+    "data-l10n-id": "newtab-weather-see-full-forecast"
+  }))));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/FeatureHighlight/WidgetsFeatureHighlight.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13857,6 +14455,7 @@ function WidgetsFeatureHighlight({
 
 
 
+
 const CONTAINER_ACTION_TYPES = {
   HIDE_ALL: "hide_all",
   CHANGE_SIZE_ALL: "change_size_all",
@@ -13868,6 +14467,8 @@ const PREF_WIDGETS_LISTS_ENABLED = "widgets.lists.enabled";
 const PREF_WIDGETS_SYSTEM_LISTS_ENABLED = "widgets.system.lists.enabled";
 const PREF_WIDGETS_TIMER_ENABLED = "widgets.focusTimer.enabled";
 const PREF_WIDGETS_SYSTEM_TIMER_ENABLED = "widgets.system.focusTimer.enabled";
+const PREF_WIDGETS_WEATHER_ENABLED = "widgets.weather.enabled";
+const PREF_WIDGETS_SYSTEM_WEATHER_ENABLED = "widgets.system.weather.enabled";
 const PREF_WIDGETS_SYSTEM_WEATHER_FORECAST_ENABLED = "widgets.system.weatherForecast.enabled";
 const PREF_WIDGETS_MAXIMIZED = "widgets.maximized";
 const PREF_WIDGETS_SYSTEM_MAXIMIZED = "widgets.system.maximized";
@@ -13905,6 +14506,31 @@ function resetTimerToDefaults(dispatch, timerType) {
     }
   }));
 }
+function renderWeather({
+  novaEnabled,
+  weatherEnabled,
+  weatherForecastEnabled,
+  weatherSize,
+  dispatch,
+  handleUserInteraction,
+  isMaximized,
+  widgetsMayBeMaximized
+}) {
+  if (novaEnabled) {
+    return weatherEnabled && weatherSize !== "small" && /*#__PURE__*/external_React_default().createElement(Weather_Weather, {
+      dispatch: dispatch,
+      size: weatherSize || "medium"
+    });
+  }
+  return weatherForecastEnabled && /*#__PURE__*/external_React_default().createElement(WeatherForecast, {
+    dispatch: dispatch,
+    handleUserInteraction: handleUserInteraction,
+    isMaximized: isMaximized,
+    widgetsMayBeMaximized: widgetsMayBeMaximized
+  });
+}
+
+// eslint-disable-next-line complexity
 function Widgets() {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const weatherData = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Weather);
@@ -13922,6 +14548,7 @@ function Widgets() {
   const nimbusListsTrainhopEnabled = prefs.trainhopConfig?.widgets?.listsEnabled;
   const nimbusTimerTrainhopEnabled = prefs.trainhopConfig?.widgets?.timerEnabled;
   const nimbusWeatherForecastTrainhopEnabled = prefs.trainhopConfig?.widgets?.weatherForecastEnabled;
+  const nimbusWeatherTrainhopEnabled = prefs.trainhopConfig?.widgets?.weatherEnabled;
   const nimbusMaximizedTrainhopEnabled = prefs.trainhopConfig?.widgets?.maximized;
   const feedbackEnabled = prefs.trainhopConfig?.widgets?.feedbackEnabled || prefs[PREF_WIDGETS_FEEDBACK_ENABLED];
   const hideAllToastEnabled = prefs.trainhopConfig?.widgets?.hideAllToastEnabled || prefs[PREF_WIDGETS_HIDE_ALL_TOAST_ENABLED];
@@ -13947,6 +14574,11 @@ function Widgets() {
   const weatherExperimentEnabled = prefs.trainhopConfig?.weather?.enabled;
   const isWeatherEnabled = showWeather && (systemShowWeather || weatherExperimentEnabled);
   const weatherForecastEnabled = widgetsEnabled && weatherForecastSystemEnabled && showDetailedView && weatherData?.initialized && isWeatherEnabled;
+  const weatherSystemEnabled = nimbusWeatherTrainhopEnabled || prefs[PREF_WIDGETS_SYSTEM_WEATHER_ENABLED];
+  const weatherEnabled = weatherSystemEnabled && weatherData?.initialized && isWeatherEnabled && prefs[PREF_WIDGETS_WEATHER_ENABLED];
+  // Bug 2013978 will replace these hardcoded per-widget checks with a registry.
+  const weatherWidgetInRow = weatherEnabled && prefs[Widgets_PREF_WEATHER_SIZE] !== "small";
+  const anyWidgetInRow = listsEnabled || timerEnabled || !novaEnabled && weatherForecastEnabled || weatherWidgetInRow;
 
   // Widget size is "small" only when maximize feature is enabled and widgets
   // are currently minimized. Otherwise defaults to "medium".
@@ -13974,9 +14606,14 @@ function Widgets() {
     (0,external_ReactRedux_namespaceObject.batch)(() => {
       dispatch(actionCreators.SetPref(PREF_WIDGETS_LISTS_ENABLED, false));
       dispatch(actionCreators.SetPref(PREF_WIDGETS_TIMER_ENABLED, false));
-      // If weather forecast widget is visible, turn off the weather
-      if (weatherForecastEnabled) {
+      // @nova-cleanup(remove-conditional): Remove the !novaEnabled guard and the
+      // weatherForecastEnabled branch entirely. Keep only the weatherEnabled branch,
+      // removing the size check once the weather widget always lives in the row.
+      if (!novaEnabled && weatherForecastEnabled) {
         dispatch(actionCreators.SetPref("showWeather", false));
+      }
+      if (weatherWidgetInRow) {
+        dispatch(actionCreators.SetPref(PREF_WIDGETS_WEATHER_ENABLED, false));
       }
       const telemetryData = {
         action_type: CONTAINER_ACTION_TYPES.HIDE_ALL,
@@ -14012,7 +14649,7 @@ function Widgets() {
       }
 
       // Send telemetry for weather widget if it was visible when hiding all widgets
-      if (weatherForecastEnabled) {
+      if (weatherForecastEnabled || weatherWidgetInRow) {
         dispatch(actionCreators.OnlyToMain({
           type: actionTypes.WIDGETS_ENABLED,
           data: {
@@ -14112,7 +14749,7 @@ function Widgets() {
       dispatch(actionCreators.SetPref(prefName, true));
     }
   }
-  if (!(listsEnabled || timerEnabled || weatherForecastEnabled)) {
+  if (!anyWidgetInRow) {
     return null;
   }
   return /*#__PURE__*/external_React_default().createElement("div", {
@@ -14159,11 +14796,15 @@ function Widgets() {
     handleUserInteraction: handleUserInteraction,
     isMaximized: isMaximized,
     widgetsMayBeMaximized: widgetsMayBeMaximized
-  }), weatherForecastEnabled && /*#__PURE__*/external_React_default().createElement(WeatherForecast, {
-    dispatch: dispatch,
-    handleUserInteraction: handleUserInteraction,
-    isMaximized: isMaximized,
-    widgetsMayBeMaximized: widgetsMayBeMaximized
+  }), renderWeather({
+    novaEnabled,
+    weatherEnabled,
+    weatherForecastEnabled,
+    weatherSize: prefs[Widgets_PREF_WEATHER_SIZE],
+    dispatch,
+    handleUserInteraction,
+    isMaximized,
+    widgetsMayBeMaximized
   })), feedbackEnabled && /*#__PURE__*/external_React_default().createElement("a", {
     className: "widgets-feedback-link",
     href: feedbackUrl,
@@ -14172,10 +14813,138 @@ function Widgets() {
   })));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/ExternalComponentWrapper/ExternalComponentWrapper.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+/**
+ * A React component that dynamically loads and embeds external custom elements
+ * into the newtab page.
+ *
+ * This component serves as a bridge between React's declarative rendering and
+ * browser-native custom elements that are registered and managed outside of
+ * React's control. It:
+ *
+ * 1. Looks up the component configuration by type from the ExternalComponents
+ *    registry
+ * 2. Dynamically imports the component's script module (which registers the
+ *    custom element)
+ * 3. Creates an instance of the custom element using imperative DOM APIs
+ * 4. Appends it to a React-managed container div
+ * 5. Cleans up the custom element on unmount
+ *
+ * This approach is necessary because:
+ * - Custom elements have their own lifecycle separate from React
+ * - They need to be created imperatively (document.createElement) rather than
+ *   declaratively (JSX)
+ * - React shouldn't try to diff/reconcile their internal DOM, as they manage
+ *   their own shadow DOM
+ * - We need manual cleanup to prevent memory leaks when the component unmounts
+ *
+ * @param {object} props
+ * @param {string} props.type - The component type to load (e.g., "SEARCH")
+ * @param {string} props.className - CSS class name(s) to apply to the wrapper div
+ * @param {Function} props.importModule - Function to import modules (for testing)
+ * @param {object} props.props - Properties to assign to the component, where
+ *   each key is the property name, and the value is the property value.
+ */
+function ExternalComponentWrapper({
+  type,
+  className,
+  // importFunction is declared as an arrow function here purely so that we can
+  // override it for testing.
+  // eslint-disable-next-line no-unsanitized/method
+  importModule = url => import(/* webpackIgnore: true */url),
+  ...props
+}) {
+  const containerRef = external_React_default().useRef(null);
+  const customElementRef = external_React_default().useRef(null);
+  const l10nLinksRef = external_React_default().useRef([]);
+  const [error, setError] = external_React_default().useState(null);
+  const {
+    components
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.ExternalComponents);
+  external_React_default().useEffect(() => {
+    const container = containerRef.current;
+    const loadComponent = async () => {
+      try {
+        const config = components.find(c => c.type === type);
+        if (!config) {
+          console.warn(`No external component configuration found for type: ${type}`);
+          return;
+        }
+        await importModule(config.componentURL);
+        l10nLinksRef.current = [];
+        for (let l10nURL of config.l10nURLs) {
+          const l10nEl = document.createElement("link");
+          l10nEl.rel = "localization";
+          l10nEl.href = l10nURL;
+          document.head.appendChild(l10nEl);
+          l10nLinksRef.current.push(l10nEl);
+        }
+        if (containerRef.current && !customElementRef.current) {
+          const element = document.createElement(config.tagName);
+          if (config.attributes) {
+            for (const [key, value] of Object.entries(config.attributes)) {
+              element.setAttribute(key, value);
+            }
+          }
+          if (config.cssVariables) {
+            for (const [variable, style] of Object.entries(config.cssVariables)) {
+              element.style.setProperty(variable, style);
+            }
+          }
+          if (props) {
+            for (let [propName, propValue] of Object.entries(props)) {
+              element[propName] = propValue;
+            }
+          }
+          customElementRef.current = element;
+          containerRef.current.appendChild(element);
+        }
+      } catch (err) {
+        console.error(`Failed to load external component for type ${type}:`, err);
+        setError(err);
+      }
+    };
+    loadComponent();
+    return () => {
+      if (customElementRef.current && container) {
+        container.removeChild(customElementRef.current);
+        customElementRef.current = null;
+      }
+      for (const link of l10nLinksRef.current) {
+        link.remove();
+      }
+      l10nLinksRef.current = [];
+    };
+    // props is intentionally excluded from the dependency array because it creates
+    // a new object reference on every render, which would cause the effect to
+    // re-run unnecessarily. The props are only used during initial element creation,
+    // which is guarded by the !customElementRef.current check.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, components, importModule]);
+  if (error) {
+    return null;
+  }
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    ref: containerRef,
+    className: className
+  });
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamBase/DiscoveryStreamBase.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 
 
@@ -14305,10 +15074,9 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
               data: component.data,
               dispatch: this.props.dispatch,
               type: component.type,
-              firstVisibleTimestamp: this.props.firstVisibleTimestamp,
               ctaButtonSponsors: component.properties.ctaButtonSponsors,
               ctaButtonVariant: component.properties.ctaButtonVariant,
-              placeholder: this.props.placeholder
+              spocsLoading: this.props.spocsLoading
             });
           }
           return /*#__PURE__*/external_React_default().createElement(CardGrid, {
@@ -14326,9 +15094,8 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
             ctaButtonSponsors: component.properties.ctaButtonSponsors,
             ctaButtonVariant: component.properties.ctaButtonVariant,
             hideDescriptions: this.props.DiscoveryStream.hideDescriptions,
-            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
             spocPositions: component.spocs?.positions,
-            placeholder: this.props.placeholder
+            placeholder: this.props.spocsLoading
           });
         }
       case "HorizontalRule":
@@ -14370,6 +15137,8 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
       prefs: this.props.Prefs.values,
       locale
     });
+    // @nova-cleanup(remove-pref): Delete this line; remove all !novaEnabled guards on ASRouterNewTabMessage blocks below.
+    const novaEnabled = this.props.Prefs.values[DiscoveryStreamBase_PREF_NOVA_ENABLED];
     const sectionsEnabled = this.props.Prefs.values["discoverystream.sections.enabled"];
     const topicSelectionEnabled = this.props.Prefs.values["discoverystream.topicSelection.enabled"];
     const reportAdsEnabled = this.props.Prefs.values["discoverystream.reportAds.enabled"];
@@ -14433,13 +15202,25 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
       width: 12,
       components: [topSites],
       sectionType: "topsites"
-    }]), widgets && this.renderLayout([{
+    }]), !novaEnabled && shouldShowASRouterNewTabMessage(this.props.Messages, "ASRouterNewTabMessage", ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_WIDGETS) && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+      dispatch: this.props.dispatch
+    }, /*#__PURE__*/external_React_default().createElement(ExternalComponentWrapper, {
+      type: "ASROUTER_NEWTAB_MESSAGE",
+      messageData: this.props.Messages.messageData,
+      className: "asrouter-newtab-message-wrapper"
+    }))), widgets && this.renderLayout([{
       width: 12,
       components: [{
         type: "Widgets"
       }],
       sectionType: "widgets"
-    }]), !!layoutRender.length && /*#__PURE__*/external_React_default().createElement(CollapsibleSection, {
+    }]), !novaEnabled && shouldShowASRouterNewTabMessage(this.props.Messages, "ASRouterNewTabMessage", ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_CONTENT_FEED) && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+      dispatch: this.props.dispatch
+    }, /*#__PURE__*/external_React_default().createElement(ExternalComponentWrapper, {
+      type: "ASROUTER_NEWTAB_MESSAGE",
+      messageData: this.props.Messages.messageData,
+      className: "asrouter-newtab-message-wrapper"
+    }))), !!layoutRender.length && /*#__PURE__*/external_React_default().createElement(CollapsibleSection, {
       className: "ds-layout",
       collapsed: topStories.pref.collapsed,
       dispatch: this.props.dispatch,
@@ -14488,6 +15269,7 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
 }
 const DiscoveryStreamBase = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   DiscoveryStream: state.DiscoveryStream,
+  Messages: state.Messages,
   Prefs: state.Prefs,
   Sections: state.Sections,
   document: globalThis.document,
@@ -14526,9 +15308,9 @@ function SectionsMgmtPanel({
   if (cardGridEntry) {
     sectionsFeedName = cardGridEntry.feed.url;
   }
-  let sectionsList;
+  let sectionsList = [];
   if (sectionsFeedName) {
-    sectionsList = sections[sectionsFeedName].data.sections;
+    sectionsList = sections[sectionsFeedName]?.data?.sections ?? [];
   }
   const [sectionsState, setSectionState] = (0,external_React_namespaceObject.useState)(sectionPersonalization); // State management with useState
 
@@ -15537,7 +16319,7 @@ function WidgetsManagementPanel({
     pressed: weatherEnabled || null,
     ontoggle: onToggleWidget,
     onToggle: onToggleWidget,
-    "data-preference": "showWeather",
+    "data-preference": "widgets.weather.enabled",
     "data-event-source": "WEATHER",
     "data-l10n-id": "newtab-custom-widget-weather-toggle"
   })), mayHaveTimerWidget && /*#__PURE__*/external_React_default().createElement("div", {
@@ -15820,7 +16602,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       pressed: weatherEnabled || null,
       ontoggle: this.onPreferenceSelect,
       onToggle: this.onPreferenceSelect,
-      "data-preference": "showWeather",
+      "data-preference": novaEnabled ? "widgets.weather.enabled" : "showWeather",
       "data-event-source": "WEATHER",
       "data-l10n-id": "newtab-custom-weather-toggle"
     })), /*#__PURE__*/external_React_default().createElement("span", {
@@ -15981,8 +16763,10 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
     this.onEntered = this.onEntered.bind(this);
     this.onExited = this.onExited.bind(this);
     this.onSubpanelToggle = this.onSubpanelToggle.bind(this);
+    this.onCancel = this.onCancel.bind(this);
+    this.onDialogClick = this.onDialogClick.bind(this);
     this.personalizeButtonRef = /*#__PURE__*/external_React_default().createRef();
-    this.customizeMenuRef = /*#__PURE__*/external_React_default().createRef();
+    this.dialogRef = /*#__PURE__*/external_React_default().createRef();
     this.closeButtonRef = /*#__PURE__*/external_React_default().createRef();
     this.state = {
       exitEventFired: false,
@@ -15994,6 +16778,22 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       subpanelOpen: isOpen
     });
   }
+  componentDidUpdate(prevProps) {
+    if (this.props.showing && !prevProps.showing) {
+      if (!this.dialogRef.current?.open) {
+        this.dialogRef.current?.showModal();
+      }
+    }
+  }
+  onCancel(e) {
+    e.preventDefault();
+    this.props.onClose();
+  }
+  onDialogClick(e) {
+    if (e.target === this.dialogRef.current) {
+      this.props.onClose();
+    }
+  }
   onEntered() {
     this.setState({
       exitEventFired: false
@@ -16003,6 +16803,9 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
     }
   }
   onExited() {
+    if (this.dialogRef.current?.open) {
+      this.dialogRef.current.close();
+    }
     this.setState({
       exitEventFired: true
     });
@@ -16026,33 +16829,30 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       className: `${activationWindowClass} personalize-button`,
       "data-l10n-id": "newtab-customize-panel-icon-button",
       "aria-haspopup": "dialog",
-      onClick: () => this.props.onOpen(),
-      onKeyDown: e => {
-        if (e.key === "Enter") {
-          this.props.onOpen();
-        }
-      }
+      onClick: () => this.props.onOpen()
     }, /*#__PURE__*/external_React_default().createElement("label", {
       "data-l10n-id": "newtab-customize-panel-icon-button-label"
     }), /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("img", {
       role: "presentation",
       src: "chrome://global/skin/icons/edit-outline.svg"
     })))), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
-      nodeRef: this.customizeMenuRef,
+      nodeRef: this.dialogRef,
       timeout: 250,
       classNames: "customize-animate",
       in: this.props.showing,
       onEntered: this.onEntered,
       onExited: this.onExited,
       appear: true
-    }, /*#__PURE__*/external_React_default().createElement("div", {
-      ref: this.customizeMenuRef,
-      className: "customize-menu-animate-wrapper"
-    }, /*#__PURE__*/external_React_default().createElement("div", {
+    }, /*#__PURE__*/external_React_default().createElement("dialog", {
+      ref: this.dialogRef
       // @nova-cleanup(remove-conditional): Remove nova-enabled class
-      className: `customize-menu ${this.state.subpanelOpen ? "subpanel-open" : ""} ${novaEnabled ? "nova-enabled" : ""}`,
-      role: "dialog",
-      "data-l10n-id": "newtab-settings-dialog-label"
+      ,
+      className: `customize-menu ${novaEnabled ? "nova-enabled" : ""}`,
+      "data-l10n-id": "newtab-settings-dialog-label",
+      onCancel: this.onCancel,
+      onClick: this.onDialogClick
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: `customize-menu-content${this.state.subpanelOpen ? " subpanel-open" : ""}`
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "close-button-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("moz-button", {
@@ -16114,130 +16914,6 @@ function Logo() {
   })));
 }
 
-;// CONCATENATED MODULE: ./content-src/components/ExternalComponentWrapper/ExternalComponentWrapper.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-
-
-/**
- * A React component that dynamically loads and embeds external custom elements
- * into the newtab page.
- *
- * This component serves as a bridge between React's declarative rendering and
- * browser-native custom elements that are registered and managed outside of
- * React's control. It:
- *
- * 1. Looks up the component configuration by type from the ExternalComponents
- *    registry
- * 2. Dynamically imports the component's script module (which registers the
- *    custom element)
- * 3. Creates an instance of the custom element using imperative DOM APIs
- * 4. Appends it to a React-managed container div
- * 5. Cleans up the custom element on unmount
- *
- * This approach is necessary because:
- * - Custom elements have their own lifecycle separate from React
- * - They need to be created imperatively (document.createElement) rather than
- *   declaratively (JSX)
- * - React shouldn't try to diff/reconcile their internal DOM, as they manage
- *   their own shadow DOM
- * - We need manual cleanup to prevent memory leaks when the component unmounts
- *
- * @param {object} props
- * @param {string} props.type - The component type to load (e.g., "SEARCH")
- * @param {string} props.className - CSS class name(s) to apply to the wrapper div
- * @param {Function} props.importModule - Function to import modules (for testing)
- * @param {object} props.props - Properties to assign to the component, where
- *   each key is the property name, and the value is the property value.
- */
-function ExternalComponentWrapper({
-  type,
-  className,
-  // importFunction is declared as an arrow function here purely so that we can
-  // override it for testing.
-  // eslint-disable-next-line no-unsanitized/method
-  importModule = url => import(/* webpackIgnore: true */url),
-  ...props
-}) {
-  const containerRef = external_React_default().useRef(null);
-  const customElementRef = external_React_default().useRef(null);
-  const l10nLinksRef = external_React_default().useRef([]);
-  const [error, setError] = external_React_default().useState(null);
-  const {
-    components
-  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.ExternalComponents);
-  external_React_default().useEffect(() => {
-    const container = containerRef.current;
-    const loadComponent = async () => {
-      try {
-        const config = components.find(c => c.type === type);
-        if (!config) {
-          console.warn(`No external component configuration found for type: ${type}`);
-          return;
-        }
-        await importModule(config.componentURL);
-        l10nLinksRef.current = [];
-        for (let l10nURL of config.l10nURLs) {
-          const l10nEl = document.createElement("link");
-          l10nEl.rel = "localization";
-          l10nEl.href = l10nURL;
-          document.head.appendChild(l10nEl);
-          l10nLinksRef.current.push(l10nEl);
-        }
-        if (containerRef.current && !customElementRef.current) {
-          const element = document.createElement(config.tagName);
-          if (config.attributes) {
-            for (const [key, value] of Object.entries(config.attributes)) {
-              element.setAttribute(key, value);
-            }
-          }
-          if (config.cssVariables) {
-            for (const [variable, style] of Object.entries(config.cssVariables)) {
-              element.style.setProperty(variable, style);
-            }
-          }
-          if (props) {
-            for (let [propName, propValue] of Object.entries(props)) {
-              element[propName] = propValue;
-            }
-          }
-          customElementRef.current = element;
-          containerRef.current.appendChild(element);
-        }
-      } catch (err) {
-        console.error(`Failed to load external component for type ${type}:`, err);
-        setError(err);
-      }
-    };
-    loadComponent();
-    return () => {
-      if (customElementRef.current && container) {
-        container.removeChild(customElementRef.current);
-        customElementRef.current = null;
-      }
-      for (const link of l10nLinksRef.current) {
-        link.remove();
-      }
-      l10nLinksRef.current = [];
-    };
-    // props is intentionally excluded from the dependency array because it creates
-    // a new object reference on every render, which would cause the effect to
-    // re-run unnecessarily. The props are only used during initial element creation,
-    // which is guarded by the !customElementRef.current check.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, components, importModule]);
-  if (error) {
-    return null;
-  }
-  return /*#__PURE__*/external_React_default().createElement("div", {
-    ref: containerRef,
-    className: className
-  });
-}
-
 ;// CONCATENATED MODULE: ./content-src/components/Search/Search.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -16266,7 +16942,7 @@ class Search_Search extends (external_React_default()).PureComponent {
 
 
 
-const Weather_USER_ACTION_TYPES = {
+const Weather_Weather_USER_ACTION_TYPES = {
   CHANGE_DISPLAY: "change_weather_display",
   CHANGE_LOCATION: "change_location",
   CHANGE_SIZE: "change_size",
@@ -16280,7 +16956,7 @@ const Weather_VISIBLE = "visible";
 const Weather_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const PREF_SYSTEM_SHOW_WEATHER = "system.showWeather";
 const Weather_PREF_NOVA_ENABLED = "nova.enabled";
-const Weather_PREF_WEATHER_SIZE = "widgets.weather.size";
+const Weather_Weather_PREF_WEATHER_SIZE = "widgets.weather.size";
 function WeatherPlaceholder() {
   const [isSeen, setIsSeen] = (0,external_React_namespaceObject.useState)(false);
 
@@ -16471,7 +17147,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "widget",
-          user_action: Weather_USER_ACTION_TYPES.PROVIDER_LINK_CLICK,
+          user_action: Weather_Weather_USER_ACTION_TYPES.PROVIDER_LINK_CLICK,
           widget_size: "mini"
         }
       }));
@@ -16491,7 +17167,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "context_menu",
-          user_action: Weather_USER_ACTION_TYPES.CHANGE_LOCATION,
+          user_action: Weather_Weather_USER_ACTION_TYPES.CHANGE_LOCATION,
           widget_size: "mini"
         }
       }));
@@ -16513,7 +17189,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "context_menu",
-          user_action: Weather_USER_ACTION_TYPES.DETECT_LOCATION,
+          user_action: Weather_Weather_USER_ACTION_TYPES.DETECT_LOCATION,
           widget_size: "mini"
         }
       }));
@@ -16536,7 +17212,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "context_menu",
-          user_action: Weather_USER_ACTION_TYPES.CHANGE_TEMP_UNIT,
+          user_action: Weather_Weather_USER_ACTION_TYPES.CHANGE_TEMP_UNIT,
           widget_size: "mini",
           action_value: value
         }
@@ -16551,7 +17227,7 @@ class _Weather extends (external_React_default()).PureComponent {
       this.props.dispatch(actionCreators.OnlyToMain({
         type: actionTypes.SET_PREF,
         data: {
-          name: Weather_PREF_WEATHER_SIZE,
+          name: Weather_Weather_PREF_WEATHER_SIZE,
           value: size
         }
       }));
@@ -16560,7 +17236,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "context_menu",
-          user_action: Weather_USER_ACTION_TYPES.CHANGE_SIZE,
+          user_action: Weather_Weather_USER_ACTION_TYPES.CHANGE_SIZE,
           action_value: size,
           widget_size: "mini"
         }
@@ -16585,7 +17261,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "context_menu",
-          user_action: Weather_USER_ACTION_TYPES.CHANGE_DISPLAY,
+          user_action: Weather_Weather_USER_ACTION_TYPES.CHANGE_DISPLAY,
           widget_size: "mini",
           action_value: weatherForecastEnabled ? "switch_to_forecast_widget" : value
         }
@@ -16631,7 +17307,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "context_menu",
-          user_action: Weather_USER_ACTION_TYPES.LEARN_MORE,
+          user_action: Weather_Weather_USER_ACTION_TYPES.LEARN_MORE,
           widget_size: "mini"
         }
       }));
@@ -16672,7 +17348,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "widget",
-          user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
+          user_action: Weather_Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
           widget_size: "mini",
           action_value: false
         }
@@ -16696,7 +17372,7 @@ class _Weather extends (external_React_default()).PureComponent {
         data: {
           widget_name: "weather",
           widget_source: "widget",
-          user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
+          user_action: Weather_Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
           widget_size: "mini",
           action_value: true
         }
@@ -16730,7 +17406,7 @@ class _Weather extends (external_React_default()).PureComponent {
     const showDetailedView = Prefs.values["weather.display"] === "detailed";
     // @nova-cleanup(remove-pref): Remove this line and PREF_NOVA_ENABLED constant
     const novaEnabled = Prefs.values[Weather_PREF_NOVA_ENABLED];
-    const currentWeatherSize = Prefs.values[Weather_PREF_WEATHER_SIZE] || "large";
+    const currentWeatherSize = Prefs.values[Weather_Weather_PREF_WEATHER_SIZE] || "large";
     const nimbusWeatherForecastTrainhopEnabled = Prefs.values.trainhopConfig?.widgets?.weatherForecastEnabled;
     const weatherForecastWidgetEnabled = nimbusWeatherForecastTrainhopEnabled || Prefs.values["widgets.system.weatherForecast.enabled"];
 
@@ -16935,7 +17611,7 @@ class _Weather extends (external_React_default()).PureComponent {
     }), contextMenu()));
   }
 }
-const Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+const Weather_Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   App: state.App,
   Weather: state.Weather,
   Prefs: state.Prefs,
@@ -16958,6 +17634,42 @@ function DownloadModalToggle({
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "icon icon-device-phone"
   }));
+}
+
+;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/SectionToast.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function SectionToast({
+  onDismissClick,
+  onAnimationEnd,
+  toastData
+}) {
+  const mozMessageBarRef = (0,external_React_namespaceObject.useRef)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const {
+      current: mozMessageBarElement
+    } = mozMessageBarRef;
+    mozMessageBarElement.addEventListener("message-bar:user-dismissed", onDismissClick, {
+      once: true
+    });
+    return () => {
+      mozMessageBarElement.removeEventListener("message-bar:user-dismissed", onDismissClick);
+    };
+  }, [onDismissClick]);
+  return /*#__PURE__*/external_React_default().createElement("moz-message-bar", {
+    type: "success",
+    class: "notification-feed-item newtab-toast-success",
+    dismissable: true,
+    "data-l10n-id": toastData.l10nId,
+    "data-l10n-args": JSON.stringify({
+      topic: toastData.topic
+    }),
+    ref: mozMessageBarRef,
+    onAnimationEnd: onAnimationEnd
+  });
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/Notifications/Toasts/HideWidgetsToast.jsx
@@ -17016,7 +17728,7 @@ function ReportContentToast({
   }, [onDismissClick]);
   return /*#__PURE__*/external_React_default().createElement("moz-message-bar", {
     type: "success",
-    class: "notification-feed-item",
+    class: "notification-feed-item newtab-toast-success",
     dismissable: true,
     "data-l10n-id": "newtab-toast-thanks-for-reporting",
     ref: mozMessageBarRef,
@@ -17034,11 +17746,13 @@ function ReportContentToast({
 
 
 
+
 function Notifications_Notifications({
   dispatch
 }) {
   const toastQueue = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastQueue);
   const toastCounter = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastCounter);
+  const toastData = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Notifications.toastData);
 
   /**
    * Syncs {@link toastQueue} array so it can be used to
@@ -17065,6 +17779,15 @@ function Notifications_Notifications({
       throw new Error("No toast found");
     }
     switch (latestToastItem) {
+      case "blockSectionToast":
+      case "followSectionToast":
+      case "unfollowSectionToast":
+        return /*#__PURE__*/external_React_default().createElement(SectionToast, {
+          onDismissClick: syncHiddenToastData,
+          onAnimationEnd: syncHiddenToastData,
+          toastData: toastData,
+          key: toastCounter
+        });
       case "reportSuccessToast":
         return /*#__PURE__*/external_React_default().createElement(ReportContentToast, {
           onDismissClick: syncHiddenToastData,
@@ -17080,7 +17803,7 @@ function Notifications_Notifications({
       default:
         throw new Error(`Unexpected toast type: ${latestToastItem}`);
     }
-  }, [syncHiddenToastData, toastCounter, toastQueue]);
+  }, [syncHiddenToastData, toastCounter, toastData, toastQueue]);
   (0,external_React_namespaceObject.useEffect)(() => {
     getToast();
   }, [toastQueue, getToast]);
@@ -17626,6 +18349,8 @@ function Base_extends() { return Base_extends = Object.assign ? Object.assign.bi
 
 
 
+
+
 const Base_VISIBLE = "visible";
 const Base_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const PREF_INFERRED_PERSONALIZATION_SYSTEM = "discoverystream.sections.personalization.inferred.enabled";
@@ -17685,10 +18410,8 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.openPreferences = this.openPreferences.bind(this);
     this.openCustomizationMenu = this.openCustomizationMenu.bind(this);
     this.closeCustomizationMenu = this.closeCustomizationMenu.bind(this);
-    this.handleOnKeyDown = this.handleOnKeyDown.bind(this);
     this.onWindowScroll = Base_debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
-    this.shouldShowOMCHighlight = this.shouldShowOMCHighlight.bind(this);
     this.updateWallpaper = this.updateWallpaper.bind(this);
     this.prefersDarkQuery = null;
     this.handleColorModeChange = this.handleColorModeChange.bind(this);
@@ -17700,7 +18423,6 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.toggleWidgetsManagementPanel = this.toggleWidgetsManagementPanel.bind(this);
     this.state = {
       fixedSearch: false,
-      firstVisibleTimestamp: null,
       colorMode: "",
       fixedNavStyle: {},
       wallpaperTheme: "",
@@ -17711,18 +18433,10 @@ class BaseContent extends (external_React_default()).PureComponent {
     };
     this.spocPlaceholderStartTime = null;
   }
-  setFirstVisibleTimestamp() {
-    if (!this.state.firstVisibleTimestamp) {
-      this.setState({
-        firstVisibleTimestamp: Date.now()
-      });
-    }
-  }
   onVisible() {
     this.setState({
       visible: true
     });
-    this.setFirstVisibleTimestamp();
     this.shouldDisplayTopicSelectionModal();
     this.onVisibilityDispatch();
     if (this.isSpocsOnDemandExpired && !this.spocPlaceholderStartTime) {
@@ -17783,7 +18497,6 @@ class BaseContent extends (external_React_default()).PureComponent {
   componentDidMount() {
     this.applyBodyClasses();
     __webpack_require__.g.addEventListener("scroll", this.onWindowScroll);
-    __webpack_require__.g.addEventListener("keydown", this.handleOnKeyDown);
     const prefs = this.props.Prefs.values;
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     if (this.props.document.visibilityState === Base_VISIBLE) {
@@ -17919,7 +18632,6 @@ class BaseContent extends (external_React_default()).PureComponent {
   componentWillUnmount() {
     this.prefersDarkQuery?.removeEventListener("change", this.handleColorModeChange);
     __webpack_require__.g.removeEventListener("scroll", this.onWindowScroll);
-    __webpack_require__.g.removeEventListener("keydown", this.handleOnKeyDown);
     if (this._onVisibilityChange) {
       this.props.document.removeEventListener(Base_VISIBILITY_CHANGE_EVENT, this._onVisibilityChange);
     }
@@ -18012,11 +18724,6 @@ class BaseContent extends (external_React_default()).PureComponent {
       this.props.dispatch(actionCreators.UserEvent({
         event: "HIDE_PERSONALIZE"
       }));
-    }
-  }
-  handleOnKeyDown(e) {
-    if (e.key === "Escape") {
-      this.closeCustomizationMenu();
     }
   }
   setPref(pref, value) {
@@ -18129,17 +18836,9 @@ class BaseContent extends (external_React_default()).PureComponent {
     __webpack_require__.g.document?.body.classList.remove("lightWallpaper", "darkWallpaper");
     __webpack_require__.g.document?.body.classList.add(newTheme === "dark" ? "darkWallpaper" : "lightWallpaper");
   }
-  shouldShowOMCHighlight(componentId) {
-    const messageData = this.props.Messages?.messageData;
-    const isVisible = this.props.Messages?.isVisible;
-    if (!messageData || Object.keys(messageData).length === 0 || !isVisible) {
-      return false;
-    }
-    return messageData?.content?.messageType === componentId;
-  }
   toggleDownloadHighlight() {
     this.setState(prevState => {
-      const override = !(prevState.showDownloadHighlightOverride ?? this.shouldShowOMCHighlight("DownloadMobilePromoHighlight"));
+      const override = !(prevState.showDownloadHighlightOverride ?? shouldShowOMCHighlight(this.props.Messages, "DownloadMobilePromoHighlight"));
       if (override) {
         // Emit an open event manually since OMC isn't handling it
         this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
@@ -18240,7 +18939,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       pocketEnabled: prefs["feeds.section.topstories"],
       showInferredPersonalizationEnabled: prefs[Base_PREF_INFERRED_PERSONALIZATION_USER],
       topSitesRowsCount: prefs.topSitesRows,
-      weatherEnabled: prefs.showWeather
+      weatherEnabled: novaEnabled ? prefs["widgets.weather.enabled"] : prefs.showWeather
     };
     const pocketRegion = prefs["feeds.system.topstories"];
     const mayHaveInferredPersonalization = prefs[PREF_INFERRED_PERSONALIZATION_SYSTEM];
@@ -18257,12 +18956,14 @@ class BaseContent extends (external_React_default()).PureComponent {
     const mayHaveWidgets = prefs["widgets.system.enabled"] || nimbusWidgetsEnabled || nimbusWidgetsTrainhopEnabled;
     const mayHaveListsWidget = prefs["widgets.system.lists.enabled"] || nimbusListsEnabled || nimbusListsTrainhopEnabled;
     const mayHaveTimerWidget = prefs["widgets.system.focusTimer.enabled"] || nimbusTimerEnabled || nimbusTimerTrainhopEnabled;
+    const mayHaveWeatherWidget = prefs["widgets.system.weather.enabled"] || prefs.trainhopConfig?.widgets?.weatherEnabled;
+    const showWeatherWidgetInSidebar = novaEnabled && mayHaveWeatherWidget && prefs["widgets.weather.enabled"] && weatherEnabled && prefs["widgets.weather.size"] === "small";
 
     // These prefs set the initial values on the Customize panel toggle switches
     const enabledWidgets = {
       listsEnabled: prefs["widgets.lists.enabled"],
       timerEnabled: prefs["widgets.focusTimer.enabled"],
-      weatherEnabled: prefs.showWeather,
+      weatherEnabled: novaEnabled ? prefs["widgets.weather.enabled"] : prefs.showWeather,
       widgetsMaximized: prefs["widgets.maximized"],
       widgetsMayBeMaximized: prefs["widgets.system.maximized"]
     };
@@ -18294,7 +18995,7 @@ class BaseContent extends (external_React_default()).PureComponent {
 
     // If state.showDownloadHighlightOverride has value, let it override the logic
     // Otherwise, defer to OMC message display logic
-    const shouldShowDownloadHighlight = this.state.showDownloadHighlightOverride ?? this.shouldShowOMCHighlight("DownloadMobilePromoHighlight");
+    const shouldShowDownloadHighlight = this.state.showDownloadHighlightOverride ?? shouldShowOMCHighlight(this.props.Messages, "DownloadMobilePromoHighlight");
 
     // @nova-cleanup(remove-conditional): Remove this conditional and
     // always render the Nova layout below. The classic render() return
@@ -18302,27 +19003,55 @@ class BaseContent extends (external_React_default()).PureComponent {
     //  mobileDownloadPromo*, etc.) will become dead code and should
     // be deleted — expect lint errors for unused vars.
     if (novaEnabled) {
-      // Bug 2016230
-      // If ONLY Search or ONLY Shortcuts or ONLY Search AND Shortcuts or NO features
-      // the logo should be centered instead of left-sidebar
-      const logoShouldBeCentered = false;
-      return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("div", {
-        className: "container nova-enabled"
+      // Logo renders in .content (above search/topsites) when no Pocket content
+      // feed and no content-area widgets are present. When either is enabled,
+      // the sidebar provides a better visual anchor.
+      const hasContentWidgets = mayHaveListsWidget && enabledWidgets.listsEnabled || mayHaveTimerWidget && enabledWidgets.timerEnabled || mayHaveWeatherWidget && enabledWidgets.weatherEnabled && !showWeatherWidgetInSidebar;
+      const logoShouldBeCentered = !pocketEnabled && !hasContentWidgets;
+      return /*#__PURE__*/external_React_default().createElement("div", {
+        className: "nova-outer-wrapper"
+      }, /*#__PURE__*/external_React_default().createElement("div", {
+        className: `container nova-enabled${logoShouldBeCentered ? " logo-in-content" : ""}`
       }, /*#__PURE__*/external_React_default().createElement("div", {
         className: "sidebar-inline-start"
       }, !logoShouldBeCentered && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Logo, null))), /*#__PURE__*/external_React_default().createElement("div", {
         className: "content"
       }, logoShouldBeCentered && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Logo, null)), prefs.showSearch && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Search_Search, Base_extends({
         showLogo: false
-      }, props.Search))), topSitesEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(TopSites_TopSites, null)), isDiscoveryStream && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
+      }, props.Search))), shouldShowASRouterNewTabMessage(this.props.Messages, "ASRouterNewTabMessage", ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_TOPSITES) && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+        dispatch: this.props.dispatch
+      }, /*#__PURE__*/external_React_default().createElement(ExternalComponentWrapper, {
+        type: "ASROUTER_NEWTAB_MESSAGE",
+        messageData: this.props.Messages.messageData,
+        className: "asrouter-newtab-message-wrapper"
+      }))), shouldShowOMCHighlight(this.props.Messages, "ActivationWindowMessage") && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+        dispatch: this.props.dispatch
+      }, /*#__PURE__*/external_React_default().createElement(ActivationWindowMessage, {
+        dispatch: this.props.dispatch,
+        messageData: this.props.Messages.messageData
+      }))), topSitesEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(TopSites_TopSites, null)), shouldShowASRouterNewTabMessage(this.props.Messages, "ASRouterNewTabMessage", ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_WIDGETS) && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+        dispatch: this.props.dispatch
+      }, /*#__PURE__*/external_React_default().createElement(ExternalComponentWrapper, {
+        type: "ASROUTER_NEWTAB_MESSAGE",
+        messageData: this.props.Messages.messageData,
+        className: "asrouter-newtab-message-wrapper"
+      }))), shouldShowASRouterNewTabMessage(this.props.Messages, "ASRouterNewTabMessage", ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_CONTENT_FEED) && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+        dispatch: this.props.dispatch
+      }, /*#__PURE__*/external_React_default().createElement(ExternalComponentWrapper, {
+        type: "ASROUTER_NEWTAB_MESSAGE",
+        messageData: this.props.Messages.messageData,
+        className: "asrouter-newtab-message-wrapper"
+      }))), isDiscoveryStream && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
         className: "borderless-error"
       }, /*#__PURE__*/external_React_default().createElement(DiscoveryStreamBase, {
         locale: props.App.locale,
-        firstVisibleTimestamp: this.state.firstVisibleTimestamp,
-        placeholder: this.isSpocsOnDemandExpired
+        spocsLoading: this.isSpocsOnDemandExpired
       }))), /*#__PURE__*/external_React_default().createElement("div", {
         className: "sidebar-inline-end"
-      }, weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, null)))), /*#__PURE__*/external_React_default().createElement("menu", {
+      }, showWeatherWidgetInSidebar && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, {
+        dispatch: props.dispatch,
+        size: "small"
+      })))), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), /*#__PURE__*/external_React_default().createElement("menu", {
         className: "personalizeButtonWrapper"
       }, /*#__PURE__*/external_React_default().createElement(CustomizeMenu, {
         onClose: this.closeCustomizationMenu,
@@ -18347,8 +19076,11 @@ class BaseContent extends (external_React_default()).PureComponent {
         showSectionsMgmtPanel: this.state.showSectionsMgmtPanel,
         showWidgetsManagementPanel: this.state.showWidgetsManagementPanel,
         toggleWidgetsManagementPanel: this.toggleWidgetsManagementPanel,
-        widgetsEnabled: prefs["widgets.enabled"]
-      })), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null));
+        widgetsEnabled: prefs["widgets.enabled"],
+        dispatch: this.props.dispatch
+      })), this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
+        dispatch: this.props.dispatch
+      })));
     }
 
     // @nova-cleanup(remove-conditional): Delete this entire classic return block along with all variables only used here
@@ -18356,7 +19088,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       className: featureClassName
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "weatherWrapper"
-    }, weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather, null))), /*#__PURE__*/external_React_default().createElement("div", {
+    }, !novaEnabled && weatherEnabled && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Weather_Weather_Weather, null))), /*#__PURE__*/external_React_default().createElement("div", {
       className: `mobileDownloadPromoWrapper ${mobileDownloadPromoWrapperHeightModifier}`
     }, mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(DownloadModalToggle, {
       isActive: shouldShowDownloadHighlight,
@@ -18369,8 +19101,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       position: `inset-inline-start inset-block-end`,
       dispatch: this.props.dispatch
     })))), /*#__PURE__*/external_React_default().createElement("div", {
-      className: outerClassName,
-      onClick: this.closeCustomizationMenu
+      className: outerClassName
     }, /*#__PURE__*/external_React_default().createElement("main", {
       className: "newtab-main",
       style: this.state.fixedNavStyle
@@ -18380,23 +19111,22 @@ class BaseContent extends (external_React_default()).PureComponent {
       showLogo: noSectionsEnabled || prefs["logowordmark.alwaysVisible"]
     }, props.Search)))), !prefs.showSearch && !noSectionsEnabled && /*#__PURE__*/external_React_default().createElement(Logo, null), /*#__PURE__*/external_React_default().createElement("div", {
       className: `body-wrapper${initialized ? " on" : ""}`
-    }, this.shouldShowOMCHighlight("ASRouterNewTabMessage") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+    }, shouldShowOMCHighlight(this.props.Messages, "ActivationWindowMessage") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+      dispatch: this.props.dispatch
+    }, /*#__PURE__*/external_React_default().createElement(ActivationWindowMessage, {
+      dispatch: this.props.dispatch,
+      messageData: this.props.Messages.messageData
+    })), shouldShowASRouterNewTabMessage(this.props.Messages, "ASRouterNewTabMessage", ASROUTER_NEWTAB_MESSAGE_POSITIONS.ABOVE_TOPSITES) && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
       dispatch: this.props.dispatch
     }, /*#__PURE__*/external_React_default().createElement(ExternalComponentWrapper, {
       type: "ASROUTER_NEWTAB_MESSAGE",
       messageData: this.props.Messages.messageData,
       className: "asrouter-newtab-message-wrapper"
-    })), this.shouldShowOMCHighlight("ActivationWindowMessage") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
-      dispatch: this.props.dispatch
-    }, /*#__PURE__*/external_React_default().createElement(ActivationWindowMessage, {
-      dispatch: this.props.dispatch,
-      messageData: this.props.Messages.messageData
-    })), isDiscoveryStream ? /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
+    }))), isDiscoveryStream ? /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
       className: "borderless-error"
     }, /*#__PURE__*/external_React_default().createElement(DiscoveryStreamBase, {
       locale: props.App.locale,
-      firstVisibleTimestamp: this.state.firstVisibleTimestamp,
-      placeholder: this.isSpocsOnDemandExpired
+      spocsLoading: this.isSpocsOnDemandExpired
     })) : /*#__PURE__*/external_React_default().createElement(Sections_Sections, null)), /*#__PURE__*/external_React_default().createElement(ConfirmDialog, null), wallpapersEnabled && this.renderWallpaperAttribution()), /*#__PURE__*/external_React_default().createElement("aside", null, this.props.Notifications?.showNotifications && /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Notifications_Notifications, {
       dispatch: this.props.dispatch
     }))), mayShowTopicSelection && pocketEnabled && /*#__PURE__*/external_React_default().createElement(TopicSelection, {
@@ -18424,7 +19154,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       showing: customizeMenuVisible,
       toggleSectionsMgmtPanel: this.toggleSectionsMgmtPanel,
       showSectionsMgmtPanel: this.state.showSectionsMgmtPanel
-    }), this.shouldShowOMCHighlight("CustomWallpaperHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+    }), shouldShowOMCHighlight(this.props.Messages, "CustomWallpaperHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
       dispatch: this.props.dispatch
     }, /*#__PURE__*/external_React_default().createElement(WallpaperFeatureHighlight, {
       position: "inset-block-start inset-inline-start",

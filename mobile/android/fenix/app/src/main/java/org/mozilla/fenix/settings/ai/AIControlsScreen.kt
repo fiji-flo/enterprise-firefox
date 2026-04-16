@@ -64,7 +64,7 @@ internal fun AIControlsScreen(
     onDialogConfirm: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onFeatureToggle: (AIControllableFeature, Boolean) -> Unit = { _, _ -> },
-    onFeatureNavLinkClick: (AIFeatureMetadataDestination) -> Unit,
+    onFeatureNavLinkClick: (AIFeatureMetadataDestination, String) -> Unit,
     onBannerLearnMoreClick: () -> Unit,
 ) {
     Surface {
@@ -121,7 +121,7 @@ internal fun AIControlsScreen(
 private fun AiFeaturesSection(
     registeredFeatures: List<AIControllableFeature>,
     onFeatureToggle: (AIControllableFeature, Boolean) -> Unit,
-    onFeatureNavLinkClick: (AIFeatureMetadataDestination) -> Unit,
+    onFeatureNavLinkClick: (AIFeatureMetadataDestination, String) -> Unit,
 ) {
     SettingsSectionHeader(
         text = stringResource(R.string.ai_controls_ai_powered_features),
@@ -139,6 +139,7 @@ private fun AiFeaturesSection(
             checked = isEnabled,
             enabled = true,
             description = stringResource(feature.description.descriptionRes),
+            maxDescriptionLines = Int.MAX_VALUE,
             showSwitchAfter = true,
             onClick = { onFeatureToggle(feature, !isEnabled) },
         )
@@ -146,7 +147,7 @@ private fun AiFeaturesSection(
         feature.destination?.let {
             NavLink(
                 text = stringResource(it.label),
-                onClick = { onFeatureNavLinkClick(it) },
+                onClick = { onFeatureNavLinkClick(it, feature.id.value) },
             )
         }
     }
@@ -351,7 +352,7 @@ private fun AIControlsScreenPreview(
             onDialogDismiss = {},
             onDialogConfirm = {},
             onToggle = {},
-            onFeatureNavLinkClick = {},
+            onFeatureNavLinkClick = { _, _ -> },
             onBannerLearnMoreClick = {},
         )
     }

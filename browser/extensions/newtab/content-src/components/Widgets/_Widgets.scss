@@ -22,6 +22,7 @@
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
   }
 }
 
@@ -77,6 +78,23 @@
   h1 {
     font-size: var(--font-size-large);
     font-weight: var(--font-weight-bold);
+
+    // @nova-cleanup(remove-conditional): Make default, remove .nova-enabled selector
+    .nova-enabled & {
+      color: var(--newtab-contextual-text-primary-color);
+
+      @include wallpaper-contrast-fix;
+    }
+  }
+
+  // @nova-cleanup(remove-conditional): Make default, remove .nova-enabled selector
+  #hide-all-widgets-button,
+  #toggle-widgets-size-button {
+    .nova-enabled & {
+      color: var(--newtab-contextual-text-primary-color);
+
+      @include wallpaper-contrast-fix;
+    }
   }
 }
 
@@ -109,6 +127,7 @@
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: subgrid;
+    grid-auto-rows: var(--row-height);
     gap: var(--space-medium);
   }
 
@@ -140,7 +159,7 @@
       }
     }
 
-    .small-widget {
+    .is-small {
       height: var(--widgets-small-card-height);
     }
   }
@@ -221,3 +240,4 @@
   }
 
 }
+

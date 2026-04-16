@@ -2355,9 +2355,8 @@ static bool GatherAvailableModuleAncestors(
 
 struct EvalOrderComparator {
   bool operator()(ModuleObject* a, ModuleObject* b, bool* lessOrEqualp) {
-    int32_t result = int32_t(a->asyncEvaluationOrder().get()) -
-                     int32_t(b->asyncEvaluationOrder().get());
-    *lessOrEqualp = (result <= 0);
+    *lessOrEqualp =
+        a->asyncEvaluationOrder().get() <= b->asyncEvaluationOrder().get();
     return true;
   }
 };
@@ -2372,7 +2371,9 @@ static void RejectExecutionWithPendingException(JSContext* cx,
     (void)cx->getPendingException(&exception);
   }
   cx->clearPendingException();
-  AsyncModuleExecutionRejected(cx, module, exception);
+  if (!AsyncModuleExecutionRejected(cx, module, exception)) {
+    MOZ_ASSERT(cx->isThrowingOverRecursed());
+  }
 }
 
 // https://tc39.es/ecma262/#sec-async-module-execution-fulfilled
@@ -2515,16 +2516,21 @@ void js::AsyncModuleExecutionFulfilled(JSContext* cx,
 
 // https://tc39.es/ecma262/#sec-async-module-execution-rejected
 // ES2023 16.2.1.5.2.5 AsyncModuleExecutionRejected
-void js::AsyncModuleExecutionRejected(JSContext* cx,
+bool js::AsyncModuleExecutionRejected(JSContext* cx,
                                       Handle<ModuleObject*> module,
                                       HandleValue error) {
+  AutoCheckRecursionLimit recursion(cx);
+  if (!recursion.check(cx)) {
+    return false;
+  }
+
   // Step 1. If module.[[Status]] is evaluated, then:
   if (module->status() == ModuleStatus::Evaluated) {
     // Step 1.a. Assert: module.[[EvaluationError]] is not empty
     MOZ_ASSERT(module->hadEvaluationError());
 
     // Step 1.b. Return unused.
-    return;
+    return true;
   }
 
   // Step 2. Assert: module.[[Status]] is evaluating-async.
@@ -2568,10 +2574,13 @@ void js::AsyncModuleExecutionRejected(JSContext* cx,
     parent = &parents->get(i).toObject().as<ModuleObject>();
 
     // Step 10.a. Perform AsyncModuleExecutionRejected(m, error).
-    AsyncModuleExecutionRejected(cx, parent, error);
+    if (!AsyncModuleExecutionRejected(cx, parent, error)) {
+      return false;
+    }
   }
 
   // Step 11. Return unused.
+  return true;
 }
 
 // https://tc39.es/proposal-import-attributes/#sec-evaluate-import-call

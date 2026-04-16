@@ -12,6 +12,7 @@ trr_test_setup();
 registerCleanupFunction(async () => {
   trr_clear_prefs();
   Services.prefs.clearUserPref("network.http.debug-observations");
+  Services.prefs.clearUserPref("network.trr.async_connInfo");
 });
 
 let trrServer;
@@ -35,6 +36,7 @@ add_task(async function setup() {
   });
 
   Services.prefs.setIntPref("network.trr.mode", 3);
+  Services.prefs.setBoolPref("network.trr.async_connInfo", true);
   Services.prefs.setCharPref(
     "network.trr.uri",
     `https://foo.example.com:${trrServer.port()}/dns-query`

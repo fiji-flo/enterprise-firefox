@@ -1536,6 +1536,16 @@ export class UrlbarView {
     url.className = "urlbarView-url";
     item._content.appendChild(url);
     item._elements.set("url", url);
+
+    if (lazy.UrlbarPrefs.get("resultExplanationsFeatureGate")) {
+      let explanation = this.#createElement("span");
+      explanation.classList.add(
+        "urlbarView-explanation",
+        "urlbarView-overflowable"
+      );
+      item._content.appendChild(explanation);
+      item._elements.set("explanation", explanation);
+    }
   }
 
   /**
@@ -1715,6 +1725,10 @@ export class UrlbarView {
     item._content.appendChild(favicon);
     item._elements.set("favicon", favicon);
 
+    let typeIcon = this.#createElement("span");
+    typeIcon.className = "urlbarView-type-icon";
+    item._content.appendChild(typeIcon);
+
     let body = this.#createElement("span");
     body.className = "urlbarView-row-body";
     item._content.appendChild(body);
@@ -1728,10 +1742,33 @@ export class UrlbarView {
     top.appendChild(noWrap);
     item._elements.set("noWrap", noWrap);
 
+    let tailPrefix = this.#createElement("span");
+    tailPrefix.className = "urlbarView-tail-prefix";
+    noWrap.appendChild(tailPrefix);
+    item._elements.set("tailPrefix", tailPrefix);
+    // tailPrefix holds text only for alignment purposes so it should never be
+    // read to screen readers.
+    tailPrefix.toggleAttribute("aria-hidden", true);
+
+    let tailPrefixStr = this.#createElement("span");
+    tailPrefixStr.className = "urlbarView-tail-prefix-string";
+    tailPrefix.appendChild(tailPrefixStr);
+    item._elements.set("tailPrefixStr", tailPrefixStr);
+
+    let tailPrefixChar = this.#createElement("span");
+    tailPrefixChar.className = "urlbarView-tail-prefix-char";
+    tailPrefix.appendChild(tailPrefixChar);
+    item._elements.set("tailPrefixChar", tailPrefixChar);
+
     let title = this.#createElement("span");
     title.classList.add("urlbarView-title", "urlbarView-overflowable");
     noWrap.appendChild(title);
     item._elements.set("title", title);
+
+    let tagsContainer = this.#createElement("span");
+    tagsContainer.classList.add("urlbarView-tags", "urlbarView-overflowable");
+    noWrap.appendChild(tagsContainer);
+    item._elements.set("tagsContainer", tagsContainer);
 
     let titleSeparator = this.#createElement("span");
     titleSeparator.className = "urlbarView-title-separator";
@@ -1747,6 +1784,16 @@ export class UrlbarView {
     url.className = "urlbarView-url";
     top.appendChild(url);
     item._elements.set("url", url);
+
+    if (lazy.UrlbarPrefs.get("resultExplanationsFeatureGate")) {
+      let explanation = this.#createElement("span");
+      explanation.classList.add(
+        "urlbarView-explanation",
+        "urlbarView-overflowable"
+      );
+      top.appendChild(explanation);
+      item._elements.set("explanation", explanation);
+    }
 
     let description = this.#createElement("div");
     description.classList.add("urlbarView-row-body-description");
@@ -1765,7 +1812,7 @@ export class UrlbarView {
     item._elements.set("bottom", bottom);
   }
 
-  #createRowContentForNova(item, _result) {
+  #createRowContentForBottomUrl(item, _result) {
     item._content.toggleAttribute("selectable", true);
 
     let favicon = this.#createElement("img");
@@ -2052,14 +2099,12 @@ export class UrlbarView {
       return true;
     }
 
-    // Container switch-tab results have a more complex DOM content that is
-    // only updated correctly by another switch-tab result.
+    // TAB_SWITCH rows have tab-group chiclets and container icons that are not
+    // present in other result types, so reusing them has higher risk of leaving
+    // stale DOM.
     if (
       oldResult.type == lazy.UrlbarUtils.RESULT_TYPE.TAB_SWITCH &&
-      newResult.type != oldResult.type &&
-      lazy.UrlbarProviderOpenTabs.isContainerUserContextId(
-        oldResult.payload.userContextId
-      )
+      newResult.type != oldResult.type
     ) {
       return true;
     }
@@ -2091,7 +2136,7 @@ export class UrlbarView {
       }
     }
 
-    if (oldResult.isNovaSuggestion != newResult.isNovaSuggestion) {
+    if (oldResult.isBottomUrlSuggestion != newResult.isBottomUrlSuggestion) {
       return true;
     }
 
@@ -2112,9 +2157,11 @@ export class UrlbarView {
         item.lastChild.remove();
       }
       item._elements.clear();
+
       item._content = this.#createElement("span");
       item._content.className = "urlbarView-row-inner";
       item.appendChild(item._content);
+
       // Clear previously set attributes and classes that may refer to a
       // different result type.
       for (const attribute of [...item.attributes]) {
@@ -2130,9 +2177,12 @@ export class UrlbarView {
 
       if (item.result.type == lazy.UrlbarUtils.RESULT_TYPE.DYNAMIC) {
         this.#createRowContentForDynamicType(item, result);
-      } else if (result.isNovaSuggestion) {
-        this.#createRowContentForNova(item, result);
-      } else if (result.isRichSuggestion) {
+      } else if (result.isBottomUrlSuggestion) {
+        this.#createRowContentForBottomUrl(item, result);
+      } else if (
+        result.isRichSuggestion ||
+        lazy.UrlbarPrefs.get("nova.featureGate")
+      ) {
         this.#createRowContentForRichSuggestion(item, result);
       } else {
         this.#createRowContent(item, result);
@@ -2148,27 +2198,27 @@ export class UrlbarView {
 
     item._content.id = item.id + "-inner";
 
-    if (result.isNovaSuggestion) {
-      this.#updateRowContentForNova(item, result);
+    if (result.isBottomUrlSuggestion) {
+      this.#updateRowContentForBottomUrl(item, result);
       return;
     }
 
     let isFirstChild = item === this.#rows.children[0];
     let secAction = result.payload.action;
-    let container = item.querySelector(".urlbarView-actions-container");
+    let actionsContainer = item.querySelector(".urlbarView-actions-container");
     item.toggleAttribute("secondary-action", !!secAction);
-    if (secAction && !container) {
+    if (secAction && !actionsContainer) {
       item.appendChild(this.#createSecondaryAction(secAction, isFirstChild));
     } else if (
       secAction &&
-      secAction.key != container.firstChild.dataset.action
+      secAction.key != actionsContainer.firstChild.dataset.action
     ) {
       item.replaceChild(
         this.#createSecondaryAction(secAction, isFirstChild),
-        container
+        actionsContainer
       );
-    } else if (!secAction && container) {
-      item.removeChild(container);
+    } else if (!secAction && actionsContainer) {
+      item.removeChild(actionsContainer);
     }
 
     item.removeAttribute("feedback-acknowledgment");
@@ -2178,7 +2228,10 @@ export class UrlbarView {
       !result.payload.providesSearchMode &&
       !result.payload.inPrivateWindow
     ) {
-      item.setAttribute("type", "search");
+      item.setAttribute(
+        "type",
+        result.isRichSuggestion ? "rich-search" : "search"
+      );
     } else if (result.type == lazy.UrlbarUtils.RESULT_TYPE.REMOTE_TAB) {
       item.setAttribute("type", "remotetab");
     } else if (result.type == lazy.UrlbarUtils.RESULT_TYPE.TAB_SWITCH) {
@@ -2421,8 +2474,7 @@ export class UrlbarView {
       };
     }
 
-    item.toggleAttribute("rich-suggestion", !!result.isRichSuggestion);
-    if (result.isRichSuggestion) {
+    if (result.isRichSuggestion || lazy.UrlbarPrefs.get("nova.featureGate")) {
       this.#updateRowForRichSuggestion(item, result);
     }
 
@@ -2451,6 +2503,34 @@ export class UrlbarView {
     } else {
       url.textContent = "";
       this.#updateOverflowTooltip(url, "");
+    }
+
+    let explanation = item._elements.get("explanation");
+    if (explanation && setURL && result.payload.lastVisit) {
+      item.toggleAttribute("has-explanation", true);
+      let { isRelative, formattedDate } = lazy.UrlbarUtils.formatDate(
+        new Date(result.payload.lastVisit)
+      );
+      if (isRelative) {
+        this.document.l10n.setAttributes(
+          explanation,
+          "urlbar-result-explanation-last-visited-relative",
+          { date: formattedDate }
+        );
+      } else {
+        this.document.l10n.setAttributes(
+          explanation,
+          "urlbar-result-explanation-last-visited-absolute",
+          { date: formattedDate }
+        );
+      }
+    } else {
+      if (explanation) {
+        explanation.removeAttribute("data-l10n-id");
+        explanation.removeAttribute("data-l10n-args");
+        explanation.textContent = "";
+      }
+      item.toggleAttribute("has-explanation", false);
     }
 
     title.toggleAttribute("is-url", isVisitAction);
@@ -2605,6 +2685,12 @@ export class UrlbarView {
   }
 
   #updateRowForRichSuggestion(item, result) {
+    // The "rich-suggestion" attribute isn't used in Nova.
+    item.toggleAttribute(
+      "rich-suggestion",
+      !lazy.UrlbarPrefs.get("nova.featureGate")
+    );
+
     this.#setRowSelectable(
       item,
       result.type != lazy.UrlbarUtils.RESULT_TYPE.TIP
@@ -2662,9 +2748,15 @@ export class UrlbarView {
     }
   }
 
-  #updateRowContentForNova(item, result) {
-    item.toggleAttribute("nova", true);
-    item.toggleAttribute("rich-suggestion", true);
+  #updateRowContentForBottomUrl(item, result) {
+    item.classList.add("with-bottom-url");
+
+    // The "rich-suggestion" attribute isn't used in Nova.
+    item.toggleAttribute(
+      "rich-suggestion",
+      !lazy.UrlbarPrefs.get("nova.featureGate")
+    );
+
     item.setAttribute(
       "type",
       lazy.UrlbarUtils.searchEngagementTelemetryType(result)

@@ -3069,7 +3069,7 @@ JSLinearString* js::StringChars<CharT>::toStringDontDeflate(JSContext* cx,
     if (auto* str = TryEmptyOrStaticString(cx, inlineChars_, length)) {
       return str;
     }
-    return NewInlineString<CanGC>(cx, inlineChars_, length, heap);
+    return NewInlineString<allowGC>(cx, inlineChars_, length, heap);
   }
 
   MOZ_ASSERT(ownedChars_,

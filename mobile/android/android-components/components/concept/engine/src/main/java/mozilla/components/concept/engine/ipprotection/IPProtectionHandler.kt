@@ -47,6 +47,7 @@ interface IPProtectionHandler {
     /**
      * Holds the current IP protection service and proxy state along with usage information.
      */
+    // refactor to enum in https://bugzilla.mozilla.org/show_bug.cgi?id=2030410
     data class StateInfo(
         val serviceState: Int = SERVICE_STATE_UNINITIALIZED,
         val proxyState: Int = PROXY_STATE_NOT_READY,
@@ -55,6 +56,9 @@ interface IPProtectionHandler {
         val max: Long = -1L,
         val resetTime: String? = null,
     ) {
+        val isEnrollmentNeeded: Boolean
+            get() = serviceState == SERVICE_STATE_UNAUTHENTICATED
+
         companion object {
             const val SERVICE_STATE_UNINITIALIZED = 0
             const val SERVICE_STATE_UNAVAILABLE = 1

@@ -4,42 +4,10 @@
 
 //! # Skv: SQLite Key-Value Store
 //!
-//! This module implements a key-value storage interface that's
-//! backed by SQLite.
+//! Re-exports the vendored skv crate and adds gecko-specific glue
+//! modules (interface and importer).
 
-use std::ptr;
+pub use skv::*;
 
-use nserror::nsresult;
-use xpcom::nsIID;
-
-mod abort;
-pub mod checker;
-pub mod connection;
-mod coordinator;
-pub mod database;
-mod functions;
-mod importer;
-mod interface;
-pub mod key;
-mod maintenance;
-mod schema;
-mod sql;
-pub mod store;
-pub mod value;
-
-pub use database::{Database, DatabaseError, GetOptions};
-pub use key::Key;
-pub use value::Value;
-
-use interface::KeyValueService;
-
-#[no_mangle]
-pub unsafe extern "C" fn nsSQLiteKeyValueServiceConstructor(
-    iid: &nsIID,
-    result: *mut *mut libc::c_void,
-) -> nsresult {
-    *result = ptr::null_mut();
-
-    let service = KeyValueService::new();
-    service.QueryInterface(iid, result)
-}
+pub mod importer;
+pub mod interface;

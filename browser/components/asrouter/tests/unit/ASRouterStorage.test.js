@@ -40,6 +40,37 @@ describe("ASRouterStorage", () => {
       assert.calledTwice(indexedDB.open);
       assert.equal(db, newDb);
     });
+
+    it("should allow retry after both open attempts fail", async () => {
+      indexedDB.open.onCall(0).rejects(new Error("first open fail"));
+      indexedDB.open.onCall(1).rejects(new Error("second open fail"));
+      const newDb = {};
+      indexedDB.open.onCall(2).resolves(newDb);
+
+      let threw = false;
+      try {
+        await storage.db;
+      } catch (e) {
+        threw = true;
+      }
+      assert.isTrue(threw);
+
+      const db = await storage.db;
+      assert.equal(db, newDb);
+    });
+
+    it("should still succeed if deleteDatabase fails", async () => {
+      const newDb = {};
+      indexedDB.open.onFirstCall().rejects(new Error("open fail"));
+      indexedDB.open.onSecondCall().resolves(newDb);
+      indexedDB.deleteDatabase.rejects(new Error("delete fail"));
+
+      const db = await storage.db;
+      assert.equal(db, newDb);
+      assert.calledWith(storage.telemetry.handleUndesiredEvent, {
+        event: "INDEXEDDB_DELETE_FAILED",
+      });
+    });
   });
   describe("#getDbTable", () => {
     let testStorage;
@@ -417,27 +448,23 @@ describe("Shared database methods", () => {
       });
     });
 
-    it("should still create a record if the array is empty", async () => {
+    it("should delete the record when impressions is falsy", async () => {
       mockConnection.executeCached.resolves();
 
-      await storage.setSharedMessageImpressions("test_message", []);
+      await storage.setSharedMessageImpressions("test_message", null);
 
       assert.calledOnce(mockConnection.executeCached);
       let executeCall = mockConnection.executeCached.getCall(0);
       assert.match(
         executeCall.args[0],
-        /INSERT INTO MessagingSystemMessageImpressions/
+        /DELETE FROM MessagingSystemMessageImpressions/
       );
-      assert.deepEqual(executeCall.args[1], {
-        messageId: "test_message",
-        impressions: JSON.stringify([]),
-      });
     });
 
-    it("should delete the record when impressions is falsy", async () => {
+    it("should delete the record when impressions is empty", async () => {
       mockConnection.executeCached.resolves();
 
-      await storage.setSharedMessageImpressions("test_message", null);
+      await storage.setSharedMessageImpressions("test_message", []);
 
       assert.calledOnce(mockConnection.executeCached);
       let executeCall = mockConnection.executeCached.getCall(0);

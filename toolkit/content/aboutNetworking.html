@@ -38,6 +38,12 @@
           data-l10n-id="about-networking-websockets"
         ></span>
       </div>
+      <div class="category category-no-icon" id="category-altsvc">
+        <span
+          class="category-name"
+          data-l10n-id="about-networking-alt-svc"
+        ></span>
+      </div>
       <hr />
       <div class="category category-no-icon" id="category-dnslookuptool">
         <span
@@ -171,6 +177,24 @@
             </tr>
           </thead>
           <tbody id="websockets_content"></tbody>
+        </table>
+      </div>
+
+      <div id="altsvc" class="tab" hidden="true">
+        <table>
+          <thead>
+            <tr>
+              <th data-l10n-id="about-networking-alt-svc-origin"></th>
+              <th data-l10n-id="about-networking-alt-svc-alternate"></th>
+              <th data-l10n-id="about-networking-alt-svc-alpn"></th>
+              <th data-l10n-id="about-networking-alt-svc-validated"></th>
+              <th data-l10n-id="about-networking-alt-svc-ttl"></th>
+              <th
+                data-l10n-id="about-networking-alt-svc-origin-attributes-suffix"
+              ></th>
+            </tr>
+          </thead>
+          <tbody id="altsvc_content"></tbody>
         </table>
       </div>
 
