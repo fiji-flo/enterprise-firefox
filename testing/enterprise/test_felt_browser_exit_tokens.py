@@ -89,15 +89,3 @@ class BrowserExitTokens(FeltTests):
         assert self.new_felt_tokens[1] != self.felt_tokens[1], (
             f"Felt refresh token should differ after session refresh: {self.new_felt_tokens[1]} vs {self.felt_tokens[1]}"
         )
-
-            "FELT access token should not be empty"
-        )
-        assert len(felt_tokens_after_exit[1]) > 0, (
-            "FELT refresh token should not be empty"
-        )
-        assert felt_tokens_after_exit[0] == self.new_browser_tokens[0], (
-            f"FELT access token should match browser tokens after browser exit: {felt_tokens_after_exit[0]} vs {self.new_browser_tokens[0]}"
-        )
-        assert felt_tokens_after_exit[1] == self.new_browser_tokens[1], (
-            f"FELT refresh token should match browser tokens after browser exit: {felt_tokens_after_exit[1]} vs {self.new_browser_tokens[1]}"
-        )

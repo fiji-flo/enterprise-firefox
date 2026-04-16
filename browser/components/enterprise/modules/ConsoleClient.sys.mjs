@@ -11,7 +11,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   EnterpriseCommon: "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   createEnterpriseLogger:
     "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
   composeOSNames: "resource:///modules/enterprise/EnterpriseOSInfo.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",

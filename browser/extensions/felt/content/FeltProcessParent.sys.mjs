@@ -258,11 +258,11 @@ export class FeltProcessParent extends JSProcessActorParent {
           }
 
           case "felt-firefox-refresh-tokens": {
-            console.debug(
+            lazy.log.debug(
               `FeltExtension: ParentProcess: Trigger a token refresh in FELT.`
             );
             if (gFeltProcessParentInstance.logoutReported) {
-              console.debug(
+              lazy.log.debug(
                 "FeltExtension: ParentProcess: logout in progress, skipping token refresh."
               );
               break;
@@ -271,7 +271,7 @@ export class FeltProcessParent extends JSProcessActorParent {
             client
               .refreshTokens()
               .then(({ access_token, refresh_token, expires_at }) => {
-                console.debug("FeltExtension: refreshTokens successful");
+                lazy.log.debug("FeltExtension: refreshTokens successful");
                 Services.felt.setTokens(
                   access_token,
                   refresh_token,
@@ -288,7 +288,7 @@ export class FeltProcessParent extends JSProcessActorParent {
                 // gracefully if the refresh request is still before the actual token expiration
                 // because the known old token still has some validity time left.
                 if (error.name !== "ReauthRequiredError") {
-                  console.error(
+                  lazy.log.error(
                     "FeltExtension: token refresh failed with non-reauth error, shutting down Firefox",
                     error
                   );
@@ -297,7 +297,7 @@ export class FeltProcessParent extends JSProcessActorParent {
                   return;
                 }
                 // At this point, we need to reauthenticate.
-                console.error(
+                lazy.log.error(
                   "FeltExtension: token refresh failed, reauthenticate",
                   error
                 );
@@ -487,8 +487,8 @@ export class FeltProcessParent extends JSProcessActorParent {
         );
 
         this.proc.exitPromise.then(ev => {
-          console.debug(`firefox exit: ev`, JSON.stringify(ev));
-          console.debug(
+          lazy.log.debug(`firefox exit: ev`, JSON.stringify(ev));
+          lazy.log.debug(
             `firefox exit: PID:${this.proc.pid} exitCode:${JSON.stringify(this.proc.exitCode)}`
           );
 
@@ -746,7 +746,7 @@ export class FeltProcessParent extends JSProcessActorParent {
     // i.e. report, but ignore them and proceed with the signout.
     lazy.ConsoleClient.performServerSignout()
       .catch(err => {
-        console.error(`FeltExtension: Server signout failed: ${err}`);
+        lazy.log.error(`FeltExtension: Server signout failed: ${err}`);
       })
       .finally(() => {
         // clear token data on the FELT side, then shut Firefox down
