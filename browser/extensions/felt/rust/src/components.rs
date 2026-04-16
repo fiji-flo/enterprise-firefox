@@ -284,8 +284,13 @@ impl FeltXPCOM {
     }
 
     fn ShutdownFirefox(&self) -> nserror::nsresult {
-        trace!("FeltXPCOM::ShutdownFirefox");
-        self.send(FeltMessage::Shutdown)
+        if self.is_felt_ui {
+            trace!("FeltXPCOM::ShutdownFirefox");
+            self.send(FeltMessage::Shutdown)
+        } else {
+            error!("ShutdownFirefox called from browser, which is not allowed");
+            NS_ERROR_FAILURE
+        }
     }
 
     fn PerformSignout(&self) -> nserror::nsresult {

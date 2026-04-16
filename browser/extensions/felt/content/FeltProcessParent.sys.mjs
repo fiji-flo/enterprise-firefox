@@ -276,16 +276,20 @@ export class FeltProcessParent extends JSProcessActorParent {
                 Services.felt.sendAccessToken();
               })
               .catch(error => {
-                // Any non-ReauthRequired error is ignored here by returning early,
-                // to mirror the behaviour before the switch to felt to handle reauth.
+                // Any non-ReauthRequired error is triggering a Firefox shutdown.
                 // These are non-20x-non-401/403 errors, networking issues
                 // and the like.
-                // TODO: define behaviour for these Errors and implement.
+                // TODO: define a more refined behaviour for these conditions and implement.
+                // For example, an intermittent network or 5xx error can be handled more
+                // gracefully if the refresh request is still before the actual token expiration
+                // because the known old token still has some validity time left.
                 if (error.name !== "ReauthRequiredError") {
                   console.error(
-                    "FeltExtension: token refresh failed with non-reauth error, ignoring",
+                    "FeltExtension: token refresh failed with non-reauth error, shutting down Firefox",
                     error
                   );
+                  gFeltProcessParentInstance.logoutReported = true;
+                  Services.felt.shutdownFirefox();
                   return;
                 }
                 // At this point, we need to reauthenticate.

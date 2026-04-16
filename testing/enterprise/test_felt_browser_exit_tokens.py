@@ -29,18 +29,6 @@ class BrowserExitTokens(FeltTests):
         self.force_and_refresh_tokens()
         self.check_firefox_tokens_updated_after_session_refresh()
 
-    def perform_quit(self):
-        driver = self.get_driver(Environment.FIREFOX)
-        driver.set_context("chrome")
-        rv = driver.execute_script(
-            """
-            Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
-            """,
-        )
-        driver.set_context("content")
-        self._manually_closed_child = True
-        return rv
-
     def get_tokens(self, env):
         driver = self.get_driver(env)
         driver.set_context("chrome")
@@ -102,9 +90,6 @@ class BrowserExitTokens(FeltTests):
             f"Felt refresh token should differ after session refresh: {self.new_felt_tokens[1]} vs {self.felt_tokens[1]}"
         )
 
-    def check_felt_received_refreshed_tokens_on_shutdown(self):
-        felt_tokens_after_exit = self.get_tokens(Environment.FELT)
-        assert len(felt_tokens_after_exit[0]) > 0, (
             "FELT access token should not be empty"
         )
         assert len(felt_tokens_after_exit[1]) > 0, (

@@ -20,7 +20,7 @@ class BrowserReauthRequired(FeltTests):
         )
         self.run_felt_base()
         self.connect_child_browser()
-        self._browser_pid = self._child_driver.session_capabilities["moz:processID"]
+        browser_pid = self._child_driver.session_capabilities["moz:processID"]
 
         # Invalidate the server-side refresh token so the next refresh fails with 401
         self.policy_refresh_token.value = "invalid-token"
@@ -28,7 +28,7 @@ class BrowserReauthRequired(FeltTests):
         # Trigger a token refresh from Firefox via XPCOM IPC to FELT
         self.trigger_token_refresh()
         self._manually_closed_child = True
-        self.wait_process_exit(self._browser_pid)
+        self.wait_process_exit(browser_pid)
 
         # FELT should display the authentication window again
         self.await_felt_auth_window()
@@ -43,6 +43,8 @@ class BrowserReauthRequired(FeltTests):
         try:
             driver.execute_script("Services.felt.refreshTokens();")
         except Exception:
+            # refreshTokens() triggers an async IPC message to Felt and may throw
+            # before the refresh completes. The exception is expected and harmless.
             pass
         driver.set_context("content")
 

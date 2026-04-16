@@ -567,9 +567,8 @@ export const ConsoleClient = {
     const timeoutId = lazy.setTimeout(() => {
       this._refreshPromise = null;
       this._refreshResolve = null;
-      this.signoutUser().finally(() => {
-        this.quitIgnoringCanClose();
-      });
+      Services.felt.performSignout();
+      this.quitIgnoringCanClose();
       reject(
         new Error("_refreshSession: Felt failed to respond to re-auth in time.")
       );
@@ -642,28 +641,6 @@ export const ConsoleClient = {
   },
 
   /**
-   * Perform signout against the console and share the information down to
-   * XPCOM to make FELT aware.
-   *
-   * This is only allowed to be executed from the browser side.
-   *
-   * @returns {void}
-   * @throws {Error} If called from a non-browser context
-   */
-  async signoutUser() {
-    if (!Services.felt.isFeltBrowser()) {
-      throw new Error(
-        "Performing signout from something else than browser is wrong"
-      );
-    }
-
-    // TODO: Assert or force-enable session restore?
-
-    // Signal FELT to perform the server-side signout POST and clear its tokens.
-    Services.felt.performSignout();
-  },
-
-  /**
    * Performs a server-side signout POST request.
    * This is to be called only from the Felt side.
    *
@@ -683,7 +660,6 @@ export const ConsoleClient = {
       Services.obs.addObserver(this, "felt-firefox-access-token-refreshed");
       Services.obs.addObserver(this, "felt-firefox-shutdown");
     }
-
     return this;
   },
 
@@ -702,6 +678,7 @@ export const ConsoleClient = {
         break;
       }
       case "felt-firefox-shutdown": {
+        Services.obs.removeObserver(this, "felt-firefox-shutdown");
         this.quitIgnoringCanClose();
         break;
       }
