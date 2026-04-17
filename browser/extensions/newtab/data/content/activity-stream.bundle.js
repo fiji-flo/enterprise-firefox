@@ -13461,7 +13461,8 @@ function EditableTimerFields({
 
 
 function LocationSearch({
-  outerClassName
+  outerClassName,
+  onLocationSelected
 }) {
   // should be the location object from suggestedLocations
   const [selectedLocation, setSelectedLocation] = (0,external_React_namespaceObject.useState)("");
@@ -13485,8 +13486,9 @@ function LocationSearch({
         type: actionTypes.WEATHER_SEARCH_ACTIVE,
         data: false
       }));
+      onLocationSelected?.();
     }
-  }, [selectedLocation, dispatch]);
+  }, [selectedLocation, dispatch, onLocationSelected]);
 
   // when component mounts, set focus to input
   (0,external_React_namespaceObject.useEffect)(() => {
@@ -14207,9 +14209,31 @@ function Weather_Weather({
       }
     }));
   }
-
-  // Bug 2029823 - Opt-in UI to be implemented
-  // eslint-disable-next-line no-unused-vars
+  const handleOptInLocationSelected = (0,external_React_namespaceObject.useCallback)(() => {
+    dispatch(actionCreators.SetPref("weather.optInAccepted", true));
+  }, [dispatch]);
+  function handleOptInChooseLocation() {
+    (0,external_ReactRedux_namespaceObject.batch)(() => {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.WEATHER_OPT_IN_PROMPT_SELECTION,
+        data: "choose_location"
+      }));
+      dispatch(actionCreators.BroadcastToContent({
+        type: actionTypes.WEATHER_SEARCH_ACTIVE,
+        data: true
+      }));
+      dispatch(actionCreators.OnlyToMain({
+        type: actionTypes.WIDGETS_USER_EVENT,
+        data: {
+          widget_name: "weather",
+          widget_source: "widget",
+          user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
+          widget_size: size,
+          action_value: "choose_location"
+        }
+      }));
+    });
+  }
   function handleAcceptOptIn() {
     (0,external_ReactRedux_namespaceObject.batch)(() => {
       dispatch(actionCreators.AlsoToMain({
@@ -14217,7 +14241,7 @@ function Weather_Weather({
       }));
       dispatch(actionCreators.AlsoToMain({
         type: actionTypes.WEATHER_OPT_IN_PROMPT_SELECTION,
-        data: "accepted opt-in"
+        data: "use_location"
       }));
       dispatch(actionCreators.OnlyToMain({
         type: actionTypes.WIDGETS_USER_EVENT,
@@ -14226,30 +14250,7 @@ function Weather_Weather({
           widget_source: "widget",
           user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
           widget_size: size,
-          action_value: true
-        }
-      }));
-    });
-  }
-
-  // Bug 2029823 - Opt-in UI to be implemented
-  // eslint-disable-next-line no-unused-vars
-  function handleRejectOptIn() {
-    (0,external_ReactRedux_namespaceObject.batch)(() => {
-      dispatch(actionCreators.SetPref("weather.optInAccepted", false));
-      dispatch(actionCreators.SetPref("weather.optInDisplayed", false));
-      dispatch(actionCreators.AlsoToMain({
-        type: actionTypes.WEATHER_OPT_IN_PROMPT_SELECTION,
-        data: "rejected opt-in"
-      }));
-      dispatch(actionCreators.OnlyToMain({
-        type: actionTypes.WIDGETS_USER_EVENT,
-        data: {
-          widget_name: "weather",
-          widget_source: "widget",
-          user_action: Weather_USER_ACTION_TYPES.OPT_IN_ACCEPTED,
-          widget_size: size,
-          action_value: false
+          action_value: "use_location"
         }
       }));
     });
@@ -14266,16 +14267,16 @@ function Weather_Weather({
       size: "small"
     }), /*#__PURE__*/external_React_default().createElement("panel-list", {
       id: "weather-widget-context-menu"
-    }, !isOptInEnabled && (prefs["weather.temperatureUnits"] === "f" ? /*#__PURE__*/external_React_default().createElement("panel-item", {
+    }, !showOptInState && !isOptInEnabled && (prefs["weather.temperatureUnits"] === "f" ? /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-change-temperature-units-celsius",
       onClick: () => handleChangeTempUnit("c")
     }) : /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-change-temperature-units-fahrenheit",
       onClick: () => handleChangeTempUnit("f")
-    })), prefs["weather.locationSearchEnabled"] && /*#__PURE__*/external_React_default().createElement("panel-item", {
+    })), !showOptInState && prefs["weather.locationSearchEnabled"] && /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-change-location",
       onClick: handleChangeLocation
-    }), isOptInEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
+    }), !showOptInState && isOptInEnabled && /*#__PURE__*/external_React_default().createElement("panel-item", {
       "data-l10n-id": "newtab-weather-menu-detect-my-location",
       onClick: handleDetectLocation
     }), prefs["widgets.system.enabled"] && prefs["widgets.enabled"] && /*#__PURE__*/external_React_default().createElement("panel-item", {
@@ -14300,11 +14301,11 @@ function Weather_Weather({
     })));
   }
   return /*#__PURE__*/external_React_default().createElement("article", {
-    className: `weather-widget col-4 ${size}-widget${hasError ? " weather-error-state" : ""}`,
+    className: `weather-widget col-4 ${size}-widget${hasError ? " weather-error-state" : ""}${showOptInState ? " weather-opt-in" : ""}`,
     ref: el => {
       weatherRef.current = [el];
     }
-  }, !hasError && /*#__PURE__*/external_React_default().createElement("a", {
+  }, !hasError && !showOptInState && /*#__PURE__*/external_React_default().createElement("a", {
     className: "weather-anchor",
     href: showForecast ? HOURLY_FORECASTS[0].url || "#" : WEATHER_SUGGESTION.forecast.url || "#",
     "aria-label": weatherData.locationData.city,
@@ -14313,21 +14314,39 @@ function Weather_Weather({
     className: "widget-title-bar"
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "widget-title"
-  }, searchActive ? /*#__PURE__*/external_React_default().createElement(LocationSearch, {
-    outerClassName: ""
-  }) : /*#__PURE__*/external_React_default().createElement("h3", null, weatherData.locationData.city)), renderContextMenu()), hasError && /*#__PURE__*/external_React_default().createElement("div", {
+  }, searchActive && /*#__PURE__*/external_React_default().createElement(LocationSearch, {
+    outerClassName: "",
+    onLocationSelected: showOptInState ? handleOptInLocationSelected : undefined
+  }), !searchActive && !showOptInState && /*#__PURE__*/external_React_default().createElement("h3", null, weatherData.locationData.city)), renderContextMenu()), hasError && /*#__PURE__*/external_React_default().createElement("div", {
     className: "forecast-error",
     ref: errorRef
   }, /*#__PURE__*/external_React_default().createElement("span", {
     className: "icon icon-info-warning"
   }), " ", /*#__PURE__*/external_React_default().createElement("p", {
     "data-l10n-id": "newtab-weather-error-not-available"
-  })), showOptInState ?
-  /*#__PURE__*/
-  // Bug 2029823 - Opt-in UI placeholder
-  external_React_default().createElement("div", {
+  })), showOptInState ? !searchActive && /*#__PURE__*/external_React_default().createElement("div", {
     className: "weather-opt-in-container"
-  }) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-opt-in-container-title-bar"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-icon-column"
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "weather-icon iconId3"
+  })), /*#__PURE__*/external_React_default().createElement("h3", {
+    className: "weather-opt-in-container-title",
+    "data-l10n-id": "newtab-weather-opt-in-headline"
+  })), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "weather-opt-in-container-buttons"
+  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    "data-l10n-id": "newtab-weather-opt-in-use-location",
+    onClick: handleAcceptOptIn,
+    type: "primary",
+    size: size === "small" ? "small" : undefined
+  }), /*#__PURE__*/external_React_default().createElement("button", {
+    className: "weather-text-link",
+    onClick: handleOptInChooseLocation,
+    "data-l10n-id": "newtab-weather-opt-in-choose-location"
+  }))) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
     className: "weather-container"
   }, !hasError && /*#__PURE__*/external_React_default().createElement("div", {
     className: "weather-conditions-view"
@@ -15774,7 +15793,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
         fluent_id = "newtab-wallpaper-category-title-photographs";
         break;
       case "solid-colors":
-        fluent_id = "newtab-wallpaper-category-title-colors";
+        // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and always use newtab-wallpaper-colors
+        fluent_id = this.props.Prefs.values["nova.enabled"] ? "newtab-wallpaper-colors" : "newtab-wallpaper-category-title-colors";
         break;
       case "firefox":
         fluent_id = "newtab-wallpaper-category-title-firefox";
@@ -16032,13 +16052,15 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
             fluent_id = "newtab-wallpaper-category-title-celestial";
             break;
           case "custom-wallpaper":
-            fluent_id = "newtab-wallpaper-upload-image";
+            // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and always use newtab-wallpaper-add-an-image
+            fluent_id = novaEnabled ? "newtab-wallpaper-add-an-image" : "newtab-wallpaper-upload-image";
             break;
           case "photographs":
             fluent_id = "newtab-wallpaper-category-title-photographs";
             break;
           case "solid-colors":
-            fluent_id = "newtab-wallpaper-category-title-colors";
+            // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and always use newtab-wallpaper-colors
+            fluent_id = novaEnabled ? "newtab-wallpaper-colors" : "newtab-wallpaper-category-title-colors";
             break;
           case "firefox":
             fluent_id = "newtab-wallpaper-category-title-firefox";

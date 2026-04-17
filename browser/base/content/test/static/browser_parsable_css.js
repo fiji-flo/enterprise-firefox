@@ -55,6 +55,14 @@ if (AppConstants.platform != "macosx") {
   });
 }
 
+if (!Services.prefs.getBoolPref("dom.select.customizable_select.enabled")) {
+  ignoreList.push({
+    sourceName: /\bforms\.css$/i,
+    errorMessage: /Unknown pseudo-class or pseudo-element ‘picker’./i,
+    isFromDevTools: false,
+  });
+}
+
 if (!Services.prefs.getBoolPref("layout.css.fake-webkit-scrollbar.enabled")) {
   ignoreList.push({
     sourceName: /\bwebcompat\/injections\/css\/.*\.css$/i,
@@ -126,9 +134,6 @@ let propNameAllowlist = [
   // when expanding the shorthands. See https://github.com/w3c/csswg-drafts/issues/2515
   { propName: "--bezier-diagonal-color", isFromDevTools: true },
   { propName: "--highlighter-font-family", isFromDevTools: true },
-
-  // This variable is used from CSS embedded in JS in adjustableTitle.js
-  { propName: "--icon-url", isFromDevTools: false },
 
   // These are referenced from devtools files.
   {

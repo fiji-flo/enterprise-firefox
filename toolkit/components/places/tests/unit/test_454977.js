@@ -43,12 +43,12 @@ async function task_add_visit(aURI, aVisitType) {
 
   // Get the place id
   if (visitId > 0) {
-    let sql = "SELECT place_id FROM moz_historyvisits WHERE id = ?1";
-    let stmt = DBConn().createStatement(sql);
-    stmt.bindByIndex(0, visitId);
-    Assert.ok(stmt.executeStep());
-    let placeId = stmt.getInt64(0);
-    stmt.finalize();
+    const placeId = await PlacesTestUtils.getDatabaseValue(
+      "moz_historyvisits",
+      "place_id",
+      { id: visitId }
+    );
+    Assert.notStrictEqual(placeId, undefined, "Should have a result");
     Assert.greater(placeId, 0);
     return placeId;
   }

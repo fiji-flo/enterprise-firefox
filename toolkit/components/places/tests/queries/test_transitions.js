@@ -92,9 +92,6 @@ add_task(async function test_transitions() {
     });
   }
 
-  // dump_table("moz_places");
-  // dump_table("moz_historyvisits");
-
   var numSortFunc = function (a, b) {
     return a - b;
   };

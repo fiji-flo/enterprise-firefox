@@ -9,6 +9,7 @@
 #include "gc/WeakMap.h"  // For GetSymbolHash.
 #include "gc/ZoneAllocator.h"
 #include "js/friend/CycleCollector.h"
+#include "js/friend/Wrapper.h"
 #include "js/GCHashTable.h"
 #include "js/GCVector.h"
 #include "js/Value.h"
@@ -197,13 +198,14 @@ class FinalizationObservers {
   // of finalization records representing registries that the target is
   // registered with and their associated held values. The records may be in
   // other zones. They are direct pointers and are not wrapped.
-  using RecordMap = GCHashMap<HeapPtr<Value>, ObserverList, WeakTargetHasher,
-                              ZoneAllocPolicy>;
-  RecordMap recordMap;
+  using ObserverMap = GCHashMap<HeapPtr<Value>, ObserverList, WeakTargetHasher,
+                                ZoneAllocPolicy>;
+  ObserverMap recordMap;
 
-  using WeakRefMap = GCHashMap<HeapPtr<Value>, ObserverList, WeakTargetHasher,
-                               ZoneAllocPolicy>;
-  WeakRefMap weakRefMap;
+  // A map from weak ref targets in the associated zone to a list of weak ref
+  // objects that reference that target. The weak refs may be in other zones.
+  // They are direct pointers and are not wrapped.
+  ObserverMap weakRefMap;
 
  public:
   explicit FinalizationObservers(Zone* zone);
@@ -218,8 +220,15 @@ class FinalizationObservers {
   bool addWeakRefTarget(Handle<Value> target, Handle<WeakRefObject*> weakRef);
   void removeWeakRefTarget(Handle<Value> target,
                            Handle<WeakRefObject*> weakRef);
+
+  // Integration with cycle collector:
   void maybeClearWeakRefTargets(JS::ShouldClearWeakRefTargetCallback callback,
                                 void* data);
+
+  // Integration with nuking CCWs:
+  void clearWeakRefTargets(JS::Compartment* source, const Value& target);
+  void clearWeakRefTargets(const CompartmentFilter& sourceFilter,
+                           JS::Realm* targetFilter);
 
   void traceWeakEdges(JSTracer* trc, JS::Zone* zone);
 

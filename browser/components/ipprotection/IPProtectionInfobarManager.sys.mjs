@@ -10,6 +10,8 @@ const BANDWIDTH_WARNING_DISMISSED_PREF =
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  IPProtection:
+    "moz-src:///browser/components/ipprotection/IPProtection.sys.mjs",
   IPPProxyManager:
     "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs",
   IPProtectionService:
@@ -146,6 +148,14 @@ class IPProtectionInfobarManagerClass {
   }
 
   /**
+   * Hide all bandwidth warning infobars from all browser windows.
+   */
+  hideInfobars() {
+    this.#hideInfobar(75);
+    this.#hideInfobar(90);
+  }
+
+  /**
    * Hide the bandwidth warning infobar if displayed in a browser window.
    *
    * @param {number} threshold - The threshold level (75 or 90)
@@ -202,6 +212,17 @@ class IPProtectionInfobarManagerClass {
     const { value: remainingFormatted, useGB } = formatRemainingBandwidth(
       Number(usage.remaining)
     );
+
+    // Skip if any window has the panel open with a message bar
+    for (const openWin of Services.wm.getEnumerator("navigator:browser")) {
+      if (openWin.closed) {
+        continue;
+      }
+      const panel = lazy.IPProtection.getPanel(openWin);
+      if (panel?.active && panel.state.bandwidthWarning) {
+        return;
+      }
+    }
 
     let usageLeft;
     let l10nId;

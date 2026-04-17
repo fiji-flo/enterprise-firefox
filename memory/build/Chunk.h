@@ -7,6 +7,8 @@
 
 #include "mozilla/Atomics.h"
 
+#include "mozjemalloc_types.h"
+
 #include "RadixTree.h"
 #include "RedBlackTree.h"
 
@@ -201,9 +203,15 @@ void pages_decommit(void* aAddr, size_t aSize);
 
 void chunks_init();
 
-void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase);
+void* base_chunk_alloc(size_t aSize, size_t aAlignment);
 
-void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
+void base_chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
+
+void* arena_chunk_alloc(chunk_allocator_t* aChunkAllocator, size_t aSize,
+                        size_t aAlignment);
+
+void arena_chunk_dealloc(chunk_allocator_t* aChunkAllocator, void* aChunk,
+                         size_t aSize);
 #ifdef MOZ_DEBUG
 void chunk_assert_zero(void* aPtr, size_t aSize);
 #endif
@@ -211,6 +219,10 @@ void chunk_assert_zero(void* aPtr, size_t aSize);
 extern mozilla::Atomic<size_t> gRecycledSize;
 
 extern AddressRadixTree<(sizeof(void*) << 3) - LOG2(kChunkSize)> gChunkRTree;
+
+// Default chunk allocator for arena's that uses pages from anywhere in the
+// process address space.
+extern chunk_allocator_t gSystemChunkAllocator;
 
 enum ShouldCommit {
   // Reserve address space only, accessing the mapping will crash.

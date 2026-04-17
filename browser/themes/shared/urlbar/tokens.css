@@ -23,6 +23,13 @@
   --urlbarview-background-color-hover: var(--panel-dimmed);
   --urlbarview-background-color-selected: SelectedItem;
   --urlbarview-border-radius: calc(var(--button-border-radius) + var(--dimension-2));
+
+  /* TODO Bug 2031910: Make sure the border radius is 24px for Nova. */
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("browser.nova.enabled") {
+    --urlbarview-border-radius: var(--border-radius-large);
+  }
+
   --urlbarview-separator-color: color-mix(in srgb, currentColor 14%, transparent);
   --urlbarview-text-color-action: LinkText;
   --urlbarview-text-color-selected: SelectedItemText;

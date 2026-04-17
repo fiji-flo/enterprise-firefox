@@ -179,35 +179,35 @@ macosx1500-64-artifact/debug:
     test-sets:
         - artifact-tests
 
-# Windows platforms (matching /windows.*/) 24h2 (no -qr)
+# Windows platforms (matching /windows.*/)
 
-# win11-32-24h2
-windows11-32-24h2-shippable/opt:
+# win11-32-25h2
+windows11-32-25h2-shippable/opt:
     build-platform: win32-shippable/opt
     build-signing-label: build-signing-win32-shippable/opt
     test-sets:
         - desktop-screenshot-capture
         - windows32-tests
 
-windows11-32-24h2/opt:
+windows11-32-25h2/opt:
     build-platform: win32/opt
     build-signing-label: build-signing-win32/opt
     test-sets:
         - desktop-screenshot-capture
         - windows32-tests
 
-windows11-32-24h2/debug:
+windows11-32-25h2/debug:
     build-platform: win32/debug
     build-signing-label: build-signing-win32/debug
     test-sets:
         - windows32-tests
 
-windows11-32-24h2-mingwclang/debug:
+windows11-32-25h2-mingwclang/debug:
     build-platform: win32-mingwclang/debug
     test-sets:
         - mingwclang-win32-tests-debug
 
-windows11-32-24h2-mingwclang/opt:
+windows11-32-25h2-mingwclang/opt:
     build-platform: win32-mingwclang/opt
     test-sets:
         - mingwclang-tests-opt
@@ -260,15 +260,11 @@ windows10-64-2009-shippable-qr/opt:
     test-sets:
         - windows10-2009-tests
 
-# win64 24h2 (no -qr)
-# no perf right now
+# win64 24h2 - suites still on 24h2 cloud pools + perf
 windows11-64-24h2-ccov/opt:
     build-platform: win64-ccov/opt
     build-signing-label: build-signing-win64-ccov/opt
     test-sets:
-        - desktop-screenshot-capture
-        - ccov-code-coverage-tests
-        - windows11-64-2009-ccov-tests
         - windows11-24h2-tests
 
 windows11-64-24h2/debug:
@@ -278,8 +274,6 @@ windows11-64-24h2/debug:
             msix: repackage-signing-msix-win64/debug
             default: build-signing-win64/debug
     test-sets:
-        - web-platform-tests
-        - webgpu
         - windows11-24h2-tests
 
 windows11-64-24h2/opt:
@@ -289,11 +283,6 @@ windows11-64-24h2/opt:
             msix: repackage-signing-msix-win64/opt
             default: build-signing-win64/opt
     test-sets:
-        - awsy
-        - desktop-screenshot-capture
-        - web-platform-tests
-        - web-platform-tests-backlog
-        - webgpu
         - windows11-24h2-tests
         - talos-xperf
         - windows-talos
@@ -325,10 +314,6 @@ windows11-64-24h2-shippable/opt:
             msix: repackage-signing-shippable-l10n-msix-win64-shippable/opt
             default: build-signing-win64-shippable/opt
     test-sets:
-        - awsy
-        - desktop-screenshot-capture
-        - web-platform-tests
-        - web-platform-tests-backlog
         - windows11-24h2-tests
         - talos-xperf
         - talos-profiling
@@ -340,8 +325,6 @@ windows11-64-24h2-devedition/opt:
     build-platform: win64-devedition/opt
     build-signing-label: build-signing-win64-devedition/opt
     test-sets:
-        - desktop-screenshot-capture
-        - web-platform-tests
         - windows11-24h2-tests
 
 windows11-64-24h2-asan/opt:
@@ -349,38 +332,99 @@ windows11-64-24h2-asan/opt:
     test-sets:
         - windows11-24h2-tests
 
-windows11-64-24h2-mingwclang/debug:
-    build-platform: win64-mingwclang/debug
-    test-sets:
-        - mingwclang-tests-debug
-
-windows11-64-24h2-mingwclang/opt:
-    build-platform: win64-mingwclang/opt
-    test-sets:
-        - mingwclang-tests-opt
-
 windows11-64-24h2-nightlyasrelease/opt:
     build-platform: win64-nightlyasrelease/opt
     test-sets:
         - browsertime
 
+# win64 25h2 - migrated suites
+windows11-64-25h2-ccov/opt:
+    build-platform: win64-ccov/opt
+    build-signing-label: build-signing-win64-ccov/opt
+    test-sets:
+        - desktop-screenshot-capture
+        - ccov-code-coverage-tests
+        - windows11-64-2009-ccov-tests
+        - windows11-25h2-tests
+
+windows11-64-25h2/debug:
+    build-platform: win64/debug
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-msix-win64/debug
+            default: build-signing-win64/debug
+    test-sets:
+        - web-platform-tests
+        - webgpu
+        - windows11-25h2-tests
+
+windows11-64-25h2/opt:
+    build-platform: win64/opt
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-msix-win64/opt
+            default: build-signing-win64/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - web-platform-tests
+        - web-platform-tests-backlog
+        - webgpu
+        - windows11-25h2-tests
+
+windows11-64-25h2-shippable/opt:
+    build-platform: win64-shippable/opt
+    build-signing-label:
+        by-variant:
+            msix: repackage-signing-shippable-l10n-msix-win64-shippable/opt
+            default: build-signing-win64-shippable/opt
+    test-sets:
+        - awsy
+        - desktop-screenshot-capture
+        - web-platform-tests
+        - web-platform-tests-backlog
+        - windows11-25h2-tests
+
+windows11-64-25h2-devedition/opt:
+    build-platform: win64-devedition/opt
+    build-signing-label: build-signing-win64-devedition/opt
+    test-sets:
+        - desktop-screenshot-capture
+        - web-platform-tests
+        - windows11-25h2-tests
+
+windows11-64-25h2-asan/opt:
+    build-platform: win64-asan/opt
+    test-sets:
+        - windows11-25h2-tests
+
+windows11-64-25h2-mingwclang/debug:
+    build-platform: win64-mingwclang/debug
+    test-sets:
+        - mingwclang-tests-debug
+
+windows11-64-25h2-mingwclang/opt:
+    build-platform: win64-mingwclang/opt
+    test-sets:
+        - mingwclang-tests-opt
+
 # windows11-64-aarch64
-windows11-aarch64-24h2-shippable/opt:
+windows11-aarch64-25h2-shippable/opt:
     build-platform: win64-aarch64-shippable/opt
     test-sets:
         - windows-aarch64-tests
 
-windows11-aarch64-24h2-devedition/opt:
+windows11-aarch64-25h2-devedition/opt:
     build-platform: win64-aarch64-devedition/opt
     test-sets:
         - windows-aarch64-tests
 
-windows11-aarch64-24h2/opt:
+windows11-aarch64-25h2/opt:
     build-platform: win64-aarch64/opt
     test-sets:
         - windows-aarch64-tests
 
-windows11-aarch64-24h2/debug:
+windows11-aarch64-25h2/debug:
     build-platform: win64-aarch64/debug
     test-sets:
         - windows-aarch64-tests

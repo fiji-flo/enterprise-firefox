@@ -1129,6 +1129,27 @@ export var Policies = {
     },
   },
 
+  DefaultSerialGuardSetting: {
+    onBeforeAddons(manager, param) {
+      if (!Number.isInteger(param)) {
+        lazy.log.error(
+          `Non-integer value for DefaultSerialGuardSetting: ${param}`
+        );
+        return;
+      }
+      if (param == 3) {
+        // allows access, leave pref value at default
+      } else if (param == 2) {
+        // do not allow access to serial ports
+        setAndLockPref("dom.webserial.enabled", false);
+      } else {
+        lazy.log.error(
+          `Unrecognized value for DefaultSerialGuardSetting: ${param}`
+        );
+      }
+    },
+  },
+
   DisableAccounts: {
     onBeforeAddons(manager, param) {
       if (param) {
@@ -2712,6 +2733,7 @@ export var Policies = {
         "app.update.",
         "browser.",
         "datareporting.policy.",
+        "devtools.",
         "dom.",
         "extensions.",
         "general.autoScroll",
@@ -2735,6 +2757,7 @@ export var Policies = {
         "privacy.globalprivacycontrol.enabled",
         "privacy.userContext.enabled",
         "privacy.userContext.ui.enabled",
+        "sidebar.",
         "signon.",
         "spellchecker.",
         "svg.context-properties.content.enabled",

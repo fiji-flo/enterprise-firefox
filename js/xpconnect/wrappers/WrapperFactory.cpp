@@ -15,6 +15,7 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "jsfriendapi.h"
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
+#include "js/friend/Wrapper.h"      // js::NukeCrossCompartmentWrapperIfExists
 #include "js/Object.h"              // JS::GetPrivate, JS::GetCompartment
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"

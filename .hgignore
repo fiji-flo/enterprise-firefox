@@ -17,6 +17,7 @@
 \.gcov$
 \.tsbuildinfo$
 (^|/)compile_commands\.json$
+(^|/)ccache\.conf$
 
 # emacs backup files #filename# in any directory.
 # lint-ignore-next-line: syntax-difference

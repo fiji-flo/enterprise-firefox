@@ -2383,6 +2383,7 @@ pref("identity.fxaccounts.autoconfig.uri", "");
 
 // URL for help link about Send Tab.
 pref("identity.sendtabpromo.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/send-tab");
+pref("identity.sendtab.deviceissues.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/send-tab#w_i-dont-see-my-device-listed");
 
 // URLs for promo links to mobile browsers. Note that consumers are expected to
 // append a value for utm_campaign.

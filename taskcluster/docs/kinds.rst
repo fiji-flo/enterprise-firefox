@@ -753,6 +753,10 @@ openh264-plugin
 ---------------
 Tasks used to build the openh264 plugin.
 
+openh264-notarization
+---------------------
+Mac notarization for the openh264 plugin.
+
 openh264-signing
 ----------------
 Signing for the openh264 plugin.

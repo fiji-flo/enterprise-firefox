@@ -9721,6 +9721,7 @@ static void GetSpoofedSystemFontForRFP(LookAndFeel::FontID aFontID,
 #else
 #  error "Unknown platform"
 #endif
+  aStyle.systemFont = true;
 }
 
 /* static */

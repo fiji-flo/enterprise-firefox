@@ -864,6 +864,10 @@
       "description": "Set the default download directory.",
       "examples": ["${home}/Downloads"]
     },
+    "DefaultSerialGuardSetting": {
+      "type": "number",
+      "enum": [2, 3]
+    },
     "DisableAccounts": {
       "type": "boolean",
       "x-category": "Miscellaneous",

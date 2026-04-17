@@ -59,6 +59,7 @@ class ContinuousOnboardingFeatureTest {
             telemetryRecorder = telemetryRecorder,
             stageProvider = stageProvider,
             dateTimeProvider = dateTimeProvider,
+            navigateToSyncSignIn = {},
         )
     }
 
@@ -164,6 +165,24 @@ class ContinuousOnboardingFeatureTest {
 
         assertNotNull(Onboarding.dismissed.testGetValue())
         assertEquals("completed", Onboarding.dismissed.testGetValue()!!.single().extra!!["method"])
+    }
+
+    @Test
+    fun `WHEN sync primary button is clicked THEN navigateToSyncSignIn is invoked`() {
+        var navigateToSyncSignInInvoked = false
+        val navigateToSyncSignIn = { navigateToSyncSignInInvoked = true }
+        val feature = ContinuousOnboardingFeatureDefault(
+            settings = settings,
+            telemetryRecorder = telemetryRecorder,
+            stageProvider = stageProvider,
+            dateTimeProvider = dateTimeProvider,
+            navigateToSyncSignIn = navigateToSyncSignIn,
+        )
+        val pageState = feature.getSyncOnboardingPageState(activity)
+
+        pageState.primaryButton.onClick()
+
+        assertTrue(navigateToSyncSignInInvoked)
     }
 
     @Test

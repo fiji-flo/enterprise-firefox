@@ -194,46 +194,61 @@ void MacroAssemblerLOONG64::ma_li(Register dest, CodeLabel* label) {
 }
 
 void MacroAssemblerLOONG64::ma_li(Register dest, ImmWord imm) {
-  int64_t value = imm.value;
+  const int64_t value = imm.value;
 
-  if (-1 == (value >> 11) || 0 == (value >> 11)) {
+  if (is_intN(value, 12)) {
     as_addi_w(dest, zero, value);
     return;
   }
 
-  if (0 == (value >> 12)) {
+  if (is_uintN(value, 12)) {
     as_ori(dest, zero, value);
     return;
   }
 
-  if (-1 == (value >> 31) || 0 == (value >> 31)) {
-    as_lu12i_w(dest, (value >> 12) & 0xfffff);
-  } else if (0 == (value >> 32)) {
-    as_lu12i_w(dest, (value >> 12) & 0xfffff);
-    as_bstrins_d(dest, zero, 63, 32);
-  } else if (-1 == (value >> 51) || 0 == (value >> 51)) {
-    if (is_uintN((value >> 12) & 0xfffff, 20)) {
-      as_lu12i_w(dest, (value >> 12) & 0xfffff);
-    }
-    as_lu32i_d(dest, (value >> 32) & 0xfffff);
-  } else if (0 == (value >> 52)) {
-    if (is_uintN((value >> 12) & 0xfffff, 20)) {
-      as_lu12i_w(dest, (value >> 12) & 0xfffff);
-    }
-    as_lu32i_d(dest, (value >> 32) & 0xfffff);
-    as_bstrins_d(dest, zero, 63, 52);
-  } else {
-    if (is_uintN((value >> 12) & 0xfffff, 20)) {
-      as_lu12i_w(dest, (value >> 12) & 0xfffff);
-    }
-    if (is_uintN((value >> 32) & 0xfffff, 20)) {
-      as_lu32i_d(dest, (value >> 32) & 0xfffff);
-    }
-    as_lu52i_d(dest, dest, (value >> 52) & 0xfff);
-  }
+  const uint32_t bits_11_0 = value & 0xfff;
+  const uint32_t bits_31_12 = (value >> 12) & 0xfffff;
+  const uint32_t bits_51_32 = (value >> 32) & 0xfffff;
+  const uint32_t bits_63_52 = (value >> 52) & 0xfff;
 
-  if (is_uintN(value & 0xfff, 12)) {
-    as_ori(dest, dest, value & 0xfff);
+  // The mnemonics of these imm-generating instructions may be a bit misleading.
+  // From
+  // <https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#_lu12i_w_lu32i_d_lu52i_d>:
+  //
+  // * LU12I.W: GR[rd] = SignExtend({si20, 12'b0}, GRLEN)
+  //   Build from 0 and imm
+  // * LU32I.D: GR[rd] = {SignExtend(si20, 32), GR[rd][31:0]}
+  //   Concat(!) rd and imm
+  // * LU52I.D: GR[rd] = {si12, GR[rj][51:0]}
+  //   Concat rj(!), imm and store to rd
+  //
+  // These matter when building large numbers.
+
+  if (is_intN(value, 32)) {
+    as_lu12i_w(dest, bits_31_12);
+  } else if (is_uintN(value, 32)) {
+    as_lu12i_w(dest, bits_31_12);
+    as_bstrins_d(dest, zero, 63, 32);
+  } else if (is_intN(value, 52)) {
+    as_lu12i_w(dest, bits_31_12);
+    as_lu32i_d(dest, bits_51_32);
+  } else if (is_uintN(value, 52)) {
+    as_lu12i_w(dest, bits_31_12);
+    as_lu32i_d(dest, bits_51_32);
+    as_bstrins_d(dest, zero, 63, 52);
+  } else if (bits_31_12 == 0 && bits_51_32 == 0) {
+    as_lu52i_d(dest, zero, bits_63_52);
+  } else if (bits_31_12 != 0 && (((bits_31_12 >> 19) & 1) == 0) &&
+             bits_51_32 == 0) {
+    as_lu12i_w(dest, bits_31_12);
+    as_lu52i_d(dest, dest, bits_63_52);
+  } else {
+    as_lu12i_w(dest, bits_31_12);
+    as_lu32i_d(dest, bits_51_32);
+    as_lu52i_d(dest, dest, bits_63_52);
+  }
+  if (bits_11_0 != 0) {
+    as_ori(dest, dest, bits_11_0);
   }
 }
 

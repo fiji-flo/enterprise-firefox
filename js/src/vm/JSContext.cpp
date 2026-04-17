@@ -66,6 +66,7 @@
 #include "vm/ToSource.h"    // js::ValueToSource
 
 #include "vm/Compartment-inl.h"
+#include "vm/JSObject-inl.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;
@@ -328,6 +329,8 @@ static void MaybeReportOverRecursedForDifferentialTesting() {
 }
 
 void JSContext::onOverRecursed() {
+  AutoSuppressAllocationMetadataBuilder suppressMetadata(this);
+
   // Try to construct an over-recursed error and then update the exception
   // status to `OverRecursed`. Creating the error can fail, so check there
   // is a reasonable looking exception pending before updating status.

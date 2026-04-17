@@ -753,6 +753,10 @@ class GCRuntime {
   void maybeClearWeakRefTargets(JS::ShouldClearWeakRefTargetCallback callback,
                                 void* data);
 
+  static void clearWeakRefTargets(JS::Compartment* source, const Value& target);
+  static void clearWeakRefTargets(const CompartmentFilter& sourceFilter,
+                                  JS::Realm* targetFilter);
+
   JS::GCReason lastStartReason() const { return initialReason; }
 
   void updateAllocationRates();

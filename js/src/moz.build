@@ -242,6 +242,7 @@ EXPORTS.js.friend += [
     "../public/friend/StackLimits.h",
     "../public/friend/UsageStatistics.h",
     "../public/friend/WindowProxy.h",
+    "../public/friend/Wrapper.h",
     "../public/friend/XrayJitInfo.h",
 ]
 

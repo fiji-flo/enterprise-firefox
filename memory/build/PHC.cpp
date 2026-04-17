@@ -109,6 +109,7 @@
 #endif
 
 #include "mozjemalloc.h"
+#include "BaseArray.h"
 #include "BaseAlloc.h"
 #include "Chunk.h"
 #include "FdPrintf.h"
@@ -229,94 +230,6 @@ void StackTrace::Fill() {
 #define PHC_LOGGING 0
 
 static void Log(const char* fmt, ...);
-
-//---------------------------------------------------------------------------
-// Array implementation
-//---------------------------------------------------------------------------
-
-// Unlike mfbt/Array.h this array has a dynamic size, but unlike a vector its
-// size is set explicitly rather than grown as needed.
-template <typename T>
-class PHCArray {
- private:
-  size_t mCapacity = 0;
-  T* mArray = nullptr;
-
- public:
-  PHCArray() {}
-
-  ~PHCArray() {
-    for (size_t i = 0; i < mCapacity; i++) {
-      mArray[i].~T();
-    }
-    sBaseAlloc.free(mArray);
-  }
-
-  const T& operator[](size_t aIndex) const {
-    MOZ_ASSERT(aIndex < mCapacity);
-    return mArray[aIndex];
-  }
-  T& operator[](size_t aIndex) {
-    MOZ_ASSERT(aIndex < mCapacity);
-    return mArray[aIndex];
-  }
-
-  T* begin() { return mArray; }
-  const T* begin() const { return mArray; }
-  const T* end() const { return &mArray[mCapacity]; }
-
-  bool Init(size_t aCapacity) {
-    MOZ_ASSERT(mCapacity == 0);
-    MOZ_ASSERT(mArray == nullptr);
-
-    auto size_bytes = CheckedInt<size_t>(sizeof(T)) * aCapacity;
-    MOZ_ASSERT(size_bytes.isValid());
-    if (!size_bytes.isValid()) {
-      return false;
-    }
-
-    mArray = reinterpret_cast<T*>(sBaseAlloc.alloc(size_bytes.value()));
-    if (!mArray) {
-      return false;
-    }
-
-    for (size_t i = 0; i < aCapacity; i++) {
-      new (&mArray[i]) T();
-    }
-    mCapacity = aCapacity;
-
-    return true;
-  }
-
-  size_t Capacity() const { return mCapacity; }
-
-  bool GrowTo(size_t aNewCapacity) {
-    MOZ_ASSERT(aNewCapacity > mCapacity);
-    if (mCapacity == 0) {
-      return Init(aNewCapacity);
-    }
-    auto size_bytes = CheckedInt<size_t>(sizeof(T)) * aNewCapacity;
-    MOZ_ASSERT(size_bytes.isValid());
-    if (!size_bytes.isValid()) {
-      return false;
-    }
-
-    T* new_array =
-        reinterpret_cast<T*>(sBaseAlloc.realloc(mArray, size_bytes.value()));
-    if (!new_array) {
-      return false;
-    }
-    mArray = new_array;
-
-    for (size_t i = mCapacity; i < aNewCapacity; i++) {
-      new (&mArray[i]) T();
-    }
-    mCapacity = aNewCapacity;
-    return true;
-  }
-
-  size_t SizeOfExcludingThis() { return sBaseAlloc.usable_size(mArray); }
-};
 
 //---------------------------------------------------------------------------
 // Global state
@@ -1337,7 +1250,7 @@ class PHC : public BaseAllocClass {
   static PHC_THREAD_LOCAL(Delay) tlsLastDelay;
 
   // Using mfbt/Array.h makes MOZ_GUARDED_BY more reliable than a C array.
-  PHCArray<AllocPageInfo> mAllocPages MOZ_GUARDED_BY(mMutex);
+  BaseArray<AllocPageInfo> mAllocPages MOZ_GUARDED_BY(mMutex);
 
  public:
   // There are two kinds of page.

@@ -3497,9 +3497,14 @@ export class UrlbarView {
     } else {
       tabGroupAction?.remove();
     }
-    let isSplitViewActive = this.window.gBrowser.selectedTab.splitview;
+    let splitview = this.window.gBrowser.selectedTab.splitview;
+    let shouldMoveTabToSplitView =
+      splitview &&
+      !splitview.tabs.some(
+        tab => tab.linkedBrowser.currentURI.spec === result.payload.url
+      );
     this.#l10nCache.setElementL10n(actionNode, {
-      id: isSplitViewActive
+      id: shouldMoveTabToSplitView
         ? "urlbar-result-action-move-tab-to-split-view"
         : "urlbar-result-action-switch-tab",
     });

@@ -3537,6 +3537,10 @@ class PresShell final : public nsStubDocumentObserver,
   // was consumed.
   TimeStamp mLastConsumedEscapeKeyUpForFullscreen;
 
+  // The TimeStamp of the first repeating Escape key keydown event that might
+  // a long-press for exiting fullscreen.
+  TimeStamp mFirstUnmatchedEscapeKeyDownForFullscreen;
+
   // The `SelectionNodeCache` is tightly coupled with the PresShell.
   // It should only be possible to create a cache from within a PresShell.
   // The created cache sets itself into `this`. Therefore, it's necessary to use

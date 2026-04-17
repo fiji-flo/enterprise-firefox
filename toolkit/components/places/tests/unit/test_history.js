@@ -131,16 +131,10 @@ add_task(async function test_execute() {
   Assert.ok(uri_in_db(testURI));
 
   // test for schema changes in bug 373239
-  // get direct db connection
-  var db = histsvc.DBConnection;
-  var q = "SELECT id FROM moz_bookmarks";
-  var statement;
-  try {
-    statement = db.createStatement(q);
-  } catch (ex) {
-    do_throw("bookmarks table does not have id field, schema is too old!");
-  } finally {
-    statement.finalize();
+  {
+    let db = await PlacesUtils.promiseDBConnection();
+    let rows = await db.execute("SELECT id FROM moz_bookmarks LIMIT 1");
+    Assert.notStrictEqual(rows, undefined, "bookmarks table has id field");
   }
 
   // bug 394741 - regressed history text searches

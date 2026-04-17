@@ -520,7 +520,9 @@ IPCResult BackgroundParentImpl::RecvPRemoteWorkerControllerConstructor(
     dom::PRemoteWorkerControllerParent* aActor,
     const dom::RemoteWorkerData& aRemoteWorkerData) {
   MOZ_ASSERT(aActor);
-
+  if (BackgroundParent::IsOtherProcessActor(this)) {
+    return IPC_FAIL_NO_REASON(this);
+  }
   return IPC_OK();
 }
 

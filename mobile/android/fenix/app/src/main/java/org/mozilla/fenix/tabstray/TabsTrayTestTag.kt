@@ -74,4 +74,8 @@ internal object TabsTrayTestTag {
 
     // Bottom app bar
     const val TAB_SEARCH_ICON = "$TABS_TRAY.tabSearchIcon"
+
+    // Tab Search
+    const val TAB_SEARCH_ROOT = "$TABS_TRAY.tab_search"
+    const val TAB_SEARCH_BACK_BUTTON = "$TAB_SEARCH_ROOT.back_button"
 }

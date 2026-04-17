@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.tabstray.redux.reducer
 
-import org.mozilla.fenix.tabstray.data.TabsTrayItem
 import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination
 import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination.DeleteTabGroupConfirmationDialog
 import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination.ExpandedTabGroup
@@ -90,7 +89,7 @@ object TabGroupActionReducer {
             )
 
             is TabGroupAction.DeleteConfirmed -> state.copy(
-                backStack = state.backStack.popDeleteTabGroupFlow(action.group),
+                backStack = state.backStack.popDeleteTabGroupFlow(),
             )
 
             is TabGroupAction.EditTabGroupClicked -> state.copy(
@@ -105,34 +104,14 @@ object TabGroupActionReducer {
         backStack = navigateToEditTabGroup(),
     )
 
-    private fun List<TabManagerNavDestination>.popTabGroupFlow(): List<TabManagerNavDestination> {
-        var stack = this
-
-        // Return the back stack to the destination that originally invoked the below destinations
-        while (stack.size > 1 && stack.last() in setOf(
-                TabManagerNavDestination.EditTabGroup,
-                TabManagerNavDestination.AddToTabGroup,
-            )
-        ) {
-            stack = stack.dropLast(1)
-        }
-        return stack
+    private fun List<TabManagerNavDestination>.popTabGroupFlow(): List<TabManagerNavDestination> = filterNot {
+        it is TabManagerNavDestination.EditTabGroup ||
+            it is TabManagerNavDestination.AddToTabGroup
     }
 
-    private fun List<TabManagerNavDestination>.popDeleteTabGroupFlow(
-        group: TabsTrayItem.TabGroup,
-    ): List<TabManagerNavDestination> {
-        var stack = this
-
-        while (stack.size > 1 && stack.last() in setOf(
-                DeleteTabGroupConfirmationDialog(group = group),
-                ExpandedTabGroup(group = group),
-            )
-        ) {
-            stack = stack.dropLast(1)
-        }
-
-        return stack
+    private fun List<TabManagerNavDestination>.popDeleteTabGroupFlow(): List<TabManagerNavDestination> = filterNot {
+        it is DeleteTabGroupConfirmationDialog ||
+            it is ExpandedTabGroup
     }
 
     private fun TabsTrayState.navigateToEditTabGroup(): List<TabManagerNavDestination> =

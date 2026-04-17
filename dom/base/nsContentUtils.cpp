@@ -4431,79 +4431,39 @@ bool nsContentUtils::IsNameWithDash(nsAtom* aName) {
     return false;
   }
 
-  if (StaticPrefs::dom_custom_elements_relaxed_names_enabled()) {
-    uint32_t i = 1;
-    while (i < len) {
-      // name does not contain any ASCII upper alphas
-      if (name[i] >= 'A' && name[i] <= 'Z') {
-        return false;
-      }
-
-      // name is a valid element local name;
-      //
-      //   // https://dom.spec.whatwg.org/#valid-element-local-name
-      //   Step 2.1.
-      //   If name contains ASCII whitespace, U+0000 NULL, U+002F (/), or U+003E
-      //   (>), then return false.
-      //
-      //   ASCII whitespace is U+0009 TAB, U+000A LF, U+000C FF, U+000D CR, or
-      //   U+0020 SPACE.
-      if (name[i] == 0x0000 ||  // null
-          name[i] == 0x0009 ||  // tab
-          name[i] == 0x000A ||  // newline
-          name[i] == 0x000C ||  // form feed
-          name[i] == 0x000D ||  // carriage return
-          name[i] == 0x0020 ||  // space
-          name[i] == 0x002F ||  // /
-          name[i] == 0x003E) {  // >
-        return false;
-      }
-
-      if (name[i] == '-') {
-        hasDash = true;
-      }
-
-      i++;
-    }
-    return hasDash;
-  }
-
   uint32_t i = 1;
   while (i < len) {
-    if (i + 1 < len && NS_IS_SURROGATE_PAIR(name[i], name[i + 1])) {
-      // Merged two 16-bit surrogate pairs into code point.
-      char32_t code = SURROGATE_TO_UCS4(name[i], name[i + 1]);
-
-      if (code < 0x10000 || code > 0xEFFFF) {
-        return false;
-      }
-
-      i += 2;
-    } else {
-      if (name[i] == '-') {
-        hasDash = true;
-      }
-
-      if (name[i] != '-' && name[i] != '.' && name[i] != '_' &&
-          name[i] != 0xB7 && (name[i] < '0' || name[i] > '9') &&
-          (name[i] < 'a' || name[i] > 'z') &&
-          (name[i] < 0xC0 || name[i] > 0xD6) &&
-          (name[i] < 0xF8 || name[i] > 0x37D) &&
-          (name[i] < 0x37F || name[i] > 0x1FFF) &&
-          (name[i] < 0x200C || name[i] > 0x200D) &&
-          (name[i] < 0x203F || name[i] > 0x2040) &&
-          (name[i] < 0x2070 || name[i] > 0x218F) &&
-          (name[i] < 0x2C00 || name[i] > 0x2FEF) &&
-          (name[i] < 0x3001 || name[i] > 0xD7FF) &&
-          (name[i] < 0xF900 || name[i] > 0xFDCF) &&
-          (name[i] < 0xFDF0 || name[i] > 0xFFFD)) {
-        return false;
-      }
-
-      i++;
+    // name does not contain any ASCII upper alphas
+    if (name[i] >= 'A' && name[i] <= 'Z') {
+      return false;
     }
-  }
 
+    // name is a valid element local name;
+    //
+    //   // https://dom.spec.whatwg.org/#valid-element-local-name
+    //   Step 2.1.
+    //   If name contains ASCII whitespace, U+0000 NULL, U+002F (/), or U+003E
+    //   (>), then return false.
+    //
+    //   ASCII whitespace is U+0009 TAB, U+000A LF, U+000C FF, U+000D CR, or
+    //   U+0020 SPACE.
+    if (name[i] == 0x0000 ||  // null
+        name[i] == 0x0009 ||  // tab
+        name[i] == 0x000A ||  // newline
+        name[i] == 0x000C ||  // form feed
+        name[i] == 0x000D ||  // carriage return
+        name[i] == 0x0020 ||  // space
+        name[i] == 0x002F ||  // /
+        name[i] == 0x003E) {  // >
+      return false;
+    }
+
+    if (name[i] == '-') {
+      hasDash = true;
+    }
+
+    i++;
+  }
   return hasDash;
 }
 
@@ -10979,12 +10939,12 @@ static bool StartSerializingShadowDOM(
   if (shadow->Serializable()) {
     aBuilder.Append(u" shadowrootserializable=\"\"");
   }
-  if (shadow->Clonable()) {
-    aBuilder.Append(u" shadowrootclonable=\"\"");
-  }
   if (StaticPrefs::dom_shadowdom_shadowRootSlotAssignment_enabled() &&
       shadow->SlotAssignment() == SlotAssignmentMode::Manual) {
     aBuilder.Append(u" shadowrootslotassignment=\"manual\"");
+  }
+  if (shadow->Clonable()) {
+    aBuilder.Append(u" shadowrootclonable=\"\"");
   }
 
   aBuilder.Append(u">");

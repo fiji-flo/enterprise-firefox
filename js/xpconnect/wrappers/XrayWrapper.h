@@ -266,16 +266,16 @@ class JSXrayTraits : public XrayTraits {
   };
   virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
 
-  static JSProtoKey getProtoKey(JSObject* holder) {
+  static JSProtoKey getProtoKey(const JSObject* holder) {
     int32_t key = JS::GetReservedSlot(holder, SLOT_PROTOKEY).toInt32();
     return static_cast<JSProtoKey>(key);
   }
 
-  static bool isPrototype(JSObject* holder) {
+  static bool isPrototype(const JSObject* holder) {
     return JS::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
   }
 
-  static JSProtoKey constructorFor(JSObject* holder) {
+  static JSProtoKey constructorFor(const JSObject* holder) {
     int32_t key = JS::GetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR).toInt32();
     return static_cast<JSProtoKey>(key);
   }

@@ -16,7 +16,7 @@ add_task(async function test_remove_many() {
     "http://mozilla.com/test_browserhistory/test_remove/" + Math.random()
   );
   await PlacesTestUtils.addVisits(WITNESS_URI);
-  Assert.ok(page_in_database(WITNESS_URI), "Witness page added");
+  Assert.ok(await page_in_database(WITNESS_URI), "Witness page added");
 
   info("Generating samples");
   let pages = [];
@@ -54,7 +54,7 @@ add_task(async function test_remove_many() {
         title: "test bookmark " + i,
       });
     }
-    Assert.ok(page_in_database(uri), "Page added");
+    Assert.ok(await page_in_database(uri), "Page added");
   }
 
   info("Mixing key types and introducing dangling keys");
@@ -164,12 +164,12 @@ add_task(async function test_remove_many() {
       `We have reached the page #${i} from the callback`
     );
     Assert.equal(
-      visits_in_database(page.uri),
+      await visits_in_database(page.uri),
       0,
       "History entry has disappeared"
     );
     Assert.equal(
-      page_in_database(page.uri) != 0,
+      (await page_in_database(page.uri)) != 0,
       page.hasBookmark,
       "Page is present only if it also has bookmarks"
     );
@@ -187,12 +187,12 @@ add_task(async function test_remove_many() {
   );
 
   Assert.notEqual(
-    visits_in_database(WITNESS_URI),
+    await visits_in_database(WITNESS_URI),
     0,
     "Witness URI still has visits"
   );
   Assert.notEqual(
-    page_in_database(WITNESS_URI),
+    await page_in_database(WITNESS_URI),
     0,
     "Witness URI is still here"
   );

@@ -30,6 +30,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
   IPProtection:
     "moz-src:///browser/components/ipprotection/IPProtection.sys.mjs",
+  IPProtectionInfobarManager:
+    "moz-src:///browser/components/ipprotection/IPProtectionInfobarManager.sys.mjs",
   IPPSignInWatcher:
     "moz-src:///toolkit/components/ipprotection/fxa/IPPSignInWatcher.sys.mjs",
   IPProtectionStates:
@@ -385,6 +387,10 @@ export class IPProtectionPanel {
       isSiteExceptionsEnabled: this.isExceptionsFeatureEnabled,
       bandwidthWarning: this.#shouldShowBandwidthWarning(),
     });
+
+    if (this.state.bandwidthWarning) {
+      lazy.IPProtectionInfobarManager.hideInfobars();
+    }
 
     if (this.panel) {
       this.updateState();

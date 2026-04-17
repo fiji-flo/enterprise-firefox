@@ -30,10 +30,21 @@
 
   a:focus-visible {
     accent-color: var(--smartwindow-assistant-accent-color-focus);
+    outline-style: inset;
   }
 }
 
 .message-user p {
   margin-block-start: 0;
   margin-block-end: 0;
+}
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media -moz-pref("browser.smartwindow.nova.enabled") {
+  .message-assistant {
+    a {
+      --smartwindow-assistant-link-color-active: light-dark(var(--color-violet-80), var(--color-violet-50));
+      --smartwindow-assistant-accent-color-focus: light-dark(var(--color-violet-50), var(--color-violet-20));
+    }
+  }
 }

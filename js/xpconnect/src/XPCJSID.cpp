@@ -177,7 +177,7 @@ static JSObject* GetIDObject(HandleValue aVal, const JSClass* aClass) {
   return nullptr;
 }
 
-static const nsXPTInterfaceInfo* GetInterfaceInfo(JSObject* obj) {
+static const nsXPTInterfaceInfo* GetInterfaceInfo(const JSObject* obj) {
   MOZ_ASSERT(JS::GetClass(obj) == &sIID_Class);
   return static_cast<const nsXPTInterfaceInfo*>(
       JS::GetReservedSlot(obj, kIID_InfoSlot).toPrivate());

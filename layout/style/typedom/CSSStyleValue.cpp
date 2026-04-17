@@ -15,6 +15,7 @@
 #include "mozilla/dom/CSSNumericValue.h"
 #include "mozilla/dom/CSSStyleValueBinding.h"
 #include "mozilla/dom/CSSTransformValue.h"
+#include "mozilla/dom/CSSUnparsedValue.h"
 #include "mozilla/dom/Document.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
@@ -208,6 +209,10 @@ bool CSSStyleValue::IsCSSUnsupportedValue() const {
   return mStyleValueType == StyleValueType::UnsupportedValue;
 }
 
+bool CSSStyleValue::IsCSSUnparsedValue() const {
+  return mStyleValueType == StyleValueType::UnparsedValue;
+}
+
 bool CSSStyleValue::IsCSSKeywordValue() const {
   return mStyleValueType == StyleValueType::KeywordValue;
 }
@@ -241,6 +246,13 @@ void CSSStyleValue::ToCssTextWithProperty(const CSSPropertyId& aPropertyId,
       const CSSKeywordValue& keywordValue = GetAsCSSKeywordValue();
 
       keywordValue.ToCssTextWithProperty(aPropertyId, aDest);
+      break;
+    }
+
+    case StyleValueType::UnparsedValue: {
+      const CSSUnparsedValue& unparsedValue = GetAsCSSUnparsedValue();
+
+      unparsedValue.ToCssTextWithProperty(aPropertyId, aDest);
       break;
     }
 

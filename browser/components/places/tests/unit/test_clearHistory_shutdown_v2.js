@@ -82,19 +82,15 @@ add_task(async function test_execute() {
 
   Assert.equal(await getFormHistoryCount(), 0, "Form history cleared");
 
-  let stmt = DBConn(true).createStatement(
-    "SELECT id FROM moz_places WHERE url = :page_url "
-  );
-
-  try {
-    URIS.forEach(function (aUrl) {
-      stmt.params.page_url = aUrl;
-      Assert.ok(!stmt.executeStep());
-      stmt.reset();
-    });
-  } finally {
-    stmt.finalize();
+  let db = await Sqlite.openConnection({ path: "places.sqlite" });
+  for (let aUrl of URIS) {
+    let rows = await db.execute(
+      "SELECT id FROM moz_places WHERE url = :page_url",
+      { page_url: aUrl }
+    );
+    Assert.ok(!rows.length, `${aUrl} should not be in the database`);
   }
+  await db.close();
 
   info("Check cache");
   // Check cache.

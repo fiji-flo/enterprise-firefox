@@ -70,6 +70,29 @@ describe("settings AI Controls - Smart Window", () => {
     });
   });
 
+  it("updates control when browser.ai.control.smartWindow is set externally to available", async () => {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.ai.control.smartWindow", "blocked"]],
+    });
+    await withPrefsPane("ai", async doc => {
+      const control = doc.getElementById("aiControlSmartWindowSelect");
+      await control.updateComplete;
+      Assert.equal(control.value, "blocked", "control shows blocked");
+
+      await SpecialPowers.pushPrefEnv({
+        set: [["browser.ai.control.smartWindow", "available"]],
+      });
+      await control.updateComplete;
+      Assert.equal(
+        control.value,
+        "available",
+        "control updates to available after external pref change"
+      );
+      await SpecialPowers.popPrefEnv();
+    });
+    await SpecialPowers.popPrefEnv();
+  });
+
   it("shows activate link and personalize button based on consent", async () => {
     await withPrefsPane("ai", async doc => {
       const smartWindowActivateLink = doc.getElementById(

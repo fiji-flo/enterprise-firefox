@@ -5,18 +5,24 @@
 package org.mozilla.samples.acorn.components
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mozilla.components.compose.base.theme.AcornTheme
+import org.mozilla.samples.acorn.components.ui.BannerScreen
+import org.mozilla.samples.acorn.components.ui.ButtonsScreen
+import org.mozilla.samples.acorn.components.ui.ColorsScreen
+import org.mozilla.samples.acorn.components.ui.ComponentListScreen
+import org.mozilla.samples.acorn.components.ui.IconsScreen
+import org.mozilla.samples.acorn.components.ui.SnackbarScreen
 
 /**
  * Activity demonstrating the Acorn Design System components.
  */
-class AcornComponentsActivity : ComponentActivity() {
+class AcornComponentsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -30,7 +36,22 @@ class AcornComponentsActivity : ComponentActivity() {
                     startDestination = Destinations.ROOT,
                 ) {
                     composable(Destinations.ROOT) {
-                        // no-op
+                        ComponentListScreen(onNavigate = { navController.navigate(it) })
+                    }
+                    composable(Destinations.BANNER) {
+                        BannerScreen(onNavigateUp = { navController.popBackStack() })
+                    }
+                    composable(Destinations.BUTTONS) {
+                        ButtonsScreen(onNavigateUp = { navController.popBackStack() })
+                    }
+                    composable(Destinations.COLORS) {
+                        ColorsScreen(onNavigateUp = { navController.popBackStack() })
+                    }
+                    composable(Destinations.ICONS) {
+                        IconsScreen(onNavigateUp = { navController.popBackStack() })
+                    }
+                    composable(Destinations.SNACKBAR) {
+                        SnackbarScreen(onNavigateUp = { navController.popBackStack() })
                     }
                 }
             }
@@ -40,4 +61,9 @@ class AcornComponentsActivity : ComponentActivity() {
 
 internal object Destinations {
     const val ROOT = "root"
+    const val BANNER = "banner"
+    const val BUTTONS = "buttons"
+    const val COLORS = "colors"
+    const val ICONS = "icons"
+    const val SNACKBAR = "snackbar"
 }

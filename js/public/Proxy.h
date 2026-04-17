@@ -770,11 +770,6 @@ constexpr unsigned CheckProxyFlags() {
 // conversion happens.
 JS_PUBLIC_API void NukeNonCCWProxy(JSContext* cx, JS::HandleObject proxy);
 
-// This is a variant of js::NukeNonCCWProxy() for CCWs. It should only be called
-// on CCWs that have been removed from CCW tables.
-JS_PUBLIC_API void NukeRemovedCrossCompartmentWrapper(JSContext* cx,
-                                                      JSObject* wrapper);
-
 } /* namespace js */
 
 #endif /* js_Proxy_h */

@@ -43,6 +43,7 @@ dependencies {
     implementation project(':components:ui-colors')
 
     implementation libs.androidx.activity
+    implementation libs.androidx.appcompat
     implementation libs.androidx.core.ktx
     implementation platform(libs.androidx.compose.bom)
     implementation libs.androidx.compose.foundation

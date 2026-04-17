@@ -22,10 +22,13 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   BookmarkList: "resource://gre/modules/BookmarkList.sys.mjs",
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
+  FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
   NonPrivateTabs: "resource:///modules/OpenTabs.sys.mjs",
   OpenTabsController: "resource:///modules/OpenTabsController.sys.mjs",
   getTabsTargetForWindow: "resource:///modules/OpenTabs.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
   TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
 });
 
@@ -35,8 +38,14 @@ ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
   ).getFxAccountsSingleton();
 });
 
-var { DEVICE_TYPE_MOBILE, DEVICE_TYPE_TABLET } = ChromeUtils.importESModule(
-  "resource://services-sync/constants.sys.mjs"
+const { XPCOMUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/XPCOMUtils.sys.mjs"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "FXA_ENABLED",
+  "identity.fxaccounts.enabled"
 );
 
 const TOPIC_DEVICESTATE_CHANGED = "firefox-view.devicestate.changed";
@@ -847,7 +856,44 @@ class OpenTabsContextMenu extends MozLitElement {
     });
   }
 
-  sendTabTemplate() {
+  onSendTabSignedOutItemClick() {
+    (async () => {
+      let browser = this.ownerViewPage.getWindow().gBrowser;
+      let data = {
+        entrypoint: "send-tab-firefox-view-three-dots",
+      };
+
+      await lazy.SpecialMessageActions.fxaSignInFlow(data, browser);
+    })();
+  }
+
+  onSendTabSyncDisabledItemClick() {
+    this.ownerViewPage
+      .getWindow()
+      .openTrustedLinkIn("about:preferences#sync", "tab");
+  }
+
+  onSendTabConnectPhoneItemClick() {
+    (async () => {
+      const url = await lazy.FxAccounts.config.promisePairingURI({
+        entrypoint: "send-tab-firefox-view-three-dots",
+      });
+
+      const ownerGlobal = window.docShell?.chromeEventHandler?.ownerGlobal;
+      ownerGlobal?.switchToTabHavingURI(url, true, {});
+    })();
+  }
+
+  onSendTabNoDeviceItemClick() {
+    const url = Services.urlFormatter.formatURLPref(
+      "identity.sendtab.deviceissues.url"
+    );
+
+    const ownerGlobal = window.docShell?.chromeEventHandler?.ownerGlobal;
+    ownerGlobal?.switchToTabHavingURI(url, true, { replaceQueryString: true });
+  }
+
+  sendTabDevicesTemplate() {
     return html` <panel-list slot="submenu" id="send-tab-menu">
       ${this.devices.map(device => {
         return html`
@@ -859,21 +905,97 @@ class OpenTabsContextMenu extends MozLitElement {
     </panel-list>`;
   }
 
+  sendTabSignedOutTemplate() {
+    return html`<panel-item
+      data-l10n-id="fxviewtabrow-send-to-mobile"
+      data-l10n-attrs="accesskey"
+      @click=${this.onSendTabSignedOutItemClick}
+    ></panel-item>`;
+  }
+
+  sendTabSyncDisabledTemplate() {
+    return html`<panel-item
+      data-l10n-id="fxviewtabrow-send-to-mobile"
+      data-l10n-attrs="accesskey"
+      submenu="send-tab-menu1"
+    >
+      <panel-list slot="submenu" id="send-tab-menu1">
+        <panel-item
+          data-l10n-id="fxviewtabrow-send-to-mobile-enable-sync2"
+          @click=${this.onSendTabSyncDisabledItemClick}
+        >
+        </panel-item>
+      </panel-list>
+    </panel-item>`;
+  }
+
+  sendTabSingleDeviceTemplate() {
+    return html`<panel-item
+      data-l10n-id="fxviewtabrow-send-to-mobile"
+      data-l10n-attrs="accesskey"
+      submenu="send-tab-menu2"
+    >
+      <panel-list slot="submenu" id="send-tab-menu2">
+        <panel-item
+          data-l10n-id="fxviewtabrow-send-to-mobile-connect-phone2"
+          @click=${this.onSendTabConnectPhoneItemClick}
+        >
+        </panel-item>
+        <hr />
+        <panel-item
+          data-l10n-id="fxviewtabrow-send-to-mobile-device-missing2"
+          @click=${this.onSendTabNoDeviceItemClick}
+        >
+        </panel-item>
+      </panel-list>
+    </panel-item>`;
+  }
+
+  sendTabMultiDeviceTemplate(hasMobileOnlyTargets) {
+    let multiDevicePanelItemId = hasMobileOnlyTargets
+      ? "fxviewtabrow-send-to-mobile"
+      : "fxviewtabrow-send-to-device";
+    return html`<panel-item
+      data-l10n-id=${multiDevicePanelItemId}
+      data-l10n-attrs="accesskey"
+      submenu="send-tab-menu"
+      @click=${this.onSendTabSubmenuClick}
+      >${this.sendTabDevicesTemplate()}</panel-item
+    >`;
+  }
+
+  sendTabTemplate() {
+    var sendTabPanel = null;
+    let gSync = this.ownerViewPage.getWindow().gSync;
+
+    // Ensure send tab is not displayed when FxA is disabled, particularly for Enterprise.
+    if (!lazy.FXA_ENABLED) {
+      return sendTabPanel;
+    }
+
+    switch (true) {
+      case gSync.isSignedIn === false:
+        sendTabPanel = this.sendTabSignedOutTemplate();
+        break;
+      case gSync.isSignedInWithSyncDisabled:
+        sendTabPanel = this.sendTabSyncDisabledTemplate();
+        break;
+      case gSync.hasNoSendTabTargets:
+        sendTabPanel = this.sendTabSingleDeviceTemplate();
+        break;
+      default:
+        var hasMobileOnlyTargets = gSync.hasOnlyMobileSendTabTargets();
+        sendTabPanel = this.sendTabMultiDeviceTemplate(hasMobileOnlyTargets);
+    }
+
+    return sendTabPanel;
+  }
+
   render() {
     const tab = this.triggerNode?.tabElement;
     if (!tab) {
       return null;
     }
-
-    let hasOnlyMobileDevices =
-      this.devices.length >= 1 &&
-      this.devices.every(
-        target =>
-          target.type == DEVICE_TYPE_MOBILE || target.type == DEVICE_TYPE_TABLET
-      );
-    let panelItemId = hasOnlyMobileDevices
-      ? "fxviewtabrow-send-to-mobile"
-      : "fxviewtabrow-send-to-device";
 
     return html`
       <link
@@ -907,15 +1029,7 @@ class OpenTabsContextMenu extends MozLitElement {
           data-l10n-attrs="accesskey"
           @click=${this.copyLink}
         ></panel-item>
-        ${this.devices.length >= 1
-          ? html`<panel-item
-              data-l10n-id=${panelItemId}
-              data-l10n-attrs="accesskey"
-              submenu="send-tab-menu"
-              @click=${this.onSendTabSubmenuClick}
-              >${this.sendTabTemplate()}</panel-item
-            >`
-          : null}
+        ${this.sendTabTemplate()}
       </panel-list>
     `;
   }

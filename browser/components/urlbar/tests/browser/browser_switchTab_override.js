@@ -176,13 +176,66 @@ add_task(async function test_switchtab_override_scotch_bonnet_for_split_view() {
   info("Check the current status");
   let actionLabel = result.element.row.querySelector(".urlbarView-action");
   Assert.ok(BrowserTestUtils.isVisible(actionLabel));
-  Assert.ok(actionLabel.textContent, "Move tab to Split View");
+  Assert.equal(
+    document.l10n.getAttributes(actionLabel).id,
+    "urlbar-result-action-move-tab-to-split-view"
+  );
 
   info("Cleanup");
   gBrowser.removeTab(tab1);
   gBrowser.removeTab(tab2);
   gBrowser.removeTab(tab3);
   await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_tab_in_same_split_view_shows_switch_tab() {
+  info(
+    "Test that a tab already in the same split view shows 'Switch to Tab' " +
+      "instead of 'Move tab to Split View'"
+  );
+
+  let tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
+  let tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
+  let tabbrowserTabs = gBrowser.tabContainer;
+  let splitViewCreated = BrowserTestUtils.waitForEvent(
+    tabbrowserTabs,
+    "SplitViewCreated"
+  );
+  gBrowser.addTabSplitView([tab1, tab2]);
+  await splitViewCreated;
+
+  gBrowser.selectedTab = tab2;
+  Assert.ok(
+    gBrowser.selectedTab.splitview,
+    "Selected tab should be in a split view"
+  );
+
+  info("Wait for autocomplete");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "dummy_page",
+  });
+
+  info("Select autocomplete entry for tab1 (in the same split view)");
+  EventUtils.synthesizeKey("KEY_ArrowDown");
+  let result = await UrlbarTestUtils.getDetailsOfResultAt(
+    window,
+    UrlbarTestUtils.getSelectedRowIndex(window)
+  );
+  Assert.equal(result.type, UrlbarUtils.RESULT_TYPE.TAB_SWITCH);
+
+  info("Check that action shows 'Switch to Tab' since tab1 is in split view");
+  let actionLabel = result.element.row.querySelector(".urlbarView-action");
+  Assert.ok(BrowserTestUtils.isVisible(actionLabel));
+  Assert.equal(
+    document.l10n.getAttributes(actionLabel).id,
+    "urlbar-result-action-switch-tab"
+  );
+
+  info("Cleanup");
+  tab1.splitview.close();
+  await UrlbarTestUtils.promisePopupClose(window);
 });
 
 add_task(async function test_move_tab_to_split_view_from_another_window() {
@@ -227,7 +280,10 @@ add_task(async function test_move_tab_to_split_view_from_another_window() {
   info("Check that action shows 'Move tab to Split View'");
   let actionLabel = result.element.row.querySelector(".urlbarView-action");
   Assert.ok(BrowserTestUtils.isVisible(actionLabel));
-  Assert.ok(actionLabel.textContent.includes("Move"));
+  Assert.equal(
+    win2.document.l10n.getAttributes(actionLabel).id,
+    "urlbar-result-action-move-tab-to-split-view"
+  );
 
   info("Count tabs in both windows before action");
   let win1TabCountBefore = win1.gBrowser.tabs.length;

@@ -182,7 +182,7 @@ def set_treeherder_machine_platform(config, tasks):
         "macosx1400-64-shippable/opt": "osx-1400-shippable/opt",
         "macosx1500-64/opt": "osx-1500/opt",
         "macosx1500-64-shippable/opt": "osx-1500-shippable/opt",
-        "win64-asan/opt": "windows11-64-24h2/asan",
+        "win64-asan/opt": "windows11-64-25h2/asan",
     }
     for task in tasks:
         # For most desktop platforms, the above table is not used for "regular"
@@ -667,16 +667,18 @@ def handle_tier(config, tasks):
                 "linux2404-64-devedition/opt",
                 "linux2404-64-asan/opt",
                 "linux2404-64-tsan/opt",
-                "windows11-32-24h2/debug",
-                "windows11-32-24h2/opt",
-                "windows11-32-24h2-shippable/opt",
+                "windows11-32-25h2/debug",
+                "windows11-32-25h2/opt",
+                "windows11-32-25h2-shippable/opt",
                 "windows11-64-24h2-hw-ref/opt",
                 "windows11-64-24h2-hw-ref-shippable/opt",
                 "windows11-64-24h2/opt",
-                "windows11-64-24h2/debug",
                 "windows11-64-24h2-shippable/opt",
-                "windows11-64-24h2-devedition/opt",
-                "windows11-64-24h2-asan/opt",
+                "windows11-64-25h2/opt",
+                "windows11-64-25h2/debug",
+                "windows11-64-25h2-shippable/opt",
+                "windows11-64-25h2-devedition/opt",
+                "windows11-64-25h2-asan/opt",
                 "macosx1015-64/opt",
                 "macosx1015-64/debug",
                 "macosx1015-64-shippable/opt",
@@ -918,7 +920,7 @@ def set_test_setting(config, tasks):
 
         else:
             arch = parts.pop(0)
-            if parts and (parts[0].isdigit() or parts[0] in ["24h2"]):
+            if parts and (parts[0].isdigit() or parts[0] in ["24h2", "25h2"]):
                 os_build = parts.pop(0)
 
             if parts and parts[0] == "hw-ref":

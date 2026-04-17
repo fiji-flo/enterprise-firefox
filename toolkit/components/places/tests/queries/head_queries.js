@@ -219,8 +219,6 @@ function compareArrayToResult(aArray, aRoot) {
   }).length;
   if (expectedResultCount != aRoot.childCount) {
     // Debugging code for failures.
-    dump_table("moz_places");
-    dump_table("moz_historyvisits");
     info("Found children:");
     for (let i = 0; i < aRoot.childCount; i++) {
       info(aRoot.getChild(i).uri);
@@ -244,7 +242,6 @@ function compareArrayToResult(aArray, aRoot) {
           "testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]"
         );
         if (aArray[i].uri != child.uri) {
-          dump_table("moz_places");
           do_throw("Expected " + aArray[i].uri + " found " + child.uri);
         }
       }

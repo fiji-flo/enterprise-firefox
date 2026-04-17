@@ -13,6 +13,7 @@
 
 #include "gc/NurseryAwareHashMap.h"
 #include "gc/ZoneAllocator.h"
+#include "js/friend/Wrapper.h"
 #include "vm/Iteration.h"
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"

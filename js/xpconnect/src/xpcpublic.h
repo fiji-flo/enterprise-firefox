@@ -11,6 +11,7 @@
 #include "ErrorList.h"
 #include "js/BuildId.h"
 #include "js/ErrorReport.h"
+#include "js/friend/Wrapper.h"
 #include "js/GCAPI.h"
 #include "js/Object.h"
 #include "js/RootingAPI.h"
@@ -33,10 +34,6 @@
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
-
-// XXX only for NukeAllWrappersForRealm, which is only used in
-// dom/base/WindowDestroyedEvent.cpp outside of js
-#include "jsfriendapi.h"
 
 class JSObject;
 class JSString;

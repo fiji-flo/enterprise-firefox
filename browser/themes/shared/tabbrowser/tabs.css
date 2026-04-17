@@ -1161,8 +1161,6 @@ tab-split-view-wrapper[dragtarget] {
 
 tab-group > tab-split-view-wrapper {
   #tabbrowser-tabs[orient="vertical"] & {
-    margin-inline-end: var(--space-medium);
-
     #tabbrowser-tabs[expanded] & {
       margin-inline-start: calc(var(--space-medium) + var(--tab-inner-inline-margin) - var(--space-xsmall));
     }
@@ -1339,8 +1337,10 @@ tab-group > tab-split-view-wrapper {
           margin-inline-end: 0;
         }
 
-        tab-split-view-wrapper:not([hasactivetab]) & {
-          border-block-end: transparent;
+        @container vertical-tabs-container (min-width: 211px) {
+          tab-split-view-wrapper:not([hasactivetab]) & {
+            border-block-end: transparent;
+          }
         }
       }
 
@@ -1378,6 +1378,7 @@ tab-group > tab-split-view-wrapper {
       }
     }
   }
+
   .tabbrowser-tab:last-child {
     border-inline-start: 1px solid transparent;
   }
@@ -1401,10 +1402,10 @@ tab-group > tab-split-view-wrapper {
         border-block-end: 1px solid var(--toolbarbutton-icon-fill);
         border-inline-end: transparent;
       }
+    }
 
-      &:last-child {
-        border-inline-start: transparent !important;
-      }
+    .tabbrowser-tab:last-child {
+      border-inline-start: none !important;
     }
   }
 }
@@ -1635,8 +1636,12 @@ tab-group {
 
 #tabbrowser-tabs[orient="vertical"][expanded] {
   tab-group > :is(.tab-group-label-container, .tabbrowser-tab),
-  &[movingtab][movingtab-addToGroup]:not([movingtab-group], [movingtab-ungroup]) tab-group > .tabbrowser-tab:is(:active, [multiselected]) {
+  &[movingtab][movingtab-addToGroup]:not([movingtab-group], [movingtab-ungroup]) .tabbrowser-tab:is(:active, [multiselected]) {
     margin-inline-start: var(--space-medium);
+  }
+
+  &[movingtab][movingtab-addToGroup]:not([movingtab-group], [movingtab-ungroup]) tab-split-view-wrapper > .tabbrowser-tab:is(:active, [multiselected]) {
+    margin-inline-start: unset;
   }
 }
 

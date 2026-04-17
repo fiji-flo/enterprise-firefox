@@ -89,6 +89,10 @@ Main components
 Utility code
 ------------
 
+ * BaseArray.h 
+
+   A resizable array implementation that uses the base allocator.
+
  * FdPrintf.h and FdPrintf.cpp
 
    A printf implementation that doesn't need any dynamic allocation.

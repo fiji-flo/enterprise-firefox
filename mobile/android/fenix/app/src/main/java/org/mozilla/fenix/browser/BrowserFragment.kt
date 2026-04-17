@@ -47,6 +47,7 @@ import org.mozilla.fenix.components.LensFeature
 import org.mozilla.fenix.components.QrScanFenixFeature
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.VoiceSearchFeature
+import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.metrics.installSourcePackage
 import org.mozilla.fenix.components.toolbar.BrowserToolbarComposable
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
@@ -66,6 +67,7 @@ import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.onboarding.OnboardingFragmentDirections
 import org.mozilla.fenix.onboarding.OnboardingReason
 import org.mozilla.fenix.onboarding.OnboardingTelemetryRecorder
 import org.mozilla.fenix.onboarding.continuous.ContinuousOnboardingFeatureDefault
@@ -137,6 +139,14 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler, SystemIns
             settings = settings,
             telemetryRecorder = telemetryRecorder,
             stageProvider = ContinuousOnboardingStageProviderDefault(settings),
+            navigateToSyncSignIn = {
+                findNavController().nav(
+                    id = R.id.browserFragment,
+                    directions = OnboardingFragmentDirections.actionGlobalTurnOnSync(
+                        entrypoint = FenixFxAEntryPoint.NewUserOnboarding,
+                    ),
+                )
+            },
         )
     }
 

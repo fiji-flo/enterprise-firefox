@@ -505,42 +505,6 @@ extern JS_PUBLIC_API JSObject* GetTestingFunctions(JSContext* cx);
 extern JS_PUBLIC_API JSLinearString* GetErrorTypeName(JSContext* cx,
                                                       int16_t exnType);
 
-/* Implemented in CrossCompartmentWrapper.cpp. */
-enum NukeReferencesToWindow { NukeWindowReferences, DontNukeWindowReferences };
-
-enum NukeReferencesFromTarget {
-  NukeAllReferences,
-  NukeIncomingReferences,
-};
-
-/*
- * These filters are designed to be ephemeral stack classes, and thus don't
- * do any rooting or holding of their members.
- */
-struct CompartmentFilter {
-  virtual bool match(JS::Compartment* c) const = 0;
-};
-
-struct AllCompartments : public CompartmentFilter {
-  virtual bool match(JS::Compartment* c) const override { return true; }
-};
-
-struct SingleCompartment : public CompartmentFilter {
-  JS::Compartment* ours;
-  explicit SingleCompartment(JS::Compartment* c) : ours(c) {}
-  virtual bool match(JS::Compartment* c) const override { return c == ours; }
-};
-
-extern JS_PUBLIC_API bool NukeCrossCompartmentWrappers(
-    JSContext* cx, const CompartmentFilter& sourceFilter, JS::Realm* target,
-    NukeReferencesToWindow nukeReferencesToWindow,
-    NukeReferencesFromTarget nukeReferencesFromTarget);
-
-extern JS_PUBLIC_API bool AllowNewWrapper(JS::Compartment* target,
-                                          JSObject* obj);
-
-extern JS_PUBLIC_API bool NukedObjectRealm(JSObject* obj);
-
 /* Implemented in jsdate.cpp. */
 
 /** Detect whether the internal date value is NaN. */
@@ -551,16 +515,8 @@ extern JS_PUBLIC_API bool DateGetMsecSinceEpoch(JSContext* cx,
                                                 JS::HandleObject obj,
                                                 double* msecSinceEpoch);
 
-} /* namespace js */
-
-namespace js {
-
 /* Implemented in vm/StructuredClone.cpp. */
 extern JS_PUBLIC_API uint64_t GetSCOffset(JSStructuredCloneWriter* writer);
-
-}  // namespace js
-
-namespace js {
 
 /* Statically asserted in FunctionFlags.cpp. */
 static const unsigned JS_FUNCTION_INTERPRETED_BITS = 0x0060;

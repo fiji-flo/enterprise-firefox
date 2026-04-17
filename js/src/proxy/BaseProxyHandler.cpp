@@ -406,8 +406,7 @@ JS_PUBLIC_API void js::NukeNonCCWProxy(JSContext* cx, HandleObject proxy) {
   MOZ_ASSERT(IsDeadProxyObject(proxy));
 }
 
-JS_PUBLIC_API void js::NukeRemovedCrossCompartmentWrapper(JSContext* cx,
-                                                          JSObject* wrapper) {
+void js::NukeRemovedCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper) {
   MOZ_ASSERT(wrapper->is<CrossCompartmentWrapperObject>());
 
   NotifyGCNukeWrapper(cx, wrapper);

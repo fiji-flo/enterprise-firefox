@@ -23,7 +23,7 @@ internal const val DEFAULT_SYNCED_TABS_EXPANDED_STATE = true
  */
 internal object TabsTrayReducer {
     fun reduce(state: TabsTrayState, action: TabsTrayAction): TabsTrayState {
-        return when (action) {
+        val newState = when (action) {
             is TabsTrayAction.InitAction -> state
 
             // Selection Mode Actions
@@ -76,6 +76,12 @@ internal object TabsTrayReducer {
             is TabsTrayAction.ThreeDotMenuShown,
                  -> state
         }
+
+        require(newState.backStack.isNotEmpty()) {
+            "Tabs Tray backstack cannot be empty"
+        }
+
+        return newState
     }
 
     private fun handleSelectionModeActions(state: TabsTrayState, action: TabsTrayAction): TabsTrayState {
@@ -260,9 +266,4 @@ internal object TabsTrayReducer {
             ),
         )
     }
-
-    /**
-     *  Drops the last entry of [TabsTrayState.backStack].
-     */
-    private fun TabsTrayState.popBackStack() = backStack.dropLast(1)
 }

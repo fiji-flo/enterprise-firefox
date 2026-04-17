@@ -27,7 +27,6 @@ function Weather({ dispatch, size }) {
   const errorTelemetrySent = useRef(false);
   const errorRef = useRef(null);
   const sizeSubmenuRef = useRef(null);
-
   const currentWeatherSize = prefs[PREF_WEATHER_SIZE] || "medium";
 
   const handleChangeSize = useCallback(
@@ -283,8 +282,39 @@ function Weather({ dispatch, size }) {
     );
   }
 
-  // Bug 2029823 - Opt-in UI to be implemented
-  // eslint-disable-next-line no-unused-vars
+  const handleOptInLocationSelected = useCallback(() => {
+    dispatch(ac.SetPref("weather.optInAccepted", true));
+  }, [dispatch]);
+
+  function handleOptInChooseLocation() {
+    batch(() => {
+      dispatch(
+        ac.AlsoToMain({
+          type: at.WEATHER_OPT_IN_PROMPT_SELECTION,
+          data: "choose_location",
+        })
+      );
+      dispatch(
+        ac.BroadcastToContent({
+          type: at.WEATHER_SEARCH_ACTIVE,
+          data: true,
+        })
+      );
+      dispatch(
+        ac.OnlyToMain({
+          type: at.WIDGETS_USER_EVENT,
+          data: {
+            widget_name: "weather",
+            widget_source: "widget",
+            user_action: USER_ACTION_TYPES.OPT_IN_ACCEPTED,
+            widget_size: size,
+            action_value: "choose_location",
+          },
+        })
+      );
+    });
+  }
+
   function handleAcceptOptIn() {
     batch(() => {
       dispatch(
@@ -295,7 +325,7 @@ function Weather({ dispatch, size }) {
       dispatch(
         ac.AlsoToMain({
           type: at.WEATHER_OPT_IN_PROMPT_SELECTION,
-          data: "accepted opt-in",
+          data: "use_location",
         })
       );
       dispatch(
@@ -306,34 +336,7 @@ function Weather({ dispatch, size }) {
             widget_source: "widget",
             user_action: USER_ACTION_TYPES.OPT_IN_ACCEPTED,
             widget_size: size,
-            action_value: true,
-          },
-        })
-      );
-    });
-  }
-
-  // Bug 2029823 - Opt-in UI to be implemented
-  // eslint-disable-next-line no-unused-vars
-  function handleRejectOptIn() {
-    batch(() => {
-      dispatch(ac.SetPref("weather.optInAccepted", false));
-      dispatch(ac.SetPref("weather.optInDisplayed", false));
-      dispatch(
-        ac.AlsoToMain({
-          type: at.WEATHER_OPT_IN_PROMPT_SELECTION,
-          data: "rejected opt-in",
-        })
-      );
-      dispatch(
-        ac.OnlyToMain({
-          type: at.WIDGETS_USER_EVENT,
-          data: {
-            widget_name: "weather",
-            widget_source: "widget",
-            user_action: USER_ACTION_TYPES.OPT_IN_ACCEPTED,
-            widget_size: size,
-            action_value: false,
+            action_value: "use_location",
           },
         })
       );
@@ -352,7 +355,8 @@ function Weather({ dispatch, size }) {
           size="small"
         />
         <panel-list id="weather-widget-context-menu">
-          {!isOptInEnabled &&
+          {!showOptInState &&
+            !isOptInEnabled &&
             (prefs["weather.temperatureUnits"] === "f" ? (
               <panel-item
                 data-l10n-id="newtab-weather-menu-change-temperature-units-celsius"
@@ -364,13 +368,13 @@ function Weather({ dispatch, size }) {
                 onClick={() => handleChangeTempUnit("f")}
               />
             ))}
-          {prefs["weather.locationSearchEnabled"] && (
+          {!showOptInState && prefs["weather.locationSearchEnabled"] && (
             <panel-item
               data-l10n-id="newtab-weather-menu-change-location"
               onClick={handleChangeLocation}
             />
           )}
-          {isOptInEnabled && (
+          {!showOptInState && isOptInEnabled && (
             <panel-item
               data-l10n-id="newtab-weather-menu-detect-my-location"
               onClick={handleDetectLocation}
@@ -415,12 +419,12 @@ function Weather({ dispatch, size }) {
 
   return (
     <article
-      className={`weather-widget col-4 ${size}-widget${hasError ? " weather-error-state" : ""}`}
+      className={`weather-widget col-4 ${size}-widget${hasError ? " weather-error-state" : ""}${showOptInState ? " weather-opt-in" : ""}`}
       ref={el => {
         weatherRef.current = [el];
       }}
     >
-      {!hasError && (
+      {!hasError && !showOptInState && (
         <a
           className="weather-anchor"
           href={
@@ -434,9 +438,15 @@ function Weather({ dispatch, size }) {
       )}
       <div className="widget-title-bar">
         <div className="widget-title">
-          {searchActive ? (
-            <LocationSearch outerClassName="" />
-          ) : (
+          {searchActive && (
+            <LocationSearch
+              outerClassName=""
+              onLocationSelected={
+                showOptInState ? handleOptInLocationSelected : undefined
+              }
+            />
+          )}
+          {!searchActive && !showOptInState && (
             <h3>{weatherData.locationData.city}</h3>
           )}
         </div>
@@ -449,8 +459,32 @@ function Weather({ dispatch, size }) {
         </div>
       )}
       {showOptInState ? (
-        // Bug 2029823 - Opt-in UI placeholder
-        <div className="weather-opt-in-container" />
+        !searchActive && (
+          <div className="weather-opt-in-container">
+            <div className="weather-opt-in-container-title-bar">
+              <div className="weather-icon-column">
+                <span className="weather-icon iconId3" />
+              </div>
+              <h3
+                className="weather-opt-in-container-title"
+                data-l10n-id="newtab-weather-opt-in-headline"
+              />
+            </div>
+            <div className="weather-opt-in-container-buttons">
+              <moz-button
+                data-l10n-id="newtab-weather-opt-in-use-location"
+                onClick={handleAcceptOptIn}
+                type="primary"
+                size={size === "small" ? "small" : undefined}
+              />
+              <button
+                className="weather-text-link"
+                onClick={handleOptInChooseLocation}
+                data-l10n-id="newtab-weather-opt-in-choose-location"
+              />
+            </div>
+          </div>
+        )
       ) : (
         <>
           <div className="weather-container">

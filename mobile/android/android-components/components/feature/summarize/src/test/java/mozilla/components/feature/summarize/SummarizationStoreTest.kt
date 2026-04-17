@@ -169,7 +169,7 @@ class SummarizationStoreTest {
         )
 
         assertEquals(expected, states)
-        assertEquals(Prompt(content, defaultInstructions("en")), llm.lastPrompt)
+        assertEquals(Prompt(content, defaultInstructions()), llm.lastPrompt)
     }
 
     @Test
@@ -311,7 +311,7 @@ class SummarizationStoreTest {
 
         assertTrue(usingReaderContent)
         assertEquals(expected, states)
-        assertEquals(Prompt(content, defaultInstructions("en")), llm.lastPrompt)
+        assertEquals(Prompt(content, defaultInstructions()), llm.lastPrompt)
     }
 
     @Test

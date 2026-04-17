@@ -477,19 +477,7 @@ JS_PUBLIC_API JSObject* UnwrapOneCheckedDynamic(JS::HandleObject obj,
 // the GC or off the main thread.
 JS_PUBLIC_API JSObject* UncheckedUnwrapWithoutExpose(JSObject* obj);
 
-void ReportAccessDenied(JSContext* cx);
-
-JS_PUBLIC_API void NukeCrossCompartmentWrapper(JSContext* cx,
-                                               JSObject* wrapper);
-
-// If a cross-compartment wrapper source => target exists, nuke it.
-JS_PUBLIC_API void NukeCrossCompartmentWrapperIfExists(JSContext* cx,
-                                                       JS::Compartment* source,
-                                                       JSObject* target);
-
-void RemapWrapper(JSContext* cx, JSObject* wobj, JSObject* newTarget);
-void RemapDeadWrapper(JSContext* cx, JS::HandleObject wobj,
-                      JS::HandleObject newTarget);
+JS_PUBLIC_API void ReportAccessDenied(JSContext* cx);
 
 JS_PUBLIC_API bool RemapAllWrappersForObject(JSContext* cx,
                                              JS::HandleObject oldTarget,

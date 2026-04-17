@@ -93,6 +93,7 @@ import org.mozilla.fenix.components.LensFeature
 import org.mozilla.fenix.components.QrScanFenixFeature
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.VoiceSearchFeature
+import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
@@ -159,6 +160,7 @@ import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
 import org.mozilla.fenix.microsurvey.ui.ext.MicrosurveyUIData
 import org.mozilla.fenix.microsurvey.ui.ext.toMicrosurveyUIData
 import org.mozilla.fenix.nimbus.FxNimbus
+import org.mozilla.fenix.onboarding.OnboardingFragmentDirections
 import org.mozilla.fenix.onboarding.OnboardingReason
 import org.mozilla.fenix.onboarding.OnboardingTelemetryRecorder
 import org.mozilla.fenix.onboarding.continuous.ContinuousOnboardingFeatureDefault
@@ -346,6 +348,14 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             settings = settings,
             telemetryRecorder = telemetryRecorder,
             stageProvider = ContinuousOnboardingStageProviderDefault(settings),
+            navigateToSyncSignIn = {
+                findNavController().nav(
+                    id = R.id.homeFragment,
+                    directions = OnboardingFragmentDirections.actionGlobalTurnOnSync(
+                        entrypoint = FenixFxAEntryPoint.NewUserOnboarding,
+                    ),
+                )
+            },
         )
     }
 

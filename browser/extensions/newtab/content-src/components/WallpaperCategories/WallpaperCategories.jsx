@@ -290,7 +290,10 @@ export class _WallpaperCategories extends React.PureComponent {
         fluent_id = "newtab-wallpaper-category-title-photographs";
         break;
       case "solid-colors":
-        fluent_id = "newtab-wallpaper-category-title-colors";
+        // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and always use newtab-wallpaper-colors
+        fluent_id = this.props.Prefs.values["nova.enabled"]
+          ? "newtab-wallpaper-colors"
+          : "newtab-wallpaper-category-title-colors";
         break;
       case "firefox":
         fluent_id = "newtab-wallpaper-category-title-firefox";
@@ -568,13 +571,19 @@ export class _WallpaperCategories extends React.PureComponent {
                   fluent_id = "newtab-wallpaper-category-title-celestial";
                   break;
                 case "custom-wallpaper":
-                  fluent_id = "newtab-wallpaper-upload-image";
+                  // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and always use newtab-wallpaper-add-an-image
+                  fluent_id = novaEnabled
+                    ? "newtab-wallpaper-add-an-image"
+                    : "newtab-wallpaper-upload-image";
                   break;
                 case "photographs":
                   fluent_id = "newtab-wallpaper-category-title-photographs";
                   break;
                 case "solid-colors":
-                  fluent_id = "newtab-wallpaper-category-title-colors";
+                  // @nova-cleanup(remove-conditional): Remove novaEnabled conditional and always use newtab-wallpaper-colors
+                  fluent_id = novaEnabled
+                    ? "newtab-wallpaper-colors"
+                    : "newtab-wallpaper-category-title-colors";
                   break;
                 case "firefox":
                   fluent_id = "newtab-wallpaper-category-title-firefox";

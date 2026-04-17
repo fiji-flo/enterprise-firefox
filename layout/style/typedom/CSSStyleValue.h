@@ -27,6 +27,7 @@ namespace dom {
 
 class GlobalObject;
 class CSSKeywordValue;
+class CSSUnparsedValue;
 class CSSUnsupportedValue;
 class CSSNumericValue;
 class CSSTransformValue;
@@ -36,6 +37,7 @@ class CSSStyleValue : public nsISupports, public nsWrapperCache {
   enum class StyleValueType {
     Uninitialized,  // TODO: Remove once the implementation is complete.
     UnsupportedValue,
+    UnparsedValue,
     KeywordValue,
     NumericValue,
     TransformValue,
@@ -98,6 +100,14 @@ class CSSStyleValue : public nsISupports, public nsWrapperCache {
 
   // Defined in CSSUnsupportedValue.cpp
   CSSPropertyId* GetPropertyId();
+
+  bool IsCSSUnparsedValue() const;
+
+  // Defined in CSSUnparsedValue.cpp
+  const CSSUnparsedValue& GetAsCSSUnparsedValue() const;
+
+  // Defined in CSSUnparsedValue.cpp
+  CSSUnparsedValue& GetAsCSSUnparsedValue();
 
   bool IsCSSKeywordValue() const;
 

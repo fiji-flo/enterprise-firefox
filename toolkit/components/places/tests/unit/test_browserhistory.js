@@ -88,7 +88,7 @@ add_task(async function test_removePagesByTimeframe() {
 
   // Check that we have removed the correct pages.
   for (let i = 0; i < 10; i++) {
-    Assert.equal(page_in_database(TEST_URI + i) == 0, i > 0 && i < 9);
+    Assert.equal((await page_in_database(TEST_URI + i)) == 0, i > 0 && i < 9);
   }
 
   // Clear remaining items and check that all pages have been removed.

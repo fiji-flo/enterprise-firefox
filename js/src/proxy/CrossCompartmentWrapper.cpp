@@ -354,13 +354,19 @@ bool CrossCompartmentWrapper::boxedValue_unbox(JSContext* cx,
 
 const CrossCompartmentWrapper CrossCompartmentWrapper::singleton(0u);
 
-JS_PUBLIC_API void js::NukeCrossCompartmentWrapper(JSContext* cx,
-                                                   JSObject* wrapper) {
+void js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper) {
+  MOZ_ASSERT(IsCrossCompartmentWrapper(wrapper));
+
   JS::Compartment* comp = wrapper->compartment();
   auto ptr = comp->lookupWrapper(Wrapper::wrappedObject(wrapper));
   if (ptr) {
     comp->removeWrapper(ptr);
   }
+
+  JSObject* target = UncheckedUnwrapWithoutExpose(wrapper);
+  MOZ_ASSERT(target);
+  gc::GCRuntime::clearWeakRefTargets(comp, ObjectValue(*target));
+
   NukeRemovedCrossCompartmentWrapper(cx, wrapper);
 }
 
@@ -464,6 +470,11 @@ JS_PUBLIC_API bool js::NukeCrossCompartmentWrappers(
       NukeRemovedCrossCompartmentWrapper(cx, wobj);
     }
   }
+
+  // Clear WeakRef targets that match the filters otherwise we would still be
+  // able to see into the target realm. WeakRefs are cross compartment weak
+  // edges but are not implemented with CCWs.
+  gc::GCRuntime::clearWeakRefTargets(sourceFilter, target);
 
   return true;
 }

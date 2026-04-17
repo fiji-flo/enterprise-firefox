@@ -66,6 +66,7 @@ class ContinuousOnboardingFeatureDefault(
     private val settings: Settings,
     private val telemetryRecorder: OnboardingTelemetryRecorder,
     private val stageProvider: ContinuousOnboardingStageProvider,
+    private val navigateToSyncSignIn: () -> Unit,
     private val dateTimeProvider: DateTimeProvider = DefaultDateTimeProvider(),
 ) : ContinuousOnboardingFeature {
     private val logger = Logger("ContinuousOnboardingFeatureDefault")
@@ -176,6 +177,8 @@ class ContinuousOnboardingFeatureDefault(
         primaryButton = Action(
             text = activity.getString(R.string.nova_onboarding_sync_button),
             onClick = {
+                navigateToSyncSignIn()
+
                 telemetryRecorder.onSyncSignInClick(
                     sequenceId = OnboardingPageUiData.Type.SYNC_SIGN_IN.telemetryId,
                     sequencePosition = "0",

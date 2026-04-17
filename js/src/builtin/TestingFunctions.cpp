@@ -130,6 +130,7 @@
 #include "vm/StencilObject.h"  // StencilObject, StencilXDRBufferObject
 #include "vm/StringObject.h"
 #include "vm/StringType.h"
+#include "vm/WrapperObject.h"
 #include "wasm/AsmJS.h"
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmBuiltinModule.h"

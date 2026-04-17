@@ -2678,12 +2678,6 @@
   value: true
   mirror: always
 
-# Enable relaxed Custom Element names
-- name: dom.custom_elements.relaxed_names.enabled
-  type: bool
-  value: true
-  mirror: always
-
 # Allow control characters appear in composition string.
 # When this is false, control characters except
 # CHARACTER TABULATION (horizontal tab) are removed from
@@ -3134,8 +3128,7 @@
 # confused by the webidl bindings being exposed
   value: false
 #else
-# Probably only enable by default after bug 543435
-  value: @IS_NIGHTLY_BUILD@
+  value: true
 #endif
   mirror: always
   rust: true
@@ -3185,6 +3178,19 @@
 - name: dom.fullscreen.force_exit_on_multiple_escape_interval
   type: uint32_t
   value: 500
+  mirror: always
+
+# This pref enables the keyboardLock option for requestFullscreen.
+- name: dom.fullscreen.keyboard_lock.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# The interval in milliseconds the Escape key needs to be held in order to
+# trigger exiting fullscreen.
+- name: dom.fullscreen.keyboard_lock.long_press_interval
+  type: uint32_t
+  value: 1500
   mirror: always
 
 # Whether the Gamepad API is enabled
@@ -13975,6 +13981,15 @@
 # https://fetch.spec.whatwg.org/#concept-request-tainted-origin
 - name: network.http.origin.redirectTainted
   type: bool
+  value: true
+  mirror: always
+
+# Bug 1965430: Use TriggeringPrincipal instead of LoadingPrincipal to
+# determine the request origin when computing redirect-taint. This fixes
+# top-level navigational POST redirects (e.g., form submissions) where
+# LoadingPrincipal is null. Set to false to revert to the old behavior.
+- name: network.http.origin.useTriggeringPrincipal
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 

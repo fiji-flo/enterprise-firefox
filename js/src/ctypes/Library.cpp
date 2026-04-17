@@ -204,7 +204,9 @@ JSObject* Library::Create(JSContext* cx, HandleValue path,
   return libraryObj;
 }
 
-bool Library::IsLibrary(JSObject* obj) { return obj->hasClass(&sLibraryClass); }
+bool Library::IsLibrary(const JSObject* obj) {
+  return obj->hasClass(&sLibraryClass);
+}
 
 PRLibrary* Library::GetLibrary(JSObject* obj) {
   MOZ_ASSERT(IsLibrary(obj));

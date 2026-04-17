@@ -218,7 +218,7 @@
       margin-inline-end: 0;
 
       @media not (-moz-platform: macos) {
-        margin-inline-end: 2px;
+        z-index: 1;
       }
     }
 

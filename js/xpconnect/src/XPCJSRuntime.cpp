@@ -56,6 +56,7 @@
 #include "js/UbiNodeUtils.h"
 #include "js/friend/UsageStatistics.h"  // JSMetric, JS_SetAccumulateTelemetryCallback
 #include "js/friend/WindowProxy.h"  // js::SetWindowProxyClass
+#include "js/friend/Wrapper.h"      // js::NukeCrossCompartmentWrappers
 #include "js/friend/XrayJitInfo.h"  // JS::SetXrayJitInfo
 #include "js/Utility.h"             // JS::UniqueTwoByteChars
 #include "mozilla/dom/AbortSignalBinding.h"

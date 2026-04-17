@@ -6,6 +6,7 @@ package org.mozilla.fenix.tabstray.redux.state
 
 import org.mozilla.fenix.tabstray.data.createTab
 import org.mozilla.fenix.tabstray.data.createTabGroup
+import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination
 import org.mozilla.fenix.tabstray.redux.state.TabsTrayState.Mode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -117,5 +118,27 @@ class TabsTrayStateTest {
     fun `GIVEN the user is on the Private tabs page with private tabs WHEN in the Tab Manager THEN the search icon is enabled`() {
         val state = TabsTrayState(selectedPage = Page.PrivateTabs, privateBrowsing = TabsTrayState.PrivateBrowsingState(tabs = listOf(createTab(url = ""))))
         assertTrue(state.searchIconEnabled)
+    }
+
+    @Test
+    fun `GIVEN there are multiple destinations on the back stack WHEN popping the backstack THEN the top destination is popped`() {
+        val initialBackStack = listOf(
+            TabManagerNavDestination.Root,
+            TabManagerNavDestination.TabSearch,
+            TabManagerNavDestination.AddToTabGroup,
+        )
+        val actualBackStack = TabsTrayState(backStack = initialBackStack).popBackStack()
+        val expectedBackStack = initialBackStack.dropLast(1)
+
+        assertEquals(expectedBackStack, actualBackStack)
+    }
+
+    @Test
+    fun `GIVEN there is one destination on the back stack WHEN popping the backstack THEN the top destination is not popped`() {
+        val initialBackStack = listOf(TabManagerNavDestination.Root)
+        val actualBackStack = TabsTrayState(backStack = initialBackStack).popBackStack()
+        val expectedBackStack = initialBackStack
+
+        assertEquals(expectedBackStack, actualBackStack)
     }
 }

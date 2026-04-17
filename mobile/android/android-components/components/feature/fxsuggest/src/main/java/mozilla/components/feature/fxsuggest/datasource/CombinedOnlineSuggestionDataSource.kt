@@ -10,6 +10,11 @@ import kotlinx.coroutines.async
 import mozilla.components.concept.awesomebar.AwesomeBar
 
 /**
+ * Minimum length of the query that will trigger network request for fetching online suggestions.
+ */
+private const val MIN_QUERY_LENGTH = 3
+
+/**
  * Represents the result of a combined Merino suggestions API response.
  * Only the provider with the highest score will be returned; the others will not be present.
  */
@@ -62,8 +67,10 @@ class CombinedOnlineSuggestionDataSource(
      * Returns suggestions for [query], making at most one network request even when called
      * concurrently by multiple providers for the same query.
      */
-    suspend fun fetch(query: String): CombinedResults =
-        getOrCreateRequest(query).await()
+    suspend fun fetch(query: String): CombinedResults {
+        if (query.length < MIN_QUERY_LENGTH) return CombinedResults.Empty
+        return getOrCreateRequest(query).await()
+    }
 
     @Synchronized
     private fun getOrCreateRequest(query: String): Deferred<CombinedResults> {
