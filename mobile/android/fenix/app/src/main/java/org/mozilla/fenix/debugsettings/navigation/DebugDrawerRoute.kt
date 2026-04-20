@@ -13,7 +13,6 @@ import mozilla.components.concept.storage.CreditCardsAddressesStorage
 import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.ClientUUID
-import org.mozilla.fenix.components.llm.Llm
 import org.mozilla.fenix.debugsettings.addons.ui.AddonsDebugToolsScreen
 import org.mozilla.fenix.debugsettings.addresses.AddressesDebugRegionRepository
 import org.mozilla.fenix.debugsettings.addresses.AddressesTools
@@ -25,7 +24,6 @@ import org.mozilla.fenix.debugsettings.creditcards.CreditCardsTools
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.ui.GleanDebugToolsScreen
 import org.mozilla.fenix.debugsettings.integrity.IntegrityTools
-import org.mozilla.fenix.debugsettings.llm.LlmTools
 import org.mozilla.fenix.debugsettings.logins.LoginsTools
 import org.mozilla.fenix.debugsettings.region.RegionTools
 import org.mozilla.fenix.debugsettings.store.DebugDrawerAction
@@ -93,10 +91,6 @@ enum class DebugDrawerRoute(
         route = "integrity_tools",
         title = R.string.integrity_debug_tools_title,
     ),
-    LlmTools(
-        route = "llm_tools",
-        title = R.string.llm_debug_tools_title,
-    ),
     TabGroupTools(
         route = "tab_group_tools",
         title = R.string.debug_drawer_tab_group_tools_title,
@@ -117,7 +111,6 @@ enum class DebugDrawerRoute(
          * @param clientUUID used to test an [IntegrityClient] in [IntegrityTools].
          * @param integrityClient used to test an [IntegrityClient] in [IntegrityTools].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
-         * @param llm the component group [Llm].
          * @param tabGroupRepository [TabGroupRepository] used to access and modify tab groups for [TabGroupTools].
          */
         @Suppress("LongParameterList", "LongMethod")
@@ -132,7 +125,6 @@ enum class DebugDrawerRoute(
             clientUUID: ClientUUID,
             integrityClient: IntegrityClient,
             inactiveTabsEnabled: Boolean,
-            llm: Llm,
             tabGroupRepository: TabGroupRepository,
         ): List<DebugDrawerDestination> =
             entries.map { debugDrawerRoute ->
@@ -252,15 +244,6 @@ enum class DebugDrawerRoute(
                         }
                         content = {
                             IntegrityTools(clientUUID, integrityClient)
-                        }
-                    }
-
-                    LlmTools -> {
-                        onClick = {
-                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.LlmDebugTools)
-                        }
-                        content = {
-                            LlmTools(llm)
                         }
                     }
 

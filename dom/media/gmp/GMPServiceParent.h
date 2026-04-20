@@ -107,6 +107,7 @@ class GeckoMediaPluginServiceParent final
 
   virtual ~GeckoMediaPluginServiceParent();
 
+  void ClearTemporaryStorage();
   void ClearStorage();
 
   already_AddRefed<GMPParent> SelectPluginForAPI(

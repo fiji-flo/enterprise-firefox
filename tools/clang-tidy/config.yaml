@@ -38,6 +38,8 @@ clang_checkers:
         value: safe
       - key: UseCxx20ReverseRanges
         value: false
+  - name: bugprone-move-forwarding-reference
+    reliability: high
 
 # clang_checkers:
 #   - name: -*

@@ -107,6 +107,8 @@ function WidgetsManagementPanel({
 
   const { weatherEnabled } = enabledSections;
   const { timerEnabled, listsEnabled } = enabledWidgets;
+  const isRTL = document.dir === "rtl";
+  const arrowIconSrc = `chrome://global/skin/icons/shaft-arrow-${isRTL ? "right" : "left"}.svg`;
 
   return (
     <div id="widgets-management-panel" className="widgets-mgmt-panel-container">
@@ -123,56 +125,61 @@ function WidgetsManagementPanel({
         onEntered={handlePanelEntered}
       >
         <div ref={panelRef} className="widgets-mgmt-panel">
-          <button
-            ref={arrowButtonRef}
-            className="arrow-button"
-            onClick={togglePanel}
-          >
-            <h1 data-l10n-id="newtab-widget-manage-title"></h1>
-          </button>
-          <div className="settings-widgets">
-            {mayHaveWeather && (
-              <div id="weather-section" className="section">
-                {/** @backward-compat { version 150 } React 16 (cached page) uses ontoggle; React 19 uses onToggle. Remove onToggle once Firefox 150 reaches Release. */}
-                <moz-toggle
-                  id="weather-toggle"
-                  pressed={weatherEnabled || null}
-                  ontoggle={onToggleWidget}
-                  onToggle={onToggleWidget}
-                  data-preference="widgets.weather.enabled"
-                  data-event-source="WEATHER"
-                  data-l10n-id="newtab-custom-widget-weather-toggle"
-                />
-              </div>
-            )}
-            {mayHaveTimerWidget && (
-              <div id="timer-widget-section" className="section">
-                {/** @backward-compat { version 150 } React 16 (cached page) uses ontoggle; React 19 uses onToggle. Remove onToggle once Firefox 150 reaches Release. */}
-                <moz-toggle
-                  id="timer-toggle"
-                  pressed={timerEnabled || null}
-                  ontoggle={onToggleWidget}
-                  onToggle={onToggleWidget}
-                  data-preference="widgets.focusTimer.enabled"
-                  data-event-source="WIDGET_TIMER"
-                  data-l10n-id="newtab-custom-widget-timer-toggle"
-                />
-              </div>
-            )}
-            {mayHaveListsWidget && (
-              <div id="lists-widget-section" className="section">
-                {/** @backward-compat { version 150 } React 16 (cached page) uses ontoggle; React 19 uses onToggle. Remove onToggle once Firefox 150 reaches Release. */}
-                <moz-toggle
-                  id="lists-toggle"
-                  pressed={listsEnabled || null}
-                  ontoggle={onToggleWidget}
-                  onToggle={onToggleWidget}
-                  data-preference="widgets.lists.enabled"
-                  data-event-source="WIDGET_LISTS"
-                  data-l10n-id="newtab-custom-widget-lists-toggle"
-                />
-              </div>
-            )}
+          <div className="panel-content">
+            <div className="arrow-wrapper">
+              <moz-button
+                ref={arrowButtonRef}
+                type="ghost"
+                className="arrow-button"
+                iconSrc={arrowIconSrc}
+                onClick={togglePanel}
+              ></moz-button>
+              <h2 data-l10n-id="newtab-widget-manage-title"></h2>
+            </div>
+            <div className="settings-widgets">
+              {mayHaveWeather && (
+                <div id="weather-section" className="section">
+                  {/** @backward-compat { version 150 } React 16 (cached page) uses ontoggle; React 19 uses onToggle. Remove onToggle once Firefox 150 reaches Release. */}
+                  <moz-toggle
+                    id="weather-toggle"
+                    pressed={weatherEnabled || null}
+                    ontoggle={onToggleWidget}
+                    onToggle={onToggleWidget}
+                    data-preference="widgets.weather.enabled"
+                    data-event-source="WEATHER"
+                    data-l10n-id="newtab-custom-widget-weather-toggle"
+                  />
+                </div>
+              )}
+              {mayHaveTimerWidget && (
+                <div id="timer-widget-section" className="section">
+                  {/** @backward-compat { version 150 } React 16 (cached page) uses ontoggle; React 19 uses onToggle. Remove onToggle once Firefox 150 reaches Release. */}
+                  <moz-toggle
+                    id="timer-toggle"
+                    pressed={timerEnabled || null}
+                    ontoggle={onToggleWidget}
+                    onToggle={onToggleWidget}
+                    data-preference="widgets.focusTimer.enabled"
+                    data-event-source="WIDGET_TIMER"
+                    data-l10n-id="newtab-custom-widget-timer-toggle"
+                  />
+                </div>
+              )}
+              {mayHaveListsWidget && (
+                <div id="lists-widget-section" className="section">
+                  {/** @backward-compat { version 150 } React 16 (cached page) uses ontoggle; React 19 uses onToggle. Remove onToggle once Firefox 150 reaches Release. */}
+                  <moz-toggle
+                    id="lists-toggle"
+                    pressed={listsEnabled || null}
+                    ontoggle={onToggleWidget}
+                    onToggle={onToggleWidget}
+                    data-preference="widgets.lists.enabled"
+                    data-event-source="WIDGET_LISTS"
+                    data-l10n-id="newtab-custom-widget-lists-toggle"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CSSTransition>

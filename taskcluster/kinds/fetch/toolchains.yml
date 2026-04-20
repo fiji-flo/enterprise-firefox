@@ -374,12 +374,14 @@ android-ndk-rs:
     description: android-ndk-rs source code
     fetch:
         type: git
-        # Until there's a version of cargo-apk published on crates.io that has
-        # https://github.com/rust-windowing/android-ndk-rs/pull/236, we need to use
-        # an unpublished version. Additionally, until we update the NDK version used
-        # in gecko we must use our own patched version. See bug 1615148.
+        # Ideally we'd switch back to using the current official upstream for
+        # this project: https://github.com/rust-mobile/cargo-apk/
+        # Unfortunately, it's not a drop-in replacement as there are changes
+        # we'll need to adapt our builds to. And the two patches applied to
+        # our fork for Android SDK detection are also both still necessary.
+        # Example: https://github.com/rust-mobile/cargo-apk/issues/74
         repo: https://github.com/jamienicol/android-ndk-rs
-        revision: 595f4e14a78371e3ab59b12f7bd8131f2ec5b4a1
+        revision: abddf7b2a3f491637440e0418087f68fb4a401c1
 
 clang-14:
     description: clang 14.0.5 source code

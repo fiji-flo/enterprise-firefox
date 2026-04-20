@@ -29,9 +29,9 @@ task-defaults:
     use-uv: true
     worker-type:
         by-test-platform:
-            windows11-64-24h2-asan/.*: win11-64-25h2-large
-            windows11-(32|64)-24h2(-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2
-            windows11-aarch64-24h2(-devedition|-shippable)?/.*: win11-a64-25h2
+            windows.*-asan/.*: win11-64-25h2-large
+            windows.*aarch64.*/.*: win11-a64-25h2
+            windows.*/.*: win11-64-25h2
             default: default
     require-signed-extensions:
         by-release-type:
@@ -801,7 +801,7 @@ tasks:
         loopback-video: true
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         variants:
             - no-fission
@@ -867,7 +867,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         run-without-variant: false
         variants:
@@ -1065,9 +1065,9 @@ tasks:
                         default: default
                 default:
                     by-test-platform:
-                        windows11-64-24h2-asan/.*: win11-64-25h2-large
-                        windows11-(32|64)-24h2(-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2
-                        windows11-aarch64-24h2(-devedition|-shippable)?/.*: win11-a64-25h2
+                        windows.*-asan/.*: win11-64-25h2-large
+                        windows.*aarch64.*/.*: win11-a64-25h2
+                        windows.*/.*: win11-64-25h2
                         default: default
 
     mochitest-valgrind:
@@ -1095,7 +1095,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         test-manifest-loader: null  # don't load tests in the taskgraph
         loopback-video: true
@@ -1140,7 +1140,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         test-manifest-loader: null  # don't load tests in the taskgraph
         loopback-video: true
@@ -1185,7 +1185,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         chunks:
             by-test-platform:
@@ -1236,7 +1236,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         variants:
             - no-fission
@@ -1280,7 +1280,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         variants:
             - webrender-sw
@@ -1302,7 +1302,7 @@ tasks:
         virtualization: virtual-with-gpu
         worker-type:
             by-test-platform:
-                windows11-(32|64)-24h2(-asan|-ccov|-devedition|-mingwclang|-shippable)?/.*: win11-64-25h2-gpu
+                windows.*/.*: win11-64-25h2-gpu
                 default: default
         loopback-video: true
         variants:

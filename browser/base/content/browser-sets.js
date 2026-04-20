@@ -170,6 +170,9 @@ document.addEventListener(
           case "Browser:ReloadSkipCache":
             BrowserCommands.reloadSkipCache();
             break;
+          case "Browser:DuplicateTab":
+            BrowserCommands.duplicateTab();
+            break;
           case "Browser:NextTab":
             gBrowser.tabContainer.advanceSelectedTab(1, true);
             break;

@@ -414,6 +414,9 @@ void ContentCompositorBridgeParent::EndWheelTransaction(
   const CompositorBridgeParent::LayerTreeState* state =
       CompositorBridgeParent::GetLayerTreeState(aLayersId);
   if (!state || !state->mParent) {
+    // The boolean value will never used so it doesn't matter whether it's true
+    // or false.
+    aResolve(true);
     return;
   }
 

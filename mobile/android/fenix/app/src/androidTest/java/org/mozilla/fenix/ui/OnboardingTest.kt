@@ -13,6 +13,8 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithLauncherIntent
 import org.mozilla.fenix.helpers.FenixTestRule
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
+import org.mozilla.fenix.helpers.TestHelper.closeApp
+import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
@@ -56,7 +58,7 @@ class OnboardingTest {
     @SdkSuppress(minSdkVersion = 29)
     @SmokeTest
     @Test
-    fun verifyTheSetAsDefaultBrowserOnboardingCardTest() {
+    fun verifyTheSetAsDefaultBrowserOnboardingCardFunctionalityTest() {
         runWithLauncherIntent(composeTestRule) {
             homeScreen(composeTestRule) {
                 verifyTheTermsOfUseOnboardingCard()
@@ -64,8 +66,6 @@ class OnboardingTest {
                 verifyTheSetAsDefaultBrowserSystemDialog()
                 clickTheSetAsDefaultBrowserDialogCancelButton()
                 verifyTheSetAsDefaultBrowserOnboardingCard()
-                clickTheSetAsDefaultBrowserOnboardingCardButton()
-                verifyTheSetAsDefaultBrowserSystemDialog()
             }
         }
     }
@@ -173,6 +173,85 @@ class OnboardingTest {
             navigationToolbar(composeTestRule) {
             }.enterURLAndEnterToBrowser(genericPage.url) {
                 verifyPageContent(genericPage.content)
+            }
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3349492
+    @SdkSuppress(minSdkVersion = 29)
+    @Test
+    fun verifyTheOnboardingCardOrderTest() {
+        runWithLauncherIntent(composeTestRule) {
+            homeScreen(composeTestRule) {
+                verifyTheTermsOfUseOnboardingCard()
+                clickTheOnboardingCardContinueButton()
+
+                clickTheSetAsDefaultBrowserDialogCancelButton()
+                verifyTheSetAsDefaultBrowserOnboardingCard()
+                clickNotNowOnboardingCardButton()
+
+                verifyTheFirefoxSearchWidgetOnboardingCard()
+                clickNotNowOnboardingCardButton()
+
+                verifyTheStartSyncingOnboardingCard()
+                clickNotNowOnboardingCardButton()
+
+                // Check if the device is running on Android version lower than 13
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    // If true, the "Choose address bar" onboarding card is displayed
+                    verifyTheChooseYourAddressBarOnboardingCard()
+                } else {
+                    // If the device is running on Android version higher or equal to 13 the "Turn on notifications" onboarding card is displayed
+                    verifyTheTurnOnNotificationsOnboardingCard()
+                    clickNotNowOnboardingCardButton()
+                    verifyTheChooseYourAddressBarOnboardingCard()
+                }
+            }
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3814666
+    @SdkSuppress(minSdkVersion = 29)
+    @Test
+    fun verifyTheTermsOfUseOnboardingCardCannotBeDismissedWithoutAcceptingTest() {
+        runWithLauncherIntent(composeTestRule) {
+            homeScreen(composeTestRule) {
+                verifyTheTermsOfUseOnboardingCard()
+                swipeRightTheTermsOfUseOnboardingCard()
+                verifyTheTermsOfUseOnboardingCard()
+                restartApp(composeTestRule.activityRule)
+                verifyTheTermsOfUseOnboardingCard()
+                closeApp(composeTestRule.activityRule)
+                restartApp(composeTestRule.activityRule)
+                verifyTheTermsOfUseOnboardingCard()
+                clickTheOnboardingCardContinueButton()
+                verifyTheSetAsDefaultBrowserSystemDialog()
+            }
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3349494
+    @SdkSuppress(minSdkVersion = 29)
+    @Test
+    fun verifyTheSetAsDefaultBrowserOnboardingCardTest() {
+        runWithLauncherIntent(composeTestRule) {
+            homeScreen(composeTestRule) {
+                verifyTheTermsOfUseOnboardingCard()
+                clickTheOnboardingCardContinueButton()
+                verifyTheSetAsDefaultBrowserSystemDialog()
+                clickTheSetAsDefaultBrowserDialogCancelButton()
+                verifyTheSetAsDefaultBrowserOnboardingCard()
+                clickNotNowOnboardingCardButton()
+                verifyTheFirefoxSearchWidgetOnboardingCard()
+                swipeRightTheFirefoxSearchWidgetOnboardingCard()
+                verifyTheSetAsDefaultBrowserOnboardingCard()
+                closeApp(composeTestRule.activityRule)
+                restartApp(composeTestRule.activityRule)
+                verifyTheTermsOfUseOnboardingCard()
+                clickTheOnboardingCardContinueButton()
+                verifyTheSetAsDefaultBrowserSystemDialog()
+                clickTheSetAsDefaultBrowserDialogCancelButton()
+                verifyTheSetAsDefaultBrowserOnboardingCard()
             }
         }
     }

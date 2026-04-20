@@ -193,6 +193,7 @@ def push_to_try(
     files_to_change=None,
     allow_log_capture=False,
     push_to_vcs=False,
+    force_old_lando=False,
 ):
     metrics.mach_try.commit_prep.start()
     push = not stage_changes and not dry_run
@@ -253,7 +254,13 @@ def push_to_try(
                         MACH_TRY_REMOTE, ref=head, dest_branch=vcs.branch, force=True
                     )
         else:
-            push_data = push_to_lando_try(vcs, commit_message, changed_files, metrics)
+            push_data = push_to_lando_try(
+                vcs,
+                commit_message,
+                changed_files,
+                metrics,
+                force_old_lando=force_old_lando,
+            )
             lando_instance = push_data["lando_instance"]
             job_id = push_data["lando_job_id"]
             if lando_instance and job_id:

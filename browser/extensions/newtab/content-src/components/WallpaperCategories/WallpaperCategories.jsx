@@ -444,6 +444,12 @@ export class _WallpaperCategories extends React.PureComponent {
     const { activeWallpaper } = this.props;
     const { activeCategory } = this.state;
     const { activeCategoryFluentID } = this.state;
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep arrowIconSrc computation
+    let arrowIconSrc;
+    if (novaEnabled) {
+      const isRTL = document.dir === "rtl";
+      arrowIconSrc = `chrome://global/skin/icons/shaft-arrow-${isRTL ? "right" : "left"}.svg`;
+    }
     // Enable custom color select if pref'ed on
     let showColorPicker = prefs["newtabWallpapers.customColor.enabled"];
     let filteredWallpapers = wallpaperList.filter(
@@ -678,12 +684,26 @@ export class _WallpaperCategories extends React.PureComponent {
             ref={this.wallpaperListRef}
             className="category wallpaper-list ignore-color-mode"
           >
-            <button
-              ref={this.arrowButtonRef}
-              className="arrow-button"
-              data-l10n-id={activeCategoryFluentID}
-              onClick={this.handleBack}
-            />
+            {
+              // @nova-cleanup(remove-conditional): Remove novaEnabled check and the else branch, keep the nova branch
+              novaEnabled ? (
+                <moz-button
+                  ref={this.arrowButtonRef}
+                  type="ghost"
+                  className="arrow-button"
+                  iconSrc={arrowIconSrc}
+                  data-l10n-id={activeCategoryFluentID}
+                  onClick={this.handleBack}
+                />
+              ) : (
+                <button
+                  ref={this.arrowButtonRef}
+                  className="arrow-button"
+                  data-l10n-id={activeCategoryFluentID}
+                  onClick={this.handleBack}
+                />
+              )
+            }
             <div
               role="grid"
               aria-label="Wallpaper selection. Use arrow keys to navigate."

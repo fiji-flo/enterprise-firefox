@@ -34,7 +34,6 @@ class DebugDrawerTelemetryMiddleware : Middleware<DebugDrawerState, DebugDrawerA
             DebugDrawerAction.NavigateTo.GleanDebugTools,
             DebugDrawerAction.NavigateTo.Home,
             DebugDrawerAction.NavigateTo.IntegrityDebugTools,
-            DebugDrawerAction.NavigateTo.LlmDebugTools,
             DebugDrawerAction.NavigateTo.TabGroupDebugTools,
             DebugDrawerAction.NavigateTo.Logins,
             DebugDrawerAction.NavigateTo.RegionDebugTools,

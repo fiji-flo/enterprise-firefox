@@ -29,6 +29,7 @@
 #include "js/experimental/PCCountProfiling.h"  // JS::{Start,Stop}PCCountProfiling, JS::PurgePCCounts, JS::GetPCCountScript{Count,Summary,Contents}
 #include "js/friend/DumpFunctions.h"           // js::DumpPC, js::DumpScript
 #include "js/friend/ErrorMessages.h"           // js::GetErrorMessage, JSMSG_*
+#include "js/friend/StackLimits.h"             // js::AutoCheckRecursionLimit
 #include "js/Printer.h"
 #include "js/Printf.h"
 #include "js/Symbol.h"
@@ -1661,6 +1662,13 @@ bool ExpressionDecompiler::decompilePCForStackOperand(jsbytecode* pc, int i) {
 
 bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
   MOZ_ASSERT(script->containsPC(pc));
+
+  // The decompiler is invoked from error-reporting code. To avoid reporting a
+  // nested over-recursion error we fall back to the generic placeholder.
+  AutoCheckRecursionLimit recursion(cx);
+  if (!recursion.checkDontReport(cx)) {
+    return write("(intermediate value)");
+  }
 
   JSOp op = (JSOp)*pc;
 

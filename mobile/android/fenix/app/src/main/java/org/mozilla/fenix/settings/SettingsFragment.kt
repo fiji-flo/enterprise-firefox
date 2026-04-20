@@ -848,9 +848,12 @@ class SettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFragment 
     }
 
     private fun setupIPProtectionPreferences(settings: Settings) {
-        findPreference<Preference>(
+        findPreference<IPProtectionPreference>(
             getPreferenceKey(R.string.pref_key_ip_protection_settings),
-        )?.isVisible = settings.isIPProtectionAvailable
+        )?.apply {
+            isVisible = settings.isIPProtectionAvailable
+            showBetaBadge = FxNimbus.features.ipProtection.value().showBetaBadge
+        }
     }
 
     private fun updateProfilerUI(profilerStatus: Boolean) {

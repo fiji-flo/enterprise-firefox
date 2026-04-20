@@ -2553,6 +2553,14 @@ class Settings(
     )
 
     /**
+     * Indicates if Homepage Sports Widget is enabled.
+     */
+    var enableHomepageSportsWidget by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_sports_widget),
+        default = { FxNimbus.features.homepageSportsWidget.value().enabled },
+    )
+
+    /**
      * Adjust Activated User sent
      */
     var growthUserActivatedSent by booleanPreference(
@@ -2716,6 +2724,11 @@ class Settings(
     var aiControlsFeatureFlagEnabled by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_ai_controls),
         default = Config.channel.isNightlyOrDebug,
+    )
+
+    var importBookmarksFeatureFlagEnabled by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_enable_import_bookmarks),
+        default = Config.channel.isDebug,
     )
 
     /**

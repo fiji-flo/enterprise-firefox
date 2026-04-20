@@ -1307,6 +1307,7 @@ class PerfParser(CompareParser):
                         closed_tree=False,
                         allow_log_capture=True,
                         push_to_vcs=False,
+                        force_old_lando=True,
                     )
 
                     if not push_data or "lando_job_id" not in push_data:
@@ -1362,6 +1363,7 @@ class PerfParser(CompareParser):
                     closed_tree=False,
                     allow_log_capture=True,
                     push_to_vcs=False,
+                    force_old_lando=True,
                 )
                 if not push_data or "lando_job_id" not in push_data:
                     return

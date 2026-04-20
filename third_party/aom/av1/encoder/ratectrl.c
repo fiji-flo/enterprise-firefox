@@ -3246,12 +3246,12 @@ static unsigned int estimate_scroll_motion(
   unsigned int best_sad;
   int best_sad_col, best_sad_row;
   // Find the best match per 1-D search
-  *best_intmv_col =
-      av1_vector_match(hbuf, src_hbuf, mi_size_wide_log2[bsize],
-                       search_size_width, full_search, &best_sad_col);
-  *best_intmv_row =
-      av1_vector_match(vbuf, src_vbuf, mi_size_high_log2[bsize],
-                       search_size_height, full_search, &best_sad_row);
+  *best_intmv_col = av1_vector_match(hbuf, src_hbuf, mi_size_wide_log2[bsize],
+                                     search_size_width, search_size_width,
+                                     full_search, &best_sad_col);
+  *best_intmv_row = av1_vector_match(vbuf, src_vbuf, mi_size_high_log2[bsize],
+                                     search_size_height, search_size_height,
+                                     full_search, &best_sad_row);
   if (best_sad_col < best_sad_row) {
     *best_intmv_row = 0;
     best_sad = best_sad_col;
@@ -3318,8 +3318,8 @@ void av1_rc_scene_detection_onepass_rt(AV1_COMP *cpi,
   int num_mi_cols = cm->mi_params.mi_cols;
   int num_mi_rows = cm->mi_params.mi_rows;
   if (cpi->svc.number_spatial_layers > 1) {
-    num_mi_cols = cpi->svc.mi_cols_full_resoln;
-    num_mi_rows = cpi->svc.mi_rows_full_resoln;
+    num_mi_cols = size_in_mi(src_width);
+    num_mi_rows = size_in_mi(src_height);
   }
   int num_zero_temp_sad = 0;
   uint32_t min_thresh =

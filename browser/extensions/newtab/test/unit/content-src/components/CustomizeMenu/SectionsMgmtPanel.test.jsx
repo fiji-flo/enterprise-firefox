@@ -216,14 +216,29 @@ describe("<SectionsMgmtPanel>", () => {
     assert.notCalled(DEFAULT_PROPS.togglePanel);
   });
 
-  it("should call togglePanel when arrow button is clicked", () => {
+  it("should call togglePanel when arrow button is clicked (non-nova)", () => {
     wrapper = mount(
       <WrapWithProvider>
         <SectionsMgmtPanel {...DEFAULT_PROPS} showPanel={true} />
       </WrapWithProvider>
     );
 
-    wrapper.find(".arrow-button").simulate("click");
+    wrapper.find("button.arrow-button").simulate("click");
+    assert.calledOnce(DEFAULT_PROPS.togglePanel);
+  });
+
+  it("should call togglePanel when arrow button is clicked (nova)", () => {
+    wrapper = mount(
+      <WrapWithProvider>
+        <SectionsMgmtPanel
+          {...DEFAULT_PROPS}
+          showPanel={true}
+          novaEnabled={true}
+        />
+      </WrapWithProvider>
+    );
+
+    wrapper.find("moz-button.arrow-button").simulate("click");
     assert.calledOnce(DEFAULT_PROPS.togglePanel);
   });
 
@@ -597,7 +612,7 @@ describe("<SectionsMgmtPanel>", () => {
     assert.isTrue(blockDiv.hasClass("blocked"));
   });
 
-  it("should render panel title and headers", () => {
+  it("should render panel title and headers (non-nova)", () => {
     wrapper = mount(
       <WrapWithProvider>
         <SectionsMgmtPanel {...DEFAULT_PROPS} showPanel={true} />
@@ -634,5 +649,22 @@ describe("<SectionsMgmtPanel>", () => {
     assert.ok(wrapper.find("moz-box-button").exists());
     const emptyStates = wrapper.find(".topic-list-empty-state");
     assert.equal(emptyStates.length, 2);
+  });
+
+  it("should render panel title and headers (nova)", () => {
+    wrapper = mount(
+      <WrapWithProvider>
+        <SectionsMgmtPanel
+          {...DEFAULT_PROPS}
+          showPanel={true}
+          novaEnabled={true}
+        />
+      </WrapWithProvider>
+    );
+
+    const panel = wrapper.find(".sections-mgmt-panel");
+    assert.ok(panel.exists());
+    assert.equal(panel.find("h2").length, 1);
+    assert.equal(panel.find("h3").length, 2);
   });
 });

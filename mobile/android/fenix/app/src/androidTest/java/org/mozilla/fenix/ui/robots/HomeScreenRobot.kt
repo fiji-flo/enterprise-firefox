@@ -558,6 +558,26 @@ class HomeScreenRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "clickTheAddressBarOnboardingCardBottomOption: Waited for compose rule to be idle")
     }
 
+    fun swipeRightTheTermsOfUseOnboardingCard() {
+        Log.i(TAG, "swipeRightTheTermsOfUseOnboardingCard: Trying to perform swipe right action on the \"Terms of use\" onboarding card")
+        mDevice.findObject(
+            UiSelector().textContains(
+                getStringResource(R.string.onboarding_welcome_to_firefox),
+            ),
+        ).swipeRight(3)
+        Log.i(TAG, "swipeRightTheTermsOfUseOnboardingCard: Performed swipe right action on the \"Terms of use\" onboarding card")
+    }
+
+    fun swipeRightTheFirefoxSearchWidgetOnboardingCard() {
+        Log.i(TAG, "swipeRightTheFirefoxSearchWidgetOnboardingCard: Trying to perform swipe right action on the \"Add search widget\" onboarding card")
+        mDevice.findObject(
+            UiSelector().textContains(
+                getStringResource(R.string.nova_onboarding_add_search_widget_title),
+            ),
+        ).swipeRight(3)
+        Log.i(TAG, "swipeRightTheFirefoxSearchWidgetOnboardingCard: Performed swipe right action on the \"Add search widget\" onboarding card")
+    }
+
     class Transition(private val composeTestRule: ComposeTestRule) {
 
         fun openTabDrawerFromRedesignedToolbar(interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {

@@ -2311,7 +2311,7 @@ impl Global {
                 }
             }
             DeviceAction::CreateRenderBundle(id, encoder, desc) => {
-                let (_, error) = self.render_bundle_encoder_finish(encoder, &desc, Some(id));
+                let (_, error) = self.render_bundle_encoder_finish(Box::new(encoder), &desc, Some(id));
                 if let Some(err) = error {
                     error_buf.init(err, device_id);
                 }

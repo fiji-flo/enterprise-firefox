@@ -514,8 +514,8 @@ static inline void inter_modes_info_sort(const InterModesInfo *inter_modes_info,
 
 // Initialize estimated RD Cost records of compound average.
 static inline void init_comp_avg_est_rd(
-    struct macroblock *x, bool skip_comp_eval_using_top_comp_avg_est_rd) {
-  if (!skip_comp_eval_using_top_comp_avg_est_rd) return;
+    struct macroblock *x, int skip_cmp_using_top_cmp_avg_est_rd_lvl) {
+  if (!skip_cmp_using_top_cmp_avg_est_rd_lvl) return;
 
   for (int j = 0; j < TOP_COMP_AVG_EST_RD_COUNT; j++) {
     x->top_comp_avg_est_rd[j] = INT64_MAX;
@@ -798,16 +798,19 @@ static void adjust_rdcost(const AV1_COMP *cpi, const MACROBLOCK *x,
   if ((cpi->oxcf.tune_cfg.tuning == AOM_TUNE_IQ ||
        cpi->oxcf.tune_cfg.tuning == AOM_TUNE_SSIMULACRA2) &&
       is_inter_pred) {
-    // Tune IQ and SSIMULACRA2 are often used to encode layered AVIFs, where
-    // keyframes can be encoded at a lower quality (i.e. higher QP) than
-    // inter-coded frames.
+    // Tune IQ and SSIMULACRA2 can be used to encode layered images, where
+    // keyframes could be encoded at a lower or similar quality (i.e. higher
+    // QP) than inter-coded frames.
     // In this case, libaom tends to underestimate the true RD cost of inter
     // prediction candidates, causing encoded file size to increase without a
     // corresponding increase in quality.
-    // To compensate for this effect, make inter block candidates appear more
-    // expensive to the encoder to slightly bias toward intra prediction.
-    // Doing this increases overall compression efficiency, while still allowing
-    // the encoder to pick inter prediction when it's beneficial.
+    // When both intra and inter encoded block candidates are available (with
+    // rdcosts close to each other), the intra-coded candidate was subjectively
+    // observed to be a bit less blurry, with a corresponding increase in
+    // SSIMULACRA 2 scores.
+    // Apply a 1.125x inter block bias to increase overall perceptual
+    // compression efficiency, while still allowing the encoder to pick inter
+    // prediction when it's beneficial.
     rd_cost->dist += rd_cost->dist >> 3;
     rd_cost->rdcost += rd_cost->rdcost >> 3;
     return;
@@ -1232,11 +1235,10 @@ static inline void clamp_mv2(MV *mv, const MACROBLOCKD *xd) {
 
 /* If the current mode shares the same mv with other modes with higher cost,
  * skip this mode. */
-static int skip_repeated_mv(const AV1_COMMON *const cm,
-                            const MACROBLOCK *const x,
-                            PREDICTION_MODE this_mode,
-                            const MV_REFERENCE_FRAME ref_frames[2],
-                            InterModeSearchState *search_state) {
+static AOM_FORCE_INLINE int skip_repeated_mv(
+    const AV1_COMMON *const cm, const MACROBLOCK *const x,
+    PREDICTION_MODE this_mode, const MV_REFERENCE_FRAME ref_frames[2],
+    InterModeSearchState *search_state) {
   const int is_comp_pred = ref_frames[1] > INTRA_FRAME;
   const uint8_t ref_frame_type = av1_ref_frame_type(ref_frames);
   const MB_MODE_INFO_EXT *const mbmi_ext = &x->mbmi_ext;
@@ -4221,8 +4223,8 @@ static inline void init_mode_skip_mask(mode_skip_mask_t *mask,
   // Prune reference frames which are not the closest to the current
   // frame and with large pred_mv_sad.
   if (inter_sf->prune_single_ref) {
-    assert(inter_sf->prune_single_ref > 0 && inter_sf->prune_single_ref < 4);
-    const double prune_threshes[3] = { 1.20, 1.20, 1.05 };
+    assert(inter_sf->prune_single_ref > 0 && inter_sf->prune_single_ref < 5);
+    const double prune_thresh = (inter_sf->prune_single_ref <= 3) ? 1.20 : 1.05;
 
     for (ref_frame = LAST_FRAME; ref_frame <= ALTREF_FRAME; ++ref_frame) {
       const RefFrameDistanceInfo *const ref_frame_dist_info =
@@ -4239,9 +4241,7 @@ static inline void init_mode_skip_mask(mode_skip_mask_t *mask,
                 ? 0
                 : 1;
         if (x->best_pred_mv_sad[dir] < INT_MAX &&
-            x->pred_mv_sad[ref_frame] >
-                prune_threshes[inter_sf->prune_single_ref - 1] *
-                    x->best_pred_mv_sad[dir])
+            x->pred_mv_sad[ref_frame] > prune_thresh * x->best_pred_mv_sad[dir])
           mask->pred_modes[ref_frame] |= INTER_SINGLE_ALL;
       }
     }
@@ -4570,10 +4570,9 @@ static bool mask_says_skip(const mode_skip_mask_t *mode_skip_mask,
   return mode_skip_mask->ref_combo[ref_frame[0]][ref_frame[1] + 1];
 }
 
-static int inter_mode_compatible_skip(const AV1_COMP *cpi, const MACROBLOCK *x,
-                                      BLOCK_SIZE bsize,
-                                      PREDICTION_MODE curr_mode,
-                                      const MV_REFERENCE_FRAME *ref_frames) {
+static AOM_FORCE_INLINE int inter_mode_compatible_skip(
+    const AV1_COMP *cpi, const MACROBLOCK *x, BLOCK_SIZE bsize,
+    PREDICTION_MODE curr_mode, const MV_REFERENCE_FRAME *ref_frames) {
   const int comp_pred = ref_frames[1] > INTRA_FRAME;
   if (comp_pred) {
     if (!is_comp_ref_allowed(bsize)) return 1;
@@ -4633,7 +4632,7 @@ static inline int match_ref_frame_pair(const MB_MODE_INFO *mbmi,
 // Case 1: return 0, means don't skip this mode
 // Case 2: return 1, means skip this mode completely
 // Case 3: return 2, means skip compound only, but still try single motion modes
-static int inter_mode_search_order_independent_skip(
+static AOM_FORCE_INLINE int inter_mode_search_order_independent_skip(
     const AV1_COMP *cpi, const MACROBLOCK *x, mode_skip_mask_t *mode_skip_mask,
     InterModeSearchState *search_state, int skip_ref_frame_mask,
     PREDICTION_MODE mode, const MV_REFERENCE_FRAME *ref_frame) {
@@ -4972,7 +4971,7 @@ static int compound_skip_get_candidates(
   return candidates;
 }
 
-static int compound_skip_by_single_states(
+static AOM_FORCE_INLINE int compound_skip_by_single_states(
     const AV1_COMP *cpi, const InterModeSearchState *search_state,
     const PREDICTION_MODE this_mode, const MV_REFERENCE_FRAME ref_frame,
     const MV_REFERENCE_FRAME second_ref_frame, const MACROBLOCK *x) {
@@ -5296,9 +5295,11 @@ typedef struct {
 } InterModeSFArgs;
 /*!\endcond */
 
-static int skip_inter_mode(AV1_COMP *cpi, MACROBLOCK *x, const BLOCK_SIZE bsize,
-                           int64_t *ref_frame_rd, int midx,
-                           InterModeSFArgs *args, int is_low_temp_var) {
+static AOM_FORCE_INLINE int skip_inter_mode(AV1_COMP *cpi, MACROBLOCK *x,
+                                            const BLOCK_SIZE bsize,
+                                            int64_t *ref_frame_rd, int midx,
+                                            InterModeSFArgs *args,
+                                            int is_low_temp_var) {
   const SPEED_FEATURES *const sf = &cpi->sf;
   MACROBLOCKD *const xd = &x->e_mbd;
   // Get the actual prediction mode we are trying in this iteration
@@ -5927,6 +5928,18 @@ static inline void search_intra_modes_in_interframe(
   }
 }
 
+// Initialize the table that stores best RD Costs of transform no-split.
+static inline void init_top_tx_no_split_rd_for_inter_modes(
+    MACROBLOCK *x, int prune_inter_tx_split_rd_eval_lvl) {
+  if (!prune_inter_tx_split_rd_eval_lvl) return;
+
+  for (int i = 0; i < MAX_TX_BLOCKS_IN_MAX_SB; i++) {
+    for (int j = 0; j < TOP_INTER_TX_NO_SPLIT_COUNT; j++) {
+      x->top_inter_tx_no_split_rd[i][j] = INT64_MAX;
+    }
+  }
+}
+
 #if !CONFIG_REALTIME_ONLY
 // Prepare inter_cost and intra_cost from TPL stats, which are used as ML
 // features in intra mode pruning.
@@ -6098,6 +6111,10 @@ void av1_rd_pick_inter_mode(struct AV1_COMP *cpi, struct TileDataEnc *tile_data,
     INTERINTRA_MODES, INTERINTRA_MODES, INTERINTRA_MODES, INTERINTRA_MODES,
     INTERINTRA_MODES, INTERINTRA_MODES, INTERINTRA_MODES, INTERINTRA_MODES
   };
+
+  init_top_tx_no_split_rd_for_inter_modes(
+      x, sf->tx_sf.prune_inter_tx_split_rd_eval_lvl);
+
   HandleInterModeArgs args = { { NULL },
                                { MAX_SB_SIZE, MAX_SB_SIZE, MAX_SB_SIZE },
                                { NULL },
@@ -6284,8 +6301,7 @@ void av1_rd_pick_inter_mode(struct AV1_COMP *cpi, struct TileDataEnc *tile_data,
     mode_start = SINGLE_REF_MODE_START;
     mode_end = SINGLE_REF_MODE_END;
   }
-  init_comp_avg_est_rd(x,
-                       sf->inter_sf.skip_comp_eval_using_top_comp_avg_est_rd);
+  init_comp_avg_est_rd(x, sf->inter_sf.skip_cmp_using_top_cmp_avg_est_rd_lvl);
   for (THR_MODES midx = mode_start; midx < mode_end; ++midx) {
     // Get the actual prediction mode we are trying in this iteration
     const THR_MODES mode_enum = av1_default_mode_order[midx];

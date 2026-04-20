@@ -2116,12 +2116,6 @@ pub extern "C" fn wr_window_new(
         false
     };
 
-    let precise_linear_gradients = if software {
-        static_prefs::pref!("gfx.webrender.precise-linear-gradients-swgl")
-    } else {
-        static_prefs::pref!("gfx.webrender.precise-linear-gradients")
-    };
-
     let opts = WebRenderOptions {
         enable_aa: true,
         enable_subpixel_aa,
@@ -2177,7 +2171,6 @@ pub extern "C" fn wr_window_new(
         low_quality_pinch_zoom,
         max_shared_surface_size,
         enable_dithering,
-        precise_linear_gradients,
         ..Default::default()
     };
 

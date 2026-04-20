@@ -187,7 +187,7 @@ describe("<WidgetsManagementPanel>", () => {
     );
     const panel = wrapper.find(".widgets-mgmt-panel");
     assert.ok(panel.exists());
-    assert.equal(panel.find("h1").length, 1);
+    assert.equal(panel.find("h2").length, 1);
   });
 
   describe("widget toggles", () => {

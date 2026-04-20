@@ -797,13 +797,25 @@ let ShellServiceInternal = {
     try {
       wanted.initWithPath(argv0);
     } catch (e) {
-      if (argv0 === "") {
-        wanted.initWithFile(executableFile);
-      } else {
+      if (argv0.includes("/")) {
         wanted.setRelativePath(
           Services.dirsvc.get("CurWorkD", Ci.nsIFile),
           argv0
         );
+      } else {
+        if (argv0 !== "") {
+          // argv[0] doesn't seem to be a path to anything, so assume it's just
+          // a command itself. If it seems to be present in the PATH, roll with
+          // it, otherwise fall back to the executable.
+          try {
+            await lazy.Subprocess.pathSearch(argv0);
+            return argv0; // if it doesn't throw
+          } catch (inner) {}
+        }
+
+        // If that didn't work, or it's empty, just refer to the executable
+        // directly.
+        wanted.initWithFile(executableFile);
       }
     }
 

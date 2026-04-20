@@ -96,6 +96,8 @@
 }
 
 .customize-menu {
+  --customize-menu-bg: color-mix(in srgb, var(--newtab-background-color-secondary) 96%, transparent);
+
   color: var(--newtab-text-primary-color);
   background-color: var(--newtab-background-color-secondary);
   width: 432px;
@@ -113,6 +115,21 @@
   border: none;
   margin: 0;
 
+  // @nova-cleanup(remove-conditional): Remove &.nova-enabled and make these the default
+  &.nova-enabled {
+    background: var(--customize-menu-bg);
+    border-radius: var(--border-radius-large);
+    box-shadow: 0 0 14px 0 var(--box-shadow-color-accent-primary-primary);
+    width: 418px;
+    padding-inline: var(--space-large) 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: calc(100% - var(--space-xsmall));
+    inset-block: var(--space-xxsmall);
+    inset-inline: auto var(--space-xxsmall);
+  }
 
   &::backdrop {
     background: transparent;
@@ -152,8 +169,16 @@
 }
 
 .customize-menu-content {
-  overflow: auto;
   height: 100%;
+  overflow: auto;
+
+  // @nova-cleanup(remove-conditional): Remove .nova-enabled & and make these the default
+  .nova-enabled & {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: unset;
+  }
 
   &.subpanel-open {
     overflow: clip;
@@ -166,6 +191,11 @@
     background-color: var(--newtab-background-color-secondary);
     z-index: 1;
 
+    // @nova-cleanup(remove-conditional): Remove .nova-enabled & and make background: transparent the default
+    .nova-enabled & {
+      background: transparent;
+    }
+
     moz-button {
       margin-inline-start: auto;
       margin-inline-end: var(--space-large);
@@ -175,6 +205,29 @@
 
   *:focus-visible {
     outline: var(--focus-outline);
+  }
+
+  .manage-settings-footer {
+    padding: var(--space-xxlarge);
+    display: flex;
+    position: absolute;
+    inset-block-end: 0;
+    background: var(--customize-menu-bg);
+    inset-inline-start: 0;
+    width: 100%;
+
+    &::before {
+      content: '';
+      position: absolute;
+      // calc() used here (instead of a literal 40px) to satisfy the Acorn token lint rule
+      // and to add a transparent-like gradient for the footer all while keeping it accessible
+      // --space-xlarge (1.5rem) + --space-large (1rem) = 2.5rem = 40px at default font size.
+      inset-block-start: calc((var(--space-xlarge) + var(--space-large)) * -1);
+      inset-inline-start: 0;
+      width: 100%;
+      height: calc(var(--space-xlarge) + var(--space-large));
+      background: linear-gradient(to bottom, transparent, var(--customize-menu-bg));
+    }
   }
 }
 
@@ -188,6 +241,15 @@
   grid-template-rows: repeat(4, auto);
   grid-row-gap: var(--space-xxlarge);
   padding-block: var(--space-xsmall) var(--space-large);
+
+  // @nova-cleanup(remove-conditional): Remove .nova-enabled & and make these the default
+  .nova-enabled & {
+    align-content: start;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
   padding-inline: var(--space-large);
 
   .wallpapers-section h2 {
@@ -280,6 +342,11 @@
       }
     }
 
+    .more-info-top-wrapper >
+    .more-information {
+      padding: var(--space-small);
+    }
+
     .more-info-top-wrapper,
     .more-info-pocket-wrapper,
     .more-info-widgets-wrapper {
@@ -347,43 +414,40 @@
     margin: 0 calc(var(--space-large) * -1);
   }
 
-  .external-link {
-    -moz-context-properties: fill;
-    background: url('chrome://global/skin/icons/settings.svg') left no-repeat;
-    background-size: 16px;
-    border: 1px solid transparent;
-    border-radius: var(--border-radius-small);
-    color: var(--link-color);
-    cursor: pointer;
-    fill: var(--link-color);
-    font-size: var(--font-size-small);
-    margin-block-end: var(--space-large);
-    padding-inline-start: var(--space-xlarge);
-    text-decoration: underline;
+}
 
-    &:hover {
-      color: var(--link-color-hover);
-      text-decoration: none;
-    }
+.external-link {
+  -moz-context-properties: fill;
+  background: url('chrome://global/skin/icons/settings.svg') left no-repeat;
+  background-size: 16px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-small);
+  color: var(--link-color);
+  cursor: pointer;
+  fill: var(--link-color);
+  font-size: var(--font-size-small);
+  padding-inline-start: var(--space-xlarge);
+  text-decoration: underline;
 
-    &:active {
-      color: var(--link-color-active);
-    }
-
-    @media (forced-colors: active) {
-      padding: var(--space-small) var(--space-medium);
-      padding-inline-start: var(--space-xlarge);
-    }
-
-    &:dir(rtl) {
-      background-position-x: right;
-    }
-  }
-
-  .external-link:hover {
+  &:hover {
+    color: var(--link-color-hover);
     text-decoration: none;
   }
+
+  &:active {
+    color: var(--link-color-active);
+  }
+
+  @media (forced-colors: active) {
+    padding: var(--space-small) var(--space-medium);
+    padding-inline-start: var(--space-xlarge);
+  }
+
+  &:dir(rtl) {
+    background-position-x: right;
+  }
 }
+
 
 .external-link:focus-visible,
 .close-button:focus-visible {
@@ -439,6 +503,15 @@
   background-color: var(--newtab-background-color-secondary);
   overflow-y: auto;
 
+  // @nova-cleanup(remove-conditional): Remove .nova-enabled & and make these the default
+  .nova-enabled & {
+    height: 100vh;
+    inset-inline-start: 0;
+    position: fixed;
+    width: 100%;
+    margin-block: 0;
+  }
+
   &:dir(rtl) {
     transform: translateX(-100%);
   }
@@ -448,7 +521,8 @@
     margin-block: 0 var(--space-small);
   }
 
-  .arrow-button {
+  // @nova-cleanup(remove-conditional): Remove button.arrow-button block once Nova ships
+  button.arrow-button {
     background: url('chrome://global/skin/icons/arrow-left.svg') no-repeat left center;
 
     &:dir(rtl) {
@@ -469,6 +543,29 @@
       font-size: var(--font-size-root);
       margin-block: 0;
       font-weight: var(--button-font-weight);
+    }
+  }
+
+  // @nova-cleanup(remove-conditional): Remove .nova-enabled & selector, keep .panel-content and .arrow-wrapper as default
+  .nova-enabled & {
+    .panel-content {
+      padding: var(--space-xlarge);
+    }
+
+    .arrow-wrapper {
+      display: flex;
+      align-items: center;
+      margin-block-end: var(--space-xlarge);
+
+      .arrow-button {
+        margin-inline-end: var(--space-small);
+      }
+
+      h2 {
+        font-size: var(--font-size-heading-medium);
+        margin-block: 0;
+        font-weight: var(--button-font-weight);
+      }
     }
   }
 }
@@ -603,6 +700,7 @@
 
 // @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-section, #widgets-section and #row-selector
 .nova-enabled {
+  #wallpapers-section,
   #shortcuts-section,
   #widgets-section,
   #pocket-section {

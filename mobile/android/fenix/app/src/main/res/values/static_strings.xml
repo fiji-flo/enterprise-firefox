@@ -139,6 +139,8 @@
     <string name="preferences_debug_settings_enable_doh_settings" translatable="false">Enable DNS over HTTPS settings</string>
     <!-- Label for enabling the persistent onboarding -->
     <string name="preferences_debug_settings_enable_persistent_onboarding" translatable="false">Show onboarding on each app cold open</string>
+    <!-- Label for enabling Homepage Sports Widget -->
+    <string name="preferences_debug_settings_homepage_sports_widget" translatable="false">Enable Homepage Sports Widget</string>
 
     <!-- Search Optimization Secret Settings -->
     <string name="preferences_debug_settings_search_optimization" translatable="false">Search Optimization Feature</string>
@@ -306,12 +308,6 @@
     <string name="crash_debug_tools_title">Crash Debug Tools</string>
     <!-- The title of the debug drawer tab to help debug google play integrity-->
     <string name="integrity_debug_tools_title">Play Integrity Tools</string>
-    <!-- The title of the debug drawer tab to help debug MLPA-->
-    <string name="llm_debug_tools_title">LLM Tools</string>
-    <!-- The title of the button to prepare an LLM in the debug menu-->
-    <string name="llm_debug_tools_prepare_button">Prepare</string>
-    <!-- The title of the button to prepare an LLM in the debug menu-->
-    <string name="llm_debug_tools_prompt_button">Test Prompt</string>
     <!-- Button text to trigger a app parent process crash -->
     <string name="crash_debug_generic_crash_trigger">Trigger Crash Report</string>
     <!-- Button text to reset crash deferral period (the deferral period is set after clicking close on the dialog to 5 days in the settings) from it's future value to 0 -->
@@ -397,4 +393,9 @@
     <!--  The button text to close all tab groups in the tab group creation tool. -->
     <string name="debug_drawer_tab_group_tools_creation_button_remove_all">Remove all tab groups</string>
 
+
+    <!-- Import Bookmarks pref title -->
+    <string name="preferences_import_bookmarks">Import Bookmarks</string>
+    <!-- Label for the secret settings preference to enable Import Bookmarks -->
+    <string name="preferences_debug_settings_import_bookmarks">Enable Import Bookmarks</string>
 </resources>

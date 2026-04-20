@@ -83,6 +83,10 @@ var BrowserCommands = {
     return true;
   },
 
+  duplicateTab() {
+    duplicateTabIn(gBrowser.selectedTab, "tab");
+  },
+
   reloadOrDuplicate(aEvent) {
     aEvent = BrowserUtils.getRootEvent(aEvent);
     const accelKeyPressed =

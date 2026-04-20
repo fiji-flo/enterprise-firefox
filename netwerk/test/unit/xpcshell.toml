@@ -664,6 +664,8 @@ skip-if = [
 
 ["test_dns_stress.js"]
 
+["test_dns_drain_loop.js"]
+
 ["test_domain_eviction.js"]
 
 ["test_dooh.js"]

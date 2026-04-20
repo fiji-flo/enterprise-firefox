@@ -627,13 +627,15 @@ void nsCocoaWindow::PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) {
   // 1. If the page is loading, interrupt loading.
   // 2. Give a website an opportunity to handle the event and call
   //    preventDefault() on it.
-  // 3. If the browser is fullscreen and the page isn't loading, exit
-  //    fullscreen.
+  // 3. If the browser is fullscreen, we do not have fullscreen keyboard lock
+  //    enabled, and the page isn't loading, exit fullscreen.
   // 4. Ignore.
   // Case 1 and 2 are handled before we get here. Below, we handle case 3.
+  Document* doc = GetDocument();
   if (StaticPrefs::browser_fullscreen_exit_on_escape() &&
       [cocoaEvent keyCode] == kVK_Escape &&
-      [[mChildView window] styleMask] & NSWindowStyleMaskFullScreen) {
+      [[mChildView window] styleMask] & NSWindowStyleMaskFullScreen &&
+      !(doc && doc->HasFullscreenKeyboardLockEnabled())) {
     [[mChildView window] toggleFullScreen:nil];
   }
 

@@ -3329,11 +3329,18 @@ typedef struct AV1_COMP {
   int prune_ref_frame_mask;
 
   /*!
-   * Mark the reference frames which are important (based on the temporal
+   * Mark the single reference frames which are important (based on the temporal
    * distance and quality) to prevent pruning the reference frame at block
    * level.
    */
   int keep_single_ref_frame_mask;
+
+  /*!
+   * Mark the compound reference frames which are important (based on the
+   * temporal distance and quality) to prevent pruning the reference frame pair
+   * at block level.
+   */
+  int keep_comp_ref_frame_mask;
 
   /*!
    * Loop Restoration context.
@@ -4231,6 +4238,11 @@ static inline int av1_resize_scaled(const AV1_COMMON *cm) {
 
 static inline int av1_frame_scaled(const AV1_COMMON *cm) {
   return av1_superres_scaled(cm) || av1_resize_scaled(cm);
+}
+
+static inline bool av1_encode_for_extrc(AOM_EXT_RATECTRL const *ext_rc) {
+  return ext_rc->ready && (ext_rc->funcs.rc_type & AOM_RC_QP) != 0 &&
+         ext_rc->funcs.get_encodeframe_decision != NULL;
 }
 
 // Don't allow a show_existing_frame to coincide with an error resilient

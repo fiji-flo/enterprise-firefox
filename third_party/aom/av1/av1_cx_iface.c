@@ -858,7 +858,7 @@ static aom_codec_err_t validate_config(aom_codec_alg_priv_t *ctx,
   RANGE_CHECK(extra_cfg, transfer_characteristics, AOM_CICP_TC_BT_709,
               AOM_CICP_TC_HLG);
   RANGE_CHECK(extra_cfg, matrix_coefficients, AOM_CICP_MC_IDENTITY,
-              AOM_CICP_MC_ICTCP);
+              AOM_CICP_MC_YCGCO_RO);
   RANGE_CHECK(extra_cfg, color_range, 0, 1);
 
   /* Average corpus complexity is supported only in the case of single pass
@@ -4069,6 +4069,7 @@ static aom_codec_err_t ctrl_set_svc_params(aom_codec_alg_priv_t *ctx,
         ppi->number_spatial_layers * ppi->number_temporal_layers - 1;
     ctx->next_frame_flags |= AOM_EFLAG_FORCE_KF;
     av1_set_svc_seq_params(ppi);
+    av1_free_svc_cyclic_refresh(cpi);
     // Check for valid values for the spatial/temporal_layer_id here, since
     // there has been a dynamic change in the number_spatial/temporal_layers,
     // and if the ctrl_set_layer_id is not used after this call, the
@@ -4335,16 +4336,9 @@ static aom_codec_err_t encoder_set_option(aom_codec_alg_priv_t *ctx,
   size_t len = strlen(name) + strlen(value) + 4;
   char *const err_string = ctx->ppi->error.detail;
 
-#if __STDC_VERSION__ >= 201112L
-  // We use the keyword _Static_assert because clang-cl does not allow the
-  // convenience macro static_assert to be used in function scope. See
-  // https://bugs.llvm.org/show_bug.cgi?id=48904.
-  _Static_assert(sizeof(ctx->ppi->error.detail) >= ARG_ERR_MSG_MAX_LEN,
-                 "The size of the err_msg buffer for arg_match_helper must be "
-                 "at least ARG_ERR_MSG_MAX_LEN");
-#else
-  assert(sizeof(ctx->ppi->error.detail) >= ARG_ERR_MSG_MAX_LEN);
-#endif
+  static_assert(sizeof(ctx->ppi->error.detail) >= ARG_ERR_MSG_MAX_LEN,
+                "The size of the err_msg buffer for arg_match_helper must be "
+                "at least ARG_ERR_MSG_MAX_LEN");
 
   argv[0] = aom_malloc(len * sizeof(argv[1][0]));
   if (!argv[0]) return AOM_CODEC_MEM_ERROR;
