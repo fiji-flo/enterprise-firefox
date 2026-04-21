@@ -572,7 +572,14 @@ export const ConsoleClient = {
       );
     }, FELT_REFRESH_TIMEOUT);
 
-    this._refreshPromise = promise.then(() => lazy.clearTimeout(timeoutId));
+    this._refreshPromise = promise
+      .then(() => lazy.clearTimeout(timeoutId))
+      .finally(() => {
+        // nullify (reset) the promise here
+        // and not from outside the async flow
+        this._refreshPromise = null;
+        this._refreshResolve = null;
+      });
 
     // Kick off the actual refresh
     Services.felt.refreshTokens();
@@ -681,9 +688,8 @@ export const ConsoleClient = {
       case "felt-firefox-access-token-refreshed": {
         // Resolve the promise, if any
         this._refreshResolve?.();
-        // Reset the promise since we're done.
-        this._refreshPromise = null;
-        this._refreshResolve = null;
+        // The `finally()` block of our promise chain will
+        // reset/nullify the promise.
         break;
       }
     }
