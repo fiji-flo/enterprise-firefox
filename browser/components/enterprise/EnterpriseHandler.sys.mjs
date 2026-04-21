@@ -431,7 +431,7 @@ export const EnterpriseHandler = {
       return;
     }
 
-    await this.initiateShutdown();
+    this.initiateShutdown();
   },
 
   initiateShutdown() {
@@ -440,8 +440,7 @@ export const EnterpriseHandler = {
       Services.felt.performSignout();
     } catch (e) {
       lazy.log.error(`Unable to signout the user: ${e}`);
-    } finally {
-      Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+      Services.obs.notifyObservers(null, "felt-firefox-shutdown");
     }
     // FELT will call shutdownFirefox() to quit us after handling the logout.
   },

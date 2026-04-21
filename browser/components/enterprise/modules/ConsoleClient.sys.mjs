@@ -477,10 +477,9 @@ export const ConsoleClient = {
       }
 
       const url = this.constructURI(this._paths.TOKEN);
-      let res;
       // We let any errors that are thrown here bubble up, these should
       // be lower level network errors, i.e. nothing on the HTTP level.
-      res = await this._xhrFetch(url, {
+      const res = await this._xhrFetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -665,7 +664,6 @@ export const ConsoleClient = {
     switch (topic) {
       case "xpcom-shutdown": {
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        Services.obs.removeObserver(this, "felt-firefox-shutdown");
         Services.obs.removeObserver(
           this,
           "felt-firefox-access-token-refreshed"
