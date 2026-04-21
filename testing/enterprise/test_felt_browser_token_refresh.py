@@ -61,13 +61,9 @@ class BrowserTokenRefresh(FeltTests):
         self.policy_access_token.value = ""
         self.policy_refresh_token.value = ""
 
-        # Ask Felt to refresh the token immediately. Since both server tokens are now
-        # invalid, Felt's refresh will fail with ReauthRequiredError, causing Felt to
-        # shut Firefox down via shutdownFirefox().
-        self._child_driver.set_context("chrome")
-        self._child_driver.execute_script("Services.felt.refreshTokens();")
-        self._child_driver.set_context("content")
-
+        # We are waiting for the regularly scheduled policy fetch to fail with ReauthRequiredError:
+        # Since Felt cannot get a new token without a refresh token, we expect the browser to close.
+        # and Felt to display the auth dialog.
         self._manually_closed_child = True
         self.await_felt_auth_window()
         self.force_window()
