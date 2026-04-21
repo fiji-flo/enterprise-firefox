@@ -520,7 +520,7 @@ export const ConsoleClient = {
         throw e;
       }
 
-      const url = this.constructURI(this._paths.TOKEN);
+      const url = await this.constructURI(this._paths.TOKEN);
       // We let any errors that are thrown here bubble up, these should
       // be lower level network errors, i.e. nothing on the HTTP level.
       const res = await this._xhrFetch(url, {
