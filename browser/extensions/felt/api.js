@@ -20,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   createEnterpriseLogger:
     "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
+  FeltLocking: "chrome://felt/content/FeltLocking.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -233,7 +234,7 @@ this.felt = class extends ExtensionAPI {
     }
   }
 
-  receiveMessage(message) {
+  async receiveMessage(message) {
     lazy.log.debug(`FeltExtension: ${message.name} handling ...`);
     switch (message.name) {
       case "FeltParent:FirefoxNormalExit": {
@@ -241,26 +242,18 @@ this.felt = class extends ExtensionAPI {
           "FeltParent:FirefoxNormalExit",
           this
         );
+        await lazy.FeltLocking.store(Services.felt.getRefreshToken());
 
-        lazy.ConsoleClient.performServerSignout()
-          .catch(err => {
-            console.error(
-              `FeltExtension: Failed to post signout on exit: ${err}`
-            );
-          })
-          .finally(() => {
-            Services.felt.clearTokens();
-            // This is only useful for testing purpose when we need to exit the
-            // browser cleanly but need to keep felt alive for some processing after
-            if (!lazy.isBlockingShutdown()) {
-              Services.startup.quit(
-                Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
-              );
-            } else if (!this._win) {
-              Services.felt.makeBackgroundProcess(false);
-              this.showWindow();
-            }
-          });
+        // This is only useful for testing purpose when we need to exit the
+        // browser cleanly but need to keep felt alive for some processing after
+        if (!lazy.isBlockingShutdown()) {
+          Services.startup.quit(
+            Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
+          );
+        } else if (!this._win) {
+          Services.felt.makeBackgroundProcess(false);
+          this.showWindow();
+        }
         break;
       }
 

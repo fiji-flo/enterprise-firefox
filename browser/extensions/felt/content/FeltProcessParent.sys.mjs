@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   createEnterpriseLogger:
     "resource:///modules/enterprise/EnterpriseCommon.sys.mjs",
   FeltCommon: "chrome://felt/content/FeltCommon.sys.mjs",
+  FeltLocking: "chrome://felt/content/FeltLocking.sys.mjs",
   FeltStorage: "resource:///modules/FeltStorage.sys.mjs",
 });
 
@@ -767,13 +768,21 @@ export class FeltProcessParent extends JSProcessActorParent {
     switch (message.name) {
       case "FeltChild:StartFirefox":
         {
-          const {
-            access_token = "",
-            refresh_token = "",
-            expires_in = 0,
-          } = message.data;
-          const expires_at = Math.floor(Date.now() / 1000) + Number(expires_in);
-          Services.felt.setTokens(access_token, refresh_token, expires_at);
+          if (!message.data?.refresh_token) {
+            if (!Services.felt.getRefreshToken()) {
+              throw new Error("No token!");
+            }
+          } else {
+            const {
+              access_token = "",
+              refresh_token = "",
+              expires_in = 0,
+            } = message.data;
+            const expires_at =
+              Math.floor(Date.now() / 1000) + Number(expires_in);
+            Services.felt.setTokens(access_token, refresh_token, expires_at);
+            await lazy.FeltLocking.store(refresh_token);
+          }
 
           // TODO: Bug 2003001 - Pass user info from Felt to Firefox to avoid network request on startup
           this.loggedInUserInfo =
@@ -786,10 +795,6 @@ export class FeltProcessParent extends JSProcessActorParent {
           lazy.log.debug(`Collected cookies: ${ssoCollectedCookies.length}`);
           // When a restart was reported we assume cookies were stored properly on the
           // browser side?
-          if (!ssoCollectedCookies.length) {
-            throw new Error("Not enough cookies!!");
-          }
-
           this.startFirefox(
             PROCESS_START_REASON.INITIAL_START,
             ssoCollectedCookies

@@ -4,6 +4,7 @@
 
 /* global pref */
 
+pref("enterprise.locking.enabled", true);
 pref("browser.profiles.enabled", false);
 pref("extensions.activeThemeID", "firefox-enterprise-light@mozilla.org");
 
