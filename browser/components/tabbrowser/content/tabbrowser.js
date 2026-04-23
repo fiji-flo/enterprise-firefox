@@ -1,5 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -10641,6 +10640,27 @@ var TabContextMenu = {
       "context_bookmarkSelectedTabs"
     );
     bookmarkMultiSelectedTabs.hidden = !this.multiselected;
+
+    let contentSharingShareTabs = document.getElementById(
+      "context_shareSelectedTabs"
+    );
+
+    const hideContentSharing =
+      !this.multiselected || !ContentSharingUtils.isEnabled;
+    contentSharingShareTabs.hidden = hideContentSharing;
+    document.getElementById("context_shareSelectedTabsSeparator").hidden =
+      hideContentSharing;
+    if (!contentSharingShareTabs.hidden) {
+      this.removeNewBadge(contentSharingShareTabs);
+      if (
+        Services.prefs.getBoolPref(
+          "browser.contentsharing.newBadge.enabled",
+          true
+        )
+      ) {
+        this.addNewBadge(contentSharingShareTabs);
+      }
+    }
 
     let toggleMute = document.getElementById("context_toggleMuteTab");
     let toggleMultiSelectMute = document.getElementById(

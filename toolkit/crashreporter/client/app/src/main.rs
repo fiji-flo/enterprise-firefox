@@ -146,7 +146,7 @@ fn report_main() {
                             "ProductName": "Bar",
                             "ReleaseChannel": "release",
                             "BuildID": "1234",
-                            "StackTraces": {},
+                            "StackTraces": "{}",
                             "Version": "100.0",
                             "ServerURL": "https://reports.example",
                             "TelemetryServerURL": "https://telemetry.example",

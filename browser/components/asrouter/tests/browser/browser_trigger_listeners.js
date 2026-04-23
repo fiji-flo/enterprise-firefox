@@ -18,6 +18,10 @@ ChromeUtils.defineLazyGetter(this, "SearchTestUtils", () => {
 ChromeUtils.defineESModuleGetters(this, {
   IPProtection:
     "moz-src:///browser/components/ipprotection/IPProtection.sys.mjs",
+  IPPProxyManager:
+    "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs",
+  ProxyUsage:
+    "moz-src:///toolkit/components/ipprotection/GuardianClient.sys.mjs",
 });
 
 const mockIdleService = {
@@ -859,4 +863,90 @@ add_task(async function test_ipprotection_panel_closed() {
   IPProtection.uninit();
   await SpecialPowers.popPrefEnv();
   sandbox.restore();
+});
+
+add_task(async function test_ipprotection_bandwidth_reset() {
+  const sandbox = sinon.createSandbox();
+  const receivedTrigger = new Promise(resolve => {
+    sandbox.stub(ASRouter, "sendTriggerMessage").callsFake(({ id }) => {
+      if (id === "ipProtectionBandwidthReset") {
+        resolve(true);
+      }
+    });
+  });
+
+  IPProtection.init();
+  IPProtection.getPanel(window);
+
+  const oldResetDate = new Date(Date.now() - 86400000).toISOString();
+  const newResetDate = new Date(Date.now() + 86400000).toISOString();
+  const max = "5368709120";
+
+  Services.prefs.setStringPref(
+    "browser.ipProtection.bandwidthResetDate",
+    oldResetDate
+  );
+
+  const usage = new ProxyUsage(max, max, newResetDate);
+  IPPProxyManager.dispatchEvent(
+    new CustomEvent("IPPProxyManager:UsageChanged", {
+      bubbles: true,
+      composed: true,
+      detail: { usage },
+    })
+  );
+
+  Assert.ok(
+    await receivedTrigger,
+    "ipProtectionBandwidthReset trigger sent when bandwidth resets"
+  );
+
+  Services.prefs.clearUserPref("browser.ipProtection.bandwidthResetDate");
+  Services.prefs.clearUserPref("browser.ipProtection.bandwidthThreshold");
+
+  IPProtection.uninit();
+  sandbox.restore();
+});
+
+add_task(async function test_relayMaskUsed() {
+  const stub = sinon.stub();
+  const relayMaskTrigger = ASRouterTriggerListeners.get("relayMaskUsed");
+
+  relayMaskTrigger.uninit();
+  relayMaskTrigger.init(stub);
+
+  Services.obs.notifyObservers(null, "relay-mask-used");
+
+  Assert.ok(stub.calledOnce, "Called once after first mask used");
+  Assert.deepEqual(
+    stub.firstCall.args[1],
+    {
+      id: "relayMaskUsed",
+      context: {
+        masksUsedCount: 1,
+      },
+    },
+    "Called with masksUsedCount = 1"
+  );
+
+  Services.obs.notifyObservers(null, "relay-mask-used");
+
+  Assert.ok(stub.calledTwice, "Called twice after second mask used");
+  Assert.deepEqual(
+    stub.secondCall.args[1],
+    {
+      id: "relayMaskUsed",
+      context: {
+        masksUsedCount: 2,
+      },
+    },
+    "Called with masksUsedCount = 2"
+  );
+
+  stub.resetHistory();
+  relayMaskTrigger.uninit();
+
+  Services.obs.notifyObservers(null, "relay-mask-used");
+
+  Assert.ok(stub.notCalled, "Not called after uninit");
 });

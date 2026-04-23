@@ -587,8 +587,8 @@ class MainMenuTest {
         }
         browserScreen(composeTestRule) {
         }.openThreeDotMenu {
-            verifyExtensionsButtonWithInstalledExtension(recommendedExtensionTitle)
         }.clickExtensionsButton {
+            verifyExtensionsButtonWithInstalledExtension(recommendedExtensionTitle)
             verifyDiscoverMoreExtensionsButton(composeTestRule, isDisplayed = false)
             verifyManageExtensionsButtonFromRedesignedMainMenu(composeTestRule, isDisplayed = true)
             verifyInstalledExtension(composeTestRule, recommendedExtensionTitle)
@@ -793,8 +793,8 @@ class MainMenuTest {
         }
         browserScreen(composeTestRule) {
         }.openThreeDotMenu {
-            verifyExtensionsButtonWithInstalledExtension(recommendedExtensionTitle)
         }.clickExtensionsButton {
+            verifyExtensionsButtonWithInstalledExtension(recommendedExtensionTitle)
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
         }.openDetailedMenuForAddon(recommendedExtensionTitle) {
             disableExtension()

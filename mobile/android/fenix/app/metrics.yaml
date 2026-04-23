@@ -478,6 +478,22 @@ events:
     metadata:
       tags:
         - Toolbar
+  toolbar_tabstray_swipe:
+    type: event
+    description: |
+      A user swiped the toolbar up or down to open the tabs tray.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2020810
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D286900
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Toolbar
   toolbar_tab_swipe_cfr_shown:
     type: event
     description: |
@@ -4203,7 +4219,7 @@ customize_home:
           toggled.
 
           We currently track: most_visited_sites, jump_back_in,
-          recently_visited, bookmarks, pocket, and contile.
+          recently_visited, bookmarks, pocket, contile, and privacy_report.
           We previously tracked bookmarks as recently_saved.
       enabled:
         type: boolean
@@ -10196,6 +10212,53 @@ addons:
     metadata:
       tags:
         - WebExtensions
+  rtamo_identified:
+    type: event
+    description: |
+      The download URL of the RTAMO addon has been successfully identified.
+    extra_keys:
+      addon_download_url:
+        type: string
+        description: The download URL of the addon attempted to install.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2030692
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293161
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - WebExtensions
+    send_in_pings:
+      - events
+  rtamo_failed:
+    type: event
+    description: |
+      Could not identify the download URL of the RTAMO addon.
+    extra_keys:
+      reason:
+        type: string
+        description: |
+          Reason for why this operation failed.
+          Can be one of: invalid_id, unknown_url, cancelled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2030692
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293161
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - WebExtensions
+    send_in_pings:
+      - events
+
 perf.startup:
   cold_main_app_to_first_frame:
     type: timing_distribution
@@ -11924,6 +11987,22 @@ homepage:
     metadata:
       tags:
         - Tabs
+  privacy_report_tapped:
+    type: event
+    description: |
+      A user tapped the privacy report / trackers blocked card on the homepage.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2025368
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D289791
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - TrackingProtection
 
 start_on_home:
   enter_home_screen:
@@ -15093,10 +15172,21 @@ integrity:
     type: event
     description: |
       Records when the Play Integrity client has completed its warm-up.
+    extra_keys:
+      success:
+        description: |
+          Whether the request succeeded.
+        type: boolean
+      duration_ms:
+        description: |
+          Time in milliseconds between requesting warmup and warmup completion.
+        type: quantity
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=2026727
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2033110
     data_reviews:
       - https://phabricator.services.mozilla.com/D290217
+      - https://phabricator.services.mozilla.com/D295065
     data_sensitivity:
       - technical
     notification_emails:
@@ -15426,6 +15516,250 @@ browser:
       - https://phabricator.services.mozilla.com/D293327
     data_sensitivity:
       - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+vpn:
+  onboarding_shown:
+    type: event
+    description:
+      Triggered when the VPN feature onboarding card is shown to the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  onboarding_not_now_tapped:
+    type: event
+    description:
+      Triggered when the user taps "Not Now" on the VPN onboarding card.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  onboarding_dismissed:
+    type: event
+    description:
+      Triggered when the user dismisses the VPN onboarding card.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  onboarding_browse_with_protection_tapped:
+    type: event
+    description:
+      Triggered when the user taps "Browse with extra protection" on the VPN onboarding page.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  fx_account_flow_completed:
+    type: event
+    description:
+      Triggered when the user completes the Firefox Account flow for VPN.
+    extra_keys:
+      duration_ms:
+        description: Duration of the Firefox Account flow in milliseconds.
+        type: quantity
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  fx_authorization_flow_completed:
+    type: event
+    description:
+      Triggered when the user completes the Firefox Authorization flow for VPN.
+    extra_keys:
+      duration_ms:
+        description: Duration of the Firefox Authorization flow in milliseconds.
+        type: quantity
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  get_started_tapped:
+    type: event
+    description:
+      Triggered when the user taps "Get Started" from the VPN settings page.
+    extra_keys:
+      entrypoint:
+        description: >
+          The surface from which the user started the flow.
+          Possible values: "onboarding", "settings".
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Settings
+  settings_page_tapped:
+    type: event
+    description:
+      Triggered when the user taps on the VPN settings page.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Settings
+  settings_turned_on:
+    type: event
+    description:
+      Triggered when the user turns on VPN from the settings page.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Settings
+  settings_turned_off:
+    type: event
+    description:
+      Triggered when the user turns off VPN from the settings page.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Settings
+  settings_learn_more_tapped:
+    type: event
+    description:
+      Triggered when the user taps the "Learn more" link from the VPN settings page.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Settings
+  menu_try_now_tapped:
+    type: event
+    description:
+      Triggered when the user taps "Try Now" for VPN from the menu option.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  menu_turned_on:
+    type: event
+    description:
+      Triggered when the user taps "On" for VPN from the menu option.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  menu_turned_off:
+    type: event
+    description:
+      Triggered when the user taps "Off" for VPN from the menu option.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  error_encountered:
+    type: event
+    description:
+      Triggered when the user encounters a generic VPN error.
+    extra_keys:
+      error_code:
+        description:
+          The error code or number associated with the error, if available.
+        type: string
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  bandwidth_limit_error:
+    type: event
+    description:
+      Triggered when the user hits a VPN bandwidth limit error.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2031198
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D293774
+    data_sensitivity:
+      - technical
     notification_emails:
       - android-probes@mozilla.com
     expires: never

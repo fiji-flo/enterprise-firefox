@@ -7,7 +7,7 @@
 //! TODO: document this!
 
 use api::{ColorF, DebugFlags};
-use api::{BoxShadowClipMode, ClipMode};
+use api::ClipMode;
 use crate::util::clamp_to_scale_factor;
 use crate::box_shadow::{BoxShadowCacheKey, BLUR_SAMPLE_SCALE};
 use crate::pattern::box_shadow::BoxShadowPatternData;
@@ -21,7 +21,7 @@ use crate::clip::{ClipStore, ClipNodeRange};
 use crate::render_task_graph::RenderTaskId;
 use crate::renderer::{GpuBufferAddress, GpuBufferWriterF};
 use crate::spatial_tree::SpatialNodeIndex;
-use crate::clip::{ClipDataStore, ClipNodeFlags, ClipChainInstance, ClipItemKind};
+use crate::clip::{ClipNodeFlags, ClipChainInstance, ClipItemKind};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureContext, PictureState};
 use crate::gpu_types::{BrushFlags, BlurEdgeMode};
 use crate::render_target::RenderTargetKind;
@@ -30,6 +30,7 @@ use crate::picture::{ClusterFlags, PictureCompositeMode, PicturePrimitive};
 use crate::picture::{PrimitiveList, PrimitiveCluster, SurfaceIndex, SubpixelMode, Picture3DContext};
 use crate::tile_cache::{SliceId, TileCacheInstance};
 use crate::prim_store::*;
+use crate::prim_store::borders::NormalBorderScratch;
 use crate::quad::{self, QuadTransformState};
 use crate::render_backend::DataStores;
 use crate::render_task_cache::RenderTaskCacheKeyKind;
@@ -191,10 +192,6 @@ fn can_use_clip_chain_for_quad_path(
 
         match clip_node.item.kind {
             ClipItemKind::RoundedRectangle { .. } | ClipItemKind::Rectangle { .. } => {}
-            ClipItemKind::BoxShadow { .. } => {
-                // Only reachable when use_quad_box_shadow is not set.
-                return false;
-            }
             ClipItemKind::Image { .. } => {
                 panic!("bug: image-masks not expected on rect/quads");
             }
@@ -567,21 +564,20 @@ fn prepare_interned_prim_for_render(
 
             return;
         }
-        PrimitiveInstanceKind::LineDecoration { data_handle, ref mut render_task, .. } => {
+        PrimitiveInstanceKind::LineDecoration { data_handle, ref mut scratch_handle } => {
             profile_scope!("LineDecoration");
             let prim_data = &mut data_stores.line_decoration[*data_handle];
             let common_data = &mut prim_data.common;
             let line_dec_data = &mut prim_data.kind;
 
-            // Update the template this instane references, which may refresh the GPU
-            // cache with any shared template data.
             line_dec_data.update(common_data, frame_state);
 
-            *render_task = line_dec_data.prepare_render_task(
+            let render_task = line_dec_data.prepare_render_task(
                 prim_spatial_node_index,
                 frame_context,
                 frame_state,
             );
+            *scratch_handle = scratch.arena.push(render_task);
         }
         PrimitiveInstanceKind::TextRun { run_index, data_handle, .. } => {
             profile_scope!("TextRun");
@@ -648,7 +644,7 @@ fn prepare_interned_prim_for_render(
 
             prim_data.update(frame_state);
         }
-        PrimitiveInstanceKind::NormalBorder { data_handle, ref mut render_task_ids, .. } => {
+        PrimitiveInstanceKind::NormalBorder { data_handle, ref mut scratch_handle } => {
             profile_scope!("NormalBorder");
             let prim_data = &mut data_stores.normal_border[*data_handle];
             let common_data = &mut prim_data.common;
@@ -656,7 +652,9 @@ fn prepare_interned_prim_for_render(
 
             border_data.write_brush_gpu_blocks(common_data, frame_state);
 
-            let mut handles: SmallVec<[RenderTaskId; 8]> = SmallVec::new();
+            let segment_count = border_data.border_segments.len() as u32;
+            let handle = scratch.arena.push(NormalBorderScratch { segment_count });
+            scratch.arena.push_zeroed::<RenderTaskId>(segment_count);
 
             border_data.update(
                 common_data,
@@ -664,12 +662,11 @@ fn prepare_interned_prim_for_render(
                 device_pixel_scale,
                 frame_context,
                 frame_state,
-                &mut |task_id| {
-                    handles.push(task_id);
-                }
+                handle,
+                &mut scratch.arena,
             );
 
-            *render_task_ids = scratch.border_cache_handles.extend(handles)
+            *scratch_handle = handle;
         }
         PrimitiveInstanceKind::ImageBorder { data_handle, .. } => {
             profile_scope!("ImageBorder");
@@ -1413,7 +1410,6 @@ fn update_clip_task_for_brush(
             pic_context.surface_index,
             frame_context,
             frame_state,
-            &mut data_stores.clip,
             device_pixel_scale,
         );
         clip_mask_instances.push(clip_mask_kind);
@@ -1440,7 +1436,6 @@ fn update_clip_task_for_brush(
                     &frame_context.spatial_tree,
                     &mut frame_state.frame_gpu_data.f32,
                     frame_state.resource_cache,
-                    device_pixel_scale,
                     &dirty_rect,
                     &mut data_stores.clip,
                     frame_state.rg_builder,
@@ -1454,7 +1449,6 @@ fn update_clip_task_for_brush(
                 pic_context.surface_index,
                 frame_context,
                 frame_state,
-                &mut data_stores.clip,
                 device_pixel_scale,
             );
             clip_mask_instances.push(clip_mask_kind);
@@ -1534,14 +1528,9 @@ pub fn update_clip_task(
             device_rect,
             instance.vis.clip_chain.clips_range,
             root_spatial_node_index,
-            frame_state.clip_store,
-            &mut frame_state.frame_gpu_data.f32,
-            frame_state.resource_cache,
             frame_state.rg_builder,
-            &mut data_stores.clip,
             device_pixel_scale,
             frame_context.fb_config,
-            &mut frame_state.surface_builder,
         );
         // Set the global clip mask instance for this primitive.
         let clip_task_index = ClipTaskIndex(scratch.clip_mask_instances.len() as _);
@@ -1568,7 +1557,6 @@ pub fn update_brush_segment_clip_task(
     surface_index: SurfaceIndex,
     frame_context: &FrameBuildingContext,
     frame_state: &mut FrameBuildingState,
-    clip_data_store: &mut ClipDataStore,
     device_pixel_scale: DevicePixelScale,
 ) -> ClipMaskKind {
     let clip_chain = match clip_chain {
@@ -1599,14 +1587,9 @@ pub fn update_brush_segment_clip_task(
         device_rect,
         clip_chain.clips_range,
         root_spatial_node_index,
-        frame_state.clip_store,
-        &mut frame_state.frame_gpu_data.f32,
-        frame_state.resource_cache,
         frame_state.rg_builder,
-        clip_data_store,
         device_pixel_scale,
         frame_context.fb_config,
-        &mut frame_state.surface_builder,
     );
 
     frame_state.surface_builder.add_child_render_task(
@@ -1667,32 +1650,6 @@ fn write_brush_segment_description(
             ClipItemKind::Rectangle { size, mode } => {
                 let rect = LayoutRect::from_origin_and_size(clip_instance.clip_rect_origin, size);
                 (rect, None, mode)
-            }
-            ClipItemKind::BoxShadow { ref source } => {
-                // Only reachable when use_quad_box_shadow is not set.
-                // For inset box shadows, we can clip out any
-                // pixels that are inside the shadow region
-                // and are beyond the inner rect, as they can't
-                // be affected by the blur radius.
-                let inner_clip_mode = match source.clip_mode {
-                    BoxShadowClipMode::Outset => None,
-                    BoxShadowClipMode::Inset => Some(ClipMode::ClipOut),
-                };
-
-                // Push a region into the segment builder where the
-                // box-shadow can have an effect on the result. This
-                // ensures clip-mask tasks get allocated for these
-                // pixel regions, even if no other clips affect them.
-                segment_builder.push_mask_region(
-                    source.prim_shadow_rect,
-                    source.prim_shadow_rect.inflate(
-                        -0.5 * source.original_alloc_size.width,
-                        -0.5 * source.original_alloc_size.height,
-                    ),
-                    inner_clip_mode,
-                );
-
-                continue;
             }
             ClipItemKind::Image { .. } => {
                 panic!("bug: masks not supported on old segment path");

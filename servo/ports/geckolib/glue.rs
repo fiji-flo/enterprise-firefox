@@ -106,7 +106,7 @@ use style::string_cache::{Atom, WeakAtom};
 use style::style_adjuster::StyleAdjuster;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::import_rule::{ImportLayer, ImportSheet};
-use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelectors, KeyframesStepValue};
 use style::stylesheets::scope_rule::{ImplicitScopeRoot, ScopeRootCandidate, ScopeSubjectMap};
 use style::stylesheets::supports_rule::parse_condition_or_declaration;
 use style::stylesheets::{
@@ -147,6 +147,7 @@ use style::values::generics::color::ColorMixFlags;
 use style::values::generics::easing::BeforeFlag;
 use style::values::generics::length::GenericAnchorSizeFunction;
 use style::values::resolved;
+use style::values::resolved::ToResolvedValue;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style::values::specified::position::PositionTryFallbacksItem;
@@ -3185,7 +3186,7 @@ pub extern "C" fn Servo_Keyframe_GetKeyText(keyframe: &LockedKeyframe, result: &
 pub extern "C" fn Servo_Keyframe_SetKeyText(keyframe: &LockedKeyframe, text: &nsACString) -> bool {
     let text = unsafe { text.as_str_unchecked() };
     let mut input = ParserInput::new(&text);
-    if let Ok(selector) = Parser::new(&mut input).parse_entirely(KeyframeSelector::parse) {
+    if let Ok(selector) = Parser::new(&mut input).parse_entirely(KeyframeSelectors::parse) {
         write_locked_arc(keyframe, |keyframe: &mut Keyframe| {
             keyframe.selector = selector;
         });
@@ -8581,7 +8582,7 @@ pub unsafe extern "C" fn Servo_GetResolvedValue(
         element_info: resolved::ResolvedElementInfo {
             element: GeckoElement(element),
         },
-        for_property: prop,
+        for_property: PropertyId::NonCustom(prop),
         current_longhand: None,
     };
 
@@ -8650,9 +8651,11 @@ pub unsafe extern "C" fn Servo_GetCustomPropertyValue(
     style: &ComputedValues,
     name: &nsACString,
     raw_data: &PerDocumentStyleData,
-    value: &mut nsACString,
+    element: &RawGeckoElement,
+    value: Option<&mut nsACString>,
 ) -> bool {
     let data = raw_data.borrow();
+    let device = data.stylist.device();
     let name = Atom::from(name.as_str_unchecked());
     let custom_registration = data.stylist.get_custom_property_registration(&name);
     let computed_value = style.custom_properties.get(custom_registration, &name);
@@ -8660,9 +8663,23 @@ pub unsafe extern "C" fn Servo_GetCustomPropertyValue(
         Some(v) => v,
         None => return false,
     };
-    // TODO(emilio): This might want to return resolved colors and so on for example, see
-    // https://github.com/w3c/csswg-drafts/issues/10371.
-    computed_value.to_css(&mut CssWriter::new(value)).unwrap();
+
+    let Some(value) = value else { return true };
+
+    let mut context = resolved::Context {
+        style,
+        device,
+        element_info: resolved::ResolvedElementInfo {
+            element: GeckoElement(element),
+        },
+        for_property: PropertyId::Custom(name),
+        current_longhand: None,
+    };
+    computed_value
+        .clone()
+        .to_resolved_value(&mut context)
+        .to_css(&mut CssWriter::new(value))
+        .unwrap();
     true
 }
 
@@ -9004,7 +9021,7 @@ unsafe fn compute_color(
     current_color: &AbsoluteColor,
     value: &nsACString,
     loader: *mut Loader,
-) -> Option<ComputeColorResult> {
+) -> Result<ComputeColorResult, ()> {
     let mut input = ParserInput::new(value.as_str_unchecked());
     let mut input = Parser::new(&mut input);
     let reporter = loader.as_mut().and_then(|loader| {
@@ -9037,7 +9054,7 @@ unsafe fn compute_color(
     let result_color = computed.resolve_to_absolute(current_color);
     let was_current_color = computed.is_currentcolor();
 
-    Some(ComputeColorResult {
+    Ok(ComputeColorResult {
         result_color,
         was_current_color,
     })
@@ -9053,7 +9070,7 @@ pub unsafe extern "C" fn Servo_ComputeColor(
     loader: *mut Loader,
 ) -> bool {
     let current_color = AbsoluteColor::from_nscolor(current_color);
-    let Some(result) = compute_color(raw_data, &current_color, value, loader) else {
+    let Ok(result) = compute_color(raw_data, &current_color, value, loader) else {
         return false;
     };
 
@@ -9070,7 +9087,7 @@ pub unsafe extern "C" fn Servo_ComputeAbsoluteColor(
     value: &nsACString,
     result_color: &mut AbsoluteColor,
 ) -> bool {
-    if let Some(color) = compute_color(raw_data, &AbsoluteColor::BLACK, value, ptr::null_mut()) {
+    if let Ok(color) = compute_color(raw_data, &AbsoluteColor::BLACK, value, ptr::null_mut()) {
         *result_color = color.result_color;
         true
     } else {

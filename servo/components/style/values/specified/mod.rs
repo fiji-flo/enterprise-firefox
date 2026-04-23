@@ -590,7 +590,6 @@ impl Parse for NonNegativeNumberOrPercentage {
     ToShmem,
     ToTyped,
 )]
-#[typed_value(derive_fields)]
 pub struct Opacity(Number);
 
 impl Parse for Opacity {
@@ -633,6 +632,7 @@ impl ToComputedValue for Opacity {
 ///
 /// <https://drafts.csswg.org/css-values/#integers>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToShmem, ToTyped)]
+#[typed(todo_derive_fields)]
 pub enum Integer {
     /// A literal integer value.
     Literal(CSSInteger),

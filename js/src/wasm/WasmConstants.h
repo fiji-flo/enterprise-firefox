@@ -225,6 +225,10 @@ enum class Trap {
   Limit
 };
 
+#ifdef JS_JITSPEW
+const char* NameOfTrap(Trap t);
+#endif
+
 enum class DefinitionKind {
   Function = 0x00,
   Table = 0x01,

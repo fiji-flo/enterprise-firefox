@@ -28,6 +28,7 @@ import org.mozilla.fenix.home.recentvisits.controller.RecentVisitsController
 import org.mozilla.fenix.home.search.HomeSearchController
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
+import org.mozilla.fenix.home.sports.SportsController
 import org.mozilla.fenix.home.termsofuse.PrivacyNoticeBannerController
 import org.mozilla.fenix.home.toolbar.ToolbarController
 import org.mozilla.fenix.home.topsites.controller.TopSiteController
@@ -47,6 +48,7 @@ class SessionControlInteractorTest {
     private val topSiteController: TopSiteController = mockk(relaxed = true)
     private val privacyNoticeBannerController: PrivacyNoticeBannerController = mockk(relaxed = true)
     private val logoController: LogoController = mockk(relaxed = true)
+    private val sportsController: SportsController = mockk(relaxed = true)
 
     // Note: the recent visits tests are handled in [RecentVisitsInteractorTest] and [RecentVisitsControllerTest]
     private val recentVisitsController: RecentVisitsController = mockk(relaxed = true)
@@ -69,6 +71,7 @@ class SessionControlInteractorTest {
             topSiteController,
             privacyNoticeBannerController,
             logoController,
+            sportsController,
         )
     }
 
@@ -275,8 +278,22 @@ class SessionControlInteractorTest {
     }
 
     @Test
-    fun `when logo is clicked, logo controller click handler is called`() {
-        interactor.onLogoClicked()
-        verify { logoController.handleLogoClicked() }
+    fun `WHEN logo is long clicked THEN logo controller click handler is called`() {
+        interactor.onLogoLongClicked()
+        verify { logoController.handleLogoLongClicked() }
+    }
+
+    @Test
+    fun `GIVEN a set of country codes WHEN countries are selected THEN sports controller handles the selection`() {
+        val countryCodes = setOf("US", "JP", "BR")
+        interactor.onCountriesSelected(countryCodes)
+        verify { sportsController.handleCountriesSelected(countryCodes) }
+    }
+
+    @Test
+    fun `GIVEN an empty set WHEN countries are selected THEN sports controller handles the empty selection`() {
+        val countryCodes = emptySet<String>()
+        interactor.onCountriesSelected(countryCodes)
+        verify { sportsController.handleCountriesSelected(countryCodes) }
     }
 }

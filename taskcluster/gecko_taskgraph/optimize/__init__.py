@@ -121,13 +121,9 @@ class project:
     """Strategy overrides that apply to autoland."""
 
     beta = {
-        # Helps reduce how frequently constrained tasks (typically tasks using
-        # hardware limited pools) run. Unconstrained tasks run on every push as
-        # normal, constrained tasks run every 5 pushes.
-        "test": All(
-            "skip-unless-push-interval-5",
-            "skip-constrained",
-        ),
+        # Don't run tests on-push on beta.  The run-missing-tests action and
+        # cron job take care of running them regularly.
+        "test": Alias("always"),
     }
     """Strategy overrides that apply to beta."""
 

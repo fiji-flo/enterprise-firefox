@@ -129,6 +129,13 @@ void AnimationEventDispatcher::ScheduleDispatch() {
 }
 
 void AnimationEventInfo::MaybeAddMarker() const {
+  // The scheduled event timestamp can be null (for example, for a pending
+  // animation with an unresolved start time, a paused animation, or an
+  // animation driven by a non-wallclock timeline). Without it we can't compute
+  // a meaningful marker interval, so skip emitting the marker.
+  if (mScheduledEventTimeStamp.IsNull()) {
+    return;
+  }
   if (mData.is<CssAnimationData>()) {
     const auto& data = mData.as<CssAnimationData>();
     const EventMessage message = data.mMessage;

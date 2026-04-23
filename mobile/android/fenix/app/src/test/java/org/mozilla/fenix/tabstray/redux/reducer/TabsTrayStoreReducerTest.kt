@@ -15,7 +15,6 @@ import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination
 import org.mozilla.fenix.tabstray.redux.action.TabsTrayAction
 import org.mozilla.fenix.tabstray.redux.state.TabSearchState
 import org.mozilla.fenix.tabstray.redux.state.TabsTrayState
-import org.mozilla.fenix.tabstray.redux.state.TabsTrayState.Mode
 import org.mozilla.fenix.tabstray.syncedtabs.SyncedTabsListItem
 import org.mozilla.fenix.tabstray.syncedtabs.generateFakeTab
 import org.mozilla.fenix.tabstray.syncedtabs.getFakeSyncedTabList
@@ -58,7 +57,7 @@ class TabsTrayStoreReducerTest {
     fun `WHEN UpdateNormalTabs THEN normal tabs are added`() {
         val normalTabs = listOf(createTab("https://mozilla.org"))
         val initialState = TabsTrayState()
-        val expectedState = initialState.copy(normalTabs = normalTabs)
+        val expectedState = initialState.copy(normalTabsState = TabsTrayState.NormalTabsState(items = normalTabs))
 
         val resultState = TabsTrayReducer.reduce(
             initialState,
@@ -478,108 +477,40 @@ class TabsTrayStoreReducerTest {
         val initialState = TabsTrayState()
         val expectedId = "12345"
         val tabGroup = createTabGroup()
-        val expectedNormalTabs = listOf(createTab(url = "normal url"), tabGroup)
+        val expectedNormalItems = listOf(createTab(url = "normal url"), tabGroup)
         val expectedInactiveTabs = listOf(createTab(url = "inactive url"))
         val expectedPrivateTabs = listOf(createTab(url = "private url"))
         val expectedTabGroups = listOf(tabGroup)
+        val expectedSelectedNormalTabIndex = 5
+        val expectedSelectedPrivateTabIndex = 7
+        val expectedTabCount = 2
         val action = TabsTrayAction.TabDataUpdateReceived(
             tabStorageUpdate = TabStorageUpdate(
                 selectedTabId = expectedId,
-                normalTabs = expectedNormalTabs,
+                normalItems = expectedNormalItems,
+                normalTabCount = expectedTabCount,
+                selectedNormalItemIndex = expectedSelectedNormalTabIndex,
                 inactiveTabs = expectedInactiveTabs,
-                tabGroups = expectedTabGroups,
                 privateTabs = expectedPrivateTabs,
+                selectedPrivateItemIndex = expectedSelectedPrivateTabIndex,
+                tabGroups = expectedTabGroups,
             ),
         )
         val expectedState = TabsTrayState(
             selectedTabId = expectedId,
-            normalTabs = expectedNormalTabs,
+            normalTabsState = TabsTrayState.NormalTabsState(
+                items = expectedNormalItems,
+                selectedItemIndex = expectedSelectedNormalTabIndex,
+                tabCount = expectedTabCount,
+            ),
             inactiveTabs = TabsTrayState.InactiveTabsState(tabs = expectedInactiveTabs),
-            tabGroups = expectedTabGroups,
-            privateBrowsing = TabsTrayState.PrivateBrowsingState(tabs = expectedPrivateTabs),
+            privateBrowsing = TabsTrayState.PrivateBrowsingState(
+                tabs = expectedPrivateTabs,
+                selectedItemIndex = expectedSelectedPrivateTabIndex,
+            ),
+            tabGroupState = TabsTrayState.TabGroupState(groups = expectedTabGroups),
         )
         val resultState = TabsTrayReducer.reduce(state = initialState, action = action)
-
-        assertEquals(expectedState, resultState)
-    }
-
-    @Test
-    fun `WHEN a user taps clicks on an unselected tab group during multiselection THEN the group and its tabs are added to the selection state`() {
-        val tabs = List(size = 20) { createTab(url = "") }
-        val tabGroup = createTabGroup(
-            tabs = MutableList(size = 20) { createTab(url = "") },
-        )
-        val initialState = TabsTrayState(
-            normalTabs = tabs + tabGroup,
-            mode = Mode.Select(
-                selectedTabs = emptySet(),
-                selectedTabGroups = emptySet(),
-            ),
-            tabGroups = listOf(tabGroup),
-        )
-        val resultState = TabsTrayReducer.reduce(
-            state = initialState,
-            action = TabsTrayAction.AddSelectTabItem(item = tabGroup),
-        )
-        val expectedState = initialState.copy(
-            mode = Mode.Select(
-                selectedTabs = tabGroup.tabs.toSet(),
-                selectedTabGroups = setOf(tabGroup),
-            ),
-        )
-
-        assertEquals(expectedState, resultState)
-    }
-
-    @Test
-    fun `WHEN a user taps clicks on a selected tab group during multiselection THEN the group and its tabs are removed from the selection state`() {
-        val tabs = List(size = 20) { createTab(url = "") }
-        val tabGroup = createTabGroup(
-            tabs = MutableList(size = 20) { createTab(url = "") },
-        )
-        val initialState = TabsTrayState(
-            normalTabs = tabs + tabGroup,
-            mode = Mode.Select(
-                selectedTabs = tabGroup.tabs.toSet(),
-                selectedTabGroups = setOf(tabGroup),
-            ),
-            tabGroups = listOf(tabGroup),
-        )
-        val resultState = TabsTrayReducer.reduce(
-            state = initialState,
-            action = TabsTrayAction.RemoveSelectTabItem(item = tabGroup),
-        )
-        val expectedState = initialState.copy(
-            mode = Mode.Normal,
-        )
-
-        assertEquals(expectedState, resultState)
-    }
-
-    @Test
-    fun `GIVEN there is a tab and a tab group selected WHEN a user taps clicks on the selected tab group during multiselection THEN the group and its tabs are removed from the selection state`() {
-        val tabs = List(size = 20) { createTab(url = "") }
-        val tabGroup = createTabGroup(
-            tabs = MutableList(size = 20) { createTab(url = "") },
-        )
-        val initialState = TabsTrayState(
-            normalTabs = tabs + tabGroup,
-            mode = Mode.Select(
-                selectedTabs = tabGroup.tabs.toSet() + tabs[0],
-                selectedTabGroups = setOf(tabGroup),
-            ),
-            tabGroups = listOf(tabGroup),
-        )
-        val resultState = TabsTrayReducer.reduce(
-            state = initialState,
-            action = TabsTrayAction.RemoveSelectTabItem(item = tabGroup),
-        )
-        val expectedState = initialState.copy(
-            mode = Mode.Select(
-                selectedTabs = setOf(tabs[0]),
-                selectedTabGroups = emptySet(),
-            ),
-        )
 
         assertEquals(expectedState, resultState)
     }

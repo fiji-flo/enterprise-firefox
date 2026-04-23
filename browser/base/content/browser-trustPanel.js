@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(this, {
     "moz-src:///browser/components/customizableui/PanelMultiView.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   QWACs: "resource://gre/modules/psm/QWACs.sys.mjs",
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SiteDataManager: "resource:///modules/SiteDataManager.sys.mjs",
   UrlbarPrefs: "moz-src:///browser/components/urlbar/UrlbarPrefs.sys.mjs",
 });
@@ -299,6 +300,10 @@ class TrustPanel {
     PanelMultiView.openPopup(this.#popup, this.#anchor(), {
       position: "bottomleft topleft",
     });
+
+    Glean.trustpanel.opened.record({
+      breach_status: await this.#breachedStatus(),
+    });
   }
 
   async #hidePopup() {
@@ -378,6 +383,22 @@ class TrustPanel {
     let assets = this.#trackingProtectionEnabled
       ? ETP_ENABLED_ASSETS
       : ETP_DISABLED_ASSETS;
+
+    const graphicSection = document.getElementById(
+      "trustpanel-graphic-section"
+    );
+    const breachAlertGraphicSection = document.getElementById(
+      "trustpanel-breach-alert-section"
+    );
+    const breachStatus = await this.#breachedStatus();
+    if (breachStatus !== "disabled" && breachStatus !== "not-breached") {
+      graphicSection.hidden = true;
+      breachAlertGraphicSection.hidden = false;
+      breachAlertGraphicSection.breachStatus = breachStatus;
+    } else {
+      graphicSection.hidden = false;
+      breachAlertGraphicSection.hidden = true;
+    }
 
     if (this.#uri) {
       let favicon = await PlacesUtils.favicons.getFaviconForPage(this.#uri);
@@ -504,6 +525,23 @@ class TrustPanel {
       return "warning";
     }
     return this.#trackingProtectionEnabled ? "enabled" : "disabled";
+  }
+
+  async #breachedStatus() {
+    if (!UrlbarPrefs.get("trustPanel.breachAlerts")) {
+      return "disabled";
+    }
+
+    // The plan is to eventually add other conditions in which to show the
+    // breach alert with different content. Currently, we just show an alert
+    // when the site is breached, but we could e.g. add a more pressing warning
+    // if we know the user's credentials specifically have been included.
+    const breach = await this.#getBreachForSite(this.#host);
+    if (breach) {
+      return "breached";
+    }
+
+    return "not-breached";
   }
 
   #updateSecurityInformationSubview() {
@@ -1480,6 +1518,30 @@ class TrustPanel {
     } else {
       elem.removeAttribute(attr);
     }
+  }
+
+  async #getBreachedWebsites() {
+    const REMOTE_SETTINGS_COLLECTION = "fxmonitor-breaches";
+
+    try {
+      const breaches = await RemoteSettings(REMOTE_SETTINGS_COLLECTION).get();
+      return breaches;
+    } catch (ex) {
+      console.error("Could not get breach data from Remote Settings:", ex);
+      return [];
+    }
+  }
+
+  async #getBreachForSite(site) {
+    const breaches = await this.#getBreachedWebsites();
+
+    if (!site || !breaches.length) {
+      return null;
+    }
+
+    return breaches.find(breach => {
+      return breach.Domain && Services.eTLD.hasRootDomain(site, breach.Domain);
+    });
   }
 }
 

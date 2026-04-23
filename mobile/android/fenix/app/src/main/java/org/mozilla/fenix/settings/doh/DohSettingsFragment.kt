@@ -13,11 +13,12 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.NavHostController
 import androidx.navigation.fragment.findNavController
 import mozilla.components.lib.state.helpers.StoreProvider.Companion.fragmentStore
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.FragmentDohSettingsBinding
 import org.mozilla.fenix.e2e.SystemInsetsPaddedFragment
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.openToBrowser
+import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -45,7 +46,6 @@ internal class DohSettingsFragment : Fragment(), SystemInsetsPaddedFragment {
         binding.composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             val buildStore = { composeNavController: NavHostController ->
-                val homeActivity = (requireActivity() as HomeActivity)
                 val navController = findNavController()
                 val settingsProvider = DefaultDohSettingsProvider(
                     engine = requireContext().components.core.engine,
@@ -58,7 +58,13 @@ internal class DohSettingsFragment : Fragment(), SystemInsetsPaddedFragment {
                             DohSettingsMiddleware(
                                 getSettingsProvider = { settingsProvider },
                                 getNavController = { composeNavController },
-                                getHomeActivity = { homeActivity },
+                                openUrlInBrowser = { url ->
+                                    navController.openToBrowser()
+                                    requireComponents.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                                        searchTermOrURL = url,
+                                        newTab = true,
+                                    )
+                                },
                                 exitDohSettings = { navController.popBackStack() },
                             ),
                         ),

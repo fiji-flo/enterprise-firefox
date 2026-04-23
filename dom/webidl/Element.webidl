@@ -333,7 +333,7 @@ dictionary FullscreenOptions {
 
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Element {
-  [NewObject, NeedsCallerType]
+  [NewObject, NeedsCallerType, UseCounter]
   Promise<undefined> requestFullscreen(optional FullscreenOptions options = {});
   [NewObject, BinaryName="requestFullscreen", NeedsCallerType, Deprecated="MozRequestFullScreenDeprecatedPrefix"]
   Promise<undefined> mozRequestFullScreen(optional FullscreenOptions options = {});

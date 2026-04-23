@@ -53,5 +53,8 @@ data object DefaultTabManagementFeatureHelper : TabManagementFeatureHelper {
         get() = FxNimbus.features.tabGroups.value().enabled
 
     override val tabGroupsDragAndDropEnabled: Boolean
-        get() = FxNimbus.features.tabGroupsDragAndDrop.value().enabled
+        get() = when {
+            Config.channel.isDebug -> true
+            else -> FxNimbus.features.tabSearch.value().enabled
+        }
 }

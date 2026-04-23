@@ -12,6 +12,7 @@ export function SectionFollowButton({
   following,
   onFollowClick,
   onUnfollowClick,
+  title,
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [justFollowed, setJustFollowed] = useState(false);
@@ -38,6 +39,12 @@ export function SectionFollowButton({
   } else if (following) {
     icon = CHECK_ICON;
   }
+
+  // Bug 2030391 - Provide an aria-label for the default icon state
+  const labelL10nId = following
+    ? "newtab-section-unfollow-button-label"
+    : "newtab-section-follow-button-label";
+  const labelL10nArgs = JSON.stringify({ topic: title });
 
   const handleFollowClick = () => {
     setJustFollowed(true);
@@ -69,7 +76,8 @@ export function SectionFollowButton({
         type={buttonType}
         iconsrc={icon}
         onClick={following ? onUnfollowClick : handleFollowClick}
-        data-l10n-id={isHovered ? followButtonL10nId : null}
+        data-l10n-id={isHovered ? followButtonL10nId : labelL10nId}
+        data-l10n-args={isHovered ? null : labelL10nArgs}
       ></moz-button>
     </div>
   );

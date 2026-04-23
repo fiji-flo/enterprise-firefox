@@ -125,7 +125,7 @@ def android_sdk_root(value, android_os_info, want_bootstrap):
 
 @dependable
 def android_sdk_version():
-    major, minor, patch = "36", "1", "0"
+    major, minor, patch = "37", "0", "0"
     return namespace(
         build_tools_version=f"{major}.{minor}.{patch}",
         compile_sdk_major_version=major,
@@ -199,15 +199,9 @@ def android_platform_tools(sdk_root, android_os_info, want_bootstrap):
 @imports(_from="mozboot.android", _import="AndroidPackageList")
 def android_platforms(sdk_root, sdk_version, android_os_info, want_bootstrap):
     prefix = "platforms"
-
-    version = sdk_version.compile_sdk_major_version
-    if int(sdk_version.compile_sdk_minor_version) != 0:
-        version = f"{version}.{sdk_version.compile_sdk_minor_version}"
-
-    platforms_path = os.path.join(prefix, f"android-{version}")
-
+    version = f"{sdk_version.compile_sdk_major_version}.{sdk_version.compile_sdk_minor_version}"
     return _ensure_android_package(
-        package_relative_path=platforms_path,
+        package_relative_path=os.path.join(prefix, f"android-{version}"),
         sdk_root=sdk_root,
         os_name=android_os_info.os_name,
         os_arch=android_os_info.os_arch,

@@ -125,6 +125,11 @@ struct ParamTraits<mozilla::dom::ForcedColorsOverride>
           mozilla::dom::ForcedColorsOverride> {};
 
 template <>
+struct ParamTraits<mozilla::dom::PrefersReducedMotionOverride>
+    : public mozilla::dom::WebIDLEnumSerializer<
+          mozilla::dom::PrefersReducedMotionOverride> {};
+
+template <>
 struct ParamTraits<mozilla::dom::ExplicitActiveStatus>
     : public ContiguousEnumSerializer<
           mozilla::dom::ExplicitActiveStatus,
@@ -508,6 +513,10 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
   fields.Get<IDX_TopLevelCreatedByWebContent>() =
       aOptions.topLevelCreatedByWebContent;
 
+  if (aOptions.isForPrinting && !parentBC) {
+    fields.Get<IDX_IsPrinting>() = true;
+  }
+
   if (!parentBC) {
     fields.Get<IDX_ShouldDelayMediaFromStart>() =
         StaticPrefs::media_block_autoplay_until_in_foreground();
@@ -797,7 +806,7 @@ void BrowsingContext::SetEmbedderElement(Element* aEmbedder) {
     txn.SetEmbeddedInContentDocument(
         aEmbedder->OwnerDoc()->IsContentDocument());
     if (nsCOMPtr<nsPIDOMWindowInner> inner =
-            do_QueryInterface(aEmbedder->GetOwnerGlobal())) {
+            do_QueryInterface(aEmbedder->GetDocumentGlobal())) {
       txn.SetEmbedderInnerWindowId(inner->WindowID());
     }
     txn.SetFullscreenAllowedByOwner(OwnerAllowsFullscreen(*aEmbedder));
@@ -3487,6 +3496,22 @@ void BrowsingContext::DidSet(FieldIndex<IDX_ForcedColorsOverride>,
     return;
   }
   PresContextAffectingFieldChanged();
+}
+
+void BrowsingContext::DidSet(FieldIndex<IDX_PrefersReducedMotionOverride>,
+                             dom::PrefersReducedMotionOverride aOldValue) {
+  MOZ_ASSERT(IsTop());
+  if (PrefersReducedMotionOverride() == aOldValue) {
+    return;
+  }
+
+  WalkPresContexts([&](nsPresContext* aPc) {
+    aPc->MediaFeatureValuesChanged(
+        {MediaFeatureChangeReason::PreferenceChange},
+        // We're already iterating through sub documents, so we don't need to
+        // propagate the change again.
+        MediaFeatureChangePropagation::JustThisDocument);
+  });
 }
 
 void BrowsingContext::DidSet(FieldIndex<IDX_AnimationsPlayBackRateMultiplier>,

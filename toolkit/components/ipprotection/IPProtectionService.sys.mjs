@@ -222,6 +222,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   ENABLED_PREF,
   false,
   (_pref, _oldVal, featureEnabled) => {
+    // On Android, the embedder controls initialization and teardown via
+    // the GeckoView API; the pref observer must not interfere.
+    if (Services.appinfo.OS === "Android") {
+      return;
+    }
     if (featureEnabled) {
       IPProtectionService.init();
     } else {

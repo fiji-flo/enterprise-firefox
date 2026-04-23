@@ -57,7 +57,6 @@ pub trait IsTreeScoped {
     Serialize,
     Deserialize,
 )]
-#[typed_value(derive_fields)]
 pub struct TreeScoped<T> {
     /// The scoped value.
     pub value: T,
@@ -343,6 +342,7 @@ pub enum PreferredRatio<N> {
     ToTyped,
 )]
 #[repr(C)]
+#[typed(todo_derive_fields)]
 pub struct GenericAspectRatio<N> {
     /// Specifiy auto or not.
     #[animation(constant)]
@@ -399,7 +399,6 @@ impl<N> ToAnimatedZero for AspectRatio<N> {
     ToTyped,
 )]
 #[repr(C)]
-#[typed_value(derive_fields)]
 pub enum GenericInset<P, LP> {
     /// A `<length-percentage>` value.
     LengthPercentage(LP),
@@ -470,6 +469,7 @@ pub use self::GenericInset as Inset;
     ToTyped,
 )]
 #[repr(C)]
+#[typed(todo_derive_fields)]
 pub struct GenericAnchorFunction<Percentage, Fallback> {
     /// Anchor name of the element to anchor to.
     /// If omitted, selects the implicit anchor element.

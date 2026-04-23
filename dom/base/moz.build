@@ -52,6 +52,7 @@ EXPORTS += [
     "nsContentList.h",
     "nsContentListDeclarations.h",
     "nsContentPermissionHelper.h",
+    "nsContentPolicyType.h",
     "nsContentPolicyUtils.h",
     "nsContentSink.h",
     "nsContentTypeParser.h",
@@ -109,6 +110,7 @@ EXPORTS += [
     "nsWindowSizes.h",
     "nsWrapperCache.h",
     "nsWrapperCacheInlines.h",
+    "SharedLcpMarkerState.h",
     "XPathGenerator.h",
 ]
 

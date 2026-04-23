@@ -24,6 +24,7 @@ use crate::picture::PicturePrimitive;
 use crate::render_task_graph::RenderTaskId;
 use crate::resource_cache::ImageProperties;
 use std::{hash, u32, usize};
+use crate::scratch_buffer::{ScratchBuffer, ScratchHandle};
 use crate::util::Recycler;
 use crate::internal_types::{FastHashSet, LayoutPrimitiveInfo};
 use crate::visibility::PrimitiveVisibility;
@@ -748,20 +749,12 @@ pub enum PrimitiveInstanceKind {
     LineDecoration {
         /// Handle to the common interned data for this primitive.
         data_handle: LineDecorationDataHandle,
-        // TODO(gw): For now, we need to store some information in
-        //           the primitive instance that is created during
-        //           prepare_prims and read during the batching pass.
-        //           Once we unify the prepare_prims and batching to
-        //           occur at the same time, we can remove most of
-        //           the things we store here in the instance, and
-        //           use them directly. This will remove cache_handle,
-        //           but also the opacity, clip_task_id etc below.
-        render_task: Option<RenderTaskId>,
+        scratch_handle: ScratchHandle<RenderTaskId>,
     },
     NormalBorder {
         /// Handle to the common interned data for this primitive.
         data_handle: NormalBorderDataHandle,
-        render_task_ids: storage::Range<RenderTaskId>,
+        scratch_handle: ScratchHandle<borders::NormalBorderScratch>,
     },
     ImageBorder {
         /// Handle to the common interned data for this primitive.
@@ -930,7 +923,6 @@ pub type TextRunIndex = storage::Index<TextRunPrimitive>;
 pub type TextRunStorage = storage::Storage<TextRunPrimitive>;
 pub type ColorBindingIndex = storage::Index<PropertyBinding<ColorU>>;
 pub type ColorBindingStorage = storage::Storage<PropertyBinding<ColorU>>;
-pub type BorderHandleStorage = storage::Storage<RenderTaskId>;
 pub type SegmentStorage = storage::Storage<BrushSegment>;
 pub type SegmentsRange = storage::Range<BrushSegment>;
 pub type SegmentInstanceStorage = storage::Storage<SegmentedInstance>;
@@ -944,6 +936,9 @@ pub type ImageInstanceIndex = storage::Index<ImageInstance>;
 /// and read during batching.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 pub struct PrimitiveScratchBuffer {
+    /// Per-frame bump arena for heterogeneous prepare-to-batch data.
+    pub arena: ScratchBuffer,
+
     /// Contains a list of clip mask instance parameters
     /// per segment generated.
     pub clip_mask_instances: Vec<ClipMaskKind>,
@@ -951,10 +946,6 @@ pub struct PrimitiveScratchBuffer {
     /// List of glyphs keys that are allocated by each
     /// text run instance.
     pub glyph_keys: GlyphKeyStorage,
-
-    /// List of render task handles for border segment instances
-    /// that have been added this frame.
-    pub border_cache_handles: BorderHandleStorage,
 
     /// A list of brush segments that have been built for this scene.
     pub segments: SegmentStorage,
@@ -987,9 +978,9 @@ pub struct PrimitiveScratchBuffer {
 impl Default for PrimitiveScratchBuffer {
     fn default() -> Self {
         PrimitiveScratchBuffer {
+            arena: ScratchBuffer::new(),
             clip_mask_instances: Vec::new(),
             glyph_keys: GlyphKeyStorage::new(0),
-            border_cache_handles: BorderHandleStorage::new(0),
             segments: SegmentStorage::new(0),
             segment_instances: SegmentInstanceStorage::new(0),
             debug_items: Vec::new(),
@@ -1005,9 +996,9 @@ impl Default for PrimitiveScratchBuffer {
 
 impl PrimitiveScratchBuffer {
     pub fn recycle(&mut self, recycler: &mut Recycler) {
+        self.arena.recycle(recycler);
         recycler.recycle_vec(&mut self.clip_mask_instances);
         self.glyph_keys.recycle(recycler);
-        self.border_cache_handles.recycle(recycler);
         self.segments.recycle(recycler);
         self.segment_instances.recycle(recycler);
         recycler.recycle_vec(&mut self.debug_items);
@@ -1017,6 +1008,8 @@ impl PrimitiveScratchBuffer {
     }
 
     pub fn begin_frame(&mut self) {
+        self.arena.clear();
+
         // Clear the clip mask tasks for the beginning of the frame. Append
         // a single kind representing no clip mask, at the ClipTaskIndex::INVALID
         // location.
@@ -1025,8 +1018,6 @@ impl PrimitiveScratchBuffer {
         self.quad_direct_segments.clear();
         self.quad_color_segments.clear();
         self.quad_indirect_segments.clear();
-
-        self.border_cache_handles.clear();
 
         // TODO(gw): As in the previous code, the gradient tiles store GPU cache
         //           handles that are cleared (and thus invalidated + re-uploaded)

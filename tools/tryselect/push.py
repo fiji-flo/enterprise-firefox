@@ -47,7 +47,7 @@ error: commit changes before continuing
 LARGE_PUSH_THRESHOLD = 1000
 LARGE_PUSH_WARNING = f"""
 Your push would schedule at least {{}} tasks. To avoid backlogs that cause delays for
-others, your tasks will be scheduled at a lower priority and may not run before
+others, your tasks will be scheduled at the lowest priority and may not run before
 their deadline. Consider selecting fewer than {LARGE_PUSH_THRESHOLD} tasks to save resources and
 get results faster.
 """
@@ -265,8 +265,7 @@ def push_to_try(
             job_id = push_data["lando_job_id"]
             if lando_instance and job_id:
                 print(
-                    f"Follow the progress of your build on Treeherder: "
-                    f"{TREEHERDER_LANDO_TRY_RUN_URL.format(lando_instance=lando_instance, job_id=job_id)}"
+                    f"CI run: {TREEHERDER_LANDO_TRY_RUN_URL.format(lando_instance=lando_instance, job_id=job_id)}"
                 )
 
             return push_data

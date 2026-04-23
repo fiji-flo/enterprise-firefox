@@ -78,7 +78,6 @@ async function putServerInRemoteSettings(
 
 const defaultStubOptions = {
   signedIn: true,
-  isLinkedToGuardian: true,
   validProxyPass: true,
   entitlement: createTestEntitlement(),
   proxyUsage: new ProxyUsage(
@@ -97,9 +96,14 @@ function setupStubs(
 ) {
   const options = { ...defaultStubOptions, ...aOptions };
   sandbox.stub(IPPSignInWatcher, "isSignedIn").get(() => options.signedIn);
-  sandbox
-    .stub(IPPEnrollAndEntitleManager, "isLinkedToGuardian")
-    .resolves(options.isLinkedToGuardian);
+  sandbox.stub(IPPFxaAuthProvider, "getEntitlement").callsFake(async () => {
+    const { status, entitlement, error } =
+      await IPProtectionService.guardian.fetchUserInfo();
+    if (error || !entitlement || status != 200) {
+      return { error: error || `Status: ${status}` };
+    }
+    return { entitlement };
+  });
   sandbox.stub(IPProtectionService.guardian, "fetchUserInfo").resolves({
     status: 200,
     error: null,

@@ -1794,17 +1794,6 @@ void WebRenderBridgeParent::FlushFramePresentation() {
   mLateInit->mApi->WaitUntilPresentationFlushed();
 }
 
-void WebRenderBridgeParent::DisableNativeCompositor() {
-  // Make sure that SceneBuilder thread does not have a task.
-  mLateInit->mApi->FlushSceneBuilder();
-  // Disable WebRender's native compositor usage
-  mLateInit->mApi->EnableNativeCompositor(false);
-  // Ensure we generate and render a frame immediately.
-  ScheduleForcedGenerateFrame(wr::RenderReasons::CONFIG_CHANGE);
-
-  mDisablingNativeCompositor = true;
-}
-
 void WebRenderBridgeParent::UpdateQualitySettings() {
   if (mDestroyed) {
     return;
@@ -2675,16 +2664,6 @@ void WebRenderBridgeParent::MaybeGenerateFrame(VsyncId aId,
   mLateInit->mApi->SendTransaction(fastTxn);
 
   mMostRecentComposite = TimeStamp::Now();
-
-  // During disabling native compositor, webrender needs to render twice.
-  // Otherwise, browser flashes black.
-  // XXX better fix?
-  if (mDisablingNativeCompositor) {
-    mDisablingNativeCompositor = false;
-
-    // Ensure we generate and render a frame immediately.
-    ScheduleForcedGenerateFrame(aReasons);
-  }
 }
 
 void WebRenderBridgeParent::HoldPendingTransactionId(

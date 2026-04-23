@@ -10,7 +10,6 @@ import {
   openAIEngine,
   renderPrompt,
   MODEL_FEATURES,
-  DEFAULT_ENGINE_ID,
 } from "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs";
 
 import { MESSAGE_ROLE } from "moz-src:///browser/components/aiwindow/ui/modules/ChatStore.sys.mjs";
@@ -167,13 +166,15 @@ export const NewTabStarterGenerator = {
  * @param {number} n - Number of suggestions to generate (default 6)
  * @param {boolean} useMemories - Whether to include user memories in prompt (default false)
  * @param {string | null} flowId - Flow ID for correlating with firefox_ai_runtime telemetry
+ * @param {AbortSignal} signal - Signal to cancel the inference request
  * @returns {Promise<Array>} Array of {text, type} suggestion objects
  */
 export async function generateConversationStartersSidebar(
   contextTabs = [],
   n = 2,
   useMemories = false,
-  flowId = null
+  flowId = null,
+  signal = new AbortController().signal
 ) {
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -201,11 +202,14 @@ export async function generateConversationStartersSidebar(
     } else {
       openedTabs = "No tabs available";
     }
+    // Data extracted into currentTab/openedTabs strings; release the
+    // caller-allocated array so it cannot prevent the window from being GC'd
+    // while awaiting inference.
+    contextTabs = null;
 
     // Build engine and load prompt
     const engineInstance = await openAIEngine.build(
       MODEL_FEATURES.CONVERSATION_SUGGESTIONS_SIDEBAR_STARTER,
-      DEFAULT_ENGINE_ID,
       flowId
     );
 
@@ -242,7 +246,10 @@ export async function generateConversationStartersSidebar(
     const config = engineInstance.getConfig(engineInstance.feature);
     const inferenceParams = config?.parameters || {};
 
-    const result = await engineInstance.run({
+    const fxAccountToken = await openAIEngine.getFxAccountToken();
+    signal.throwIfAborted();
+
+    let runPromise = engineInstance.run({
       args: [
         {
           role: "system",
@@ -250,18 +257,33 @@ export async function generateConversationStartersSidebar(
         },
         { role: "user", content: filled },
       ],
-      fxAccountToken: await openAIEngine.getFxAccountToken(),
+      fxAccountToken,
       ...inferenceParams,
     });
+    runPromise = Promise.race([
+      runPromise,
+      new Promise((_, reject) => {
+        if (signal.aborted) {
+          reject(signal.reason);
+        } else {
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }
+      }),
+    ]);
+    const result = await runPromise;
 
     const prompts = cleanInferenceOutput(result);
 
     return prompts.slice(0, n).map(t => ({ text: t, type: "chat" }));
   } catch (e) {
-    console.warn(
-      "[ConversationSuggestions][sidebar-conversation-starters] failed:",
-      e
-    );
+    if (e.name !== "AbortError") {
+      console.warn(
+        "[ConversationSuggestions][sidebar-conversation-starters] failed:",
+        e
+      );
+    }
     return [];
   }
 }
@@ -297,7 +319,6 @@ export async function generateFollowupPrompts(
     // Build engine and load prompt
     const engineInstance = await openAIEngine.build(
       MODEL_FEATURES.CONVERSATION_SUGGESTIONS_FOLLOWUP,
-      DEFAULT_ENGINE_ID,
       flowId
     );
 

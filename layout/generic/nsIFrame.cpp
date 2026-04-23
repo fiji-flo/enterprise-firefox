@@ -872,6 +872,21 @@ void nsIFrame::HandlePrimaryFrameStyleChange(ComputedStyle* aOldStyle) {
   }
 
   HandleLastRememberedSize();
+
+  bool handleStickyChange =
+      oldDisp ? (disp->mPosition != oldDisp->mPosition &&
+                 (disp->mPosition == StylePositionProperty::Sticky ||
+                  oldDisp->mPosition == StylePositionProperty::Sticky))
+              : disp->mPosition == StylePositionProperty::Sticky;
+  if (handleStickyChange && !HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
+    if (auto* ssc = StickyScrollContainer::GetOrCreateForFrame(this)) {
+      if (disp->mPosition == StylePositionProperty::Sticky) {
+        ssc->AddFrame(this);
+      } else {
+        ssc->RemoveFrame(this);
+      }
+    }
+  }
 }
 
 void nsIFrame::Destroy(DestroyContext& aContext) {
@@ -1288,7 +1303,6 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   AddAndRemoveImageAssociations(loader, this, oldLayers, newLayers);
 
   const nsStyleDisplay* disp = StyleDisplay();
-  bool handleStickyChange = false;
   if (aOldComputedStyle) {
     // Detect style changes that should trigger a scroll anchor adjustment
     // suppression.
@@ -1342,9 +1356,6 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
           oldDisp->IsRelativelyOrStickyPositionedStyle()) {
         RemoveProperty(NormalPositionProperty());
       }
-
-      handleStickyChange = disp->mPosition == StylePositionProperty::Sticky ||
-                           oldDisp->mPosition == StylePositionProperty::Sticky;
     }
     if (disp->mScrollSnapAlign != oldDisp->mScrollSnapAlign) {
       ScrollSnapUtils::PostPendingResnapFor(this);
@@ -1359,19 +1370,6 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     if (StyleUIReset()->mMozSubtreeHiddenOnlyVisually &&
         !aOldComputedStyle->StyleUIReset()->mMozSubtreeHiddenOnlyVisually) {
       PresShell::ClearMouseCapture(this);
-    }
-  } else {  // !aOldComputedStyle
-    handleStickyChange = disp->mPosition == StylePositionProperty::Sticky;
-  }
-
-  if (handleStickyChange && !HasAnyStateBits(NS_FRAME_IS_NONDISPLAY) &&
-      nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(this)) {
-    if (auto* ssc = StickyScrollContainer::GetOrCreateForFrame(this)) {
-      if (disp->mPosition == StylePositionProperty::Sticky) {
-        ssc->AddFrame(this);
-      } else {
-        ssc->RemoveFrame(this);
-      }
     }
   }
 
@@ -2386,18 +2384,20 @@ already_AddRefed<ComputedStyle> nsIFrame::ComputeTargetTextStyle() const {
 }
 
 nsTextControlFrame* nsIFrame::GetContainingTextControlFrame() const {
-  const nsIFrame* cur = this;
-  do {
+  for (const nsIFrame* cur = this; cur; cur = cur->GetParent()) {
     if (const nsTextControlFrame* tc = do_QueryFrame(cur)) {
       return const_cast<nsTextControlFrame*>(tc);
+    }
+    if (cur->Style()->IsAnonBox()) {
+      // Anon boxes could belong to the <input> / <textarea> itself.
+      continue;
     }
     auto* content = cur->GetContent();
     if (!content || !content->IsInNativeAnonymousSubtree()) {
       // All content inside text controls is anonymous.
-      return nullptr;
+      break;
     }
-    cur = cur->GetParent();
-  } while (cur);
+  }
   return nullptr;
 }
 
@@ -8831,9 +8831,8 @@ bool nsIFrame::IsImageFrameOrSubclass() const {
 }
 
 bool nsIFrame::IsScrollContainerOrSubclass() const {
-  const bool result = IsScrollContainerFrame() || IsListControlFrame();
-  MOZ_ASSERT(result == !!QueryFrame(ScrollContainerFrame::kFrameIID));
-  return result;
+  const ScrollContainerFrame* asScrollContainer = do_QueryFrame(this);
+  return !!asScrollContainer;
 }
 
 bool nsIFrame::IsSubgrid() const {

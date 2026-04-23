@@ -169,12 +169,27 @@ export class WallpaperFeed {
       }),
     ];
 
+    const CATEGORY_ORDER = [
+      "custom-wallpaper",
+      "firefox",
+      "abstracts",
+      "celestial",
+      "photographs",
+      "solid-colors",
+    ];
+
     const categories = [
       ...new Set(
         wallpapers.map(wallpaper => wallpaper.category).filter(Boolean)
       ),
       ...(customWallpaperEnabled ? ["custom-wallpaper"] : []), // Conditionally add custom wallpaper input
-    ];
+    ].sort((a, b) => {
+      const aIndex = CATEGORY_ORDER.indexOf(a);
+      const bIndex = CATEGORY_ORDER.indexOf(b);
+      const aOrder = aIndex === -1 ? CATEGORY_ORDER.length : aIndex;
+      const bOrder = bIndex === -1 ? CATEGORY_ORDER.length : bIndex;
+      return aOrder - bOrder;
+    });
 
     this.store.dispatch(
       ac.BroadcastToContent({

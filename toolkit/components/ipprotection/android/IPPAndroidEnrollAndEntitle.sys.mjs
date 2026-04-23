@@ -1,0 +1,75 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  EventDispatcher: "resource://gre/modules/Messaging.sys.mjs",
+  IPProtectionService:
+    "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
+});
+
+/**
+ * Android implementation of enrollAndEntitle for IPPEnrollAndEntitleManager.
+ *
+ * Delegates the hidden OAuth window to the Android layer via EventDispatcher.
+ * The Android layer must open the loginUrl in a Custom Tab or WebView, monitor
+ * for a redirect to successUrl or errorUrl, and resolve or reject accordingly.
+ *
+ * @param {AbortSignal} [abortSignal=null]
+ * @returns {Promise<{isEnrolledAndEntitled: boolean, entitlement?: object, error?: string}>}
+ */
+export async function androidEnrollAndEntitle(abortSignal = null) {
+  try {
+    abortSignal?.throwIfAborted();
+    const { loginURL, successURL, errorURL } =
+      lazy.IPProtectionService.guardian.enrollmentURLs();
+
+    let tasks = [
+      lazy.EventDispatcher.instance.sendRequestForResult(
+        "IPP:StartEnrollment",
+        {
+          loginUrl: loginURL.href,
+          successUrl: successURL.href,
+          errorUrl: errorURL.href,
+        }
+      ),
+    ];
+    if (abortSignal) {
+      tasks.push(
+        new Promise((_, reject) => {
+          abortSignal.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true }
+          );
+        })
+      );
+    }
+
+    const result = await Promise.race(tasks);
+    if (!result?.ok) {
+      return {
+        isEnrolledAndEntitled: false,
+        error: result?.error ?? "enrollment_failed",
+      };
+    }
+  } catch (error) {
+    return { isEnrolledAndEntitled: false, error: error?.message };
+  }
+
+  try {
+    const { status, entitlement, error } =
+      await lazy.IPProtectionService.guardian.fetchUserInfo();
+    if (error || !entitlement || status != 200) {
+      return {
+        isEnrolledAndEntitled: false,
+        error: error || `Status: ${status}`,
+      };
+    }
+    return { isEnrolledAndEntitled: true, entitlement };
+  } catch (error) {
+    return { isEnrolledAndEntitled: false, error: error.message };
+  }
+}

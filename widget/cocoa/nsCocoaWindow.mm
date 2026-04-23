@@ -1812,6 +1812,8 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
   WidgetPointerEvent geckoEvent(true, eContextMenu, mGeckoChild,
                                 WidgetMouseEvent::eContextMenuKey);
+  geckoEvent.mTimeStamp =
+      nsCocoaUtils::GetEventTimeStamp([[NSApp currentEvent] timestamp]);
   geckoEvent.mRefPoint = {};
   mGeckoChild->DispatchInputEvent(&geckoEvent);
 }
@@ -2566,6 +2568,8 @@ static bool ShouldDispatchBackForwardCommandForMouseButton(int16_t aButton) {
         true,
         (button == MouseButton::eX2) ? nsGkAtoms::Forward : nsGkAtoms::Back,
         mGeckoChild);
+    appCommandEvent.mTimeStamp =
+        nsCocoaUtils::GetEventTimeStamp([theEvent timestamp]);
     mGeckoChild->DispatchWindowEvent(appCommandEvent);
     return;
   }
@@ -3065,6 +3069,8 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
 
   WidgetContentCommandEvent contentCommandEvent(
       true, eContentCommandLookUpDictionary, mGeckoChild);
+  contentCommandEvent.mTimeStamp =
+      nsCocoaUtils::GetEventTimeStamp([event timestamp]);
   NSPoint point = [self convertPoint:[event locationInWindow] fromView:nil];
   contentCommandEvent.mRefPoint = mGeckoChild->CocoaPointsToDevPixels(point);
   mGeckoChild->DispatchWindowEvent(contentCommandEvent);
@@ -4106,6 +4112,8 @@ static NSURL* GetPasteLocation(NSPasteboard* aPasteboard, bool aUseFallback) {
       if (mGeckoChild && returnType) {
         WidgetContentCommandEvent command(
             true, eContentCommandPasteTransferable, mGeckoChild, true);
+        command.mTimeStamp =
+            nsCocoaUtils::GetEventTimeStamp([[NSApp currentEvent] timestamp]);
         // This might possibly destroy our widget (and null out mGeckoChild).
         mGeckoChild->DispatchWindowEvent(command);
         if (!mGeckoChild || !command.mSucceeded || !command.mIsEnabled)
@@ -4238,6 +4246,8 @@ static NSURL* GetPasteLocation(NSPasteboard* aPasteboard, bool aUseFallback) {
 
   WidgetContentCommandEvent command(true, eContentCommandPasteTransferable,
                                     mGeckoChild);
+  command.mTimeStamp =
+      nsCocoaUtils::GetEventTimeStamp([[NSApp currentEvent] timestamp]);
   command.mTransferable = trans;
   mGeckoChild->DispatchWindowEvent(command);
 
@@ -5927,6 +5937,13 @@ void nsCocoaWindow::CocoaWindowWillEnterFullscreen(bool aFullscreen) {
 
   mHasStartedNativeFullscreen = true;
 
+  // Snapshot the pre-fullscreen bounds so GetRestoredBounds() can report
+  // them while the window is in fullscreen. This fires before macOS starts
+  // resizing the window for the fullscreen animation.
+  if (aFullscreen && mSizeMode == nsSizeMode_Normal) {
+    mRestoredBounds = Some(mBounds);
+  }
+
   // Ensure that we update our fullscreen state as early as possible, when the
   // resize happens.
   mUpdateFullscreenOnResize =
@@ -6108,6 +6125,11 @@ void nsCocoaWindow::ProcessTransitions() {
 
       case TransitionType::EmulatedFullscreen: {
         if (!mInFullScreenMode) {
+          // Snapshot pre-fullscreen bounds for GetRestoredBounds() before the
+          // upcoming resize overwrites mBounds.
+          if (mSizeMode == nsSizeMode_Normal) {
+            mRestoredBounds = Some(mBounds);
+          }
           mSuppressSizeModeEvents = true;
           // The order here matters. When we exit full screen mode, we need to
           // show the Dock first, otherwise the newly-created window won't have
@@ -6176,6 +6198,10 @@ void nsCocoaWindow::ProcessTransitions() {
 
       case TransitionType::Miniaturize:
         if (!mWindow.miniaturized) {
+          // Snapshot pre-minimize bounds for GetRestoredBounds().
+          if (mSizeMode == nsSizeMode_Normal) {
+            mRestoredBounds = Some(mBounds);
+          }
           // This triggers an async animation, so continue.
           [mWindow miniaturize:nil];
           continue;
@@ -6192,6 +6218,11 @@ void nsCocoaWindow::ProcessTransitions() {
 
       case TransitionType::Zoom:
         if (!mWindow.zoomed) {
+          // Snapshot pre-zoom bounds for GetRestoredBounds() before the
+          // zoom resizes the window to fill the screen.
+          if (mSizeMode == nsSizeMode_Normal) {
+            mRestoredBounds = Some(mBounds);
+          }
           [mWindow zoom:nil];
         }
         break;
@@ -6404,6 +6435,18 @@ LayoutDeviceIntRect nsCocoaWindow::GetScreenBounds() {
   return mBounds;
 
   NS_OBJC_END_TRY_BLOCK_RETURN(LayoutDeviceIntRect(0, 0, 0, 0));
+}
+
+nsresult nsCocoaWindow::GetRestoredBounds(LayoutDeviceIntRect& aRect) {
+  if (SizeMode() == nsSizeMode_Normal) {
+    aRect = GetScreenBounds();
+    return NS_OK;
+  }
+  if (mRestoredBounds.isSome()) {
+    aRect = *mRestoredBounds;
+    return NS_OK;
+  }
+  return NS_ERROR_FAILURE;
 }
 
 double nsCocoaWindow::GetDefaultScaleInternal() { return BackingScaleFactor(); }

@@ -1549,6 +1549,13 @@ class GeckoEngine(
                 field = value
             }
 
+        override var useContentBlockingDatabase: Boolean = false
+            set(value) {
+                runtime.settings.contentBlocking.contentBlockingDatabaseStatus = value
+                field = value
+            }
+            get() = runtime.settings.contentBlocking.contentBlockingDatabaseStatus
+
         override var remoteDebuggingEnabled: Boolean
             get() = runtime.settings.remoteDebuggingEnabled
             set(value) { runtime.settings.remoteDebuggingEnabled = value }
@@ -1956,6 +1963,7 @@ class GeckoEngine(
                 it.safeBrowsingRealTimeSimulationNegativeCacheEnabled
             this.safeBrowsingRealTimeSimulationNegativeCacheTTLSec =
                 it.safeBrowsingRealTimeSimulationNegativeCacheTTLSec
+            this.useContentBlockingDatabase = it.useContentBlockingDatabase
         }
     }
 
@@ -2117,5 +2125,6 @@ internal fun InstallationMethod.toGeckoInstallationMethod(): String? {
         InstallationMethod.MANAGER -> WebExtensionController.INSTALLATION_METHOD_MANAGER
         InstallationMethod.FROM_FILE -> WebExtensionController.INSTALLATION_METHOD_FROM_FILE
         InstallationMethod.ONBOARDING -> WebExtensionController.INSTALLATION_METHOD_ONBOARDING
+        InstallationMethod.RTAMO -> WebExtensionController.INSTALLATION_METHOD_RTAMO
     }
 }

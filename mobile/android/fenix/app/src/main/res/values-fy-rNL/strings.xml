@@ -33,10 +33,6 @@
   <string name="tab_search_hint">Ljepblêden trochsykje</string>
   <!-- Placeholder text shown in the search bar when using application search engines -->
   <string name="application_search_hint">Fier syktermen yn</string>
-  <!-- No Open Tabs Message Description -->
-  <string name="no_open_tabs_description" tools:ignore="UnusedResources" moz:removedIn="149">Jo iepene ljepblêden wurde hjir werjûn.</string>
-  <!-- No Private Tabs Message Description -->
-  <string name="no_private_tabs_description" tools:ignore="UnusedResources" moz:removedIn="149">Jo priveeljepblêden wurde hjir werjûn.</string>
   <!-- The header text displayed on the private tabs page when no private tabs are open -->
   <string name="tab_manager_empty_private_tabs_page_header">Priveenavigaasje</string>
   <!-- The supplementary text displayed on the private tabs page when no private tabs are open. %1$s is the name of the app (for example "Firefox") -->
@@ -55,8 +51,6 @@
   <string name="tab_tray_select_collection">Kolleksje selektearje</string>
   <!-- Content description for close button while in multiselect mode in tab tray -->
   <string name="tab_tray_close_multiselect_content_description">Multiseleksjemodus ferlitte</string>
-  <!-- Content description for save to collection button while in multiselect mode in tab tray -->
-  <string name="tab_tray_collection_button_multiselect_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Selektearre ljepblêden yn kolleksje bewarje</string>
   <!-- The header text displayed on the synced tabs page when the user is not logged into an account. -->
   <string name="tab_manager_empty_synced_tabs_page_header">Pak fan elk apparaat ôf ljepblêden</string>
   <!-- The supplementary text displayed on the synced tabs page when the user is not logged into an account. -->
@@ -202,8 +196,6 @@
   <string name="browser_menu_stop">Stopje</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">Utwreidingen</string>
-  <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_header" tools:ignore="UnusedResources" moz:removedIn="149">Jo hawwe útwreidingen ynstallearre, mar net ynskeakele</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Utwreidingen beheare</string>
   <!-- Browser menu group that contains additional settings in collapsed state -->
@@ -223,18 +215,12 @@
   <string name="browser_menu_try_a_recommended_extension_description">Probearje in oanrekommandearre útwreiding</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Accountynformaasje</string>
-  <!-- Browser menu button that sends a user to help articles -->
-  <string name="browser_menu_help" tools:ignore="UnusedResources" moz:removedIn="149">Help</string>
-  <!-- Browser menu button that sends a to a the what's new article -->
-  <string name="browser_menu_whats_new" tools:ignore="UnusedResources" moz:removedIn="149">Wat is der nij</string>
   <!-- Browser menu button that opens the settings menu -->
   <string name="browser_menu_settings">Ynstellingen</string>
   <!-- Browser menu button that opens a user's library -->
   <string name="browser_menu_library">Biblioteek</string>
   <!-- Browser menu toggle that requests a desktop site -->
   <string name="browser_menu_desktop_site">Desktopwebsite</string>
-  <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_regular_tab" tools:ignore="UnusedResources" moz:removedIn="149">Iepenje yn gewoan ljepblêd</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">Tafoegje oan startskerm</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
@@ -262,11 +248,6 @@
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_powered_by" tools:ignore="UnusedResources" moz:removedIn="149">MOOGLIK MAKKE TROCH %1$s</string>
-  <!--
-    Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    %1$s is the name of the app (for example "Firefox").
-  -->
   <string name="browser_menu_powered_by2">Mooglik makke troch %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
   <string name="browser_menu_read">Lêzerwerjefte</string>
@@ -275,15 +256,7 @@
   <!-- Browser menu button to open the current page in an external app -->
   <string name="browser_menu_open_app_link">Iepenje yn app</string>
   <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
-  <string name="browser_menu_customize_reader_view" tools:ignore="UnusedResources" moz:removedIn="149">Lêzerwerjefte oanpasse</string>
-  <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
   <string name="browser_menu_customize_reader_view_2">Lêzerwerjefte oanpasse</string>
-  <!-- Browser menu label for adding a bookmark -->
-  <string name="browser_menu_add" tools:ignore="UnusedResources" moz:removedIn="149">Tafoegje</string>
-  <!-- Browser menu label for editing a bookmark -->
-  <string name="browser_menu_edit" tools:ignore="UnusedResources" moz:removedIn="149">Bewurkje</string>
-  <!-- Button shown on the home page that opens the Customize home settings -->
-  <string name="browser_menu_customize_home_1" tools:ignore="UnusedResources" moz:removedIn="149">Startside oanpasse</string>
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Oanmelde</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
@@ -302,12 +275,6 @@
   <string name="browser_close_main_menu_handlebar_content_description">Menu slute</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu navigation header. -->
   <string name="browser_main_menu_content_description_navigation_header">Navigaasje</string>
-  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
-  <string name="browser_extensions_menu_handlebar_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Menublêd Utwreidingen slute</string>
-  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
-  <string name="browser_save_menu_handlebar_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Menublêd Bewarje slute</string>
-  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
-  <string name="browser_tools_menu_handlebar_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Menublêd Ekstra slute</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Menublêd Ljepblêd oanpasse slute</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -425,7 +392,7 @@
   <!-- Description for the translations AI feature toggle -->
   <string name="ai_controls_translations_description">Alle oersettingen bliuwe privee op jo apparaat.</string>
   <!-- Link text to navigate to more translations settings -->
-  <string name="ai_controls_more_translations_settings" tools:ignore="UnusedResources">Mear oersetynstellingen</string>
+  <string name="ai_controls_more_translations_settings">Mear oersetynstellingen</string>
   <!-- Link text to navigate to more page summary settings -->
   <string name="ai_controls_more_page_summary_settings">Mear ynstellingen foar sidegearfettingen</string>
   <!-- Title for the voice search AI feature toggle -->
@@ -1464,7 +1431,7 @@
   -->
   <string name="preference_gestures_website_pull_to_refresh">Lûk om te fernijen</string>
   <!-- Preference for using the dynamic toolbar -->
-  <string name="preference_gestures_dynamic_toolbar">Scroll om de wurkbalke te ferstopjen</string>
+  <string name="preference_gestures_dynamic_toolbar">Skowe om de wurkbalke te ferstopjen</string>
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Fei de wurkbalke omheech om ljepblêden te iepenjen</string>
   <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
@@ -1662,18 +1629,10 @@
   <string name="add_tab">Ljepblêd tafoegje</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_private_tab">Priveeljepblêd tafoegje</string>
-  <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
-  <string name="tab_drawer_fab_content" tools:ignore="UnusedResources" moz:removedIn="149">Privee</string>
-  <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
-  <string name="tab_drawer_fab_sync" tools:ignore="UnusedResources" moz:removedIn="149">Syngronisearje</string>
   <!-- Text for the tab search bar placeholder -->
   <string name="tab_manager_search_bar_placeholder">Jo ljepblêden trochsykje</string>
-  <!-- Text shown in the menu for sharing all tabs -->
-  <string name="tab_tray_menu_item_share" tools:ignore="UnusedResources" moz:removedIn="149">Alle ljepblêden diele</string>
   <!-- Text shown in the menu to view recently closed tabs -->
   <string name="tab_tray_menu_recently_closed">Koartlyn sluten ljepblêden</string>
-  <!-- Text shown in the tabs tray inactive tabs section -->
-  <string name="tab_tray_inactive_recently_closed" tools:ignore="UnusedResources" moz:removedIn="149">Koartlyn sluten</string>
   <!-- Text shown in the menu to view account settings -->
   <string name="tab_tray_menu_account_settings">Accountynstellingen</string>
   <!-- Text shown in the menu to view tab settings -->
@@ -1688,12 +1647,8 @@
   <string name="tab_manager_close_all_tabs_dialog_confirm">Ljepblêden slute</string>
   <!-- Text shown on the cancel button in the Close all tabs confirmation dialog -->
   <string name="tab_manager_close_all_tabs_dialog_cancel">Annulearje</string>
-  <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
-  <string name="tab_tray_multiselect_menu_item_bookmark" tools:ignore="UnusedResources" moz:removedIn="149">Blêdwizer meitsje</string>
   <!-- Content description (not visible, for screen readers etc.): Bookmarks selected tabs. -->
   <string name="tab_manager_multiselect_menu_item_bookmark_content_description">Blêdwizer foar selektearre ljepblêden meitsje</string>
-  <!-- Text shown in the multiselect menu for closing selected tabs. -->
-  <string name="tab_tray_multiselect_menu_item_close" tools:ignore="UnusedResources" moz:removedIn="149">Slute</string>
   <!-- Content description (not visible, for screen readers etc.): Closes selected tabs. -->
   <string name="tab_manager_multiselect_menu_item_close_content_description">Selektearre ljepblêden slute</string>
   <!-- Text shown in the multiselect menu for sharing selected tabs. -->
@@ -1755,6 +1710,8 @@
   <!-- Title for the edit tab group bottom sheet -->
   <string name="edit_tab_group_title">Groep bewurkje</string>
   <string name="create_tab_group_save_button">Bewarje</string>
+  <!-- Description for the handle at the top of a bottom sheet, used to drag the sheet up or down. -->
+  <string name="edit_tab_group_bottom_sheet_grabber_content_description">Nije groep, sleepgreep ynklappe</string>
   <string name="edit_tab_group_bottom_sheet_close_content_description">Ljepblêdgroep bewurkje slute</string>
   <!-- Default tab group name when creating a tab group -->
   <string name="create_tab_group_default_name" tools:ignore="UnusedResources" moz:removedIn="150">Groep</string>
@@ -1770,6 +1727,10 @@
   <!-- Title for adding more tabs to a tab group. -->
   <string name="add_to_tab_group_title">Tafoegje oan</string>
   <!-- Content Description for closing the "Add to Tab Group" panel. -->
+  <string name="add_to_tab_group_bottom_sheet_grabber_content_description">Tafoegje oan in ljepblêdgroep, sleepgreep ynklappe</string>
+  <!-- Content Description for "New tab group" panel. -->
+  <string name="add_to_new_tab_group_content_description">Oan nije ljepblêdgroep tafoegje</string>
+  <!-- Content Description for closing the "Add to Tab Group" panel. -->
   <string name="add_to_tab_group_bottom_sheet_close_content_description">Tafoegje oan ljepblêdgroep slute</string>
   <!-- Label for adding to a new tab group. -->
   <string name="add_to_new_tab_group_title">Nije ljepblêdgroep</string>
@@ -1781,6 +1742,33 @@
     <item quantity="one">%1$d ljepblêd</item>
     <item quantity="other">%1$d ljepblêden</item>
   </plurals>
+  <plurals name="add_to_exiting_tab_group_content_description">
+    <!--
+      Accessibility description for add to existing tab group.
+      %1$s is the group name, %2$d is the number of tabs, %3$s is the color name.
+    -->
+    <item quantity="one">%2$d ljepblêd oan ljepblêdgroep %1$s tafoegje, kleur %3$s</item>
+    <item quantity="other">%2$d ljepblêden oan ljepblêdgroep %1$s tafoegje, kleur %3$s</item>
+  </plurals>
+  <plurals name="share_tab_group_button_content_description">
+    <!--
+      Content Description for share tab group button.
+      %1$s is the name of the tab group.
+      %2$d is the number of tabs in a tab group.
+    -->
+    <item quantity="one">Ljepblêdgroep %1$s mei %2$d ljepblêd diele.</item>
+    <item quantity="other">Ljepblêdgroep %1$s mei %2$d ljepblêden diele.</item>
+  </plurals>
+  <!-- Content description for the grabber/handle of the tab group bottom sheet. -->
+  <string name="tab_group_sheet_dismiss_description">Ljepbêdgroep besjen, sleepgreep ynklappe</string>
+  <plurals name="expanded_tab_group_header_description">
+    <!--
+      Accessibility description for the header of an expanded tab group.
+      %1$s is the group name, %2$d is the number of tabs, %3$s is the color name.
+    -->
+    <item quantity="one">Ljepblêdgroep %1$s mei %2$d ljepblêd, kleur %3$s</item>
+    <item quantity="other">Ljepblêdgroep %1$s mei %2$d ljepblêden, kleur %3$s</item>
+  </plurals>
   <!-- Title for the Delete tab group confirmation dialog. -->
   <string name="delete_tab_group_confirmation_dialog_title">Ljepblêdgroep fuortsmite?</string>
   <!-- Text shown in the body of the Delete tab group confirmation dialog. -->
@@ -1789,6 +1777,30 @@
   <string name="delete_tab_group_confirmation_dialog_confirm">Groep fuortsmite</string>
   <!-- Text shown on the cancel button in the Delete tab group confirmation dialog. -->
   <string name="delete_tab_group_confirmation_dialog_cancel">Annulearje</string>
+  <!--
+    Color labels for tab groups, used for accessibility and selection UI.
+
+    Tab group color: Yellow
+  -->
+  <string name="tab_group_color_yellow">Giel</string>
+  <!-- Tab group color: Orange -->
+  <string name="tab_group_color_orange">Oranje</string>
+  <!-- Tab group color: Red -->
+  <string name="tab_group_color_red">Read</string>
+  <!-- Tab group color: Pink -->
+  <string name="tab_group_color_pink">Roze</string>
+  <!-- Tab group color: Purple -->
+  <string name="tab_group_color_purple">Pears</string>
+  <!-- Tab group color: Violet -->
+  <string name="tab_group_color_violet">Lila</string>
+  <!-- Tab group color: Blue -->
+  <string name="tab_group_color_blue">Blau</string>
+  <!-- Tab group color: Cyan -->
+  <string name="tab_group_color_cyan">Syaan</string>
+  <!-- Tab group color: Green -->
+  <string name="tab_group_color_green">Grien</string>
+  <!-- Tab group color: Grey -->
+  <string name="tab_group_color_grey">Griis</string>
   <!--
     History
 
@@ -2448,8 +2460,6 @@
   <string name="toast_copy_link_to_clipboard">Kopiearre nei klamboerd</string>
   <!-- An option from the share dialog to sign into sync -->
   <string name="sync_sign_in">Oanmelde by Sync</string>
-  <!-- An option from the three dot menu to sign in -->
-  <string name="sync_menu_sign_in" tools:ignore="UnusedResources" moz:removedIn="149">Oanmelde</string>
   <!-- An option from the share dialog to send link to all other sync devices -->
   <string name="sync_send_to_all">Ferstjoere nei alle apparaten</string>
   <!-- An option from the share dialog to reconnect to sync -->
@@ -2606,8 +2616,6 @@
   <string name="preferences_delete_browsing_data_on_quit">Navigaasjegegevens fuortsmite by ôfsluten</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
   <string name="preference_summary_delete_browsing_data_on_quit_2">Smyt automatysk navigaasjegegevens fuort wannear’t jo yn it haadmenu ‘Ofslute’ selektearje</string>
-  <!-- Action item in menu for the Delete browsing data on quit feature -->
-  <string name="delete_browsing_data_on_quit_action" tools:ignore="UnusedResources" moz:removedIn="149">Ofslute</string>
   <!-- Title text of a delete browsing data dialog. -->
   <string name="delete_history_prompt_title">Te wiskjen tiidrek</string>
   <!-- Body text of a delete browsing data dialog. -->
@@ -2709,10 +2717,6 @@
   <string name="preference_enhanced_tracking_protection_strict">Strang</string>
   <!-- Preference description for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict_description_4">Sterkere beskerming tsjin folgjen en fluggere prestaasjes, mar guon websites wurkje mooglik net goed.</string>
-  <!-- Preference description for the checkbox setting for "baseline" exceptions (a set of content blocking exceptions applied to fix major website breakage). %1$s is the name of the application (e.g. Fenix). -->
-  <string name="preference_enhanced_tracking_protection_allow_list_baseline" tools:ignore="UnusedResources" moz:removedIn="144">%1$s tastean om automatysk útsûnderingen ta te passen dy’t nedich binne om grutte defekten fan de website foar te kommen.</string>
-  <!-- Preference description for the checkbox setting for "convenience" exceptions (a set of content blocking exceptions applied to fix convenience site features). -->
-  <string name="preference_enhanced_tracking_protection_allow_list_convenience" tools:ignore="UnusedResources" moz:removedIn="144">Ek automatysk útsûnderingen tapasse dy’t allinnich nedich binne om lytse problemen op te lossen en gemaksfunksjes beskikber te meitsjen.</string>
   <!-- Preference label for the enhanced tracking protection option to fix major site issues caused by tracker blocking -->
   <string name="preference_enhanced_tracking_protection_allow_list_baseline_2">Grutte problemen mei de website oplosse (oanrekommandearre)</string>
   <!-- Preference label for the enhanced tracking protection option to fix minor site issues caused by tracker blocking -->
@@ -3104,7 +3108,11 @@
 
     Title for the browser VPN entry in the settings list
   -->
-  <string name="preferences_ip_protection_title">VPN</string>
+  <string name="preferences_ip_protection_title_2">Ynboude VPN</string>
+  <!-- Label for the BETA badge for the browser VPN entry in the settings list -->
+  <string name="preferences_ip_protection_beta_badge_label">BETA</string>
+  <!-- Title for the browser VPN settings screen (displayed in the app bar) -->
+  <string name="ip_protection_title">VPN</string>
   <!-- Label for the browser VPN toggle on the settings screen -->
   <string name="ip_protection_toggle_label">VPN</string>
   <!-- Headline for the browser VPN promo card. %s is the name of the app (for example "Firefox"). -->
@@ -3148,6 +3156,8 @@
   <string name="ip_protection_toolbar_pill_label" tools:ignore="UnusedResources">VPN is oan</string>
   <!-- Accessibility description for the browser VPN pill in the address bar when the VPN has been activated -->
   <string name="ip_protection_toolbar_pill_description" tools:ignore="UnusedResources">VPN is aktyf.</string>
+  <!-- Label for the button that starts the browser VPN authentication or authorization flow on the settings screen -->
+  <string name="ip_protection_get_started">Begjinne</string>
   <!--
     Autofill
 
@@ -3383,26 +3393,12 @@
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Ferifiearre troch: %1$s</string>
-  <!-- Login overflow menu delete button -->
-  <string name="login_menu_delete_button" tools:ignore="UnusedResources" moz:removedIn="149">Fuortsmite</string>
-  <!-- Login overflow menu edit button -->
-  <string name="login_menu_edit_button" tools:ignore="UnusedResources" moz:removedIn="149">Bewurkje</string>
   <!-- Message in delete confirmation dialog for password -->
   <string name="login_deletion_confirmation_2">Binne jo wis dat jo dit wachtwurd fuortsmite wolle?</string>
   <!-- Positive action of a dialog asking to delete -->
   <string name="dialog_delete_positive">Fuortsmite</string>
   <!-- Negative action of a dialog asking to delete login -->
   <string name="dialog_delete_negative">Annulearje</string>
-  <!-- The saved password options menu description. -->
-  <string name="login_options_menu_2" tools:ignore="UnusedResources" moz:removedIn="149">Wachtwurdopsjes</string>
-  <!-- The editable text field for a website address. -->
-  <string name="saved_login_hostname_description_3" tools:ignore="UnusedResources" moz:removedIn="149">It bewurkbere tekstfjild foar it websiteadres.</string>
-  <!-- The editable text field for a username. -->
-  <string name="saved_login_username_description_3" tools:ignore="UnusedResources" moz:removedIn="149">It bewurkbere tekstfjild foar de brûkersnamme.</string>
-  <!-- The editable text field for a login's password. -->
-  <string name="saved_login_password_description_2" tools:ignore="UnusedResources" moz:removedIn="149">It bewurkbere tekstfjild foar it wachtwurd.</string>
-  <!-- The button description to save changes to an edited password. -->
-  <string name="save_changes_to_login_2" tools:ignore="UnusedResources" moz:removedIn="149">Wizigingen bewarje.</string>
   <!-- The page title for editing a saved password. -->
   <string name="edit_2">Wachtwurd bewurkje</string>
   <!-- The page title for adding new password. -->
@@ -3577,16 +3573,6 @@
   <string name="experiments_snackbar">Skeakelje telemetry yn om gegevens te ferstjoeren.</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">Nei Ynstellingen</string>
-  <!--
-    Review quality check feature
-
-    Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
-  -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Wy jouwe oan de beoardielingen fan elk produkt in <b>letterwearde</b> fan A oant F.]]></string>
-  <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[De <b>oanpaste wurdearring</b> is allinnich basearre op beoardielingen wêrfan wy tinke dat se betrouber binne.]]></string>
-  <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>Hichtepunten</b> binne ôfkomstich fan beoardielingen fan %s yn de ôfrûne 80 dagen dy’t neffens ús betrouber binne.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 

@@ -202,7 +202,7 @@ export default class MozSelect extends MozBaseInputElement {
     if (navigator.platform.includes("Mac")) {
       this.panelTrigger?.focus();
     }
-    this.panelList?.toggle(event);
+    this.panelList?.toggle(event, this.panelTrigger);
   }
 
   /**

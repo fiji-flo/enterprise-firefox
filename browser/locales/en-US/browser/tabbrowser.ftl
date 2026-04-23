@@ -225,6 +225,9 @@ tabbrowser-manager-current-window-tab-group =
 ##  $tabGroupName (String): The name of the tab group. See also tab-group-name-default, which will be
 ##                          used when the group's name is empty.
 
+# Title placed over a list of all of the user's tab groups
+tab-groups-list-title = Tab groups
+
 tab-group-name-default = Unnamed Group
 tab-group-editor-title-create = Create tab group
 tab-group-editor-title-edit = Manage tab group
@@ -335,6 +338,14 @@ tab-group-editor-action-new-tab =
     .label = New tab in group
 tab-group-editor-action-new-window =
     .label = Move group to new window
+# Variables:
+#  $linkCount (Number): the number of shareable links in the group.
+tab-group-editor-action-copy-links =
+    .label =
+        { $linkCount ->
+            [1] Copy link in group
+           *[other] Copy { $linkCount } links in group
+        }
 tab-group-editor-action-save =
     .label = Save and close group
 tab-group-editor-action-ungroup =
@@ -344,6 +355,9 @@ tab-group-editor-action-delete =
 tab-group-editor-done =
     .label = Done
     .accessKey = D
+# Share is a verb here. Meaning to "Share" the "tab group"
+tab-group-editor-action-share-tab-group =
+    .label = Share tab group
 
 tab-context-reopen-tab-group =
     .label = Reopen tab group

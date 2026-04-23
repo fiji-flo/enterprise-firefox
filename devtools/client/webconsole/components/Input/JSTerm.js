@@ -1627,7 +1627,10 @@ class JSTerm extends Component {
     // shortcuts to be wrapped in their own span.
     const label = l10n.getStr("webconsole.input.editor.onboarding.label");
     let [prefix, suffix] = label.split("%1$S");
-    suffix = suffix.split("%2$S");
+
+    // Bug 2028930: band-aid to avoid panel crashes due to a localization file
+    // which we moved from one folder to another.
+    suffix = suffix ? suffix.split("%2$S") : [];
 
     const enterString = l10n.getStr("webconsole.enterKey");
 

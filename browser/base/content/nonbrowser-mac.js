@@ -1,5 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -156,11 +155,6 @@ var NonBrowserWindow = {
     if (privateWindowItem) {
       privateWindowItem.setAttribute("disabled", "true");
     }
-
-    // bug 2006564
-    // make sure that when application starts from dock it enforces windows'focus via activateApplication
-    // https://searchfox.org/enterprise-main/rev/4b4e7c59db50500302fa0e437ee07a84d92aa076/widget/nsIMacDockSupport.idl#36-45
-    this.dockSupport.activateApplication(true);
 
     waitForFeltFirefoxWindowReady().then(() => {
       if (newWindowItem) {

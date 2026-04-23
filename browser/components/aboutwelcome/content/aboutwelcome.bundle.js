@@ -816,6 +816,14 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     let actionResult;
     if (["OPEN_URL", "SHOW_FIREFOX_ACCOUNTS"].includes(action.type)) {
       this.handleOpenURL(action, props.flowParams, props.UTMTerm);
+    } else if (action.type === "INSTALL_ADDON_FROM_URL") {
+      const url = props.addonURL && props.isRtamo ? props.addonURL : action.data?.url;
+      // Set add-on url in action.data.url property from JSON
+      action.data = {
+        ...action.data,
+        url
+      };
+      _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
     } else if (action.type) {
       let actionPromise = _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
       if (action.needsAwait) {
@@ -825,18 +833,6 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
         _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(props.messageId, actionResult ? "sign_in" : "sign_in_cancel", "FXA_SIGNIN_FLOW", {
           writeInMicrosurvey: props.writeInMicrosurvey
         });
-      }
-      if (action.type === "INSTALL_ADDON_FROM_URL") {
-        const url = props.addonURL;
-        if (!action.data) {
-          return;
-        }
-        // Set add-on url in action.data.url property from JSON
-        action.data = {
-          ...action.data,
-          url
-        };
-        _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(action);
       }
       // Wait until migration closes to complete the action
       await this.handleMigrationIfNeeded(action, props);
@@ -2967,12 +2963,13 @@ const AddonsPicker = props => {
   const {
     content,
     installedAddons,
-    layout
+    layout,
+    handleAction
   } = props;
   if (!content) {
     return null;
   }
-  function handleAction(event) {
+  function handleInstallClick(event) {
     const {
       message_id,
       writeInMicrosurvey
@@ -2981,19 +2978,12 @@ const AddonsPicker = props => {
       action,
       source_id
     } = content.tiles.data[event.currentTarget.value];
-    let {
-      type,
-      data
-    } = action;
-    if (type === "INSTALL_ADDON_FROM_URL") {
-      if (!data) {
+    if (action.type === "INSTALL_ADDON_FROM_URL") {
+      if (!action.data) {
         return;
       }
     }
-    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.handleUserAction({
-      type,
-      data
-    });
+    handleAction(event, action);
     _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__.AboutWelcomeUtils.sendActionTelemetry(message_id, source_id, "CLICK_BUTTON", {
       writeInMicrosurvey
     });
@@ -3054,7 +3044,7 @@ const AddonsPicker = props => {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null, author.name)))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_InstallButton__WEBPACK_IMPORTED_MODULE_3__.InstallButton, {
     key: id,
     addonId: id,
-    handleAction: handleAction,
+    handleAction: handleInstallClick,
     index: index,
     installedAddons: installedAddons,
     install_label: install_label,
@@ -3078,7 +3068,7 @@ const AddonsPicker = props => {
   }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_InstallButton__WEBPACK_IMPORTED_MODULE_3__.InstallButton, {
     key: id,
     addonId: id,
-    handleAction: handleAction,
+    handleAction: handleInstallClick,
     index: index,
     installedAddons: installedAddons,
     install_label: install_label,

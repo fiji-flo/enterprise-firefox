@@ -3177,7 +3177,13 @@
 # This pref enables the keyboardLock option for requestFullscreen.
 - name: dom.fullscreen.keyboard_lock.enabled
   type: bool
+#ifdef ANDROID
+# Fullscreen Keyboard Lock is not functional on Android, so disable the feature
+# until there is handling for it.
   value: false
+#else
+  value: true
+#endif
   mirror: always
 
 # The interval in milliseconds the Escape key needs to be held in order to
@@ -3185,6 +3191,13 @@
 - name: dom.fullscreen.keyboard_lock.long_press_interval
   type: uint32_t
   value: 1500
+  mirror: always
+
+# The interval in milliseconds the warning will be trigger while holding Escape
+# key.
+- name: dom.fullscreen.keyboard_lock.long_press_warning_interval
+  type: uint32_t
+  value: 500
   mirror: always
 
 # The interval in milliseconds between Escape key events where the
@@ -3410,6 +3423,14 @@
   type: uint32_t
   value: 500
   mirror: always
+
+#ifdef XP_WIN
+# Whether or not to restrict the HANDLE types which are allowed to be transferred over IPC.
+- name: dom.ipc.handle_type_restrictions.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+#endif
 
 #ifdef MOZ_ENABLE_FORKSERVER
 - name: dom.ipc.forkserver.enable
@@ -3837,13 +3858,6 @@
 # Known issues can be guarded using this pref
 # to avoid crashing users while investigating the issue.
 - name: dom.navigation.api.strict.enabled
-  type: bool
-  value: false
-  mirror: always
-
-# For non-Navigation API navigations, create an internal method tracker
-# so that it's possible to await navigations being committed.
-- name: dom.navigation.api.internal_method_tracker
   type: bool
   value: false
   mirror: always
@@ -5902,7 +5916,7 @@
 # Whether the WebSerial API is enabled
 - name: dom.webserial.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # Whether the WebSerial API is addon-gated
@@ -6144,7 +6158,14 @@
   value: true
   mirror: always
 
-# Per-domain blocklist for the previous hack.
+# Whether to enable about:blank async-load workaround for Polarion's version of
+# the GWT's RichTextArea.
+- name: dom.about-blank-polarion-gwt-hack.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Per-domain blocklist for the GWT hack.
 - name: dom.about-blank-gwt-hack.disabled-domains
   type: String
   value: ""
@@ -6898,6 +6919,17 @@
   type: bool
   value: true
   mirror: always
+
+#if defined(XP_MACOSX)
+# Whether or not to interpret the MacOS geolocation permission value
+# NotDetermined as a reason to show a different permission request prompt.
+# This is currently disabled because the OS returns NotDetermined more
+# frequently than we expect.
+-   name: geo.prompt.macos_use_not_determined
+    type: bool
+    value: false
+    mirror: always
+#endif
 
 #---------------------------------------------------------------------------
 # Prefs starting with "gfx."
@@ -7951,6 +7983,11 @@
   mirror: always
 
 - name: gfx.webrender.debug.dl.dump-content-serialized
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: gfx.webrender.debug.dl.dump-spatial-tree
   type: RelaxedAtomicBool
   value: false
   mirror: always
@@ -9335,7 +9372,7 @@
   # Capture stack traces for OOM
 - name: javascript.options.experimental.capture_oom_stack_trace
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   set_spidermonkey_pref: startup
 
@@ -13810,6 +13847,20 @@
   value: 2
   mirror: always
 
+# The validation epoch last completed for the cookie database. Compared against
+# network.cookie.validation.epoch to decide whether to re-run validation.
+- name: network.cookie.validation.lastEpoch
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
+# The current validation epoch. Bump this value whenever the cookie validation
+# logic changes to trigger a new scan on next startup.
+- name: network.cookie.validation.epoch
+  type: RelaxedAtomicUint32
+  value: 1
+  mirror: always
+
 # Stale threshold for cookies in seconds.
 - name: network.cookie.staleThreshold
   type: uint32_t
@@ -15385,6 +15436,13 @@
 - name: network.trr.parse_on_socket_thread
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+# When true, the TRR (DoH) connection is preserved across connection-cleanup
+# events (e.g. application-background on Android) instead of being torn down.
+- name: network.trr.preserve_on_background
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # When true, the TRR transaction gets marked and runnables
@@ -19281,6 +19339,11 @@
 - name: webgl.lose-context-on-memory-pressure
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+- name: webgl.max-bytes-per-row
+  type: RelaxedAtomicUint32
+  value: 2147483647 # 0 => no limit, >0 => max valid bytes per row
   mirror: always
 
 - name: webgl.max-contexts

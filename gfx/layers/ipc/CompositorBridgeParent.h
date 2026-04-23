@@ -347,8 +347,6 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
 
   bool IsSameProcess() const override;
 
-  void NotifyWebRenderDisableNativeCompositor();
-
   void NotifyDidRender(const VsyncId& aCompositeStartId,
                        TimeStamp& aCompositeStart, TimeStamp& aRenderStart,
                        TimeStamp& aCompositeEnd,

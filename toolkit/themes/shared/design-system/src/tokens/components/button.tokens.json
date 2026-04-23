@@ -297,8 +297,8 @@
   "opacity": {
     "disabled": {
       "value": {
-        "default": 0.5,
-        "forcedColors": 1
+        "default": "0.5",
+        "forcedColors": "1"
       }
     }
   },

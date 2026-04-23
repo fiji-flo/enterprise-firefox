@@ -6,7 +6,7 @@
 #include "WrapperFactory.h"
 #include "AccessCheck.h"
 #include "jsfriendapi.h"
-#include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
+#include "js/CallAndConstruct.h"  // JS::IsConstructor, JS::Call, JS::Construct, JS::IsCallable
 #include "js/Exception.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "js/Proxy.h"
@@ -416,11 +416,9 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
     }
   }
 
-  // We have no way of knowing whether the underlying function wants to be a
-  // constructor or not, so we just mark all forwarders as constructors, and
-  // let the underlying function throw for construct calls if it wants.
-  JSFunction* fun = js::NewFunctionByIdWithReserved(
-      cx, FunctionForwarder, nargs, JSFUN_CONSTRUCTOR, id);
+  unsigned flags = JS::IsConstructor(callable) ? JSFUN_CONSTRUCTOR : 0;
+  JSFunction* fun =
+      js::NewFunctionByIdWithReserved(cx, FunctionForwarder, nargs, flags, id);
   if (!fun) {
     return false;
   }

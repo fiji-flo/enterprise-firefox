@@ -547,11 +547,14 @@ let ShellServiceInternal = {
   /**
    * Pin Firefox app to the OS "taskbar."
    */
-  async pinToTaskbar(privateBrowsing = false) {
+  async pinToTaskbar(privateBrowsing = false, fireAndForget = false) {
     if (await this.doesAppNeedPin(privateBrowsing)) {
       try {
         if (AppConstants.platform == "win") {
-          await this.shellService.pinCurrentAppToTaskbarAsync(privateBrowsing);
+          await this.shellService.pinCurrentAppToTaskbarAsync(
+            privateBrowsing,
+            fireAndForget
+          );
         } else if (AppConstants.platform == "macosx") {
           this.macDockSupport.ensureAppIsPinnedToDock();
         }

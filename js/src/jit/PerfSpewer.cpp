@@ -433,17 +433,24 @@ JS::JitCodeRecord* JS::LookupJitCodeRecord(uint64_t addr) {
     return nullptr;
   }
 
-  AutoLockPerfSpewer lock;
+  // Bug 2032436: Use tryLock to avoid deadlocking when a native allocation
+  // profiler captures a backtrace while the PerfSpewer lock is already held on
+  // this thread (e.g. during JIT compilation).
+  if (!PerfMutex.tryLock()) {
+    return nullptr;
+  }
 
-  // Search through profilerData for a record that contains this address
+  JS::JitCodeRecord* result = nullptr;
   for (auto& record : profilerData) {
     if (addr >= record.code_addr &&
         addr < record.code_addr + record.instructionSize) {
-      return &record;
+      result = &record;
+      break;
     }
   }
 
-  return nullptr;
+  PerfMutex.unlock();
+  return result;
 }
 
 static bool PerfSrcEnabled() {

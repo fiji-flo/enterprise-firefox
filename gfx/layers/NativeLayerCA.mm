@@ -878,10 +878,8 @@ void NativeLayerCA::AttachExternalImage(wr::RenderTextureHost* aExternalImage) {
   mIsDRM = isDRM;
 
   MacIOSurface* macIOSurface = texture->GetSurface();
-  bool isHDR =
-      macIOSurface->GetTransferFunction() == gfx::TransferFunction::PQ ||
-      macIOSurface->GetTransferFunction() == gfx::TransferFunction::HLG;
-  mIsHDR = isHDR && StaticPrefs::gfx_color_management_hdr_video();
+  mIsHDR = macIOSurface->IsHDRSurface() &&
+           StaticPrefs::gfx_color_management_hdr_video();
 
   bool specializeVideo = ShouldSpecializeVideo(lock);
   bool changedSpecializeVideo = (mSpecializeVideo != specializeVideo);
@@ -1214,7 +1212,9 @@ void NativeLayerCA::DumpLayer(std::ostream& aOutputStream) {
   if (surface) {
     // Attempt to render the surface as a PNG. Skia can do this for RGB
     // surfaces.
-    RefPtr<MacIOSurface> surf = new MacIOSurface(surface);
+    RefPtr<MacIOSurface> surf = new MacIOSurface(surface, /* aHasAlpha */ true,
+                                                 gfx::YUVColorSpace::Identity,
+                                                 gfx::TransferFunction::SRGB);
     if (surf->Lock(true)) {
       SurfaceFormat format = surf->GetFormat();
       if (format == SurfaceFormat::B8G8R8A8 ||

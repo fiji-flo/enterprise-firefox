@@ -10,7 +10,7 @@
 }
 
 :host(#policies-container:not([hidden])) {
-  @media (max-width: 52rem) {
+  @media (max-width: 950px) {
     display: none;
   }
 }
@@ -18,7 +18,7 @@
 :host(#policies-container-content:not([hidden])) {
   display: none;
 
-  @media (max-width: 52rem) {
+  @media (max-width: 950px) {
     display: block;
     margin-bottom: var(--space-small);
   }

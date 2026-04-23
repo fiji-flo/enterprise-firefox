@@ -12,7 +12,7 @@ import mozilla.components.concept.awesomebar.optimizedsuggestions.FlightSuggesti
 import mozilla.components.feature.awesomebar.facts.SuggestionCardType
 import mozilla.components.feature.awesomebar.facts.emitOptimizedSuggestionCardClickedFact
 import mozilla.components.feature.awesomebar.facts.emitOptimizedSuggestionCardDisplayedFact
-import mozilla.components.feature.search.SearchUseCases
+import mozilla.components.feature.session.SessionUseCases
 import java.time.DateTimeException
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -29,7 +29,7 @@ const val DEFAULT_FLIGHT_SUGGESTION_LIMIT = 1
  * @property maxNumberOfSuggestions the maximum number of suggestions to be provided.
  */
 class FlightsOnlineSuggestionProvider(
-    private val searchUseCase: SearchUseCases.SearchUseCase,
+    private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val dataSource: AwesomeBar.FlightsSuggestionDataSource,
     private val suggestionsHeader: String? = null,
     @get:VisibleForTesting internal val maxNumberOfSuggestions: Int = DEFAULT_FLIGHT_SUGGESTION_LIMIT,
@@ -65,7 +65,7 @@ class FlightsOnlineSuggestionProvider(
 
     private fun AwesomeBar.FlightItem.toSuggestionOrNull(): AwesomeBar.FlightSuggestion? {
         val hasRequiredFields =
-            query.isNotBlank() && flightNumber.isNotBlank()
+            url.isNotBlank() && flightNumber.isNotBlank()
 
         val flightStatus = parseFlightStatus(delayed, status)
         val departureFlightData = parseFlightData(origin, departure)
@@ -78,11 +78,10 @@ class FlightsOnlineSuggestionProvider(
             AwesomeBar.FlightSuggestion(
                 onSuggestionClicked = {
                     emitOptimizedSuggestionCardClickedFact(SuggestionCardType.FLIGHTS)
-                    searchUseCase.invoke(query)
+                    loadUrlUseCase.invoke(url)
                 },
                 provider = this@FlightsOnlineSuggestionProvider,
                 score = Int.MAX_VALUE,
-                query = query,
                 flightNumber = flightNumber,
                 airlineName = airline.name,
                 flightStatus = flightStatus,

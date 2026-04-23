@@ -63,8 +63,8 @@ export class ASRouterStorage {
     throw new Error(`Store name ${storeName} does not exist.`);
   }
 
-  async _getStore(storeName) {
-    return (await this.db).objectStore(storeName, "readwrite");
+  async _getStore(storeName, mode = "readonly") {
+    return (await this.db).objectStore(storeName, mode);
   }
 
   _get(storeName, key) {
@@ -87,17 +87,22 @@ export class ASRouterStorage {
 
   _set(storeName, key, value) {
     return this._requestWrapper(async () =>
-      (await this._getStore(storeName)).put(value, key)
+      (await this._getStore(storeName, "readwrite")).put(value, key)
     );
   }
 
   _openDatabase() {
     return lazy.IndexedDB.open(this.dbName, this.dbVersion, db => {
       // If provided with array of objectStore names we need to create all the
-      // individual stores
+      // individual stores.
+      // createObjectStore is synchronous (returns IDBObjectStore, not
+      // IDBRequest), so we must not wrap it with the async _requestWrapper:
+      // its returned Promise would never be awaited inside this synchronous
+      // callback, silently swallowing any error instead of letting it abort
+      // the version-change transaction.
       this.storeNames.forEach(store => {
         if (!db.objectStoreNames.contains(store)) {
-          this._requestWrapper(() => db.createObjectStore(store));
+          db.createObjectStore(store);
         }
       });
     });
@@ -112,7 +117,7 @@ export class ASRouterStorage {
   async createOrOpenDb() {
     try {
       const db = await this._openDatabase();
-      return db;
+      return this._registerLifecycleHandlers(db);
     } catch (e) {
       if (this.telemetry) {
         this.telemetry.handleUndesiredEvent({ event: "INDEXEDDB_OPEN_FAILED" });
@@ -126,8 +131,24 @@ export class ASRouterStorage {
           });
         }
       }
-      return this._openDatabase();
+      const db = await this._openDatabase();
+      return this._registerLifecycleHandlers(db);
     }
+  }
+
+  // Register event handlers on a newly opened database connection so that
+  // external lifecycle events (version upgrades from other connections, or
+  // the backend closing the connection due to storage pressure/corruption)
+  // clear the cached _db promise and allow the next access to re-open.
+  _registerLifecycleHandlers(db) {
+    db.onversionchange = () => {
+      db.close();
+      this._db = null;
+    };
+    db.onclose = () => {
+      this._db = null;
+    };
+    return db;
   }
 
   async _requestWrapper(request) {

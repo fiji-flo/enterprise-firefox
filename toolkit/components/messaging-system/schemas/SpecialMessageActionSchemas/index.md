@@ -506,3 +506,9 @@ Creates a new tab group at the position of the current tab containing only that 
 If the current tab is already in a tab group, this action creates a new tab and places that new tab into a new tab group after the current tab's tab group.
 
 - args: (none)
+
+### `IPPROTECTION_ENROLL`
+
+Enrolls the user in IP Protection. Initiates a Firefox Accounts sign-in flow if needed, then enrolls and entitles the user, and opens the IP Protection panel.
+
+- args: (none)

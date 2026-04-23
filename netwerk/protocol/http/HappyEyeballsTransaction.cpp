@@ -1,4 +1,3 @@
-/* vim:set ts=4 sw=2 sts=2 et cin: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -122,8 +121,11 @@ nsresult HappyEyeballsTransaction::WriteSegments(nsAHttpSegmentWriter* writer,
 }
 
 void HappyEyeballsTransaction::Close(nsresult reason) {
-  LOG(("HappyEyeballsTransaction::Close %p reason=%x trans=%p cancelled=%d",
-       this, static_cast<uint32_t>(reason), mTransaction.get(), mCancelled));
+  LOG(
+      ("HappyEyeballsTransaction::Close %p reason=%x trans=%p cancelled=%d "
+       "mConnectedCallbackInvoked=%d mConnectedCallback=%d",
+       this, static_cast<uint32_t>(reason), mTransaction.get(), mCancelled,
+       mConnectedCallbackInvoked, !!mConnectedCallback));
 
   RefPtr<nsHttpTransaction> trans = mTransaction;
   mTransaction = nullptr;
@@ -132,30 +134,30 @@ void HappyEyeballsTransaction::Close(nsresult reason) {
     return;
   }
 
+  nsresult closeReason = mCancelled ? mCancelReason : reason;
+
   trans->SetHappyEyeballsProxy(nullptr);
 
   if (NS_SUCCEEDED(reason) || mConnectedCallbackInvoked ||
       reason == NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED || mCancelled) {
-    trans->Close(mCancelled ? mCancelReason : reason);
-    return;
+    trans->Close(closeReason);
+  } else {
+    // The TLS handshake failed before the connected callback was invoked.
+    // Cancel any pending token bucket entry so the raw ATokenBucketEvent*
+    // pointer in EventTokenBucket::mEvents doesn't dangle after we drop
+    // our reference to the inner transaction.
+    trans->CancelPacing(closeReason);
+
+    // Clear the inner transaction's connection reference to avoid leaking
+    // the Http3Session.
+    trans->SetConnection(nullptr);
   }
 
-  // Cancel any pending token bucket entry so the raw ATokenBucketEvent*
-  // pointer in EventTokenBucket::mEvents doesn't dangle after we drop
-  // our reference to the inner transaction.
-  trans->CancelPacing(mCancelled ? mCancelReason : reason);
-
-  // Clear the inner transaction's connection reference to avoid leaking the
-  // Http3Session. The connection was set by Http3Stream to point to the
-  // Http3Session, and if we don't clear it here, the transaction will keep
-  // the session alive indefinitely.
-  trans->SetConnection(nullptr);
-
-  // Notify the ConnectionEstablisher about the failure. The
-  // HappyEyeballsConnectionAttempt still holds a reference to the inner
-  // transaction and will either retry on another connection or close it
-  // when all attempts have failed.
-  MaybeInvokeConnectedCallback(mCancelled ? mCancelReason : reason);
+  // Notify the ConnectionEstablisher about the failure so the HE attempt
+  // can process it. When the proxy is cancelled, this ensures other
+  // transactions that claimed this attempt via FindConnToClaim are
+  // unblocked via ProcessPendingQ.
+  MaybeInvokeConnectedCallback(closeReason);
 }
 
 void HappyEyeballsTransaction::SetConnectedCallback(

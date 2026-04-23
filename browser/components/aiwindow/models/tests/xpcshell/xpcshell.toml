@@ -58,4 +58,6 @@ support-files = [
 
 ["test_Utils_RemoteSettings.js"]
 
+["test_Utils_RemoteSettings_ChatModelChoice.js"]
+
 ["test_intent_classifier.js"]

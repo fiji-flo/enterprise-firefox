@@ -671,14 +671,22 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
 
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  // Need to do this before the STATUS_RECEIVING_FROM check below, to make
-  // sure that the activity distributor gets told about all status events.
-
   // upon STATUS_WAITING_FOR; report request body sent
   if ((mHasRequestBody) && (status == NS_NET_STATUS_WAITING_FOR)) {
     gHttpHandler->ObserveHttpActivityWithArgs(
         HttpActivityArgs(mChannelId), NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
         NS_HTTP_ACTIVITY_SUBTYPE_REQUEST_BODY_SENT, PR_Now(), 0, ""_ns);
+  }
+
+  if (status == NS_NET_STATUS_SENDING_TO && mReader) {
+    // A mRequestStream method is on the stack - wait.
+    LOG(
+        ("nsHttpTransaction::OnSocketStatus [this=%p] "
+         "Skipping Re-Entrant NS_NET_STATUS_SENDING_TO\n",
+         this));
+    // its ok to coalesce several of these into one deferred event
+    mDeferredSendProgress = true;
+    return;
   }
 
   // report the status and progress
@@ -698,17 +706,6 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
           ("nsHttpTransaction::OnTransportStatus %p "
            "SENDING_TO without request body\n",
            this));
-      return;
-    }
-
-    if (mReader) {
-      // A mRequestStream method is on the stack - wait.
-      LOG(
-          ("nsHttpTransaction::OnSocketStatus [this=%p] "
-           "Skipping Re-Entrant NS_NET_STATUS_SENDING_TO\n",
-           this));
-      // its ok to coalesce several of these into one deferred event
-      mDeferredSendProgress = true;
       return;
     }
 

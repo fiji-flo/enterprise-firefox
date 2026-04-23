@@ -10,7 +10,7 @@
 //! * a `fn invoke(&self, f: model::InvokeFn)` method which invokes the given function
 //!   asynchronously (without blocking) on the UI loop thread.
 
-use crate::std::{rc::Rc, sync::Arc};
+use crate::std::sync::Arc;
 use crate::{
     async_task::AsyncTask, config::Config, data, logic::ReportCrash, settings::Settings, std,
     thread_bound::ThreadBound,
@@ -134,7 +134,7 @@ pub struct ReportCrashUI {
     state: Arc<ThreadBound<ReportCrashUIState>>,
     ui: Arc<UI>,
     config: Arc<Config>,
-    logic: Rc<AsyncTask<ReportCrash>>,
+    logic: AsyncTask<ReportCrash>,
 }
 
 /// The state of the creash UI.
@@ -172,7 +172,7 @@ impl ReportCrashUI {
             })),
             ui: Default::default(),
             config,
-            logic: Rc::new(logic),
+            logic,
         }
     }
 
@@ -322,13 +322,13 @@ impl ReportCrashUI {
                     {
                         #[cfg(not(feature = "enterprise"))]
                         Button["restart"] visible(config.restart_command.is_some())
-                            on_click(cc! { (logic) move || logic.push(|s| s.restart()) })
+                            on_click(cc! { (logic) move || logic.push_async(|s| Box::pin(s.restart())) })
                             enabled(&input_enabled) hsize(160)
                         {
                             Label text(config.string("crashreporter-button-restart"))
                         },
                         #[cfg(not(feature = "enterprise"))]
-                        Button["quit"] on_click(cc! { (logic) move || logic.push(|s| s.quit()) })
+                        Button["quit"] on_click(cc! { (logic) move || logic.push_async(|s| Box::pin(s.quit())) })
                             enabled(&input_enabled) hsize(160)
                         {
                             Label text(config.string("crashreporter-button-quit"))
@@ -336,9 +336,9 @@ impl ReportCrashUI {
                         #[cfg(feature = "enterprise")]
                         Button["quit"] on_click(cc! { (logic) move || {
                                 if policy_auto_submit {
-                                    logic.push(|s| s.just_quit());
+                                    logic.push_async(|s| Box::pin(s.just_quit()));
                                 } else {
-                                    logic.push(|s| s.quit());
+                                    logic.push_async(|s| Box::pin(s.quit()));
                                 }
                             } })
                             enabled(&close_enabled) hsize(160)

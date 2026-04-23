@@ -6,6 +6,7 @@
  */
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 import {
   UrlbarProvider,
@@ -35,6 +36,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "clipboardHelper",
+  "@mozilla.org/widget/clipboardhelper;1",
+  Ci.nsIClipboardHelper
+);
 
 /**
  * Utility class for testing <html:moz-urlbar> elements.
@@ -1557,7 +1565,7 @@ class UrlbarInputTestUtils {
    *   The search mode switcher popup.
    */
   searchModeSwitcherPopup(win) {
-    return this.#urlbar(win).querySelector(".searchmode-switcher-popup");
+    return this.#urlbar(win).querySelector(".searchmode-switcher-panel-list");
   }
 
   /**
@@ -1582,6 +1590,10 @@ class UrlbarInputTestUtils {
     if (openFn) {
       await openFn();
     } else {
+      button.focus();
+      await lazy.BrowserTestUtils.waitForCondition(
+        () => !button.hasAttribute("aria-hidden")
+      );
       button.click();
     }
     await Promise.all([promisePanelOpen, rebuildPromise]);
@@ -1665,6 +1677,89 @@ class UrlbarInputTestUtils {
         break;
       }
     }
+  }
+
+  /**
+   * Selects the urlbar input and pastes the string into it.
+   *
+   * @param {string} str
+   *   The string to paste.
+   * @param {ChromeWindow} win
+   */
+  async selectAndPaste(str, win) {
+    await this.SimpleTest.promiseClipboardChange(str, () => {
+      lazy.clipboardHelper.copyString(str);
+    });
+    this.#urlbar(win).select();
+    win.document.commandDispatcher
+      .getControllerForCommand("cmd_paste")
+      .doCommand("cmd_paste");
+  }
+
+  /**
+   * Simulates selecting by dragging within the urlbar input.
+   *
+   * @param {number} fromX
+   * @param {number} toX
+   * @param {ChromeWindow} win
+   * @returns {Promise<Event>}
+   *   Resolves to the mouseup event.
+   */
+  selectWithMouseDrag(fromX, toX, win) {
+    let target = this.#urlbar(win).inputField;
+    let rect = target.getBoundingClientRect();
+    let promise = lazy.BrowserTestUtils.waitForEvent(target, "mouseup");
+    this.EventUtils.synthesizeMouse(
+      target,
+      fromX,
+      rect.height / 2,
+      { type: "mousemove" },
+      target.ownerGlobal
+    );
+    this.EventUtils.synthesizeMouse(
+      target,
+      fromX,
+      rect.height / 2,
+      { type: "mousedown" },
+      target.ownerGlobal
+    );
+    this.EventUtils.synthesizeMouse(
+      target,
+      toX,
+      rect.height / 2,
+      { type: "mousemove" },
+      target.ownerGlobal
+    );
+    this.EventUtils.synthesizeMouse(
+      target,
+      toX,
+      rect.height / 2,
+      { type: "mouseup" },
+      target.ownerGlobal
+    );
+    return promise;
+  }
+
+  /**
+   * Simulates selecting by double-clicking within the urlbar input.
+   *
+   * @param {number} offsetX
+   *   The x based location within the input field to double-click.
+   * @param {ChromeWindow} win
+   * @returns {Promise<Event>}
+   *   Resolves to the dblclick event.
+   */
+  selectWithDoubleClick(offsetX, win) {
+    let target = this.#urlbar(win).inputField;
+    let rect = target.getBoundingClientRect();
+    let promise = lazy.BrowserTestUtils.waitForEvent(target, "dblclick");
+    this.EventUtils.synthesizeMouse(target, offsetX, rect.height / 2, {
+      clickCount: 1,
+    });
+    this.EventUtils.synthesizeMouse(target, offsetX, rect.height / 2, {
+      clickCount: 2,
+    });
+    return promise;
   }
 
   /**

@@ -178,7 +178,6 @@ impl Parse for AnimationDuration {
 #[derive(
     Copy, Clone, Debug, MallocSizeOf, PartialEq, Parse, SpecifiedValueInfo, ToCss, ToShmem, ToTyped,
 )]
-#[typed_value(derive_fields)]
 pub enum AnimationIterationCount {
     /// A `<number>` value.
     Number(NonNegativeNumber),
@@ -217,7 +216,6 @@ impl AnimationIterationCount {
 )]
 #[value_info(other_values = "none")]
 #[repr(C)]
-#[typed_value(derive_fields)]
 pub struct AnimationName(pub KeyframesName);
 
 impl AnimationName {
@@ -720,6 +718,7 @@ impl Parse for ViewTimelineInset {
     ToTyped,
 )]
 #[repr(transparent)]
+#[typed(todo_derive_fields)]
 #[value_info(other_values = "none, match-element")]
 pub struct ViewTransitionNameKeyword(AtomIdent);
 

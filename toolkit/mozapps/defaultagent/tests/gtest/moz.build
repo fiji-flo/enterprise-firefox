@@ -5,6 +5,7 @@
 Library("DefaultAgentTest")
 
 UNIFIED_SOURCES += [
+    "CacheTest.cpp",
     "DefaultAgentTest.cpp",
     "SetDefaultBrowserTest.cpp",
 ]

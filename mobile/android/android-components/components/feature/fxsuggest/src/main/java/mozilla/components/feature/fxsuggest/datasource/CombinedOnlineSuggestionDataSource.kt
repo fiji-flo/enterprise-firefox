@@ -7,7 +7,13 @@ package mozilla.components.feature.fxsuggest.datasource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.serialization.json.Json
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.feature.fxsuggest.dto.CombinedSuggestionResponseDto
+import mozilla.components.feature.fxsuggest.dto.SuggestionDto
+import mozilla.components.feature.fxsuggest.parser.FlightsSuggestionParser
+import mozilla.components.feature.fxsuggest.parser.SportsSuggestionParser
+import mozilla.components.feature.fxsuggest.parser.StocksSuggestionParser
 
 /**
  * Minimum length of the query that will trigger network request for fetching online suggestions.
@@ -63,6 +69,11 @@ class CombinedOnlineSuggestionDataSource(
     @Volatile
     private var pendingRequest: Pair<String, Deferred<CombinedResults>>? = null
 
+    private val json = Json { ignoreUnknownKeys = true }
+    private val stocksParser = StocksSuggestionParser()
+    private val sportsParser = SportsSuggestionParser()
+    private val flightsParser = FlightsSuggestionParser()
+
     /**
      * Returns suggestions for [query], making at most one network request even when called
      * concurrently by multiple providers for the same query.
@@ -93,7 +104,29 @@ class CombinedOnlineSuggestionDataSource(
     }
 
     private fun parseResponse(body: String): CombinedResults {
-        println(body)
-        TODO()
+        return try {
+            val response = json.decodeFromString<CombinedSuggestionResponseDto>(body)
+            val winner = response.suggestions.maxByOrNull { it.score } ?: return CombinedResults.Empty
+            toResults(winner)
+        } catch (_: Exception) {
+            CombinedResults.Empty
+        }
+    }
+
+    private fun toResults(suggestion: SuggestionDto): CombinedResults {
+        val details = suggestion.customDetails ?: return CombinedResults.Empty
+
+        return when (suggestion.provider) {
+            StocksSuggestionParser.PROVIDER_NAME -> details.polygon?.let {
+                CombinedResults.Stocks(stocksParser.parse(it))
+            }
+            SportsSuggestionParser.PROVIDER_NAME -> details.sports?.let {
+                CombinedResults.Sports(sportsParser.parse(it))
+            }
+            FlightsSuggestionParser.PROVIDER_NAME -> details.flightaware?.let {
+                CombinedResults.Flights(flightsParser.parse(it))
+            }
+            else -> null
+        } ?: CombinedResults.Empty
     }
 }

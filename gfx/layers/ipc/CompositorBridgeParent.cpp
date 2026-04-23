@@ -1782,13 +1782,6 @@ bool CompositorBridgeParent::IsSameProcess() const {
   return OtherPid() == base::GetCurrentProcId();
 }
 
-void CompositorBridgeParent::NotifyWebRenderDisableNativeCompositor() {
-  MOZ_ASSERT(CompositorThread()->IsOnCurrentThread());
-  if (mWrBridge) {
-    mWrBridge->DisableNativeCompositor();
-  }
-}
-
 int32_t RecordContentFrameTime(
     const VsyncId& aTxnId, const TimeStamp& aVsyncStart,
     const TimeStamp& aTxnStart, const VsyncId& aCompositeId,

@@ -256,17 +256,12 @@ TEST_F(ImageDecoderMetadata, AnimatedWebP) {
 }
 
 TEST_F(ImageDecoderMetadata, AnimatedAVIF) {
-  // TODO: If we request first frame only decoding, the AVIF decoder says the
-  // animated image is not animated. This should be fixed at some point.
-  CheckMetadata(GreenFirstFrameAnimatedAVIFTestCase(), BMPWithinICO::NO,
-                /* aSkipCommon */ true, /* aSkipFrameCount */ false);
+  CheckMetadata(GreenFirstFrameAnimatedAVIFTestCase());
 }
 
 #ifdef MOZ_JXL
 TEST_F(ImageDecoderMetadata, AnimatedJXL) {
-  // TODO: Frame count decodes haven't been implemented for JXL yet.
-  CheckMetadata(GreenFirstFrameAnimatedJXLTestCase(), BMPWithinICO::NO,
-                /* aSkipCommon */ false, /* aSkipFrameCount */ true);
+  CheckMetadata(GreenFirstFrameAnimatedJXLTestCase());
 }
 #endif
 

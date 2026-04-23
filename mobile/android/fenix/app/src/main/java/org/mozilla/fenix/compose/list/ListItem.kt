@@ -68,10 +68,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.badge.BADGE_SIZE_SMALL
 import mozilla.components.compose.base.badge.BadgedIcon
+import mozilla.components.compose.base.button.RadioButton
 import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.theme.information
 import org.mozilla.fenix.compose.Favicon
-import org.mozilla.fenix.compose.button.RadioButton
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
 import mozilla.components.ui.icons.R as iconsR

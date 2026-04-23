@@ -15,6 +15,10 @@ tags = "os_integration"
 
 ["browser_about_settings.js"]
 
+["browser_accessibility_pane.js"]
+
+["browser_accessibility_zoom.js"]
+
 ["browser_advanced_update.js"]
 run-if = [
   "updater",
@@ -71,6 +75,8 @@ run-if = [
 ["browser_open_migration_wizard.js"]
 
 ["browser_setting_group_in_progress.js"]
+
+["browser_setting_pane_redesign_promo.js"]
 
 ["browser_setting_pane_sub_pane.js"]
 

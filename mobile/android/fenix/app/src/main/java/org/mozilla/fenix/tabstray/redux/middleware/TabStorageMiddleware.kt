@@ -7,10 +7,15 @@ package org.mozilla.fenix.tabstray.redux.middleware
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted.Companion.Eagerly
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.feature.tabs.TabsUseCases.MoveTabsUseCase
 import mozilla.components.feature.tabs.TabsUseCases.RemoveTabsUseCase
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Store
@@ -34,13 +39,34 @@ private typealias TabItemId = String
 private typealias TabGroupMap = HashMap<TabItemId, TabsTrayItem.TabGroup>
 
 /**
+ * Value class representing the combined data model of all data inputs before being transformed.
+ **/
+@JvmInline
+private value class CombinedTabData(
+    private val combinedData: Triple<TabData, List<StoredTabGroup>, Map<String, String>>,
+) {
+    val tabs: List<TabSessionState>
+        get() = combinedData.first.tabs
+
+    val selectedTabId: String?
+        get() = combinedData.first.selectedTabId
+
+    val tabGroups: List<StoredTabGroup>
+        get() = combinedData.second
+
+    val tabGroupAssignments: Map<String, String>
+        get() = combinedData.third
+}
+
+/**
  * [Middleware] that reacts to [TabsTrayAction] and performs storage side effects.
  *
  * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
  * @param tabGroupsEnabled Whether the inactive tabs feature is enabled.
- * @param tabDataFlow [StateFlow] used to observe tab data.
+ * @param tabDataFlow [Flow] used to observe tab data.
  * @param tabGroupRepository The [TabGroupRepository] used to read/write tab group data.
  * @param removeTabsUseCase The [RemoveTabsUseCase] used to delete the tabs in a tab group.
+ * @param moveTabsUseCase The [MoveTabsUseCase] used to sequence tabs next to each other in the underlying tab storage.
  * @param dateTimeProvider The [DateTimeProvider] that will be used to get the current date.
  * @param scope The [CoroutineScope] for running the tab data transformation off of the main thread.
  * @param mainScope The [CoroutineScope] used for returning to the main thread.
@@ -51,10 +77,27 @@ class TabStorageMiddleware(
     private val tabDataFlow: Flow<TabData>,
     private val tabGroupRepository: TabGroupRepository,
     private val removeTabsUseCase: RemoveTabsUseCase,
+    private val moveTabsUseCase: MoveTabsUseCase,
     private val dateTimeProvider: DateTimeProvider = DefaultDateTimeProvider(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
     private val mainScope: CoroutineScope = CoroutineScope(Dispatchers.Main),
 ) : Middleware<TabsTrayState, TabsTrayAction> {
+
+    private val combinedDataFlow: StateFlow<CombinedTabData> =
+        if (tabGroupsEnabled) {
+            combine(
+                flow = tabDataFlow.distinctUntilChanged(),
+                flow2 = tabGroupRepository.observeTabGroups().distinctUntilChanged(),
+                flow3 = tabGroupRepository.observeTabGroupAssignments().distinctUntilChanged(),
+            ) { tabData, tabGroups, tabGroupAssignments ->
+                CombinedTabData(combinedData = Triple(tabData, tabGroups, tabGroupAssignments))
+            }.toCombinedDataStateFlow()
+        } else {
+            tabDataFlow
+                .map { CombinedTabData(combinedData = Triple(it, listOf(), mapOf())) }
+                .distinctUntilChanged()
+                .toCombinedDataStateFlow()
+        }
 
     private val logger = Logger(tag = "TabStorageMiddleware")
 
@@ -83,42 +126,19 @@ class TabStorageMiddleware(
             InitAction -> {
                 // Set up the tab data observer and set the Flow collection to the lifetime of main scope
                 mainScope.launch {
-                    if (tabGroupsEnabled) {
-                        combine(
-                            flow = tabDataFlow.distinctUntilChanged(),
-                            flow2 = tabGroupRepository.observeTabGroups().distinctUntilChanged(),
-                            flow3 = tabGroupRepository.observeTabGroupAssignments().distinctUntilChanged(),
-                        ) { tabData, tabGroups, tabGroupAssignments ->
-                            Triple(tabData, tabGroups, tabGroupAssignments)
-                        }.collect { data ->
-                            scope.launch {
-                                val transformedTabData = transformTabData(
-                                    tabData = data.first,
-                                    tabGroups = data.second,
-                                    tabGroupAssignments = data.third,
-                                )
+                    combinedDataFlow.collect { data ->
+                        scope.launch {
+                            val transformedTabData = transformTabData(
+                                tabs = data.tabs,
+                                selectedTabId = data.selectedTabId,
+                                tabGroups = data.tabGroups,
+                                tabGroupAssignments = data.tabGroupAssignments,
+                            )
 
-                                mainScope.launch {
-                                    store.dispatch(TabDataUpdateReceived(tabStorageUpdate = transformedTabData))
-                                }
+                            mainScope.launch {
+                                store.dispatch(TabDataUpdateReceived(tabStorageUpdate = transformedTabData))
                             }
                         }
-                    } else {
-                        tabDataFlow
-                            .distinctUntilChanged()
-                            .collect { tabData ->
-                                scope.launch {
-                                    val tabData = transformTabData(
-                                        tabData = tabData,
-                                        tabGroups = emptyList(),
-                                        tabGroupAssignments = emptyMap(),
-                                    )
-
-                                    mainScope.launch {
-                                        store.dispatch(TabDataUpdateReceived(tabStorageUpdate = tabData))
-                                    }
-                                }
-                            }
                     }
                 }
             }
@@ -128,20 +148,41 @@ class TabStorageMiddleware(
             is TabGroupAction.TabsAddedToGroup -> {
                 val selectedTabIds = store.state.mode.selectedTabIds
                 val selectedTabGroupIds = store.state.mode.selectedTabGroupIds
+                val lastTabInGroupId = store.state.lastTabInGroupId(groupId = action.groupId)
 
                 scope.launch {
+                    // Sequence the selected tabs after the group's other tabs, if it has any.
+                    lastTabInGroupId?.let {
+                        sequenceGroupedTabsTogether(
+                            tabIds = selectedTabIds,
+                            targetTabId = lastTabInGroupId,
+                        )
+                    }
+
                     tabGroupRepository.addTabsToTabGroup(
                         tabGroupId = action.groupId,
                         tabIds = selectedTabIds,
                     )
 
                     // If group(s) were merged, delete them
-                    tabGroupRepository.deleteTabGroupsById(ids = selectedTabGroupIds)
+                    if (selectedTabGroupIds.isNotEmpty()) {
+                        tabGroupRepository.deleteTabGroupsById(ids = selectedTabGroupIds)
+                    }
                 }
             }
 
             is TabGroupAction.TabAddedToGroup -> {
+                val lastTabInGroupId = store.state.lastTabInGroupId(groupId = action.groupId)
+
                 scope.launch {
+                    // Sequence this tab next to the group's other tabs, if it has any.
+                    lastTabInGroupId?.let {
+                        sequenceGroupedTabsTogether(
+                            tabIds = listOf(action.tabId),
+                            targetTabId = it,
+                        )
+                    }
+
                     tabGroupRepository.addTabGroupAssignment(
                         tabId = action.tabId,
                         tabGroupId = action.groupId,
@@ -154,18 +195,25 @@ class TabStorageMiddleware(
     }
 
     private fun transformTabData(
-        tabData: TabData,
+        tabs: List<TabSessionState>,
+        selectedTabId: String?,
         tabGroups: List<StoredTabGroup>,
         tabGroupAssignments: Map<TabItemId, String>,
     ): TabStorageUpdate {
-        val normalTabs: MutableList<TabsTrayItem> = mutableListOf()
+        val normalItems: MutableList<TabsTrayItem> = mutableListOf()
         val inactiveTabs: MutableList<TabsTrayItem.Tab> = mutableListOf()
         val privateTabs: MutableList<TabsTrayItem> = mutableListOf()
         val transformedTabGroups = constructTabGroupMaps(tabGroups = tabGroups)
         val groupsIncludedInNormalTabs = hashSetOf<TabItemId>()
+        var normalTabCount = 0
+        var selectedNormalTabIndex = 0
+        var selectedPrivateTabIndex = 0
 
-        tabData.tabs.forEach { tab ->
-            val displayTab = TabsTrayItem.Tab(tab = tab)
+        tabs.forEach { tab ->
+            val displayTab = TabsTrayItem.Tab(
+                tab = tab,
+                isFocused = tab.id == selectedTabId,
+            )
             val assignedGroup = getAssignedGroup(
                 tabItemId = displayTab.id,
                 tabGroupAssignments = tabGroupAssignments,
@@ -174,29 +222,93 @@ class TabStorageMiddleware(
 
             when {
                 assignedGroup != null -> {
-                    assignedGroup.tabs.add(displayTab)
-
-                    // We need to separately check & track if the group has already been added to the
-                    // collection of Normal tab items because normalTabs does not maintain a sort key
-                    // and cannot be backed by a Map/Set.
-                    if (!assignedGroup.closed && assignedGroup.id !in groupsIncludedInNormalTabs) {
-                        normalTabs.add(assignedGroup)
-                        groupsIncludedInNormalTabs.add(assignedGroup.id)
-                    }
+                    normalTabCount++
+                    addToTabGroup(
+                        tab = displayTab,
+                        assignedGroup = assignedGroup,
+                        groupsIncludedInNormalTabs = groupsIncludedInNormalTabs,
+                        normalTabs = normalItems,
+                        updateSelectedTabIndex = { selectedNormalTabIndex = it },
+                    )
                 }
-                displayTab.private -> privateTabs.add(displayTab)
-                inactiveTabsEnabled && displayTab.inactive -> inactiveTabs.add(displayTab)
-                else -> normalTabs.add(displayTab)
+
+                displayTab.private -> addToPrivateTabs(
+                    tab = displayTab,
+                    privateTabs = privateTabs,
+                    updateSelectedTabIndex = { selectedPrivateTabIndex = it },
+                )
+
+                inactiveTabsEnabled && displayTab.inactive -> {
+                    normalTabCount++
+                    inactiveTabs.add(displayTab)
+                }
+
+                else -> {
+                    normalTabCount++
+                    addToNormalTabs(
+                        tab = displayTab,
+                        normalTabs = normalItems,
+                        updateSelectedTabIndex = { selectedNormalTabIndex = it },
+                    )
+                }
             }
         }
 
         return TabStorageUpdate(
-            selectedTabId = tabData.selectedTabId,
-            normalTabs = normalTabs,
+            selectedTabId = selectedTabId,
+            normalItems = normalItems,
+            normalTabCount = normalTabCount,
+            selectedNormalItemIndex = selectedNormalTabIndex,
             inactiveTabs = inactiveTabs,
             privateTabs = privateTabs,
-            tabGroups = transformedTabGroups.values.toList(),
+            selectedPrivateItemIndex = selectedPrivateTabIndex,
+            tabGroups = transformedTabGroups.values.toList().sortedByDescending { it.lastModified },
         )
+    }
+
+    private fun addToTabGroup(
+        tab: TabsTrayItem.Tab,
+        assignedGroup: TabsTrayItem.TabGroup,
+        groupsIncludedInNormalTabs: HashSet<TabItemId>,
+        normalTabs: MutableList<TabsTrayItem>,
+        updateSelectedTabIndex: (Int) -> Unit,
+    ) {
+        assignedGroup.tabs.add(tab)
+
+        // We need to separately check & track if the group has already been added to the
+        // collection of Normal tab items because normalTabs does not maintain a sort key
+        // and cannot be backed by a Map/Set.
+        if (!assignedGroup.closed && assignedGroup.id !in groupsIncludedInNormalTabs) {
+            normalTabs.add(assignedGroup)
+            groupsIncludedInNormalTabs.add(assignedGroup.id)
+        }
+
+        if (tab.isFocused) {
+            updateSelectedTabIndex(normalTabs.size - 1)
+            assignedGroup.isFocused = true
+        }
+    }
+
+    private fun addToNormalTabs(
+        tab: TabsTrayItem.Tab,
+        normalTabs: MutableList<TabsTrayItem>,
+        updateSelectedTabIndex: (Int) -> Unit,
+    ) {
+        normalTabs.add(tab)
+        if (tab.isFocused) {
+            updateSelectedTabIndex(normalTabs.size - 1)
+        }
+    }
+
+    private fun addToPrivateTabs(
+        tab: TabsTrayItem.Tab,
+        privateTabs: MutableList<TabsTrayItem>,
+        updateSelectedTabIndex: (Int) -> Unit,
+    ) {
+        privateTabs.add(tab)
+        if (tab.isFocused) {
+            updateSelectedTabIndex(privateTabs.size - 1)
+        }
     }
 
     private fun getAssignedGroup(
@@ -223,6 +335,7 @@ class TabStorageMiddleware(
                 title = tabGroup.title,
                 tabs = mutableListOf(),
                 closed = tabGroup.closed,
+                lastModified = tabGroup.lastModified,
             )
         }
 
@@ -232,7 +345,7 @@ class TabStorageMiddleware(
     private fun handleSaveClicked(
         store: Store<TabsTrayState, TabsTrayAction>,
     ) {
-        val formState = store.state.tabGroupFormState ?: return
+        val formState = store.state.tabGroupState.formState ?: return
         val selectedTabIds = store.state.mode.selectedTabIds
 
         scope.launch {
@@ -243,6 +356,19 @@ class TabStorageMiddleware(
                     lastModified = dateTimeProvider.currentTimeMillis(),
                 )
                 if (selectedTabIds.isNotEmpty()) {
+                    // Obtain the ID of the selected tab that appears sequentially first in the tab data to sequence
+                    // the rest of the selected tabs against it.
+                    val sequentiallyFirstTabId = combinedDataFlow
+                        .value
+                        .tabs
+                        .first { it.id in selectedTabIds }
+                        .id
+
+                    sequenceGroupedTabsTogether(
+                        tabIds = selectedTabIds - sequentiallyFirstTabId,
+                        targetTabId = sequentiallyFirstTabId,
+                    )
+
                     tabGroupRepository.createTabGroupWithTabs(
                         tabGroup = storedTabGroup,
                         tabIds = selectedTabIds,
@@ -278,4 +404,35 @@ class TabStorageMiddleware(
         logger.info(message = "Failed to parse TabGroupTheme: $this")
         TabGroupTheme.default
     }
+
+    // Because the sort order is defined by the underlying JSON file, we need to arrange all the group's tabs
+    // next to each other in BrowserState so they are correctly sorted/grouped together. This is
+    // necessary to ensure the downstream tab group is indexed at the correct spot when displayed
+    // in the grid/list.
+    private fun sequenceGroupedTabsTogether(
+        tabIds: List<String>,
+        targetTabId: String,
+    ) {
+        moveTabsUseCase.invoke(
+            tabIds = tabIds,
+            targetTabId = targetTabId,
+            placeAfter = true,
+        )
+    }
+
+    private fun Flow<CombinedTabData>.toCombinedDataStateFlow(): StateFlow<CombinedTabData> = stateIn(
+        scope = mainScope,
+        started = Eagerly,
+        initialValue = CombinedTabData(combinedData = Triple(TabData(), listOf(), mapOf())),
+    )
 }
+
+/**
+ * Fetches the ID of the last tab in the group with [groupId], or null if the group is empty.
+ */
+private fun TabsTrayState.lastTabInGroupId(groupId: String): String? =
+    tabGroupState.groups
+        .find { it.id == groupId }
+        ?.tabs
+        ?.lastOrNull()
+        ?.id

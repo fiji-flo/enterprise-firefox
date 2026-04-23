@@ -83,7 +83,7 @@ const MOCK_MINIDUMP_EXTRA: &str = r#"{
         "ReleaseChannel": "release",
         "BuildID": "1234",
         "AsyncShutdownTimeout": "{}",
-        "StackTraces": {},
+        "StackTraces": "{}",
         "Version": "100.0",
         "ServerURL": "https://reports.example.com",
         "TelemetryServerURL": "https://telemetry.example.com",
@@ -102,7 +102,7 @@ static MOCK_MINIDUMP_EXTRA_EXPECTED: std::sync::LazyLock<String> = std::sync::La
         "ReleaseChannel": "release",
         "BuildID": "1234",
         "AsyncShutdownTimeout": "{{}}",
-        "StackTraces": {{}},
+        "StackTraces": "{{}}",
         "Version": "100.0",
         "ServerURL": "https://reports.example.com",
         "TelemetryServerURL": "https://telemetry.example.com",
@@ -567,7 +567,7 @@ fn no_restart_with_windows_error_reporting() {
             "ProductName": "Bar",
             "ReleaseChannel": "release",
             "BuildID": "1234",
-            "StackTraces": {{}},
+            "StackTraces": "{{}}",
             "Version": "100.0",
             "ServerURL": "https://reports.example.com",
             "TelemetryServerURL": "https://telemetry.example.com",
@@ -727,7 +727,7 @@ fn ping_and_event_files() {
                 serde_json::json! {{
                     "foo": "bar",
                     "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
-                    "StackTraces": {}
+                    "StackTraces": "{}"
                 }}
             ),
         );
@@ -769,7 +769,7 @@ fn network_failure() {
                 serde_json::json! {{
                     "foo": "bar",
                     "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
-                    "StackTraces": {}
+                    "StackTraces": "{}"
                 }}
             ),
         );
@@ -807,7 +807,7 @@ fn pingsender_failure() {
                     "foo": "bar",
                     "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
                     // No crash ping UUID since pingsender fails
-                    "StackTraces": {}
+                    "StackTraces": "{}"
                 }}
             ),
         );
@@ -960,6 +960,7 @@ fn details_window() {
              ProcessType: main\n\
              ProductName: Bar\n\
              ReleaseChannel: release\n\
+             StackTraces: {{}}\n\
              SubmittedFrom: Client\n\
              Throttleable: 1\n\
              URL: https://url.example.com\n\
@@ -1321,6 +1322,7 @@ fn background_task_network_backend() {
                                 "ReleaseChannel":"release",
                                 "BuildID":"1234",
                                 "AsyncShutdownTimeout":"{}",
+                                "StackTraces":"{}",
                                 "Version":"100.0",
                                 "URL":"https://url.example.com",
                                 "Throttleable":"1",
@@ -1403,6 +1405,7 @@ fn curl_binary() {
             };
 
             let expected_args: Vec<OsString> = [
+                "--fail",
                 "--user-agent",
                 net::http::user_agent(),
                 "--form",
@@ -1485,6 +1488,7 @@ fn background_task_curl_fallback() {
                                     "ReleaseChannel":"release",
                                     "BuildID":"1234",
                                     "AsyncShutdownTimeout":"{}",
+                                    "StackTraces": "{}",
                                     "Version":"100.0",
                                     "URL":"https://url.example.com",
                                     "Throttleable":"1",
@@ -1542,6 +1546,7 @@ fn background_task_curl_fallback() {
                 };
 
                 let expected_args: Vec<OsString> = [
+                    "--fail",
                     "--user-agent",
                     net::http::user_agent(),
                     "--form",

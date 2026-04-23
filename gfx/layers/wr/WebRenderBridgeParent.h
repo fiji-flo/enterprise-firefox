@@ -321,7 +321,6 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
    */
   RefPtr<wr::WebRenderAPI::EndRecordingPromise> EndRecording();
 
-  void DisableNativeCompositor();
   void AddPendingScrollPayload(CompositionPayload& aPayload,
                                const VsyncId& aCompositeStartId);
 
@@ -537,7 +536,6 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
   bool mLastNotifiedHasLayers = false;
   bool mReceivedDisplayList = false;
   bool mSkippedComposite = false;
-  bool mDisablingNativeCompositor = false;
   // These payloads are being used for SCROLL_PRESENT_LATENCY telemetry
   DataMutex<nsClassHashtable<nsUint64HashKey, nsTArray<CompositionPayload>>>
       mPendingScrollPayloads{"WebRenderBridgeParent::mPendingScrollPayloads"};

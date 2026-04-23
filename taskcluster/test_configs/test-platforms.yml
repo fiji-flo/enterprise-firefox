@@ -367,6 +367,7 @@ windows11-64-25h2/opt:
     test-sets:
         - awsy
         - desktop-screenshot-capture
+        - talos-xperf
         - web-platform-tests
         - web-platform-tests-backlog
         - webgpu
@@ -381,6 +382,7 @@ windows11-64-25h2-shippable/opt:
     test-sets:
         - awsy
         - desktop-screenshot-capture
+        - talos-xperf
         - web-platform-tests
         - web-platform-tests-backlog
         - windows11-25h2-tests

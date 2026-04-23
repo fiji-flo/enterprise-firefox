@@ -12,12 +12,14 @@ import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.openToBrowser
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.messaging.MicrosurveyMessageController
@@ -33,7 +35,16 @@ class MicrosurveyBottomSheetFragment : BottomSheetDialogFragment() {
     private val args by navArgs<MicrosurveyBottomSheetFragmentArgs>()
 
     private val microsurveyMessageController by lazy {
-        MicrosurveyMessageController(requireComponents.appStore, (activity as HomeActivity))
+        MicrosurveyMessageController(
+            appStore = requireComponents.appStore,
+            openUrlInBrowser = { url ->
+                findNavController().openToBrowser()
+                requireComponents.useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                    searchTermOrURL = url,
+                    newTab = true,
+                )
+            },
+        )
     }
 
     private val closeBottomSheet = { dismiss() }

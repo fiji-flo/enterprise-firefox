@@ -461,6 +461,7 @@ let JSWINDOWACTORS = {
         "MozDOMFullscreen:Exit": {},
         "MozDOMFullscreen:Exited": {},
         "MozDOMFullscreen:WarnAboutKeyboardLock": {},
+        "MozDOMFullscreen:UpdateKeyboardLock": {},
       },
     },
 

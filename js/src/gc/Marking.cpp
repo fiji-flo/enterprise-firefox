@@ -2995,23 +2995,25 @@ inline void SweepingTracer::onEdge(T** thingp, const char* name) {
     return;
   }
 
-  // Permanent things are never finalized by non-owning runtimes.
   TenuredCell* cell = &thing->asTenured();
   Zone* zone = cell->zoneFromAnyThread();
+
 #ifdef DEBUG
+  // Permanent things are never finalized by non-owning runtimes.
   if (IsOwnedByOtherRuntime(runtime(), thing)) {
     MOZ_ASSERT(!zone->wasGCStarted());
     MOZ_ASSERT(thing->isMarkedBlack());
   }
-#endif
 
   // Any zone can contain references to symbols so make sure we've finished
   // marking them before we try and sweep them. If this fails then we missed
   // adding a sweep group edge somewhere. This check can be disabled in places
   // where we only care about references from the current zone.
-  MOZ_ASSERT_IF(cell->getTraceKind() == JS::TraceKind::Symbol &&
-                    !allowSweepingSymbolsEarly,
-                !zone->isGCMarking());
+  if (cell->getTraceKind() == JS::TraceKind::Symbol && !cell->isMarkedBlack() &&
+      !allowSweepingSymbolsEarly) {
+    MOZ_ASSERT(!zone->isGCMarking());
+  }
+#endif
 
   // It would be nice if we could assert that the zone of the tenured cell is in
   // the Sweeping state, but that isn't always true for:

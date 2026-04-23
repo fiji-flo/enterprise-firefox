@@ -701,10 +701,6 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
 
 void WebRenderAPI::ClearAllCaches() { wr_api_clear_all_caches(mDocHandle); }
 
-void WebRenderAPI::EnableNativeCompositor(bool aEnable) {
-  wr_api_enable_native_compositor(mDocHandle, aEnable);
-}
-
 void WebRenderAPI::SetBatchingLookback(uint32_t aCount) {
   wr_api_set_batching_lookback(mDocHandle, aCount);
 }

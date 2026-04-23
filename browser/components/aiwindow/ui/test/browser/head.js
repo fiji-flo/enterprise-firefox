@@ -266,6 +266,22 @@ function skipSignIn() {
 }
 
 /**
+ * Clicks the New Chat button in the sidebar
+ *
+ * @param {Window} win
+ */
+async function clickNewChatButton(win) {
+  const sidebarBrowser = win.document.getElementById("ai-window-browser");
+  await TestUtils.waitForCondition(
+    () => sidebarBrowser.contentDocument?.querySelector("ai-window:defined"),
+    "Wait for ai-window to be defined in sidebar"
+  );
+  const aiWindow = sidebarBrowser.contentDocument.querySelector("ai-window");
+  const newChatBtn = aiWindow.shadowRoot.querySelector(".new-chat-icon-button");
+  newChatBtn.click();
+}
+
+/**
  * Opens the Smartbar's context menu via the "+" button and clicks the
  * panel item whose visible text matches the given label. Waits for the
  * panel to populate before selecting.
@@ -379,6 +395,11 @@ async function submitSmartbar(browser, { useButton = false } = {}) {
       const button = mozButton.shadowRoot.querySelector("button");
       button.click();
     } else {
+      const inputCta = smartbar.querySelector("input-cta");
+      await ContentTaskUtils.waitForCondition(
+        () => inputCta.getAttribute("action") !== "stop",
+        "Wait for generation to complete before submitting via Enter"
+      );
       const inputField = smartbar.inputField;
       inputField.focus();
       EventUtils.synthesizeKey("KEY_Enter", {}, content);

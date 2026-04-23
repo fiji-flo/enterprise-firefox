@@ -263,8 +263,8 @@ mod test {
                     }
                 }"#,
                 "SecondsSinceLastCrash": "50000",
-                "StackTraces": {
-                    // Add extraneous field to ensure it doesn't affect setting the metric
+                // Add extraneous field `foobar` to ensure it doesn't affect setting the metric
+                "StackTraces": r#"{
                     "foobar": "baz",
                     "crash_type": "bad crash",
                     "crash_address": "0xcafe",
@@ -300,7 +300,7 @@ mod test {
                             }
                         ]}
                     ]
-                },
+                }"#,
                 "UptimeTS": "400.5",
                 "UtilityActorsName": "abc,def",
                 "WindowsFileDialogErrorCode": "40",
@@ -484,7 +484,7 @@ mod test {
         }
 
         test_stack_traces(StackTraces) {
-            {
+            r#"{
                 "crash_type": "main",
                 "crash_address": "0xf001ba11",
                 "crash_thread": 1,
@@ -523,7 +523,7 @@ mod test {
                         ]
                     }
                 ]
-            }
+            }"#
             => {
                 "crash_type": "main",
                 "crash_address": "0xf001ba11",

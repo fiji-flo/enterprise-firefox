@@ -416,6 +416,19 @@ public class ContentBlocking {
         getSettings().setAllowListConvenienceTrackingProtection(enabled);
         return this;
       }
+
+      /**
+       * Set whether the content blocking database is enabled. When enabled, Gecko persists tracking
+       * protection blocking events to a database that can be queried for aggregate statistics
+       * (e.g., total trackers blocked, events by date range).
+       *
+       * @param enabled A boolean indicating whether to enable the content blocking database.
+       * @return The Builder instance.
+       */
+      public @NonNull Builder contentBlockingDatabase(final boolean enabled) {
+        getSettings().setContentBlockingDatabaseStatus(enabled);
+        return this;
+      }
     }
 
     /* package */ final Pref<String> mAt =
@@ -479,6 +492,9 @@ public class ContentBlocking {
 
     /* package */ final Pref<String> mEtpCategory =
         new Pref<String>("browser.contentblocking.category", "standard");
+
+    /* package */ final Pref<Boolean> mContentBlockingDatabase =
+        new Pref<Boolean>("browser.contentblocking.database.enabled", false);
 
     /* package */ final Pref<Boolean> mAllowListBaselineTrackingProtection =
         new Pref<Boolean>("privacy.trackingprotection.allow_list.baseline.enabled", true);
@@ -1374,6 +1390,27 @@ public class ContentBlocking {
      */
     public @NonNull Settings setAllowListConvenienceTrackingProtection(final boolean enabled) {
       mAllowListConvenienceTrackingProtection.commit(enabled);
+      return this;
+    }
+
+    /**
+     * Get whether the content blocking database is enabled.
+     *
+     * @return A boolean indicating whether the content blocking database is enabled.
+     */
+    public boolean getContentBlockingDatabaseStatus() {
+      return mContentBlockingDatabase.get();
+    }
+
+    /**
+     * Enable or disable the content blocking database. When enabled, Gecko persists tracking
+     * protection blocking events to a database that can be queried for aggregate statistics.
+     *
+     * @param enabled A boolean indicating whether to enable the content blocking database.
+     * @return This Settings instance.
+     */
+    public @NonNull Settings setContentBlockingDatabaseStatus(final boolean enabled) {
+      mContentBlockingDatabase.commit(enabled);
       return this;
     }
   }

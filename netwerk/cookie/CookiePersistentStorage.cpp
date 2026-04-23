@@ -2073,30 +2073,24 @@ void CookiePersistentStorage::EnsureInitialized() {
   bool isAccumulated = false;
 
   if (!mInitialized) {
-#ifndef ANDROID
     TimeStamp startBlockTime = TimeStamp::Now();
-#endif
     MonitorAutoLock lock(mMonitor);
 
     while (!mInitialized) {
       mMonitor.Wait();
     }
-#ifndef ANDROID
     TimeStamp endBlockTime = TimeStamp::Now();
     mozilla::glean::networking::sqlite_cookies_block_main_thread
         .AccumulateRawDuration(endBlockTime - startBlockTime);
     mozilla::glean::networking::sqlite_cookies_time_to_block_main_thread
         .AccumulateRawDuration(TimeDuration::Zero());
-#endif
     isAccumulated = true;
   } else if (!mEndInitDBConn.IsNull()) {
     // We didn't block main thread, and here comes the first cookie request.
     // Collect how close we're going to block main thread.
-#ifndef ANDROID
     TimeStamp now = TimeStamp::Now();
     mozilla::glean::networking::sqlite_cookies_time_to_block_main_thread
         .AccumulateRawDuration(now - mEndInitDBConn);
-#endif
     // Nullify the timestamp so wo don't accumulate this telemetry probe again.
     mEndInitDBConn = TimeStamp();
     isAccumulated = true;
@@ -2104,10 +2098,8 @@ void CookiePersistentStorage::EnsureInitialized() {
     // A request comes while we finished cookie thread task and InitDBConn is
     // on the way from cookie thread to main thread. We're very close to block
     // main thread.
-#ifndef ANDROID
     mozilla::glean::networking::sqlite_cookies_time_to_block_main_thread
         .AccumulateRawDuration(TimeDuration::Zero());
-#endif
     isAccumulated = true;
   }
 
@@ -2191,12 +2183,14 @@ void CookiePersistentStorage::InitDBConn() {
     mReadArray.Clear();
   }
 
-  // Let's count the valid/invalid cookies when in idle.
-  nsCOMPtr<nsIRunnable> idleRunnable = NS_NewRunnableFunction(
-      "CookiePersistentStorage::RecordValidationTelemetry",
-      [self = RefPtr{this}]() { self->RecordValidationTelemetry(); });
-  (void)NS_DispatchToMainThreadQueue(do_AddRef(idleRunnable),
-                                     EventQueuePriority::Idle);
+  if (StaticPrefs::network_cookie_validation_lastEpoch() <
+      StaticPrefs::network_cookie_validation_epoch()) {
+    nsCOMPtr<nsIRunnable> idleRunnable = NS_NewRunnableFunction(
+        "CookiePersistentStorage::RecordValidationTelemetry",
+        [self = RefPtr{this}]() { self->RecordValidationTelemetry(); });
+    (void)NS_DispatchToMainThreadQueue(do_AddRef(idleRunnable),
+                                       EventQueuePriority::Idle);
+  }
 }
 
 nsresult CookiePersistentStorage::InitDBConnInternal() {
@@ -2474,6 +2468,8 @@ void CookiePersistentStorage::CollectCookieJarSizeData() {
       sumUnpartitioned);
 }
 
+// NOTE: if you modify this function and want it to run again on next startup
+// for existing profiles, bump network.cookie.validation.epoch.
 void CookiePersistentStorage::RecordValidationTelemetry() {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -2562,6 +2558,13 @@ void CookiePersistentStorage::RecordValidationTelemetry() {
     RemoveCookie(data.mBaseDomain, data.mOriginAttributes, data.mCookie->Host(),
                  data.mCookie->Name(), data.mCookie->Path(),
                  /* is http: */ true, nullptr);
+  }
+
+  // Only mark this epoch as complete if no fixes were needed. If we did fix
+  // cookies, re-scan on next startup to confirm the database is now stable.
+  if (listToAdd.IsEmpty() && listToRemove.IsEmpty()) {
+    Preferences::SetUint("network.cookie.validation.lastEpoch",
+                         StaticPrefs::network_cookie_validation_epoch());
   }
 
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();

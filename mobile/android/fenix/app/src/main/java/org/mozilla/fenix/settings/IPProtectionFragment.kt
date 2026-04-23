@@ -36,6 +36,9 @@ class IPProtectionFragment : Fragment(), SystemInsetsPaddedFragment {
                     onLearnMoreClick = {
                         // will be implemented in https://bugzilla.mozilla.org/show_bug.cgi?id=2030144
                     },
+                    onGetStartedClick = {
+                        // will be implemented in https://bugzilla.mozilla.org/show_bug.cgi?id=2030528
+                    },
                 )
             }
         }

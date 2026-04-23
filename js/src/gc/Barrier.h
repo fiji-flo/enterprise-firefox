@@ -824,6 +824,10 @@ class HeapSlot : public BarrieredBase<Value>,
     post(owner, kind, slot, v);
   }
 
+  // Initialization (so no pre-barrier) but where the barriers will be applied
+  // later (e.g. in bulk)
+  void unbarrieredInit(const Value& v) { this->unbarrieredSet(v); }
+
   void initAsUndefined() { this->unbarrieredSet(UndefinedValue()); }
 
   DECLARE_POINTER_CONSTREF_OPS(Value);

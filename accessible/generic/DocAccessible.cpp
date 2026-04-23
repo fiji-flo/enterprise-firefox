@@ -1155,6 +1155,13 @@ void DocAccessible::ElementStateChanged(dom::Document* aDocument,
     FireDelayedEvent(event);
   }
 
+  if (aStateMask.HasState(dom::ElementState::MODAL)) {
+    const bool isModal = aElement->State().HasState(dom::ElementState::MODAL);
+    RefPtr<AccEvent> event =
+        new AccStateChangeEvent(accessible, states::MODAL, isModal);
+    FireDelayedEvent(event);
+  }
+
   if (aStateMask.HasState(dom::ElementState::VISITED)) {
     RefPtr<AccEvent> event =
         new AccStateChangeEvent(accessible, states::TRAVERSED, true);
@@ -3079,7 +3086,7 @@ void DocAccessible::UncacheChildrenInSubtree(LocalAccessible* aRoot) {
   // The parent of the removed subtree is about to be cleared, so we must do
   // this here rather than in LocalAccessible::UnbindFromParent because we need
   // the ancestry for this to work.
-  if (aRoot->IsTable() || aRoot->IsTableCell()) {
+  if (aRoot->IsTable() || aRoot->IsTableRow() || aRoot->IsTableCell()) {
     CachedTableAccessible::Invalidate(aRoot);
   }
 

@@ -131,7 +131,7 @@ popupnotificationcontent {
 }
 
 .popup-notification-checkbox > .checkbox-label-box > .checkbox-label {
-  opacity: 0.7;
+  opacity: var(--opacity-deemphasized);
 }
 
 .popup-notification-learnmore-link {

@@ -260,9 +260,6 @@ const PREF_URLBAR_DEFAULTS = /** @type {PreferenceDefinition[]} */ ([
   // Set default NER threshold value of 0.5
   ["nerThreshold", [0.5, "float"]],
 
-  // Feature gate pref for Nova UI.
-  ["nova.featureGate", false],
-
   // Whether addresses and search results typed into the address bar
   // should be opened in new tabs by default.
   ["openintab", false],
@@ -640,6 +637,9 @@ const PREF_URLBAR_DEFAULTS = /** @type {PreferenceDefinition[]} */ ([
   // Enable the updated design combining the privacy and shield icon
   // and panels in the Urlbar.
   ["trustPanel.featureGate", false],
+
+  // Enable the banner warning the user of breached websites in the trust panel:
+  ["trustPanel.breachAlerts", false],
 
   // Whether unit conversion is enabled.
   ["unitConversion.enabled", false],

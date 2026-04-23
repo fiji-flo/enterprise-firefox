@@ -269,7 +269,7 @@ void JSRuntime::destroyRuntime() {
 #endif
 }
 
-void JSRuntime::addTelemetry(JSMetric id, uint32_t sample) {
+void JSRuntime::addTelemetry(JSMetric id, const JSTelemetryData& sample) {
   if (telemetryCallback) {
     (*telemetryCallback)(id, sample);
   }

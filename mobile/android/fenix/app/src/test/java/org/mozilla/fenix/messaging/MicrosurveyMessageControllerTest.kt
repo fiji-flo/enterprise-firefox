@@ -12,8 +12,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.BrowserDirection
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MessageClicked
@@ -36,16 +34,16 @@ class MicrosurveyMessageControllerTest {
     @get:Rule
     val gleanTestRule = FenixGleanTestRule(testContext)
 
-    private val homeActivity: HomeActivity = mockk(relaxed = true)
     private val message: Message = mockk(relaxed = true)
     private lateinit var microsurveyMessageController: MicrosurveyMessageController
     private val appStore: AppStore = mockk(relaxed = true)
+    private val openUrlInBrowser: (String) -> Unit = mockk(relaxed = true)
 
     @Before
     fun setup() {
         microsurveyMessageController = MicrosurveyMessageController(
             appStore = appStore,
-            homeActivity = homeActivity,
+            openUrlInBrowser = openUrlInBrowser,
         )
     }
 
@@ -66,14 +64,8 @@ class MicrosurveyMessageControllerTest {
     fun `GIVEN has utmContent WHEN calling onPrivacyPolicyLinkClicked THEN open the privacy URL appended with the utmContent in a new tab`() {
         microsurveyMessageController.onPrivacyPolicyLinkClicked(message.id, "homepage")
 
-        verify {
-            @Suppress("DEPRECATION")
-            homeActivity.openToBrowserAndLoad(
-                searchTermOrURL = "$PRIVACY_POLICY_URL&utm_content=homepage",
-                newTab = true,
-                from = BrowserDirection.FromGlobal,
-            )
-        }
+        verify { appStore.dispatch(OnPrivacyNoticeTapped(message.id)) }
+        verify { openUrlInBrowser("$PRIVACY_POLICY_URL&utm_content=homepage") }
     }
 
     @Test
@@ -81,14 +73,7 @@ class MicrosurveyMessageControllerTest {
         microsurveyMessageController.onPrivacyPolicyLinkClicked(message.id)
 
         verify { appStore.dispatch(OnPrivacyNoticeTapped(message.id)) }
-        verify {
-            @Suppress("DEPRECATION")
-            homeActivity.openToBrowserAndLoad(
-                searchTermOrURL = PRIVACY_POLICY_URL,
-                newTab = true,
-                from = BrowserDirection.FromGlobal,
-            )
-        }
+        verify { openUrlInBrowser(PRIVACY_POLICY_URL) }
     }
 
     @Test

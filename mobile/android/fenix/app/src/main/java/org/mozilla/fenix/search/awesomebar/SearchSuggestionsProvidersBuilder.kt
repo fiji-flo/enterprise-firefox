@@ -279,7 +279,7 @@ class SearchSuggestionsProvidersBuilder(
         if (state.showFlightsSuggestions) {
             providersToAdd.add(
                 FlightsOnlineSuggestionProvider(
-                    searchUseCase = searchUseCase,
+                    loadUrlUseCase = loadUrlUseCase,
                     dataSource = MockedFlightsSuggestionDataSource(),
                     suggestionsHeader = suggestionsStringsProvider.firefoxSuggestOnlineHeader,
                 ),

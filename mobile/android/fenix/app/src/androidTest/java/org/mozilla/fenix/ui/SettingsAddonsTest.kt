@@ -161,6 +161,7 @@ class SettingsAddonsTest {
         }.enterURLAndEnterToBrowser(webPage.toUri()) {
             verifyPageContent("Lets test!")
         }.openThreeDotMenu {
+        }.clickExtensionsButton {
             verifyExtensionsButtonWithInstalledExtension(addonName)
         }
     }
@@ -186,6 +187,7 @@ class SettingsAddonsTest {
         }.enterURLAndEnterToBrowser(webPage.toUri()) {
             verifyPageContent("Lets test!")
         }.openThreeDotMenu {
+        }.clickExtensionsButton {
             verifyExtensionsButtonWithInstalledExtension(addonName)
         }
     }

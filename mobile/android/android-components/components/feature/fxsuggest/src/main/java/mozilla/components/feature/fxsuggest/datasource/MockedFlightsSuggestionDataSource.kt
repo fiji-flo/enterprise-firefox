@@ -34,7 +34,6 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
     }
 
     private val americanAirlines = AwesomeBar.FlightItem(
-        query = "AA123 Los Angeles to New York",
         flightNumber = "AA123",
         destination = AwesomeBar.FlightItem.Airport(
             code = "New York",
@@ -56,7 +55,7 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
         progressPercent = 74,
         timeLeftMinutes = null,
         delayed = false,
-        url = "",
+        url = "https://www.flightaware.com/live/flight/AAL123",
         airline = AwesomeBar.FlightItem.Airline(
             code = "AAL",
             name = "American Airlines",
@@ -66,7 +65,6 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
     )
 
     private val airCanada = AwesomeBar.FlightItem(
-        query = "AC342 Vancouver to Ottawa",
         flightNumber = "AC342",
         destination = AwesomeBar.FlightItem.Airport(
             code = "YOW",
@@ -88,7 +86,7 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
         progressPercent = 43,
         timeLeftMinutes = null,
         delayed = true,
-        url = "",
+        url = "https://www.flightaware.com/live/flight/ACA342",
         airline = AwesomeBar.FlightItem.Airline(
             code = "ACA",
             name = "Air Canada",
@@ -98,7 +96,6 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
     )
 
     private val unitedAirlines = AwesomeBar.FlightItem(
-        query = "UA456 Austin to Chicago",
         flightNumber = "UA456",
         destination = AwesomeBar.FlightItem.Airport(
             code = "ORD",
@@ -120,7 +117,7 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
         progressPercent = 0,
         timeLeftMinutes = null,
         delayed = true,
-        url = "",
+        url = "https://www.flightaware.com/live/flight/UAL456",
         airline = AwesomeBar.FlightItem.Airline(
             code = "UAL",
             name = "United Airlines",
@@ -130,7 +127,6 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
     )
 
     private val deltaAirLines = AwesomeBar.FlightItem(
-        query = "DL789 Nashville to Atlanta",
         flightNumber = "DL789",
         destination = AwesomeBar.FlightItem.Airport(
             code = "ATL",
@@ -152,7 +148,7 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
         progressPercent = 0,
         timeLeftMinutes = null,
         delayed = false,
-        url = "",
+        url = "https://www.flightaware.com/live/flight/DAL789",
         airline = AwesomeBar.FlightItem.Airline(
             code = "DAL",
             name = "Delta Air Lines",
@@ -162,7 +158,6 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
     )
 
     private val britishAirways = AwesomeBar.FlightItem(
-        query = "BA250 Santiago to London",
         flightNumber = "BA250",
         destination = AwesomeBar.FlightItem.Airport(
             code = "LHR",
@@ -184,7 +179,7 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
         progressPercent = 0,
         timeLeftMinutes = null,
         delayed = false,
-        url = "",
+        url = "https://www.flightaware.com/live/flight/BAW250",
         airline = AwesomeBar.FlightItem.Airline(
             code = "BAW",
             name = "British Airways",
@@ -194,7 +189,6 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
     )
 
     private val lufthansa = AwesomeBar.FlightItem(
-        query = "LH333 Venice to Frankfurt am Main",
         flightNumber = "LH333",
         destination = AwesomeBar.FlightItem.Airport(
             code = "FRA",
@@ -216,7 +210,7 @@ class MockedFlightsSuggestionDataSource : AwesomeBar.FlightsSuggestionDataSource
         progressPercent = 100,
         timeLeftMinutes = null,
         delayed = false,
-        url = "",
+        url = "https://www.flightaware.com/live/flight/DLH333",
         airline = AwesomeBar.FlightItem.Airline(
             code = "DLH",
             name = "Lufthansa",

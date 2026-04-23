@@ -160,11 +160,11 @@ interface TabManagerController : SyncedTabsController, InactiveTabsController, T
     /**
      * Adds the provided tab to the current selection of tabs.
      *
-     * @param item [TabsTrayItem] to be selected.
+     * @param tab [TabsTrayItem.Tab] to be selected.
      * @param source App feature from which the tab was selected.
      */
     fun handleTabSelected(
-        item: TabsTrayItem,
+        tab: TabsTrayItem.Tab,
         source: String?,
     )
 
@@ -569,31 +569,31 @@ class DefaultTabManagerController(
             !tab.private && tabsTrayStore.state.mode.selectedTabs.isEmpty()
         ) {
             Collections.longPress.record(NoExtras())
-            tabsTrayStore.dispatch(TabsTrayAction.AddSelectTabItem(tab))
+            tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
             true
         } else {
             false
         }
     }
 
-    override fun handleTabSelected(item: TabsTrayItem, source: String?) {
+    override fun handleTabSelected(tab: TabsTrayItem.Tab, source: String?) {
         val selected = tabsTrayStore.state.mode.selectedTabs
         when {
-            item is TabsTrayItem.Tab && selected.isEmpty() && tabsTrayStore.state.mode.isSelect().not() -> {
+            selected.isEmpty() && tabsTrayStore.state.mode.isSelect().not() -> {
                 TabsTray.openedExistingTab.record(TabsTray.OpenedExistingTabExtra(source ?: "unknown"))
-                tabsUseCases.selectTab(item.id)
-                val mode = BrowsingMode.fromBoolean(item.private)
+                tabsUseCases.selectTab(tab.id)
+                val mode = BrowsingMode.fromBoolean(tab.private)
                 browsingModeManager.mode = mode
 
                 handleNavigationRequested()
             }
 
-            item in selected -> {
-                tabsTrayStore.dispatch(TabsTrayAction.RemoveSelectTabItem(item))
+            tab in selected -> {
+                tabsTrayStore.dispatch(TabsTrayAction.RemoveSelectTab(tab))
             }
 
             source != INACTIVE_TABS_FEATURE_NAME -> {
-                tabsTrayStore.dispatch(TabsTrayAction.AddSelectTabItem(item))
+                tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
             }
         }
     }

@@ -1084,7 +1084,7 @@ nsStylePosition::nsStylePosition()
       mHeight(StyleSize::Auto()),
       mMinHeight(StyleSize::Auto()),
       mMaxHeight(StyleMaxSize::None()),
-      mPositionAnchor(StylePositionAnchorKeyword::None()),
+      mPositionAnchor(StylePositionAnchorKeyword::Normal()),
       mPositionVisibility(StylePositionVisibility::ANCHORS_VISIBLE),
       mPositionTryFallbacks(StylePositionTryFallbacks()),
       mPositionTryOrder(StylePositionTryOrder::Normal),
@@ -3390,7 +3390,7 @@ nsChangeHint nsStyleUIReset::CalcDifference(
     hint |= nsChangeHint_RepaintFrame;
   }
   if (mFieldSizing != aNewData.mFieldSizing) {
-    hint |= nsChangeHint_NeutralChange;
+    hint |= nsChangeHint_AllReflowHints;
   }
   if (mScrollbarWidth != aNewData.mScrollbarWidth) {
     // For scrollbar-width change, we need some special handling similar

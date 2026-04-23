@@ -2141,6 +2141,7 @@ class Document : public nsINode,
   static void ClearPendingFullscreenRequests(Document* aDocument);
 
   void SetFullscreenKeyboardLockStatus(FullscreenKeyboardLock aStatus);
+  FullscreenKeyboardLock GetFullscreenKeyboardLockStatus() const;
   bool HasFullscreenKeyboardLockEnabled();
 
   // ScreenOrientation related APIs
@@ -5620,10 +5621,6 @@ class Document : public nsINode,
   // The root of the doc tree in which this document is in. This is only
   // non-null when this document is in fullscreen mode.
   WeakPtr<Document> mFullscreenRoot;
-
-  // Whether this document entered fullscreen with the keyboard lock enabled.
-  FullscreenKeyboardLock mFullscreenKeyboardLockStatus =
-      FullscreenKeyboardLock::None;
 
   RefPtr<DOMImplementation> mDOMImplementation;
 

@@ -2063,6 +2063,13 @@ export var Policies = {
           param.Locked
         );
       }
+      if ("Weather" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.showWeather",
+          param.Weather,
+          param.Locked
+        );
+      }
       if ("TopSites" in param) {
         PoliciesUtils.setDefaultPref(
           "browser.newtabpage.activity-stream.feeds.topsites",
@@ -4175,6 +4182,19 @@ function installAddonFromURL(url, extensionID, addon) {
         ) {
           lazy.log.debug(
             "Installation cancelled because versions are the same"
+          );
+          install.removeListener(listener);
+          install.cancel();
+        }
+
+        // Cancel install if the addon version downloaded is detected
+        // to be a downgrade compared to the version already installed.
+        if (
+          addon &&
+          Services.vc.compare(addon.version, install.addon.version) > 0
+        ) {
+          lazy.log.warn(
+            `Installation cancelled because installed version ${addon.version} is greater than ${install.addon.version} downloaded from ${url}`
           );
           install.removeListener(listener);
           install.cancel();

@@ -202,7 +202,7 @@ toolbar[inactive="true"] .urlbar,
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("browser.urlbar.nova.featureGate") {
+  @media -moz-pref("browser.nova.enabled") {
     &::selection {
       border-radius: var(--border-radius-xsmall);
     }
@@ -1258,7 +1258,8 @@ toolbar[inactive="true"] .urlbar,
 }
 
 .searchmode-switcher-panel {
-  --panel-padding: 0;
+  /* Override definition for toolbar-menupopup.  */
+  --panel-padding: 0 !important;
 }
 
 .searchmode-switcher-dropmarker {
@@ -1292,15 +1293,15 @@ toolbar[inactive="true"] .urlbar,
   }
 }
 
-.searchmode-switcher-popup {
+.searchmode-switcher-panel-list {
   max-width: var(--search-engine-name-max-width);
   /* TODO bug 2032017: clean this up after 1826841 is done */
   --panel-list-background-color: var(--panel-background);
   --panel-list-border-radius: var(--panel-border-radius);
-  padding: 8px;
+  padding: var(--panel-subview-body-padding);
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("browser.urlbar.nova.featureGate") {
+  @media -moz-pref("browser.nova.enabled") {
     min-width: 17em;
   }
 
@@ -1311,12 +1312,13 @@ toolbar[inactive="true"] .urlbar,
     background-image: var(--icon-url, url("chrome://global/skin/icons/search-glass.svg"));
     background-size: 16px 16px;
     /* TODO bug 2032017: clean this up after 1826841 is done */
-    padding-inline-start: 30px;
-    padding-block: 8px;
+    padding: var(--panel-menuitem-padding);
+    padding-inline-start: calc(var(--panel-menuitem-padding-inline) + 22px);
     border-radius: var(--menuitem-border-radius);
+    margin: var(--panel-menuitem-margin);
   }
 
-  > .searchmode-switcher-popup-search-settings-button::part(button) {
+  > .searchmode-switcher-panel-search-settings-button::part(button) {
     background-image: url("chrome://global/skin/icons/settings.svg");
   }
 
@@ -1331,11 +1333,16 @@ toolbar[inactive="true"] .urlbar,
     top: 4px;
     inset-inline-start: 17px;
   }
+
+  > hr {
+    margin: var(--panel-menuitem-margin);
+  }
 }
 
-.searchmode-switcher-popup-description {
+.searchmode-switcher-panel-description {
   color: var(--text-color-deemphasized);
-  padding: var(--menuitem-padding);
+  padding: var(--panel-menuitem-padding);
+  margin: var(--panel-menuitem-margin);
 }
 
 .urlbar-visually-hidden {
@@ -1344,7 +1351,7 @@ toolbar[inactive="true"] .urlbar,
 }
 
 /* Hide footer separator if there are no menuitems between both separators */
-.searchmode-switcher-popup-installed-engine-separator + .searchmode-switcher-popup-footer-separator {
+.searchmode-switcher-panel-installed-engine-separator + .searchmode-switcher-panel-footer-separator {
   display: none;
 }
 

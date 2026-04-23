@@ -1,6 +1,5 @@
 #filter dumbComments emptyLines substitution
 
-// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -826,9 +825,6 @@ pref("browser.urlbar.suggest.sports", true);
 // so that experiments can target users who have / have not performed
 // urlbar searches.
 pref("browser.urlbar.lastUrlbarSearchSeconds", 0);
-
-// Feature gate pref for Nova UI in the urlbar.
-pref("browser.urlbar.nova.featureGate", false);
 
 // When selecting and hovering over certain types of urlbar results, replace
 // their URLs with strings that explain why they're shown.
@@ -2117,6 +2113,9 @@ pref("browser.newtabpage.activity-stream.hideTopSitesWithSearchParam", "mfadid=a
 // Communicates to AboutNewTabChild whether or not it should load the classic scripts or do nothing.
 pref("browser.newtabpage.activity-stream.selfLoading.enabled", true);
 
+// Enables the Nova UI refresh for the new tab page.
+pref("browser.newtabpage.activity-stream.nova.enabled", true);
+
 // Set to true to enable debug logging for AboutNewTabResourceMapping.
 pref("browser.newtabpage.resource-mapping.log", false);
 
@@ -2305,9 +2304,6 @@ pref("browser.smartwindow.chatHistory.loglevel", "Error");
 pref("browser.smartwindow.chatStore.loglevel", "Error");
 pref("browser.smartwindow.conversation.logLevel", "Error");
 pref("browser.smartwindow.smartbarMentions.loglevel", "Error");
-
-//Smart Window Nova
-pref("browser.smartwindow.nova.enabled", false);
 
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);
@@ -2827,7 +2823,7 @@ pref("browser.migrate.chromium.enabled", true);
 pref("browser.migrate.chromium-360se.enabled", true);
 pref("browser.migrate.chromium-edge.enabled", true);
 pref("browser.migrate.chromium-edge-beta.enabled", true);
-pref("browser.migrate.edge.enabled", true);
+pref("browser.migrate.edge.enabled", false);
 pref("browser.migrate.firefox.enabled", true);
 pref("browser.migrate.opera.enabled", true);
 pref("browser.migrate.opera-gx.enabled", true);
@@ -3381,8 +3377,10 @@ pref("devtools.responsive.touchSimulation.enabled", false);
 pref("devtools.responsive.userAgent", "");
 // Show the custom user agent input by default
 pref("devtools.responsive.showUserAgentInput", true);
-// Show the Dynamic Toolbar dummy by default
+// Whether to show the RDM dynamic toolbar
 pref("devtools.responsive.dynamicToolbar.enabled", false);
+// Whether the RDM dynamic toolbar is on the top (false = on bottom)
+pref("devtools.responsive.dynamicToolbar.onTop", false);
 
 // Show tab debug targets for This Firefox (on by default for local builds).
 #ifdef MOZILLA_OFFICIAL
@@ -3513,9 +3511,6 @@ pref("browser.firefox-view.virtual-list.enabled", true);
 // message id, the id of the last screen they saw, and whether they completed the tour
 pref("browser.pdfjs.feature-tour", "{\"screen\":\"\",\"complete\":false}");
 
-
-pref("cookiebanners.ui.desktop.enabled", false);
-
 // When true, shows a one-time feature callout for cookie banner blocking.
 pref("cookiebanners.ui.desktop.showCallout", false);
 
@@ -3564,12 +3559,9 @@ pref("ui.new-webcompat-reporter.reason-dropdown", 2);
 
 pref("ui.new-webcompat-reporter.reason-dropdown.randomized", true);
 
-// Reset Private Browsing Session feature
-#if defined(NIGHTLY_BUILD)
-  pref("browser.privatebrowsing.resetPBM.enabled", true);
-#else
-  pref("browser.privatebrowsing.resetPBM.enabled", false);
-#endif
+// Reset Private Browsing Session feature a.k.a "Fire Button"
+pref("browser.privatebrowsing.resetPBM.enabled", true);
+
 // Whether the reset private browsing panel should ask for confirmation before
 // performing the clear action.
 pref("browser.privatebrowsing.resetPBM.showConfirmationDialog", true);
@@ -3666,6 +3658,8 @@ pref("browser.ipProtection.userEnabled", false);
 pref("browser.ipProtection.userEnableCount", 0);
 // Pref to track if user has ever opened the VPN panel
 pref("browser.ipProtection.everOpenedPanel", false);
+// Pref to track if user has opened the VPN panel since location controls were introduced
+pref("browser.ipProtection.openedPanelWithLocation", false);
 // Pref to enable support for site exceptions
 pref("browser.ipProtection.features.siteExceptions", true);
 // Pref to show confirmation hints for site exceptions
@@ -3685,9 +3679,9 @@ pref("browser.ipProtection.bandwidth.enabled", true);
 pref("browser.ipProtection.egressLocationEnabled", false);
 // Pref that flips at 50%, 75%, and 90% bandwidth usage thresholds
 pref("browser.ipProtection.bandwidthThreshold", 0);
-// Tracks the highest bandwidth warning threshold (75 or 90) the user has dismissed.
-// Reset to 0 when bandwidth usage resets.
-pref("browser.ipProtection.bandwidthWarningDismissedThreshold", 0);
+// Tracks the highest bandwidth warning threshold (75 or 90) dismissed per surface.
+// Stored as JSON: { infobar: <number>, panel: <number> }. Reset when bandwidth resets.
+pref("browser.ipProtection.bandwidthWarningDismissedThreshold", "");
 
 // Pref to enable aboug:glean redesign.
 pref("about.glean.redesign.enabled", false);
@@ -3713,3 +3707,6 @@ pref("widget.support-xdg-config", true, locked);
 
 // A preference that enables Content Sharing
 pref("browser.contentsharing.enabled", false);
+
+// Controls whether the "New" badge is shown on the content sharing menu items
+pref("browser.contentsharing.newBadge.enabled", true);

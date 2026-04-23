@@ -1419,18 +1419,15 @@ WindowGlobalParent::RecvUpdateActivePeerConnectionStatus(bool aIsAdded) {
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WindowGlobalParent::RecvUpdateFullscreenKeyboardLockStatus(bool aIsEnabled) {
+void WindowGlobalParent::UpdateFullscreenKeyboardLockStatus(
+    FullscreenKeyboardLock aStatus) {
   auto* bc = GetBrowsingContext();
   if (auto* topChromeBc = bc ? bc->TopCrossChromeBoundary() : nullptr;
       topChromeBc != bc) {
     if (auto* doc = topChromeBc->GetExtantDocument()) {
-      doc->SetFullscreenKeyboardLockStatus(aIsEnabled
-                                               ? FullscreenKeyboardLock::Browser
-                                               : FullscreenKeyboardLock::None);
+      doc->SetFullscreenKeyboardLockStatus(aStatus);
     }
   }
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult WindowGlobalParent::RecvSetSingleChannelId(

@@ -435,6 +435,15 @@ network:
       - vgosu@mozilla.com
     telemetry_mirror: HTTP_PAGE_TCP_CONNECTION_2
     expires: never
+    metadata:
+      monitor:
+        alert: False
+        lower_is_better: True
+        platforms:
+          - All
+        bugzilla_notification_emails:
+          - acreskey@mozilla.com
+          - necko@mozilla.com
 
   dns_start:
     type: timing_distribution
@@ -473,6 +482,15 @@ network:
       - vgosu@mozilla.com
     telemetry_mirror: HTTP_PAGE_DNS_LOOKUP_TIME
     expires: never
+    metadata:
+      monitor:
+        alert: False
+        lower_is_better: True
+        platforms:
+          - All
+        bugzilla_notification_emails:
+          - acreskey@mozilla.com
+          - necko@mozilla.com
 
   http_revalidation:
     type: timing_distribution
@@ -523,6 +541,15 @@ network:
     telemetry_mirror:
       HTTP_PAGE_OPEN_TO_FIRST_SENT
     expires: never
+    metadata:
+      monitor:
+        alert: False
+        lower_is_better: True
+        platforms:
+          - All
+        bugzilla_notification_emails:
+          - acreskey@mozilla.com
+          - necko@mozilla.com
 
   open_to_first_received:
     type: timing_distribution
@@ -856,6 +883,15 @@ network:
       - vgosu@mozilla.com
     telemetry_mirror: HTTP_PAGE_TLS_HANDSHAKE
     expires: never
+    metadata:
+      monitor:
+        alert: False
+        lower_is_better: True
+        platforms:
+          - All
+        bugzilla_notification_emails:
+          - acreskey@mozilla.com
+          - necko@mozilla.com
 
   http3_tls_handshake: &http3_tls_handshake
     type: labeled_timing_distribution

@@ -569,6 +569,8 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
                       wr::DebugFlags::HIGHLIGHT_BACKDROP_FILTERS)
   GFX_WEBRENDER_DEBUG(".external-composite-borders",
                       wr::DebugFlags::EXTERNAL_COMPOSITE_BORDERS)
+  GFX_WEBRENDER_DEBUG(".dl.dump-spatial-tree",
+                      wr::DebugFlags::DUMP_SPATIAL_TREE)
 #undef GFX_WEBRENDER_DEBUG
   gfx::gfxVars::SetWebRenderDebugFlags(flags._0);
 

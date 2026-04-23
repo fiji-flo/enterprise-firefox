@@ -10,6 +10,8 @@
 
 #include "mozilla/MemoryReporting.h"
 
+#include <iostream>
+
 #include "irregexp/imported/regexp-macro-assembler.h"
 #include "irregexp/imported/regexp-stack.h"
 
@@ -31,6 +33,8 @@ void PrintF(FILE* out, const char* format, ...) {
   vfprintf(out, format, arguments);
   va_end(arguments);
 }
+
+StdoutStream::StdoutStream() : std::ostream(std::cerr.rdbuf()) {}
 
 // Origin:
 // https://github.com/v8/v8/blob/855591a54d160303349a5f0a32fab15825c708d1/src/utils/ostreams.cc#L120-L169

@@ -50,6 +50,14 @@ void CSSStyleValue::Create(nsCOMPtr<nsISupports> aParent,
         RefPtr<CSSStyleValue> styleValue;
 
         switch (typedValue.tag) {
+          case StyleTypedValue::Tag::Unparsed: {
+            const auto& unparsedValue = typedValue.AsUnparsed();
+
+            styleValue = CSSUnparsedValue::Create(aParent, unparsedValue);
+
+            break;
+          }
+
           case StyleTypedValue::Tag::Keyword: {
             const auto& keywordValue = typedValue.AsKeyword();
 

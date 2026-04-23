@@ -1,5 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -215,13 +214,18 @@ var gBrowserInit = {
 
     // Run menubar initialization first, to avoid CustomTitlebar code picking
     // up mutations from it and causing a reflow.
-    AutoHideMenubar.init();
+    BrowserUtils.callModulesFromCategory(
+      {
+        categoryName:
+          "browser-window-before-initial-xul-layout-document-preparation",
+        jsGlobal: globalThis,
+      },
+      window
+    );
+
     // Update the customtitlebar attribute so the window can be sized
     // correctly.
     window.TabBarVisibility.update();
-    CustomTitlebar.init();
-
-    new LightweightThemeConsumer(document);
 
     if (
       Services.prefs.getBoolPref(
@@ -232,9 +236,17 @@ var gBrowserInit = {
       document.documentElement.setAttribute("icon", "main-window");
     }
 
-    // Call this after we set attributes that might change toolbars' computed
-    // text color.
-    ToolbarIconColor.init(window);
+    // The following modules would be initialized:
+    // CustomTitlebar, LightweightThemeConsumer, and ToolbarIconColor.
+    // ToolbarIconColor.init should be called after we set the attributes, since
+    // it might change the toolbars' computed text color.
+    BrowserUtils.callModulesFromCategory(
+      {
+        categoryName: "browser-window-before-initial-xul-layout",
+        jsGlobal: globalThis,
+      },
+      window
+    );
 
     // Windows opened when running as Felt should not allow the user to escape
     // hence remove toolbar, location bar, menubar
@@ -760,7 +772,7 @@ var gBrowserInit = {
             PlacesToolbarHelper.populateManagedBookmarks(event.currentTarget)
           );
           managedBookmarksPopup.setAttribute("placespopup", "true");
-          managedBookmarksPopup.setAttribute("native", "false");
+          managedBookmarksPopup.toggleAttribute("nonnative", true);
           managedBookmarksPopup.setAttribute("is", "places-popup");
           managedBookmarksPopup.classList.add("toolbar-menupopup");
           managedBookmarksButton.appendChild(managedBookmarksPopup);
@@ -1175,9 +1187,10 @@ var gBrowserInit = {
   onUnload() {
     gUIDensity.uninit();
 
-    CustomTitlebar.uninit();
-
-    ToolbarIconColor.uninit(window);
+    BrowserUtils.callModulesFromCategory(
+      { categoryName: "browser-window-unload-begin", jsGlobal: globalThis },
+      window
+    );
 
     // In certain scenarios it's possible for unload to be fired before onload,
     // (e.g. if the window is being closed after browser.js loads but before the

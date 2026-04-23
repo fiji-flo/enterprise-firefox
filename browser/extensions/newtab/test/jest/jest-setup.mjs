@@ -20,4 +20,13 @@ globalThis.matchMedia = () => ({
   matches: false,
   addListener: () => {},
   removeListener: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
 });
+
+if (globalThis.performance && !globalThis.performance.getEntriesByType) {
+  Object.defineProperty(globalThis.performance, "getEntriesByType", {
+    writable: true,
+    value: () => [],
+  });
+}

@@ -349,6 +349,10 @@
      */
     --link-focus-outline-offset: 1px;
 
+    /** opacity **/
+    --opacity-deemphasized: 0.8;
+    --opacity-deemphasized-strong: 0.6;
+
     /** popup **/
     --popup-box-shadow: var(--box-shadow-level-3);
 
@@ -442,6 +446,10 @@
       --icon-color-information: var(--icon-color);
       --icon-color-success: var(--icon-color);
       --icon-color-warning: var(--icon-color);
+
+      /** opacity **/
+      --opacity-deemphasized: 1;
+      --opacity-deemphasized-strong: 1;
 
       /** text-color **/
       --text-color: CanvasText;

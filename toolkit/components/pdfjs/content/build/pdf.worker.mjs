@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 5.7.174
- * pdfjsBuild = 9159afd63
+ * pdfjsVersion = 5.7.204
+ * pdfjsBuild = ab85b7f0f
  */
 /******/ // The require scope
 /******/ var __webpack_require__ = {};
@@ -491,9 +491,6 @@ function stringToBytes(str) {
     bytes[i] = str.charCodeAt(i) & 0xff;
   }
   return bytes;
-}
-function string32(value) {
-  return String.fromCharCode(value >> 24 & 0xff, value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff);
 }
 function objectSize(obj) {
   return Object.keys(obj).length;
@@ -9468,7 +9465,9 @@ addState(InitialState, [OPS.save, OPS.transform, OPS.constructPath, OPS.restore]
   const transform = argsArray[iFirstTransform];
   const [, [buffer], minMax] = args;
   if (minMax) {
-    Util.scaleMinMax(transform, minMax);
+    const newBBox = F32_BBOX_INIT.slice();
+    Util.axialAlignedBoundingBox(minMax, transform, newBBox);
+    minMax.set(newBBox);
     for (let k = 0, kk = buffer.length; k < kk;) {
       switch (buffer[k++]) {
         case DrawOPS.moveTo:
@@ -27986,8 +27985,7 @@ class Type1Parser {
     const stream = this.stream;
     const subrs = [],
       charstrings = [];
-    const privateData = Object.create(null);
-    privateData.lenIV = 4;
+    const privateData = new Map([["lenIV", 4]]);
     const program = {
       subrs: [],
       charstrings: [],
@@ -28019,7 +28017,7 @@ class Type1Parser {
             length = this.readInt();
             this.getToken();
             data = length > 0 ? stream.getBytes(length) : new Uint8Array(0);
-            lenIV = program.properties.privateData.lenIV;
+            lenIV = privateData.get("lenIV");
             const encoded = this.readCharStrings(data, lenIV);
             this.nextChar();
             token = this.getToken();
@@ -28042,7 +28040,7 @@ class Type1Parser {
             length = this.readInt();
             this.getToken();
             data = length > 0 ? stream.getBytes(length) : new Uint8Array(0);
-            lenIV = program.properties.privateData.lenIV;
+            lenIV = privateData.get("lenIV");
             const encoded = this.readCharStrings(data, lenIV);
             this.nextChar();
             token = this.getToken();
@@ -28058,29 +28056,29 @@ class Type1Parser {
         case "FamilyOtherBlues":
           const blueArray = this.readNumberArray();
           if (blueArray.length > 0 && blueArray.length % 2 === 0 && HINTING_ENABLED) {
-            program.properties.privateData[token] = blueArray;
+            privateData.set(token, blueArray);
           }
           break;
         case "StemSnapH":
         case "StemSnapV":
-          program.properties.privateData[token] = this.readNumberArray();
+          privateData.set(token, this.readNumberArray());
           break;
         case "StdHW":
         case "StdVW":
-          program.properties.privateData[token] = this.readNumberArray()[0];
+          privateData.set(token, this.readNumberArray()[0]);
           break;
         case "BlueShift":
         case "lenIV":
         case "BlueFuzz":
         case "BlueScale":
         case "LanguageGroup":
-          program.properties.privateData[token] = this.readNumber();
+          privateData.set(token, this.readNumber());
           break;
         case "ExpansionFactor":
-          program.properties.privateData[token] = this.readNumber() || 0.06;
+          privateData.set(token, this.readNumber() || 0.06);
           break;
         case "ForceBold":
-          program.properties.privateData[token] = this.readBoolean();
+          privateData.set(token, this.readBoolean());
           break;
       }
     }
@@ -28402,9 +28400,10 @@ class Type1Font {
     cff.globalSubrIndex = new CFFIndex();
     const count = glyphs.length;
     const charsetArray = [".notdef"];
-    let i, ii;
-    for (i = 0; i < count; i++) {
-      const glyphName = charstrings[i].glyphName;
+    for (let i = 0; i < count; i++) {
+      const {
+        glyphName
+      } = charstrings[i];
       const index = CFFStandardStrings.indexOf(glyphName);
       if (index === -1) {
         strings.add(glyphName);
@@ -28414,19 +28413,18 @@ class Type1Font {
     cff.charset = new CFFCharset(false, 0, charsetArray);
     const charStringsIndex = new CFFIndex();
     charStringsIndex.add([0x8b, 0x0e]);
-    for (i = 0; i < count; i++) {
+    for (let i = 0; i < count; i++) {
       charStringsIndex.add(glyphs[i]);
     }
     cff.charStrings = charStringsIndex;
     const privateDict = new CFFPrivateDict();
     privateDict.setByName("Subrs", null);
     const fields = ["BlueValues", "OtherBlues", "FamilyBlues", "FamilyOtherBlues", "StemSnapH", "StemSnapV", "BlueShift", "BlueFuzz", "BlueScale", "LanguageGroup", "ExpansionFactor", "ForceBold", "StdHW", "StdVW"];
-    for (i = 0, ii = fields.length; i < ii; i++) {
-      const field = fields[i];
-      if (!(field in properties.privateData)) {
+    for (const field of fields) {
+      if (!properties.privateData.has(field)) {
         continue;
       }
-      const value = properties.privateData[field];
+      const value = properties.privateData.get(field);
       if (Array.isArray(value)) {
         for (let j = value.length - 1; j > 0; j--) {
           value[j] -= value[j - 1];
@@ -28436,8 +28434,8 @@ class Type1Font {
     }
     cff.topDict.privateDict = privateDict;
     const subrIndex = new CFFIndex();
-    for (i = 0, ii = subrs.length; i < ii; i++) {
-      subrIndex.add(subrs[i]);
+    for (const subr of subrs) {
+      subrIndex.add(subr);
     }
     privateDict.subrsIndex = subrIndex;
     const compiler = new CFFCompiler(cff);
@@ -28608,24 +28606,75 @@ function writeUint32(bytes, index, value) {
   bytes[index + 1] = value >>> 16;
   bytes[index] = value >>> 24;
 }
-function string16(value) {
-  return String.fromCharCode(value >> 8 & 0xff, value & 0xff);
-}
-function setArray(data, pos, arr) {
-  data.set(arr, pos);
-  return pos + arr.length;
-}
-function setInt16(view, pos, val) {
-  view.setInt16(pos, val);
-  return pos + 2;
-}
-function setSafeInt16(view, pos, val) {
-  view.setInt16(pos, MathClamp(val, -0x8000, 0x7fff));
-  return pos + 2;
-}
-function setInt32(view, pos, val) {
-  view.setInt32(pos, val);
-  return pos + 4;
+class TrueTypeTableBuilder {
+  #buf;
+  #bufLength = 1024;
+  #hasExactLength = false;
+  #pos = 0;
+  #view;
+  constructor({
+    exactLength,
+    minLength
+  }) {
+    this.#hasExactLength = !!exactLength;
+    this.#initBuf(exactLength || minLength);
+  }
+  #initBuf(minLength) {
+    if (this.#hasExactLength) {
+      this.#bufLength = minLength;
+    } else {
+      while (this.#bufLength < minLength) {
+        this.#bufLength *= 2;
+      }
+    }
+    const newBuf = new Uint8Array(this.#bufLength);
+    if (this.#buf) {
+      newBuf.set(this.#buf, 0);
+    }
+    this.#buf = newBuf;
+    this.#view = new DataView(newBuf.buffer);
+  }
+  get data() {
+    return this.#buf.subarray(0, this.#pos);
+  }
+  get length() {
+    return this.#pos;
+  }
+  skip(n) {
+    this.#pos += n;
+  }
+  setArray(arr) {
+    const newPos = this.#pos + arr.length;
+    if (!this.#hasExactLength && newPos > this.#bufLength) {
+      this.#initBuf(newPos);
+    }
+    this.#buf.set(arr, this.#pos);
+    this.#pos = newPos;
+  }
+  setInt16(val) {
+    const newPos = this.#pos + 2;
+    if (!this.#hasExactLength && newPos > this.#bufLength) {
+      this.#initBuf(newPos);
+    }
+    this.#view.setInt16(this.#pos, val);
+    this.#pos = newPos;
+  }
+  setSafeInt16(val) {
+    const newPos = this.#pos + 2;
+    if (!this.#hasExactLength && newPos > this.#bufLength) {
+      this.#initBuf(newPos);
+    }
+    this.#view.setInt16(this.#pos, MathClamp(val, -0x8000, 0x7fff));
+    this.#pos = newPos;
+  }
+  setInt32(val) {
+    const newPos = this.#pos + 4;
+    if (!this.#hasExactLength && newPos > this.#bufLength) {
+      this.#initBuf(newPos);
+    }
+    this.#view.setInt32(this.#pos, val);
+    this.#pos = newPos;
+  }
 }
 function isTrueTypeFile(file) {
   const header = file.peekBytes(4),
@@ -28841,7 +28890,14 @@ function getRanges(glyphs, toUnicodeExtraMap, numGlyphs) {
 function createCmapTable(glyphs, toUnicodeExtraMap, numGlyphs) {
   const ranges = getRanges(glyphs, toUnicodeExtraMap, numGlyphs);
   const numTables = ranges.at(-1)[1] > 0xffff ? 2 : 1;
-  let cmap = "\x00\x00" + string16(numTables) + "\x00\x03" + "\x00\x01" + string32(4 + numTables * 8);
+  const cmap = new TrueTypeTableBuilder({
+    exactLength: 12
+  });
+  cmap.skip(2);
+  cmap.setInt16(numTables);
+  cmap.setArray([0x00, 0x03]);
+  cmap.setArray([0x00, 0x01]);
+  cmap.setInt32(4 + numTables * 8);
   let i, ii, j, jj;
   for (i = ranges.length - 1; i >= 0; --i) {
     if (ranges[i][0] <= 0xffff) {
@@ -28855,20 +28911,25 @@ function createCmapTable(glyphs, toUnicodeExtraMap, numGlyphs) {
   const trailingRangesCount = ranges[i][1] < 0xffff ? 1 : 0;
   const segCount = bmpLength + trailingRangesCount;
   const searchParams = OpenTypeFileBuilder.getSearchParams(segCount, 2);
-  let startCount = "";
-  let endCount = "";
-  let idDeltas = "";
-  let idRangeOffsets = "";
-  let glyphsIds = "";
+  const segmentsLength = bmpLength * 2 + trailingRangesCount * 2;
+  const startCount = new TrueTypeTableBuilder({
+      exactLength: segmentsLength
+    }),
+    endCount = new TrueTypeTableBuilder({
+      exactLength: segmentsLength
+    }),
+    idDeltas = new TrueTypeTableBuilder({
+      exactLength: segmentsLength
+    }),
+    idRangeOffsets = new TrueTypeTableBuilder({
+      exactLength: segmentsLength
+    }),
+    glyphsIds = new TrueTypeTableBuilder({});
   let bias = 0;
-  let range, start, end, codes;
   for (i = 0, ii = bmpLength; i < ii; i++) {
-    range = ranges[i];
-    start = range[0];
-    end = range[1];
-    startCount += string16(start);
-    endCount += string16(end);
-    codes = range[2];
+    const [start, end, codes] = ranges[i];
+    startCount.setInt16(start);
+    endCount.setInt16(end);
     let contiguous = true;
     for (j = 1, jj = codes.length; j < jj; ++j) {
       if (codes[j] !== codes[j - 1] + 1) {
@@ -28879,47 +28940,86 @@ function createCmapTable(glyphs, toUnicodeExtraMap, numGlyphs) {
     if (!contiguous) {
       const offset = (segCount - i) * 2 + bias * 2;
       bias += end - start + 1;
-      idDeltas += string16(0);
-      idRangeOffsets += string16(offset);
+      idDeltas.skip(2);
+      idRangeOffsets.setInt16(offset);
       for (j = 0, jj = codes.length; j < jj; ++j) {
-        glyphsIds += string16(codes[j]);
+        glyphsIds.setInt16(codes[j]);
       }
     } else {
       const startCode = codes[0];
-      idDeltas += string16(startCode - start & 0xffff);
-      idRangeOffsets += string16(0);
+      idDeltas.setInt16(startCode - start & 0xffff);
+      idRangeOffsets.skip(2);
     }
   }
   if (trailingRangesCount > 0) {
-    endCount += "\xFF\xFF";
-    startCount += "\xFF\xFF";
-    idDeltas += "\x00\x01";
-    idRangeOffsets += "\x00\x00";
+    endCount.setArray([0xff, 0xff]);
+    startCount.setArray([0xff, 0xff]);
+    idDeltas.setArray([0x00, 0x01]);
+    idRangeOffsets.skip(2);
   }
-  const format314 = "\x00\x00" + string16(2 * segCount) + string16(searchParams.range) + string16(searchParams.entry) + string16(searchParams.rangeShift) + endCount + "\x00\x00" + startCount + idDeltas + idRangeOffsets + glyphsIds;
-  let format31012 = "";
-  let header31012 = "";
+  const format314 = new TrueTypeTableBuilder({
+    exactLength: 12 + startCount.length + endCount.length + idDeltas.length + idRangeOffsets.length + glyphsIds.length
+  });
+  format314.skip(2);
+  format314.setInt16(2 * segCount);
+  format314.setInt16(searchParams.range);
+  format314.setInt16(searchParams.entry);
+  format314.setInt16(searchParams.rangeShift);
+  format314.setArray(endCount.data);
+  format314.skip(2);
+  format314.setArray(startCount.data);
+  format314.setArray(idDeltas.data);
+  format314.setArray(idRangeOffsets.data);
+  format314.setArray(glyphsIds.data);
+  let cmap31012 = null,
+    format31012 = null,
+    header31012 = null;
   if (numTables > 1) {
-    cmap += "\x00\x03" + "\x00\x0A" + string32(4 + numTables * 8 + 4 + format314.length);
-    format31012 = "";
-    for (i = 0, ii = ranges.length; i < ii; i++) {
-      range = ranges[i];
-      start = range[0];
-      codes = range[2];
+    cmap31012 = new TrueTypeTableBuilder({
+      exactLength: 8
+    });
+    cmap31012.setArray([0x00, 0x03]);
+    cmap31012.setArray([0x00, 0x0a]);
+    cmap31012.setInt32(4 + numTables * 8 + 4 + format314.length);
+    format31012 = new TrueTypeTableBuilder({});
+    for (const range of ranges) {
+      let start = range[0];
+      const codes = range[2];
       let code = codes[0];
       for (j = 1, jj = codes.length; j < jj; ++j) {
         if (codes[j] !== codes[j - 1] + 1) {
-          end = range[0] + j - 1;
-          format31012 += string32(start) + string32(end) + string32(code);
+          const end = range[0] + j - 1;
+          format31012.setInt32(start);
+          format31012.setInt32(end);
+          format31012.setInt32(code);
           start = end + 1;
           code = codes[j];
         }
       }
-      format31012 += string32(start) + string32(range[1]) + string32(code);
+      format31012.setInt32(start);
+      format31012.setInt32(range[1]);
+      format31012.setInt32(code);
     }
-    header31012 = "\x00\x0C" + "\x00\x00" + string32(format31012.length + 16) + "\x00\x00\x00\x00" + string32(format31012.length / 12);
+    header31012 = new TrueTypeTableBuilder({
+      exactLength: 16
+    });
+    header31012.setArray([0x00, 0x0c]);
+    header31012.skip(2);
+    header31012.setInt32(format31012.length + 16);
+    header31012.skip(4);
+    header31012.setInt32(format31012.length / 12);
   }
-  return stringToBytes(cmap + "\x00\x04" + string16(format314.length + 4) + format314 + header31012 + format31012);
+  const table = new TrueTypeTableBuilder({
+    exactLength: 4 + cmap.length + (cmap31012?.length ?? 0) + format314.length + (header31012?.length ?? 0) + (format31012?.length ?? 0)
+  });
+  table.setArray(cmap.data);
+  table.setArray(cmap31012?.data ?? []);
+  table.setArray([0x00, 0x04]);
+  table.setInt16(format314.length + 4);
+  table.setArray(format314.data);
+  table.setArray(header31012?.data ?? []);
+  table.setArray(format31012?.data ?? []);
+  return table.data;
 }
 function validateOS2Table(os2, file) {
   file.pos = (file.start || 0) + os2.offset;
@@ -28996,94 +29096,117 @@ function createOS2Table(properties, charstrings, override) {
   }
   const winAscent = override.yMax || typoAscent;
   const winDescent = -override.yMin || -typoDescent;
-  const data = new Uint8Array(96),
-    view = new DataView(data.buffer);
-  let pos = 0;
-  pos = setArray(data, pos, [0x00, 0x03]);
-  pos = setArray(data, pos, [0x02, 0x24]);
-  pos = setArray(data, pos, [0x01, 0xf4]);
-  pos = setArray(data, pos, [0x00, 0x05]);
-  pos += 2;
-  pos = setArray(data, pos, [0x02, 0x8a]);
-  pos = setArray(data, pos, [0x02, 0xbb]);
-  pos += 2;
-  pos = setArray(data, pos, [0x00, 0x8c]);
-  pos = setArray(data, pos, [0x02, 0x8a]);
-  pos = setArray(data, pos, [0x02, 0xbb]);
-  pos += 2;
-  pos = setArray(data, pos, [0x01, 0xdf]);
-  pos = setArray(data, pos, [0x00, 0x31]);
-  pos = setArray(data, pos, [0x01, 0x02]);
-  pos += 2;
-  pos = setArray(data, pos, [0x00, 0x00, 0x06, properties.fixedPitch ? 0x09 : 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-  pos = setInt32(view, pos, ulUnicodeRange1);
-  pos = setInt32(view, pos, ulUnicodeRange2);
-  pos = setInt32(view, pos, ulUnicodeRange3);
-  pos = setInt32(view, pos, ulUnicodeRange4);
-  pos = setArray(data, pos, [0x2a, 0x32, 0x31, 0x2a]);
-  pos = setInt16(view, pos, properties.italicAngle ? 1 : 0);
-  pos = setInt16(view, pos, firstCharIndex || properties.firstChar);
-  pos = setInt16(view, pos, lastCharIndex || properties.lastChar);
-  pos = setInt16(view, pos, typoAscent);
-  pos = setInt16(view, pos, typoDescent);
-  pos = setArray(data, pos, [0x00, 0x64]);
-  pos = setInt16(view, pos, winAscent);
-  pos = setInt16(view, pos, winDescent);
-  pos += 4;
-  pos += 4;
-  pos = setInt16(view, pos, properties.xHeight);
-  pos = setInt16(view, pos, properties.capHeight);
-  pos += 2;
-  pos = setInt16(view, pos, firstCharIndex || properties.firstChar);
-  setArray(data, pos, [0x00, 0x03]);
-  return data;
+  const os2 = new TrueTypeTableBuilder({
+    exactLength: 96
+  });
+  os2.setArray([0x00, 0x03]);
+  os2.setArray([0x02, 0x24]);
+  os2.setArray([0x01, 0xf4]);
+  os2.setArray([0x00, 0x05]);
+  os2.skip(2);
+  os2.setArray([0x02, 0x8a]);
+  os2.setArray([0x02, 0xbb]);
+  os2.skip(2);
+  os2.setArray([0x00, 0x8c]);
+  os2.setArray([0x02, 0x8a]);
+  os2.setArray([0x02, 0xbb]);
+  os2.skip(2);
+  os2.setArray([0x01, 0xdf]);
+  os2.setArray([0x00, 0x31]);
+  os2.setArray([0x01, 0x02]);
+  os2.skip(2);
+  os2.setArray([0x00, 0x00, 0x06, properties.fixedPitch ? 0x09 : 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+  os2.setInt32(ulUnicodeRange1);
+  os2.setInt32(ulUnicodeRange2);
+  os2.setInt32(ulUnicodeRange3);
+  os2.setInt32(ulUnicodeRange4);
+  os2.setArray([0x2a, 0x32, 0x31, 0x2a]);
+  os2.setInt16(properties.italicAngle ? 1 : 0);
+  os2.setInt16(firstCharIndex || properties.firstChar);
+  os2.setInt16(lastCharIndex || properties.lastChar);
+  os2.setInt16(typoAscent);
+  os2.setInt16(typoDescent);
+  os2.setArray([0x00, 0x64]);
+  os2.setInt16(winAscent);
+  os2.setInt16(winDescent);
+  os2.skip(4 + 4);
+  os2.setInt16(properties.xHeight);
+  os2.setInt16(properties.capHeight);
+  os2.skip(2);
+  os2.setInt16(firstCharIndex || properties.firstChar);
+  os2.setArray([0x00, 0x03]);
+  return os2.data;
 }
 function createPostTable(properties) {
-  const data = new Uint8Array(32),
-    view = new DataView(data.buffer);
-  let pos = 0;
-  pos = setArray(data, pos, [0x00, 0x03, 0x00, 0x00]);
-  pos = setInt32(view, pos, Math.floor(properties.italicAngle * 2 ** 16));
-  pos += 2;
-  pos += 2;
-  setInt32(view, pos, properties.fixedPitch ? 1 : 0);
-  return data;
+  const post = new TrueTypeTableBuilder({
+    exactLength: 32
+  });
+  post.setArray([0x00, 0x03, 0x00, 0x00]);
+  post.setInt32(Math.floor(properties.italicAngle * 2 ** 16));
+  post.skip(2 + 2);
+  post.setInt32(properties.fixedPitch ? 1 : 0);
+  post.skip(4 + 4 + 4 + 4);
+  return post.data;
 }
 function createPostscriptName(name) {
   return name.replaceAll(/[^\x21-\x7E]|[[\](){}<>/%]/g, "").slice(0, 63);
 }
 function createNameTable(name, proto) {
-  if (!proto) {
-    proto = [[], []];
-  }
+  proto ||= [[], []];
   const strings = [proto[0][0] || "Original licence", proto[0][1] || name, proto[0][2] || "Unknown", proto[0][3] || "uniqueID", proto[0][4] || name, proto[0][5] || "Version 0.11", proto[0][6] || createPostscriptName(name), proto[0][7] || "Unknown", proto[0][8] || "Unknown", proto[0][9] || "Unknown"];
-  const stringsUnicode = [];
+  const stringsBytes = strings.map(s => stringToBytes(s));
+  const stringsUnicodeBytes = new Array(strings.length);
   let i, ii, j, jj, str;
   for (i = 0, ii = strings.length; i < ii; i++) {
     str = proto[1][i] || strings[i];
-    const strBufUnicode = [];
+    const strUnicode = new TrueTypeTableBuilder({
+      exactLength: str.length * 2
+    });
     for (j = 0, jj = str.length; j < jj; j++) {
-      strBufUnicode.push(string16(str.charCodeAt(j)));
+      strUnicode.setInt16(str.charCodeAt(j));
     }
-    stringsUnicode.push(strBufUnicode.join(""));
+    stringsUnicodeBytes[i] = strUnicode.data;
   }
-  const names = [strings, stringsUnicode];
-  const platforms = ["\x00\x01", "\x00\x03"];
-  const encodings = ["\x00\x00", "\x00\x01"];
-  const languages = ["\x00\x00", "\x04\x09"];
-  const namesRecordCount = strings.length * platforms.length;
-  let nameTable = "\x00\x00" + string16(namesRecordCount) + string16(namesRecordCount * 12 + 6);
+  const namesBytes = [stringsBytes, stringsUnicodeBytes];
+  const platformsBytes = [[0x00, 0x01], [0x00, 0x03]];
+  const encodingsBytes = [[0x00, 0x00], [0x00, 0x01]];
+  const languagesBytes = [[0x00, 0x00], [0x04, 0x09]];
+  const nameRecords = [];
   let strOffset = 0;
-  for (i = 0, ii = platforms.length; i < ii; i++) {
-    const strs = names[i];
+  for (i = 0, ii = platformsBytes.length; i < ii; i++) {
+    const strs = namesBytes[i];
     for (j = 0, jj = strs.length; j < jj; j++) {
       str = strs[j];
-      const nameRecord = platforms[i] + encodings[i] + languages[i] + string16(j) + string16(str.length) + string16(strOffset);
-      nameTable += nameRecord;
+      const nameRecord = new TrueTypeTableBuilder({
+        exactLength: 6 + platformsBytes[i].length + encodingsBytes[i].length + languagesBytes[i].length
+      });
+      nameRecord.setArray(platformsBytes[i]);
+      nameRecord.setArray(encodingsBytes[i]);
+      nameRecord.setArray(languagesBytes[i]);
+      nameRecord.setInt16(j);
+      nameRecord.setInt16(str.length);
+      nameRecord.setInt16(strOffset);
+      nameRecords.push(nameRecord.data);
       strOffset += str.length;
     }
   }
-  return stringToBytes(nameTable + strings.join("") + stringsUnicode.join(""));
+  const namesRecordCount = stringsBytes.length * platformsBytes.length;
+  const nameTable = new TrueTypeTableBuilder({
+    exactLength: 6 + Math.sumPrecise(nameRecords.map(arr => arr.length)) + Math.sumPrecise(stringsBytes.map(arr => arr.length)) + Math.sumPrecise(stringsUnicodeBytes.map(arr => arr.length))
+  });
+  nameTable.skip(2);
+  nameTable.setInt16(namesRecordCount);
+  nameTable.setInt16(namesRecordCount * 12 + 6);
+  for (const arr of nameRecords) {
+    nameTable.setArray(arr);
+  }
+  for (const arr of stringsBytes) {
+    nameTable.setArray(arr);
+  }
+  for (const arr of stringsUnicodeBytes) {
+    nameTable.setArray(arr);
+  }
+  return nameTable.data;
 }
 class Font {
   #charsCache = new Map();
@@ -30762,54 +30885,49 @@ class Font {
     builder.addTable("cmap", createCmapTable(newCharCodeToGlyphId, toUnicodeExtraMap, numGlyphs));
     builder.addTable("head", function fontTableHead() {
       const dateArr = [0x00, 0x00, 0x00, 0x00, 0x9e, 0x0b, 0x7e, 0x27];
-      const data = new Uint8Array(54),
-        view = new DataView(data.buffer);
-      let pos = 0;
-      pos = setArray(data, pos, [0x00, 0x01, 0x00, 0x00]);
-      pos = setArray(data, pos, [0x00, 0x00, 0x10, 0x00]);
-      pos += 4;
-      pos = setArray(data, pos, [0x5f, 0x0f, 0x3c, 0xf5]);
-      pos += 2;
-      pos = setSafeInt16(view, pos, unitsPerEm);
-      pos = setArray(data, pos, dateArr);
-      pos = setArray(data, pos, dateArr);
-      pos += 2;
-      pos = setSafeInt16(view, pos, properties.descent);
-      pos = setArray(data, pos, [0x0f, 0xff]);
-      pos = setSafeInt16(view, pos, properties.ascent);
-      pos = setInt16(view, pos, properties.italicAngle ? 2 : 0);
-      setArray(data, pos, [0x00, 0x11]);
-      return data;
+      const head = new TrueTypeTableBuilder({
+        exactLength: 54
+      });
+      head.setArray([0x00, 0x01, 0x00, 0x00]);
+      head.setArray([0x00, 0x00, 0x10, 0x00]);
+      head.skip(4);
+      head.setArray([0x5f, 0x0f, 0x3c, 0xf5]);
+      head.skip(2);
+      head.setSafeInt16(unitsPerEm);
+      head.setArray(dateArr);
+      head.setArray(dateArr);
+      head.skip(2);
+      head.setSafeInt16(properties.descent);
+      head.setArray([0x0f, 0xff]);
+      head.setSafeInt16(properties.ascent);
+      head.setInt16(properties.italicAngle ? 2 : 0);
+      head.setArray([0x00, 0x11]);
+      head.skip(2 + 2 + 2);
+      return head.data;
     }());
     builder.addTable("hhea", function fontTableHhea() {
-      const data = new Uint8Array(36),
-        view = new DataView(data.buffer);
-      let pos = 0;
-      pos = setArray(data, pos, [0x00, 0x01, 0x00, 0x00]);
-      pos = setSafeInt16(view, pos, properties.ascent);
-      pos = setSafeInt16(view, pos, properties.descent);
-      pos += 2;
-      pos = setArray(data, pos, [0xff, 0xff]);
-      pos += 2;
-      pos += 2;
-      pos += 2;
-      pos = setSafeInt16(view, pos, properties.capHeight);
-      pos = setSafeInt16(view, pos, Math.tan(properties.italicAngle) * properties.xHeight);
-      pos += 2;
-      pos += 2;
-      pos += 2;
-      pos += 2;
-      pos += 2;
-      pos += 2;
-      setInt16(view, pos, numGlyphs);
-      return data;
+      const hhea = new TrueTypeTableBuilder({
+        exactLength: 36
+      });
+      hhea.setArray([0x00, 0x01, 0x00, 0x00]);
+      hhea.setSafeInt16(properties.ascent);
+      hhea.setSafeInt16(properties.descent);
+      hhea.skip(2);
+      hhea.setArray([0xff, 0xff]);
+      hhea.skip(2 + 2 + 2);
+      hhea.setSafeInt16(properties.capHeight);
+      hhea.setSafeInt16(Math.tan(properties.italicAngle) * properties.xHeight);
+      hhea.skip(2 + 2 + 2 + 2 + 2 + 2);
+      hhea.setInt16(numGlyphs);
+      return hhea.data;
     }());
     builder.addTable("hmtx", function fontTableHmtx() {
       const charstrings = font.charstrings;
       const cffWidths = font.cff?.widths ?? null;
-      const data = new Uint8Array(numGlyphs * 4),
-        view = new DataView(data.buffer);
-      let pos = 4;
+      const hmtx = new TrueTypeTableBuilder({
+        exactLength: numGlyphs * 4
+      });
+      hmtx.skip(4);
       for (let i = 1, ii = numGlyphs; i < ii; i++) {
         let width = 0;
         if (charstrings) {
@@ -30817,17 +30935,18 @@ class Font {
         } else if (cffWidths) {
           width = Math.ceil(cffWidths[i] || 0);
         }
-        pos = setInt16(view, pos, width);
-        pos += 2;
+        hmtx.setInt16(width);
+        hmtx.skip(2);
       }
-      return data;
+      return hmtx.data;
     }());
     builder.addTable("maxp", function fontTableMaxp() {
-      const data = new Uint8Array(6),
-        view = new DataView(data.buffer);
-      setArray(data, 0, [0x00, 0x00, 0x50, 0x00]);
-      setInt16(view, 4, numGlyphs);
-      return data;
+      const maxp = new TrueTypeTableBuilder({
+        exactLength: 6
+      });
+      maxp.setArray([0x00, 0x00, 0x50, 0x00]);
+      maxp.setInt16(numGlyphs);
+      return maxp.data;
     }());
     builder.addTable("name", createNameTable(fontName));
     builder.addTable("post", createPostTable(properties));
@@ -64826,7 +64945,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.7.174";
+    const workerVersion = "5.7.204";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }

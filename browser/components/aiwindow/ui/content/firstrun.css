@@ -89,7 +89,7 @@
     }
 
     .welcome-text h2 {
-      opacity: 0.8;
+      opacity: var(--opacity-deemphasized);
       margin-top: var(--space-medium);
     }
 
@@ -174,13 +174,13 @@
         margin-top: var(--space-xlarge);
         margin-bottom: 0;
         letter-spacing: 0.5px;
-        opacity: 0.8;
+        opacity: var(--opacity-deemphasized);
         line-height: normal;
         transition: margin-top 0.4s ease;
       }
 
       .body-text {
-        opacity: 0.8;
+        opacity: var(--opacity-deemphasized);
         line-height: normal;
         margin-bottom: var(--space-xxlarge);
       }
@@ -189,7 +189,7 @@
         /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens -- custom brand color per Figma design */
         color: var(--subtitle-text-color);
         text-align: center;
-        opacity: 0.8;
+        opacity: var(--opacity-deemphasized);
         margin-top: 0;
         padding: var(--space-small) calc(var(--space-xsmall) * 5);
         border-radius: var(--border-radius-medium);

@@ -152,6 +152,10 @@ ENameValueFlag LocalAccessible::Name(nsString& aName) const {
   }
 
   if (auto cssAlt = CssAltContent(mContent)) {
+    // This covers two cases:
+    // 1. The CSS content property replaces the content of an element with an
+    // image plus alt text.
+    // 2. Alt text is provided for a pseudo-element image.
     cssAlt.AppendToString(aName);
     return eNameOK;
   }
@@ -367,6 +371,10 @@ uint64_t LocalAccessible::NativeState() const {
 
     if (elementState.HasState(dom::ElementState::REQUIRED)) {
       state |= states::REQUIRED;
+    }
+
+    if (elementState.HasState(dom::ElementState::MODAL)) {
+      state |= states::MODAL;
     }
 
     state |= NativeInteractiveState();
@@ -2903,7 +2911,7 @@ void LocalAccessible::BindToParent(LocalAccessible* aParent,
       static_cast<uint32_t>((mParent->IsAlert() || mParent->IsInsideAlert())) &
       eInsideAlert;
 
-  if (IsTableCell()) {
+  if (IsTableRow() || IsTableCell()) {
     CachedTableAccessible::Invalidate(this);
   }
 
@@ -2929,7 +2937,7 @@ void LocalAccessible::BindToParent(LocalAccessible* aParent,
 void LocalAccessible::UnbindFromParent() {
   // We do this here to handle document shutdown and an Accessible being moved.
   // We do this for subtree removal in DocAccessible::UncacheChildrenInSubtree.
-  if (IsTable() || IsTableCell()) {
+  if (IsTableRow() || IsTable() || IsTableCell()) {
     CachedTableAccessible::Invalidate(this);
   }
 

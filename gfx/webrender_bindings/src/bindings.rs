@@ -1328,7 +1328,6 @@ extern "C" {
         num_opaque_rects: usize,
     );
     fn wr_compositor_end_frame(compositor: *mut c_void);
-    fn wr_compositor_enable_native_compositor(compositor: *mut c_void, enable: bool);
     fn wr_compositor_deinit(compositor: *mut c_void);
     fn wr_compositor_get_capabilities(compositor: *mut c_void, caps: *mut CompositorCapabilities);
     fn wr_compositor_get_window_visibility(compositor: *mut c_void, caps: *mut WindowVisibility);
@@ -1500,11 +1499,7 @@ impl Compositor for WrCompositor {
         }
     }
 
-    fn enable_native_compositor(&mut self, _device: &mut Device, enable: bool) {
-        unsafe {
-            wr_compositor_enable_native_compositor(self.0, enable);
-        }
-    }
+    fn enable_native_compositor(&mut self, _device: &mut Device, _enable: bool) {}
 
     fn deinit(&mut self, _device: &mut Device) {
         unsafe {
@@ -2286,11 +2281,6 @@ pub unsafe extern "C" fn wr_api_accumulate_memory_report(
 #[no_mangle]
 pub unsafe extern "C" fn wr_api_clear_all_caches(dh: &mut DocumentHandle) {
     dh.api.send_debug_cmd(DebugCommand::ClearCaches(ClearCache::all()));
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wr_api_enable_native_compositor(dh: &mut DocumentHandle, enable: bool) {
-    dh.api.send_debug_cmd(DebugCommand::EnableNativeCompositor(enable));
 }
 
 #[no_mangle]

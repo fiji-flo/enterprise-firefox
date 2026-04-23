@@ -236,5 +236,6 @@
   "ToolbarDropHandler",
   "ProfilesDatastoreService",
   "gTrustPanelHandler",
+  "ContentSharingUtils",
   "EnterpriseHandler"
 ]

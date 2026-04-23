@@ -137,12 +137,12 @@ export class UrlbarInput extends HTMLElement {
           </html:span>
         </html:moz-button>
         <!-- In XUL windows, this will be wrapped in a panel with class="searchmode-switcher-panel". -->
-        <html:panel-list class="searchmode-switcher-popup">
-          <html:div class="searchmode-switcher-popup-description" role="heading" />
+        <html:panel-list class="searchmode-switcher-panel-list">
+          <html:div class="searchmode-switcher-panel-description" role="heading" />
 ${
-  lazy.UrlbarPrefs.get("nova.featureGate")
-    ? '<html:hr class="searchmode-switcher-popup-installed-engine-separator"/><html:hr class="searchmode-switcher-popup-footer-separator"/>'
-    : '<html:hr/><html:hr class="searchmode-switcher-popup-installed-engine-separator searchmode-switcher-popup-footer-separator"/>'
+  Services.prefs.getBoolPref("browser.nova.enabled", false)
+    ? '<html:hr class="searchmode-switcher-panel-installed-engine-separator"/><html:hr class="searchmode-switcher-panel-footer-separator"/>'
+    : '<html:hr/><html:hr class="searchmode-switcher-panel-installed-engine-separator searchmode-switcher-panel-footer-separator"/>'
 }
         </html:panel-list>
 
@@ -364,12 +364,13 @@ ${
     this.searchModeSwitcher = new lazy.SearchModeSwitcher(this);
 
     let searchModeSwitcherDescription = this.querySelector(
-      ".searchmode-switcher-popup-description"
+      ".searchmode-switcher-panel-description"
     );
 
     searchModeSwitcherDescription.setAttribute(
       "data-l10n-id",
-      this.#isAddressbar && !lazy.UrlbarPrefs.get("nova.featureGate")
+      this.#isAddressbar &&
+        !Services.prefs.getBoolPref("browser.nova.enabled", false)
         ? "urlbar-searchmode-popup-one-off-header"
         : "urlbar-searchmode-popup-header"
     );
@@ -435,6 +436,7 @@ ${
       this.window.document.documentElement.hasAttribute("taskbartab") ||
       this.readOnly
     ) {
+      this.#stopBreakout();
       return;
     }
 
@@ -1241,6 +1243,24 @@ ${
     }
 
     if (!url) {
+      if (this.sapName == "searchbar") {
+        let searchEngine;
+        if (this.searchMode) {
+          searchEngine = lazy.UrlbarSearchUtils.getEngineByName(
+            this.searchMode.engineName
+          );
+        } else {
+          searchEngine = lazy.UrlbarSearchUtils.getDefaultEngine(
+            this.isPrivate
+          );
+        }
+
+        this.openSearchEnginePage("", {
+          searchEngine,
+          event,
+          where: this._whereToOpen(event),
+        });
+      }
       return;
     }
 
@@ -2413,37 +2433,80 @@ ${
   }
 
   /**
-   * Opens a search page if the value is non-empty, otherwise opens the
-   * search engine homepage (searchform).
+   * If value is non-empty: open the search engine result page (SERP) for value.
+   * If value is empty: open the search engine home page (searchForm).
    *
    * @param {string} value
+   *   The search term or empty string to open homepage.
    * @param {object} options
    * @param {SearchEngine} options.searchEngine
-   * @param {string} [options.where]
+   * @param {Event} options.event
+   * @param {string} options.where
+   * @param {boolean} [options.inBackground]
    */
-  openEngineHomePage(value, { searchEngine, where = "current" }) {
-    if (!searchEngine) {
-      console.warn("No searchEngine parameter");
+  openSearchEnginePage(
+    value,
+    { searchEngine, event, where, inBackground = false }
+  ) {
+    if (!searchEngine || !event || !where) {
+      console.warn("Missing parameters");
       return;
     }
 
     let trimmedValue = value.trim();
-    let url;
+    let url, postData;
     if (trimmedValue) {
-      url = searchEngine.getSubmission(trimmedValue, null).uri.spec;
-      // TODO: record SAP telemetry, see Bug 1961789.
+      [url, postData] = lazy.UrlbarUtils.getSearchQueryUrl(
+        searchEngine,
+        trimmedValue
+      );
+      if (where.startsWith("tab")) {
+        // The TabOpen event is fired synchronously so tabEvent.target
+        // is guaranteed to be our new search tab.
+        this.window.gBrowser.tabContainer.addEventListener(
+          "TabOpen",
+          tabEvent =>
+            this._recordSearch(
+              searchEngine,
+              event,
+              {},
+              tabEvent.target.linkedBrowser
+            ),
+          { once: true }
+        );
+      } else {
+        this._recordSearch(searchEngine, event);
+      }
+
+      if (where == "current") {
+        // Enter search mode so:
+        // - in the urlbar, persisted search terms work
+        // - in the searchbar, the engine stays selected
+        //
+        // Note that this will also record telemetry and
+        // search mode will be exited on the urlbar if the
+        // engine does not support persisted search terms
+        this.setSearchMode(
+          {
+            engineName: searchEngine.name,
+            entry: "searchbutton",
+            source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+            isPreview: false,
+          },
+          this.window.gBrowser.selectedBrowser
+        );
+      }
     } else {
       url = searchEngine.searchForm;
       lazy.BrowserSearchTelemetry.recordSearchForm(searchEngine, this.#sapName);
+      if (this.#isAddressbar && where == "current") {
+        this.inputField.value = url;
+        this.selectionStart = -1;
+      }
     }
+    this._lastSearchString = trimmedValue;
 
-    this._lastSearchString = "";
-    if (this.#isAddressbar && where == "current") {
-      this.inputField.value = url;
-    }
-    this.selectionStart = -1;
-
-    this.window.openTrustedLinkIn(url, where, { inBackground: true });
+    this.window.openTrustedLinkIn(url, where, { inBackground, postData });
   }
 
   /**
@@ -2987,8 +3050,7 @@ ${
    *
    * @param {Event} [event]
    *   The event that triggered this query.
-   *   This is not needed for urlbar.* telemetry and will be obsolete for
-   *   all types of telemetry once the pre-scotch bonnet code is removed.
+   *   This is not needed for urlbar.* telemetry.
    * @returns {keyof typeof lazy.BrowserSearchTelemetry.KNOWN_SEARCH_SOURCES}
    *   The source name.
    */
@@ -2996,6 +3058,11 @@ ${
     if (this.#isAddressbar) {
       if (this._isHandoffSession) {
         return "urlbar_handoff";
+      }
+
+      if (this.searchModeSwitcher?.eventTargetIsPanelItem(event)) {
+        // The search mode switcher doesn't have its own search source yet.
+        return "urlbar_searchmode";
       }
 
       const isOneOff =
@@ -3831,6 +3898,9 @@ ${
    *   Whether the event is a KeyboardEvent that triggers canonization.
    */
   #isCanonizeKeyboardEvent(event) {
+    if (this.sapName == "searchbar") {
+      return false;
+    }
     return (
       KeyboardEvent.isInstance(event) &&
       event.keyCode == KeyEvent.DOM_VK_RETURN &&
@@ -3855,7 +3925,6 @@ ${
     // Only add the suffix when the URL bar value isn't already "URL-like",
     // and only if we get a keyboard event, to match user expectations.
     if (
-      this.sapName == "searchbar" ||
       !this.#isCanonizeKeyboardEvent(event) ||
       !/^\s*[^.:\/\s]+(?:\/.*|\s*)$/i.test(value)
     ) {
@@ -4878,6 +4947,12 @@ ${
    */
   setUnifiedSearchButtonAvailability(available) {
     this.toggleAttribute("unifiedsearchbutton-available", available);
+    const switcher = this.querySelector(".searchmode-switcher");
+    if (available) {
+      switcher.removeAttribute("aria-hidden");
+    } else {
+      switcher.setAttribute("aria-hidden", "true");
+    }
     this.getBrowserState(
       this.window.gBrowser.selectedBrowser
     ).isUnifiedSearchButtonAvailable = available;
@@ -5467,30 +5542,14 @@ ${
     );
   }
 
-  _on_overflow(event) {
-    const targetIsPlaceholder =
-      event.originalTarget.implementedPseudoElement == "::placeholder";
-    // We only care about the non-placeholder text.
-    // This shouldn't be needed, see bug 1487036.
-    if (targetIsPlaceholder) {
-      return;
-    }
+  _on_overflow(_event) {
     this._overflowing = true;
     this.updateTextOverflow();
   }
 
-  _on_underflow(event) {
-    const targetIsPlaceholder =
-      event.originalTarget.implementedPseudoElement == "::placeholder";
-    // We only care about the non-placeholder text.
-    // This shouldn't be needed, see bug 1487036.
-    if (targetIsPlaceholder) {
-      return;
-    }
+  _on_underflow(_event) {
     this._overflowing = false;
-
     this.updateTextOverflow();
-
     this._updateUrlTooltip();
   }
 

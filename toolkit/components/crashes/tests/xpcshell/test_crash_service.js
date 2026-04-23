@@ -92,7 +92,7 @@ async function test_addCrashBase(crashId, allThreads) {
   Assert.ok(crash.metadata.CrashID, "The CrashID field is present.");
 
   try {
-    let stackTraces = crash.metadata.StackTraces;
+    let stackTraces = JSON.parse(crash.metadata.StackTraces);
     Assert.equal("error" in stackTraces, false);
     Assert.ok(stackTraces.crash_type, "The crash_type field is populated.");
     Assert.ok(

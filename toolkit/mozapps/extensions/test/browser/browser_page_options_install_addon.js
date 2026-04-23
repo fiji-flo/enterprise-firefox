@@ -110,7 +110,7 @@ async function checkInstallConfirmation(
 }
 
 add_setup(() => {
-  MockFilePicker.init(window.browsingContext);
+  MockFilePicker.init();
   registerCleanupFunction(() => {
     MockFilePicker.cleanup();
   });

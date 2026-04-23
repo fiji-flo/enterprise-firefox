@@ -1391,10 +1391,22 @@ fail-if = [
   "true",
 ]
 
+["generated/test_2_conformance2__wasm__bufferdata-4gb-wasm-memory.html"]
+# successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
+fail-if = [
+  "os == 'win' && arch == 'x86'",
+]
+
 ["generated/test_2_conformance2__wasm__buffersubdata-16gb-wasm-memory.html"]
 # successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
 fail-if = [
   "true",
+]
+
+["generated/test_2_conformance2__wasm__buffersubdata-4gb-wasm-memory.html"]
+# successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
+fail-if = [
+  "os == 'win' && arch == 'x86'",
 ]
 
 ["generated/test_2_conformance2__wasm__getbuffersubdata-16gb-wasm-memory.html"]
@@ -1403,10 +1415,22 @@ fail-if = [
   "true",
 ]
 
+["generated/test_2_conformance2__wasm__getbuffersubdata-4gb-wasm-memory.html"]
+# successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
+fail-if = [
+  "os == 'win' && arch == 'x86'",
+]
+
 ["generated/test_2_conformance2__wasm__readpixels-16gb-wasm-memory.html"]
 # successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
 fail-if = [
   "true",
+]
+
+["generated/test_2_conformance2__wasm__readpixels-4gb-wasm-memory.html"]
+# successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
+fail-if = [
+  "os == 'win' && arch == 'x86'",
 ]
 
 ["generated/test_2_conformance2__wasm__teximage2d-16gb-wasm-memory.html"]
@@ -1415,10 +1439,22 @@ fail-if = [
   "true",
 ]
 
+["generated/test_2_conformance2__wasm__teximage2d-4gb-wasm-memory.html"]
+# successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
+fail-if = [
+  "os == 'win' && arch == 'x86'",
+]
+
 ["generated/test_2_conformance2__wasm__texsubimage2d-16gb-wasm-memory.html"]
 # successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
 fail-if = [
   "true",
+]
+
+["generated/test_2_conformance2__wasm__texsubimage2d-4gb-wasm-memory.html"]
+# successfullyParsed should be true (of type boolean). Was undefined (of type undefined).
+fail-if = [
+  "os == 'win' && arch == 'x86'",
 ]
 
 ["generated/test_2_conformance__canvas__canvas-test.html"]

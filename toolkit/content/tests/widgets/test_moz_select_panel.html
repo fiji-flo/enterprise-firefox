@@ -58,6 +58,31 @@
         await hidden;
       });
 
+      add_task(async function testPanelAnchoredToTriggerButton() {
+        let target = await testHelpers.renderTemplate();
+        let select = target.querySelector("moz-select");
+        await select.updateComplete;
+
+        let panelButton = select.shadowRoot.querySelector(".panel-trigger");
+        let panelButtonLabel = select.shadowRoot.querySelector(
+          ".panel-trigger-text"
+        );
+
+        let shown = BrowserTestUtils.waitForEvent(select.panelList, "shown");
+        synthesizeMouseAtCenter(panelButtonLabel, {});
+        await shown;
+
+        is(
+          select.panelList.lastAnchorNode,
+          panelButton,
+          "Panel should be anchored to the trigger button even when clicking on a child element"
+        );
+
+        let hidden = BrowserTestUtils.waitForEvent(select.panelList, "hidden");
+        select.panelList.hide();
+        await hidden;
+      });
+
       add_task(async function testPanelListKeyboardClickOpensPanel() {
         let target = await testHelpers.renderTemplate();
         let select = target.querySelector("moz-select");

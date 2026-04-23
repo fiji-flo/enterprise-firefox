@@ -1400,7 +1400,7 @@ class BrowserRobot(private val composeTestRule: ComposeTestRule) {
             return NavigationToolbarRobot.Transition(composeTestRule)
         }
 
-        fun openTabDrawer(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+        fun openTabDrawer(composeTestRule: ComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
             Log.i(TAG, "openTabDrawer: Trying to click the tab counter button")
             composeTestRule.onNodeWithTag(TABS_COUNTER).performClick()
             Log.i(TAG, "openTabDrawer: Clicked the tab counter button")

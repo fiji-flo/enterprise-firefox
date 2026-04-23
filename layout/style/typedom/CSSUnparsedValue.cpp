@@ -7,9 +7,11 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/dom/CSSUnparsedValueBinding.h"
 #include "mozilla/dom/CSSVariableReferenceValue.h"
 #include "nsFmtString.h"
+#include "nsTArray.h"
 
 namespace mozilla::dom {
 
@@ -17,6 +19,31 @@ CSSUnparsedValue::CSSUnparsedValue(nsCOMPtr<nsISupports> aParent,
                                    Sequence<OwningCSSUnparsedSegment> aTokens)
     : CSSStyleValue(std::move(aParent), StyleValueType::UnparsedValue),
       mTokens(std::move(aTokens)) {}
+
+// static
+RefPtr<CSSUnparsedValue> CSSUnparsedValue::Create(
+    nsCOMPtr<nsISupports> aParent, const StyleUnparsedValue& aUnparsedValue) {
+  nsTArray<OwningCSSUnparsedSegment> tokens;
+
+  for (const auto& value : aUnparsedValue) {
+    OwningCSSUnparsedSegment token;
+
+    if (value.IsString()) {
+      const auto& stringValue = value.AsString();
+
+      token.SetAsUTF8String() = stringValue;
+    } else {
+      const auto& variableReferenceValue = value.AsVariableReference();
+
+      token.SetAsCSSVariableReferenceValue() =
+          CSSVariableReferenceValue::Create(aParent, variableReferenceValue);
+    }
+
+    tokens.AppendElement(std::move(token));
+  }
+
+  return MakeRefPtr<CSSUnparsedValue>(std::move(aParent), std::move(tokens));
+}
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(CSSUnparsedValue, CSSStyleValue)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(CSSUnparsedValue, CSSStyleValue, mTokens)

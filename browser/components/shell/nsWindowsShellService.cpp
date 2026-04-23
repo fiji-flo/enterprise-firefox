@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -1804,7 +1803,8 @@ static nsresult ManageShortcutTaskbarPins(bool aCheckOnly, bool aPinType,
 
 static nsresult PinShortcutToTaskbarImpl(bool aCheckOnly,
                                          const nsAString& aAppUserModelId,
-                                         const nsAString& aShortcutPath) {
+                                         const nsAString& aShortcutPath,
+                                         const bool aFireAndForget = false) {
   // Verify shortcut is visible to `shell:appsfolder`. Shortcut creation -
   // during install or runtime - causes a race between it propagating to the
   // virtual `shell:appsfolder` and attempts to pin via `ITaskbarManager`,
@@ -1817,7 +1817,7 @@ static nsresult PinShortcutToTaskbarImpl(bool aCheckOnly,
   }
 
   auto pinWithWin11TaskbarAPIResults =
-      PinCurrentAppToTaskbarWin11(aCheckOnly, aAppUserModelId);
+      PinCurrentAppToTaskbarWin11(aCheckOnly, aAppUserModelId, aFireAndForget);
   switch (pinWithWin11TaskbarAPIResults.result) {
     case Win11PinToTaskBarResultStatus::NotSupported:
       // Fall through to the win 10 mechanism
@@ -2023,9 +2023,10 @@ static bool PollAppsFolderForShortcut(const nsAString& aAppUserModelId,
 }
 
 static nsresult PinCurrentAppToTaskbarImpl(
-    bool aCheckOnly, bool aPrivateBrowsing, const nsAString& aAppUserModelId,
-    const nsAString& aShortcutName, const nsAString& aShortcutSubstring,
-    nsIFile* aGreDir, const ShortcutLocations& location) {
+    bool aCheckOnly, bool aPrivateBrowsing, const bool aFireAndForget,
+    const nsAString& aAppUserModelId, const nsAString& aShortcutName,
+    const nsAString& aShortcutSubstring, nsIFile* aGreDir,
+    const ShortcutLocations& location) {
   MOZ_DIAGNOSTIC_ASSERT(
       !NS_IsMainThread(),
       "PinCurrentAppToTaskbarImpl should be called off main thread only");
@@ -2075,13 +2076,13 @@ static nsresult PinCurrentAppToTaskbarImpl(
       return NS_ERROR_FILE_NOT_FOUND;
     }
   }
-  return PinShortcutToTaskbarImpl(aCheckOnly, aAppUserModelId, shortcutPath);
+  return PinShortcutToTaskbarImpl(aCheckOnly, aAppUserModelId, shortcutPath,
+                                  aFireAndForget);
 }
 
-static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
-                                                bool aPrivateBrowsing,
-                                                JSContext* aCx,
-                                                dom::Promise** aPromise) {
+static nsresult PinCurrentAppToTaskbarAsyncImpl(
+    bool aCheckOnly, bool aPrivateBrowsing, JSContext* aCx,
+    dom::Promise** aPromise, const bool aFireAndForget = false) {
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
@@ -2147,8 +2148,8 @@ static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
   NS_DispatchBackgroundTask(
       NS_NewRunnableFunction(
           "CheckPinCurrentAppToTaskbarAsync",
-          [aCheckOnly, aPrivateBrowsing, shortcutName, aumid = nsString{aumid},
-           greDir, location = std::move(location),
+          [aCheckOnly, aPrivateBrowsing, aFireAndForget, shortcutName,
+           aumid = nsString{aumid}, greDir, location = std::move(location),
            promiseHolder = std::move(promiseHolder)] {
             nsresult rv = NS_ERROR_FAILURE;
             HRESULT hr = CoInitialize(nullptr);
@@ -2157,8 +2158,8 @@ static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
               nsAutoString shortcutSubstring;
               shortcutSubstring.AssignLiteral(MOZ_APP_DISPLAYNAME);
               rv = PinCurrentAppToTaskbarImpl(
-                  aCheckOnly, aPrivateBrowsing, aumid, shortcutName,
-                  shortcutSubstring, greDir.get(), location);
+                  aCheckOnly, aPrivateBrowsing, aFireAndForget, aumid,
+                  shortcutName, shortcutSubstring, greDir.get(), location);
               CoUninitialize();
             }
 
@@ -2182,10 +2183,11 @@ static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
 
 NS_IMETHODIMP
 nsWindowsShellService::PinCurrentAppToTaskbarAsync(bool aPrivateBrowsing,
+                                                   bool aFireAndForget,
                                                    JSContext* aCx,
                                                    dom::Promise** aPromise) {
   return PinCurrentAppToTaskbarAsyncImpl(
-      /* aCheckOnly */ false, aPrivateBrowsing, aCx, aPromise);
+      /* aCheckOnly */ false, aPrivateBrowsing, aCx, aPromise, aFireAndForget);
 }
 
 NS_IMETHODIMP

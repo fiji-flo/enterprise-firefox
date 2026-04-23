@@ -1,5 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -213,10 +212,7 @@ class SharingUtilsCls {
   async #showQRCodePanel(win, browser, url) {
     let qrCodeDataURI = null;
     try {
-      qrCodeDataURI = await lazy.QRCodeGenerator.generateQRCode(
-        url,
-        win.document
-      );
+      qrCodeDataURI = await lazy.QRCodeGenerator.generateQRCode(url);
     } catch (error) {
       console.error("Failed to generate QR code:", error);
     }

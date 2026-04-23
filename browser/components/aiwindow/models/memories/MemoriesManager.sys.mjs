@@ -12,7 +12,6 @@ import {
 } from "moz-src:///browser/components/aiwindow/models/memories/MemoriesHistorySource.sys.mjs";
 import { getRecentChats } from "./MemoriesChatSource.sys.mjs";
 import {
-  DEFAULT_ENGINE_ID,
   MODEL_FEATURES,
   openAIEngine,
   renderPrompt,
@@ -84,8 +83,7 @@ export class MemoriesManager {
   static async ensureOpenAIEngineForGeneration() {
     const buildFresh = () => {
       this.#openAIEngineGenerationPromise = openAIEngine.build(
-        MODEL_FEATURES.MEMORIES_INITIAL_GENERATION_SYSTEM,
-        `${DEFAULT_ENGINE_ID}-memories-generation`
+        MODEL_FEATURES.MEMORIES_INITIAL_GENERATION_SYSTEM
       );
       return this.#openAIEngineGenerationPromise;
     };
@@ -119,8 +117,7 @@ export class MemoriesManager {
   static async ensureOpenAIEngineForUsage() {
     const buildFresh = () => {
       this.#openAIEngineUsagePromise = openAIEngine.build(
-        MODEL_FEATURES.MEMORIES_MESSAGE_CLASSIFICATION_SYSTEM,
-        `${DEFAULT_ENGINE_ID}-memories-usage`
+        MODEL_FEATURES.MEMORIES_MESSAGE_CLASSIFICATION_SYSTEM
       );
       return this.#openAIEngineUsagePromise;
     };
@@ -517,10 +514,11 @@ export class MemoriesManager {
    *
    * @param {string} memoryId       ID of the memory to hard-delete
    * @param {string} trigger        What was the trigger (assistant, settings, other)
+   * @param {number|null} inUse     Number of memories still applied to the message after removal, or null if not triggered by assistant
    * @returns {Promise<boolean>}    True if the memory was found and deleted, false otherwise
    */
-  static async hardDeleteMemoryById(memoryId, trigger) {
-    return await MemoryStore.hardDeleteMemory(memoryId, trigger);
+  static async hardDeleteMemoryById(memoryId, trigger, inUse) {
+    return await MemoryStore.hardDeleteMemory(memoryId, trigger, inUse);
   }
 
   /**

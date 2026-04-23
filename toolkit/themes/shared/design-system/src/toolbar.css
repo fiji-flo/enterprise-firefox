@@ -19,7 +19,7 @@
   --toolbarbutton-icon-fill-attention: AccentColor;
   --toolbarbutton-icon-fill-attention-text: AccentColorText;
 
-  --toolbarbutton-disabled-opacity: 0.4;
+  --toolbarbutton-disabled-opacity: var(--button-opacity-disabled);
   --toolbarbutton-border-radius: var(--button-border-radius);
 
   --toolbarbutton-hover-background: color-mix(in srgb, currentColor 17%, transparent);
@@ -66,9 +66,6 @@
   }
 
   @media (prefers-contrast) {
-    /* Reduce the opacity of disabled toolbar buttons in order to increase
-       contrast with the enabled state. */
-    --toolbarbutton-disabled-opacity: 0.3;
     --toolbar-field-focus-border-color: var(--focus-outline-color);
     --toolbarbutton-hover-outline-color: currentColor;
     --toolbarbutton-active-outline-color: currentColor;

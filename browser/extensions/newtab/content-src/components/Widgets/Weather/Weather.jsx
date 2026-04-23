@@ -136,6 +136,11 @@ function Weather({ dispatch, size }) {
     return undefined;
   }, [handleErrorIntersection, hasError]);
 
+  // Must be declared before the early return to satisfy React's Rules of Hooks.
+  const handleOptInLocationSelected = useCallback(() => {
+    dispatch(ac.SetPref("weather.optInAccepted", true));
+  }, [dispatch]);
+
   if (!weatherData?.initialized || !isWeatherEnabled) {
     return null;
   }
@@ -282,10 +287,6 @@ function Weather({ dispatch, size }) {
     );
   }
 
-  const handleOptInLocationSelected = useCallback(() => {
-    dispatch(ac.SetPref("weather.optInAccepted", true));
-  }, [dispatch]);
-
   function handleOptInChooseLocation() {
     batch(() => {
       dispatch(
@@ -383,14 +384,12 @@ function Weather({ dispatch, size }) {
           {/* Only show size options when both system and user prefs are enabled;
               medium/large sizes require the widgets row, which only renders when both are true. */}
           {prefs["widgets.system.enabled"] && prefs["widgets.enabled"] && (
-            <panel-item
-              submenu="weather-widget-size-submenu"
-              data-l10n-id="newtab-widget-menu-change-size"
-            >
+            <panel-item submenu="weather-size-submenu">
+              <span data-l10n-id="newtab-widget-menu-change-size"></span>
               <panel-list
                 ref={sizeSubmenuRef}
                 slot="submenu"
-                id="weather-widget-size-submenu"
+                id="weather-size-submenu"
               >
                 {["small", "medium", "large"].map(s => (
                   <panel-item

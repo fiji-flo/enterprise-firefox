@@ -5,7 +5,6 @@
 package org.mozilla.fenix.home.topsites
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -313,14 +312,12 @@ fun TopSiteItem(
                 if (topSite is TopSite.Pinned || topSite is TopSite.Default) {
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
-                            .background(color = PhotonColors.LightGrey20, shape = CircleShape),
+                            .size(16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Image(
-                            modifier = Modifier.size(12.dp),
-                            painter = painterResource(id = iconsR.drawable.mozac_ic_pin_fill_24),
-                            colorFilter = ColorFilter.tint(PhotonColors.DarkGrey90),
+                            painter = painterResource(id = iconsR.drawable.mozac_ic_pin_8),
+                            colorFilter = ColorFilter.tint(PhotonColors.LightGrey80),
                             contentDescription = null,
                         )
                     }
@@ -343,6 +340,7 @@ fun TopSiteItem(
                         .testTag(TopSitesTestTag.TOP_SITE_TITLE),
                     text = topSite.title ?: topSite.url,
                     color = topSiteColors.titleTextColor,
+                    textAlign = TextAlign.Center,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = topSite.getMaxLinesForTitle(),
                     style = FirefoxTheme.typography.caption.copy(fontWeight = FontWeight.W700),

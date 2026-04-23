@@ -18,6 +18,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
   IPProtectionStates:
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
+  IPPUsageHelper:
+    "moz-src:///browser/components/ipprotection/IPPUsageHelper.sys.mjs",
 });
 
 /**
@@ -29,6 +31,7 @@ class IPProtectionInfobarManagerClass {
   #lastThreshold = null;
   #lastUsage = null;
   #windowListener = null;
+  #prefObserver = null;
 
   get initialized() {
     return this.#initialized;
@@ -67,6 +70,12 @@ class IPProtectionInfobarManagerClass {
     };
     Services.wm.addListener(this.#windowListener);
 
+    this.#prefObserver = this.#handlePrefChange.bind(this);
+    Services.prefs.addObserver(
+      BANDWIDTH_WARNING_DISMISSED_PREF,
+      this.#prefObserver
+    );
+
     this.#initialized = true;
   }
 
@@ -89,7 +98,26 @@ class IPProtectionInfobarManagerClass {
     this.#lastThreshold = null;
     this.#lastUsage = null;
 
+    Services.prefs.removeObserver(
+      BANDWIDTH_WARNING_DISMISSED_PREF,
+      this.#prefObserver
+    );
+    this.#prefObserver = null;
+
     this.#initialized = false;
+  }
+
+  #handlePrefChange(_subject, _topic, data) {
+    if (data !== BANDWIDTH_WARNING_DISMISSED_PREF) {
+      return;
+    }
+    const { infobar } = lazy.IPPUsageHelper.getDismissedThresholds();
+    if (infobar >= 75) {
+      this.#hideInfobar(75);
+    }
+    if (infobar >= 90) {
+      this.#hideInfobar(90);
+    }
   }
 
   handleEvent(event) {
@@ -125,7 +153,7 @@ class IPProtectionInfobarManagerClass {
          want to clear the infobar if it's showing and there is less than
          75% usage */
       if (remainingPercent === 0 || remainingPercent > 0.25) {
-        Services.prefs.setIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0);
+        lazy.IPPUsageHelper.setDismissedThresholds({ infobar: 0, panel: 0 });
         this.#lastThreshold = null;
         this.#lastUsage = null;
         this.#hideInfobar(75);
@@ -195,10 +223,7 @@ class IPProtectionInfobarManagerClass {
       return;
     }
 
-    if (
-      Services.prefs.getIntPref(BANDWIDTH_WARNING_DISMISSED_PREF, 0) >=
-      threshold
-    ) {
+    if (lazy.IPPUsageHelper.getDismissedThresholds().infobar >= threshold) {
       return;
     }
 
@@ -251,15 +276,12 @@ class IPProtectionInfobarManagerClass {
         priority: win.gNotificationBox.PRIORITY_WARNING_HIGH,
         eventCallback: event => {
           if (event === "dismissed") {
-            const current = Services.prefs.getIntPref(
-              BANDWIDTH_WARNING_DISMISSED_PREF,
-              0
-            );
-            if (threshold > current) {
-              Services.prefs.setIntPref(
-                BANDWIDTH_WARNING_DISMISSED_PREF,
-                threshold
-              );
+            const current = lazy.IPPUsageHelper.getDismissedThresholds();
+            if (threshold > current.infobar) {
+              lazy.IPPUsageHelper.setDismissedThresholds({
+                ...current,
+                infobar: threshold,
+              });
             }
           }
         },

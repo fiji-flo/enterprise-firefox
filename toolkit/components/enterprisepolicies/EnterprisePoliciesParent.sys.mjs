@@ -602,6 +602,10 @@ EnterprisePoliciesManager.prototype = {
     );
   },
 
+  hasSitePoliciesForURI(uri) {
+    return lazy.SitePolicyUtils.hasSitePoliciesForURI(SitePolicies, uri);
+  },
+
   getActivePolicies() {
     return this._parsedPolicies;
   },

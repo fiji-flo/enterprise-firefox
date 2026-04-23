@@ -183,7 +183,6 @@ input {
 @import '../../components/DiscoveryStreamComponents/TopSites/TopSites';
 @import '../../components/DiscoveryStreamComponents/DSLinkMenu/DSLinkMenu';
 @import '../../components/DiscoveryStreamComponents/DSCard/DSCard';
-@import '../../components/DiscoveryStreamComponents/DSCard/nova/DSCard';
 @import '../../components/DiscoveryStreamComponents/DSContextFooter/DSContextFooter';
 @import '../../components/DiscoveryStreamComponents/DSImage/DSImage';
 @import '../../components/DiscoveryStreamImpressionStats/ImpressionStats';
@@ -208,5 +207,6 @@ input {
 // Nova Component Styles
 @import 'TopSites';
 @import 'CardSections';
+@import 'DSCard';
 
 // stylelint-enable no-invalid-position-at-import-rule

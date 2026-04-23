@@ -1019,7 +1019,7 @@ features:
           enabled: false
       - channel: nightly
         value:
-          enabled: false
+          enabled: true
   tab-groups-drag-and-drop:
     description: Control the visibility of drag and drop for tab groups.
     variables:
@@ -1179,6 +1179,13 @@ features:
         description: If true, Merino Manifest is enabled.
         type: Boolean
         default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+      - channel: nightly
+        value:
+          enabled: true
 
   mozilla-ads-client:
     description: Feature to enable the Mozilla Ads Client for users on Firefox on Android.
@@ -1265,7 +1272,7 @@ features:
           enabled: true
       - channel: nightly
         value:
-          enabled: true
+          enabled: false
 
   homepage-sports-widget:
     description: Feature to enable Homepage Sports Widget for users on Firefox on Android.

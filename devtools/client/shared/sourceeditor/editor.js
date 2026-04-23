@@ -4197,14 +4197,17 @@ class Editor extends EventEmitter {
 
 // Since Editor is a thin layer over CodeMirror some methods
 // are mapped directly—without any changes.
-if (!Services.prefs.getBoolPref(PREF_CMNEXT_ENABLED)) {
-  CM_MAPPING.forEach(name => {
-    Editor.prototype[name] = function (...args) {
-      const cm = editors.get(this);
-      return cm[name].apply(cm, args);
-    };
-  });
-}
+CM_MAPPING.forEach(name => {
+  Editor.prototype[name] = function (...args) {
+    // For CM6 all these methods (do not exist) and are not useful
+    // so they should do nothing.
+    if (this.config.cm6) {
+      throw new Error("This method is not valid for Codemirror 6");
+    }
+    const cm = editors.get(this);
+    return cm[name].apply(cm, args);
+  };
+});
 
 /**
  * We compute the CSS property names, values, and color names to be used with

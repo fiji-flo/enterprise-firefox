@@ -28,6 +28,7 @@
 #include "NonCustomCSSPropertyId.h"
 #include "PLDHashTable.h"
 #include "PseudoStyleType.h"
+#include "SharedLcpMarkerState.h"
 #include "StorageAccessPermissionRequest.h"
 #include "ThirdPartyUtil.h"
 #include "domstubs.h"
@@ -10940,27 +10941,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv,
 
   nsCOMPtr<Document> oldDocument = adoptedNode->OwnerDoc();
   bool sameDocument = oldDocument == this;
-
-  AutoJSContext cx;
-  JS::Rooted<JSObject*> newScope(cx, nullptr);
-  if (!sameDocument) {
-    newScope = GetWrapper();
-    if (!newScope && GetScopeObject() && GetScopeObject()->HasJSGlobal()) {
-      // Make sure cx is in a semi-sane compartment before we call WrapNative.
-      // It's kind of irrelevant, given that we're passing aAllowWrapping =
-      // false, and documents should always insist on being wrapped in an
-      // canonical scope. But we try to pass something sane anyway.
-      JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
-      JSAutoRealm ar(cx, globalObject);
-      JS::Rooted<JS::Value> v(cx);
-      rv = nsContentUtils::WrapNative(cx, ToSupports(this), this, &v,
-                                      /* aAllowWrapping = */ false);
-      if (rv.Failed()) return nullptr;
-      newScope = &v.toObject();
-    }
-  }
-
-  adoptedNode->Adopt(sameDocument ? nullptr : mNodeInfoManager, newScope, rv);
+  adoptedNode->Adopt(sameDocument ? nullptr : mNodeInfoManager, rv);
   if (rv.Failed()) {
     // Disconnect all nodes from their parents, since some have the old document
     // as their ownerDocument and some have this as their ownerDocument.
@@ -15666,6 +15647,31 @@ static void DispatchFullscreenNewOriginEvent(Document* aDoc) {
   asyncDispatcher->PostDOMEvent();
 }
 
+static void DispatchFullscreenUpdateKeyboardLockEvent(Document* aDoc) {
+  // Dispatch an event to update the fullscreen keyboard lock status
+  // to that of the new fullscreen document and display a warning if the
+  // status has changed.
+  aDoc->Dispatch(NS_NewRunnableFunction(
+      "DispatchFullscreenUpdateKeyboardLockEvent", [doc = RefPtr{aDoc}]() {
+        AutoJSAPI jsapi;
+        if (!jsapi.Init(doc->GetOwnerGlobal())) {
+          return;
+        }
+        JSContext* cx = jsapi.cx();
+        JS::Rooted<JS::Value> detail(cx);
+        if (!ToJSValue(cx, doc->GetFullscreenKeyboardLockStatus(), &detail)) {
+          return;
+        }
+        RefPtr event = NS_NewDOMCustomEvent(doc, nullptr, nullptr);
+        event->InitCustomEvent(cx, u"MozDOMFullscreen:UpdateKeyboardLock"_ns,
+                               /* aCanBubble */ true,
+                               /* aCancelable */ false, detail);
+        event->SetTrusted(true);
+        event->WidgetEventPtr()->mFlags.mOnlyChromeDispatch = true;
+        doc->DispatchEvent(*event);
+      }));
+}
+
 void Document::RestorePreviousFullscreenState(UniquePtr<FullscreenExit> aExit) {
   NS_ASSERTION(!Fullscreen() || !FullscreenRoots::IsEmpty(),
                "Should have at least 1 fullscreen root when fullscreen!");
@@ -15736,9 +15742,7 @@ void Document::RestorePreviousFullscreenState(UniquePtr<FullscreenExit> aExit) {
     DebugOnly<bool> removedFullscreenElement = lastDoc->PopFullscreenElement();
     MOZ_ASSERT(removedFullscreenElement);
     newFullscreenDoc = lastDoc;
-
-    GetWindowGlobalChild()->SendUpdateFullscreenKeyboardLockStatus(
-        newFullscreenDoc->HasFullscreenKeyboardLockEnabled());
+    DispatchFullscreenUpdateKeyboardLockEvent(newFullscreenDoc);
   } else {
     lastDoc->CleanupFullscreenState();
     newFullscreenDoc = lastDoc->GetInProcessParentDocument();
@@ -15808,7 +15812,8 @@ bool Document::PopFullscreenElement(UpdateViewport aUpdateViewport) {
   }
 
   MOZ_ASSERT(removedElement->State().HasState(ElementState::FULLSCREEN));
-  removedElement->RemoveStates(ElementState::FULLSCREEN | ElementState::MODAL);
+  removedElement->RemoveStates(ElementState::FULLSCREEN | ElementState::MODAL |
+                               ElementState::FULLSCREEN_KEYBOARD_LOCK);
   NotifyFullScreenChangedForMediaElement(*removedElement);
   // Reset iframe fullscreen flag.
   if (auto* iframe = HTMLIFrameElement::FromNode(removedElement)) {
@@ -16602,7 +16607,9 @@ bool Document::FullscreenElementReadyCheck(FullscreenRequest& aRequest) {
   // should change and no event should be dispatched, but we still need
   // to resolve the returned promise.
   Element* fullscreenElement = GetUnretargetedFullscreenElement();
-  if (NS_WARN_IF(elem == fullscreenElement)) {
+  if (NS_WARN_IF(elem == fullscreenElement &&
+                 aRequest.mFullscreenKeyboardLock ==
+                     GetFullscreenKeyboardLockStatus())) {
     // But this introduces behavior that we now need to account for;
     // because we can have arbitrary depth of OOP-frames, we may hit this check
     // for a process that already is fullscreen, e.g. the parent process.
@@ -16871,6 +16878,18 @@ bool Document::ApplyFullscreen(UniquePtr<FullscreenRequest> aRequest) {
   }
 
   Element* elem = aRequest->Element();
+  if (GetFullscreenElement() == elem) {
+    // We are applying fullscreen to the already fullscreen element - this must
+    // be because fullscreen was requested again with different options.
+    if (aRequest->mFullscreenKeyboardLock !=
+        GetFullscreenKeyboardLockStatus()) {
+      SetFullscreenKeyboardLockStatus(aRequest->mFullscreenKeyboardLock);
+      DispatchFullscreenUpdateKeyboardLockEvent(this);
+      aRequest->MayResolvePromise();
+      return true;
+    }
+    return false;
+  }
 
   // Hide auto popovers until the topmost auto ancestor (or document if none).
   RefPtr<nsINode> hideUntil = elem->GetTopmostPopoverAncestor(
@@ -16972,6 +16991,9 @@ bool Document::ApplyFullscreen(UniquePtr<FullscreenRequest> aRequest) {
   FullscreenRoots::Add(this);
 
   SetFullscreenKeyboardLockStatus(aRequest->mFullscreenKeyboardLock);
+  if (previousFullscreenDoc) {
+    DispatchFullscreenUpdateKeyboardLockEvent(this);
+  }
 
   // If it is the first entry of the fullscreen, trigger an event so
   // that the UI can response to this change, e.g. hide chrome, or
@@ -17682,7 +17704,8 @@ void Document::ReportLCP() {
   if (profiler_thread_is_being_profiled_for_markers()) {
     MarkerInnerWindowId innerWindowID =
         MarkerInnerWindowIdFromDocShell(GetDocShell());
-    GetNavigationTiming()->MaybeAddLCPProfilerMarker(innerWindowID);
+    GetNavigationTiming()->GetSharedLcpMarkerState()->MaybeAddLCPProfilerMarker(
+        innerWindowID);
   }
 }
 
@@ -21114,11 +21137,26 @@ void Document::GetAllInProcessDocuments(
 }
 
 void Document::SetFullscreenKeyboardLockStatus(FullscreenKeyboardLock aStatus) {
-  mFullscreenKeyboardLockStatus = aStatus;
+  Element* elem = GetFullscreenElement();
+  MOZ_ASSERT(elem || aStatus == FullscreenKeyboardLock::None);
+
+  if (elem) {
+    elem->SetStates(ElementState::FULLSCREEN_KEYBOARD_LOCK,
+                    aStatus == FullscreenKeyboardLock::Browser, false);
+  }
+}
+
+FullscreenKeyboardLock Document::GetFullscreenKeyboardLockStatus() const {
+  Element* elem = GetFullscreenElement();
+  return (elem &&
+          elem->State().HasState(ElementState::FULLSCREEN_KEYBOARD_LOCK))
+             ? FullscreenKeyboardLock::Browser
+             : FullscreenKeyboardLock::None;
 }
 
 bool Document::HasFullscreenKeyboardLockEnabled() {
-  return mFullscreenKeyboardLockStatus == FullscreenKeyboardLock::Browser;
+  Element* elem = GetFullscreenElement();
+  return elem && elem->State().HasState(ElementState::FULLSCREEN_KEYBOARD_LOCK);
 }
 
 }  // namespace mozilla::dom

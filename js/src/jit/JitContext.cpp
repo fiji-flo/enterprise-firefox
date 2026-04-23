@@ -131,8 +131,10 @@ bool jit::InitializeJit() {
   if (!MacroAssembler::SupportsFloatingPoint()) {
     JitOptions.disableJitBackend = true;
   }
-  JitOptions.supportsUnalignedAccesses =
-      MacroAssembler::SupportsUnalignedAccesses();
+
+  bool supportsUnaligned = MacroAssembler::SupportsUnalignedAccesses();
+  JitOptions.supportsUnalignedAccesses = supportsUnaligned;
+  JitOptions.enable_regexp_unaligned_accesses = supportsUnaligned;
 
   if (HasJitBackend()) {
     if (!InitProcessExecutableMemory()) {

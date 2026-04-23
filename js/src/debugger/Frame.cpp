@@ -584,6 +584,11 @@ bool DebuggerFrame::getEnvironment(JSContext* cx, Handle<DebuggerFrame*> frame,
   if (frame->isOnStack(cx)) {
     FrameIter iter = frame->getFrameIter(cx);
 
+    if (iter.hasScript() && iter.script()->selfHosted()) {
+      result.set(nullptr);
+      return true;
+    }
+
     {
       AutoRealm ar(cx, iter.abstractFramePtr().environmentChain());
       UpdateFrameIterPc(iter);
@@ -595,6 +600,11 @@ bool DebuggerFrame::getEnvironment(JSContext* cx, Handle<DebuggerFrame*> frame,
     AbstractGeneratorObject& genObj =
         frame->generatorInfo()->unwrappedGenerator();
     JSScript* script = frame->generatorInfo()->generatorScript();
+
+    if (script->selfHosted()) {
+      result.set(nullptr);
+      return true;
+    }
 
     {
       AutoRealm ar(cx, &genObj.environmentChain());
@@ -1618,6 +1628,11 @@ bool DebuggerFrame::CallData::environmentGetter() {
   Rooted<DebuggerEnvironment*> result(cx);
   if (!DebuggerFrame::getEnvironment(cx, frame, &result)) {
     return false;
+  }
+
+  if (!result) {
+    args.rval().setNull();
+    return true;
   }
 
   args.rval().setObject(*result);

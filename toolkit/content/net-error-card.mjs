@@ -25,7 +25,7 @@ import {
 import { initializeRegistry } from "chrome://global/content/errors/error-registry.mjs";
 import {
   getResolvedErrorConfig,
-  isFeltPrivacySupported,
+  resolveErrorID,
 } from "chrome://global/content/errors/error-lookup.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
@@ -74,32 +74,6 @@ export class NetErrorCard extends MozLitElement {
     badStsCertExplanation: "#badStsCertExplanation",
   };
 
-  static getCustomErrorID(defaultCode) {
-    // gNoConnectivity is only true when there's no network connectivity,
-    // regardless of whether "Work Offline" mode is enabled. NS_ERROR_OFFLINE
-    // is the error ID for real connectivity loss, while netOffline is the
-    // error code for when "Work Offline" mode is enabled.
-    if (gNoConnectivity) {
-      return "NS_ERROR_OFFLINE";
-    }
-    if (defaultCode === "proxyConnectFailure" && VPN_ACTIVE) {
-      return "vpnFailure";
-    }
-    return defaultCode;
-  }
-
-  static selectErrorId(errorCodeString) {
-    const specificId = NetErrorCard.getCustomErrorID(errorCodeString);
-    if (errorCodeString && isFeltPrivacySupported(specificId)) {
-      return specificId;
-    }
-    if (!errorCodeString || gErrorCode === "nssFailure2") {
-      const fallbackId = NetErrorCard.getCustomErrorID(gErrorCode);
-      return isFeltPrivacySupported(fallbackId) ? fallbackId : null;
-    }
-    return null;
-  }
-
   static isSupported() {
     if (!FELT_PRIVACY_REFRESH) {
       return false;
@@ -114,7 +88,14 @@ export class NetErrorCard extends MozLitElement {
         : document.getNetErrorInfo();
     } catch {}
 
-    return !!NetErrorCard.selectErrorId(errorInfo.errorCodeString);
+    return (
+      resolveErrorID({
+        errorCodeString: errorInfo.errorCodeString,
+        gErrorCode,
+        noConnectivity: gNoConnectivity,
+        vpnActive: VPN_ACTIVE,
+      }) !== null
+    );
   }
 
   constructor() {
@@ -183,6 +164,14 @@ export class NetErrorCard extends MozLitElement {
   init() {
     this.hostname = HOST_NAME;
     this.errorInfo = this.getErrorInfo();
+    // isSupported() gates component creation, so resolvedErrorId should never
+    // be null here. getErrorConfig() guards against it defensively regardless.
+    this.resolvedErrorId = resolveErrorID({
+      errorCodeString: this.errorInfo.errorCodeString,
+      gErrorCode,
+      noConnectivity: gNoConnectivity,
+      vpnActive: VPN_ACTIVE,
+    });
     this.errorConfig = this.getErrorConfig();
     this.hideExceptionButton = this.shouldHideExceptionButton();
 
@@ -258,13 +247,13 @@ export class NetErrorCard extends MozLitElement {
 
   // Check for alternate host for dnsNotFound errors.
   checkForDomainSuggestions() {
-    if (gErrorCode == "dnsNotFound" && !this.isTRROnlyFailure()) {
+    if (this.resolvedErrorId === "dnsNotFound" && !this.isTRROnlyFailure()) {
       RPMCheckAlternateHostAvailable();
     }
   }
 
   isTRROnlyFailure() {
-    return gErrorCode == "dnsNotFound" && RPMIsTRROnlyFailure();
+    return this.resolvedErrorId === "dnsNotFound" && RPMIsTRROnlyFailure();
   }
 
   checkAndRecordTRRTelemetry() {
@@ -358,17 +347,21 @@ export class NetErrorCard extends MozLitElement {
         ? document.getFailedCertSecurityInfo()
         : document.getNetErrorInfo();
     } catch {
-      return { errorCodeString: gErrorCode };
+      return { errorCodeString: "" };
     }
   }
 
   getErrorConfig() {
-    const id = NetErrorCard.selectErrorId(this.errorInfo.errorCodeString);
+    const id = this.resolvedErrorId;
+    if (!id) {
+      return {};
+    }
     const errorConfig = getResolvedErrorConfig(id, {
       hostname: this.hostname,
       errorInfo: this.errorInfo,
       cssClass: getCSSClass(),
       domainMismatchNames: this.domainMismatchNames,
+      mitmName: this.errorInfo?.issuerCommonName ?? "",
       offline: gOffline,
       filePath: getFilePath(),
     });

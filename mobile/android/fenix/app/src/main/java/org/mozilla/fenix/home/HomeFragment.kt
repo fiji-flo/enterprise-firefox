@@ -103,6 +103,7 @@ import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.metrics.installSourcePackage
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
+import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentHomeBinding
@@ -138,6 +139,7 @@ import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlControllerCallback
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
+import org.mozilla.fenix.home.sports.DefaultSportsController
 import org.mozilla.fenix.home.store.HomeToolbarStoreBuilder
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.termsofuse.DefaultPrivacyNoticeBannerController
@@ -699,6 +701,9 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                 longFoxFeature = components.core.longFoxFeature,
                 container = activity.getRootView() as? ViewGroup,
             ),
+            sportsController = DefaultSportsController(
+                appStore = components.appStore,
+            ),
         )
 
         nullableToolbarView = buildToolbar(activity)
@@ -739,7 +744,6 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
 
         homeNavigationBar = HomeNavigationBar(
             context = activity,
-            container = binding.navigationBarContainer,
             toolbarStore = toolbarStore,
             settings = activity.settings(),
             hideWhenKeyboardShown = true,
@@ -1020,6 +1024,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
         )
     }
 
+    @Suppress("LongMethod")
     private fun initComposeHomepage() {
         binding.homepageView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -1049,7 +1054,10 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                     LaunchedEffect(isInPortrait, keyboardState) {
                         updateLayoutParams<ViewGroup.MarginLayoutParams> {
                             topMargin = getTopToolbarHeight()
-                            bottomMargin = getBottomToolbarHeight(keyboardState == KeyboardState.Closed)
+                            bottomMargin = getBottomToolbarHeight(
+                                includeNavBarIfEnabled = keyboardState == KeyboardState.Closed &&
+                                    settings.toolbarPosition == ToolbarPosition.BOTTOM,
+                            )
                         }
                     }
 
@@ -1078,6 +1086,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                                 onTopSitesItemBound = {
                                     StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
                                 },
+                                navigationBarContent = homeNavigationBar?.asComposable(),
                             )
                         } else {
                             Homepage(
@@ -1091,6 +1100,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
                                 onTopSitesItemBound = {
                                     StartupTimeline.onTopSitesItemBound(activity = (requireActivity() as HomeActivity))
                                 },
+                                navigationBarContent = homeNavigationBar?.asComposable(),
                             )
                         }
                     }
@@ -1459,6 +1469,7 @@ class HomeFragment : Fragment(), SystemInsetsPaddedFragment {
             navController = findNavController(),
             tabId = args.sessionToStartSearchFor,
             searchAccessPoint = args.searchAccessPoint,
+            isEdgeToEdgeBackgroundEnabled = isEdgeToEdgeBackgroundEnabled(),
         ).also {
             awesomeBarComposable = it
         }

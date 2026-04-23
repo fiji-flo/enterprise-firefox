@@ -19,6 +19,8 @@
   <string name="content_description_menu">Додатково</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">Приватний перегляд</string>
+  <!-- Content description (not visible, for screen readers etc.): "Normal Browsing" menu button. -->
+  <string name="content_description_normal_browsing">Звичайний перегляд</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Введіть запит чи адресу</string>
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -31,10 +33,6 @@
   <string name="tab_search_hint">Шукати у вкладках</string>
   <!-- Placeholder text shown in the search bar when using application search engines -->
   <string name="application_search_hint">Введіть пошукові терміни</string>
-  <!-- No Open Tabs Message Description -->
-  <string name="no_open_tabs_description" tools:ignore="UnusedResources" moz:removedIn="149">Тут з’являтимуться ваші відкриті вкладки.</string>
-  <!-- No Private Tabs Message Description -->
-  <string name="no_private_tabs_description" tools:ignore="UnusedResources" moz:removedIn="149">Тут зʼявлятимуться ваші приватні вкладки.</string>
   <!-- The header text displayed on the private tabs page when no private tabs are open -->
   <string name="tab_manager_empty_private_tabs_page_header">Приватний перегляд</string>
   <!-- The supplementary text displayed on the private tabs page when no private tabs are open. %1$s is the name of the app (for example "Firefox") -->
@@ -53,8 +51,6 @@
   <string name="tab_tray_select_collection">Вибрати збірку</string>
   <!-- Content description for close button while in multiselect mode in tab tray -->
   <string name="tab_tray_close_multiselect_content_description">Вихід з режиму вибору</string>
-  <!-- Content description for save to collection button while in multiselect mode in tab tray -->
-  <string name="tab_tray_collection_button_multiselect_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Зберегти вибрані вкладки до збірки</string>
   <!-- The header text displayed on the synced tabs page when the user is not logged into an account. -->
   <string name="tab_manager_empty_synced_tabs_page_header">Отримайте вкладки з будь-якого пристрою</string>
   <!-- The supplementary text displayed on the synced tabs page when the user is not logged into an account. -->
@@ -200,8 +196,6 @@
   <string name="browser_menu_stop">Зупинити</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">Розширення</string>
-  <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_header" tools:ignore="UnusedResources" moz:removedIn="149">У вас є встановлені, але не ввімкнені розширення</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Керувати розширеннями</string>
   <!-- Browser menu group that contains additional settings in collapsed state -->
@@ -221,18 +215,12 @@
   <string name="browser_menu_try_a_recommended_extension_description">Спробуйте рекомендоване розширення</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Ваш обліковий запис</string>
-  <!-- Browser menu button that sends a user to help articles -->
-  <string name="browser_menu_help" tools:ignore="UnusedResources" moz:removedIn="149">Довідка</string>
-  <!-- Browser menu button that sends a to a the what's new article -->
-  <string name="browser_menu_whats_new" tools:ignore="UnusedResources" moz:removedIn="149">Що нового</string>
   <!-- Browser menu button that opens the settings menu -->
   <string name="browser_menu_settings">Налаштування</string>
   <!-- Browser menu button that opens a user's library -->
   <string name="browser_menu_library">Бібліотека</string>
   <!-- Browser menu toggle that requests a desktop site -->
   <string name="browser_menu_desktop_site">Версія для комп’ютера</string>
-  <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_regular_tab" tools:ignore="UnusedResources" moz:removedIn="149">Відкрити у звичайній вкладці</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">Додати на головний екран</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
@@ -260,11 +248,6 @@
     Browser menu text shown in custom tabs to indicate this is a Fenix tab
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_powered_by" tools:ignore="UnusedResources" moz:removedIn="149">ТЕХНОЛОГІЇ %1$s</string>
-  <!--
-    Browser menu text shown in custom tabs to indicate this is a Fenix tab
-    %1$s is the name of the app (for example "Firefox").
-  -->
   <string name="browser_menu_powered_by2">Технологія %1$s</string>
   <!-- Browser menu button to put the current page in reader mode -->
   <string name="browser_menu_read">Режим читання</string>
@@ -273,15 +256,7 @@
   <!-- Browser menu button to open the current page in an external app -->
   <string name="browser_menu_open_app_link">Відкрити в програмі</string>
   <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
-  <string name="browser_menu_customize_reader_view" tools:ignore="UnusedResources" moz:removedIn="149">Налаштувати режим читання</string>
-  <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
   <string name="browser_menu_customize_reader_view_2">Налаштувати режим читання</string>
-  <!-- Browser menu label for adding a bookmark -->
-  <string name="browser_menu_add" tools:ignore="UnusedResources" moz:removedIn="149">Додати</string>
-  <!-- Browser menu label for editing a bookmark -->
-  <string name="browser_menu_edit" tools:ignore="UnusedResources" moz:removedIn="149">Редагувати</string>
-  <!-- Button shown on the home page that opens the Customize home settings -->
-  <string name="browser_menu_customize_home_1" tools:ignore="UnusedResources" moz:removedIn="149">Налаштувати домівку</string>
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Увійти</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
@@ -300,12 +275,6 @@
   <string name="browser_close_main_menu_handlebar_content_description">Закрити меню</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu navigation header. -->
   <string name="browser_main_menu_content_description_navigation_header">Навігація</string>
-  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
-  <string name="browser_extensions_menu_handlebar_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Закрити сторінку меню розширень</string>
-  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
-  <string name="browser_save_menu_handlebar_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Закрити сторінку меню збереження</string>
-  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
-  <string name="browser_tools_menu_handlebar_content_description" tools:ignore="UnusedResources" moz:removedIn="149">Закрити сторінку меню інструментів</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Закрити сторінку меню користувацьких вкладок</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -314,10 +283,14 @@
   <string name="browser_menu_edit_bookmark">Редагувати закладку</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf_2">Зберегти як PDF</string>
+  <!-- Browser menu label for moving the current private tab to a non-private tab -->
+  <string name="browser_menu_move_to_non_private_tab">Перемістити на звичайну вкладку</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page_2">Перекласти сторінку</string>
   <!-- Browser menu label for navigating to the summarization feature, which provides site summarization for the current visited page -->
   <string name="browser_menu_summarize_page">Підсумувати вміст сторінки</string>
+  <!-- Browser menu badge text for summarization feature -->
+  <string name="browser_menu_summarize_page_badge">Нове</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter" tools:ignore="UnusedResources" moz:removedIn="149">Повідомити про пошкоджений сайт…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -370,6 +343,8 @@
     %2$s is the name of the language which the page was translated to. (For example: French)
   -->
   <string name="browser_toolbar_translated_successfully">Сторінку перекладено: %1$s – %2$s.</string>
+  <!-- CFR description for the browser toolbar describing the "Shake to summarize feature" -->
+  <string name="browser_toolbar_summarize_cfr_description">Потрусіть пристрій, щоб підсумувати вміст сторінки за лічені секунди. ⚡️</string>
   <!--
     Translation Toolbar
 
@@ -382,6 +357,58 @@
   <string name="translation_toolbar_expand_action">Відкрити аркуш перекладу</string>
   <!-- Content description for the translate toolbar action that closes the translations toolbar. -->
   <string name="translation_toolbar_close_action">Відхилити повідомлення</string>
+  <!--
+    Page summaries
+
+    Toolbar title for the Page summaries settings fragment
+  -->
+  <string name="preferences_page_summaries">Підсумки вмісту сторінок</string>
+  <!--
+    AI Controls settings
+
+    Label for the secret settings preference to enable AI controls
+  -->
+  <string name="preferences_debug_settings_ai_controls">Увімкнути керування ШІ</string>
+  <!-- Title for the AI controls settings screen -->
+  <string name="preferences_ai_controls">Керування ШІ</string>
+  <!-- Headline text for the AI controls banner. %s is the name of the app (for example "Firefox"). -->
+  <string name="ai_controls_banner_headline">З %s у вас завжди є вибір</string>
+  <!-- Supporting text for the AI controls banner -->
+  <string name="ai_controls_banner_supporting_text">Це передбачає можливість використання функцій, вдосконалених ШІ.</string>
+  <!-- Link text for learning more about AI controls -->
+  <string name="ai_controls_learn_more">Докладніше</string>
+  <!-- Title for the block AI enhancements toggle -->
+  <string name="ai_controls_block_ai_title">Блокувати вдосконалення ШІ</string>
+  <!-- Description for the block AI enhancements toggle. %s is the name of the app (for example "Firefox"). -->
+  <string name="ai_controls_block_ai_description">Блокування означає, що ви не бачитимете нових або поточних покращень ШІ у %s, а також спливних повідомлень про них.</string>
+  <!-- Link text to see what AI enhancements are and aren’t included -->
+  <string name="ai_controls_see_whats_included">Перегляньте відомості про функції</string>
+  <!-- Banner text shown when AI enhancements are blocked -->
+  <string name="ai_controls_blocked_info_banner">Поточні та нові вдосконалення ШІ типово заблоковано. Розблокуйте певні функції нижче.</string>
+  <!-- Section header for the AI-powered features list -->
+  <string name="ai_controls_ai_powered_features">Функції на основі ШІ</string>
+  <!-- Title for the translations AI feature toggle -->
+  <string name="ai_controls_translations_title">Переклади</string>
+  <!-- Description for the translations AI feature toggle -->
+  <string name="ai_controls_translations_description">Усі переклади залишаються конфіденційними на вашому пристрої.</string>
+  <!-- Link text to navigate to more translations settings -->
+  <string name="ai_controls_more_translations_settings">Інші налаштування перекладів</string>
+  <!-- Link text to navigate to more page summary settings -->
+  <string name="ai_controls_more_page_summary_settings">Інші налаштування підсумку сторінок</string>
+  <!-- Title for the voice search AI feature toggle -->
+  <string name="ai_controls_voice_search_title">Голосовий пошук</string>
+  <!-- Description for the voice search AI feature toggle -->
+  <string name="ai_controls_voice_search_description">Аудіо конвертується в текст за допомогою Служб мовлення Google.</string>
+  <!-- Title for the block AI enhancements confirmation dialog -->
+  <string name="ai_controls_block_dialog_title">Блокувати вдосконалення ШІ?</string>
+  <!-- Body text for the block AI enhancements confirmation dialog. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="ai_controls_block_dialog_body">Ви не побачите поточних або нових вдосконалень ШІ у %1$s, а також спливних повідомлень про них. Згодом ви зможете розблокувати будь-яку функцію та використовувати її надалі.\n\nБлокування також впливає на розширення, які використовують ШІ від %1$s.</string>
+  <!-- Label shown above the list of features that will be blocked in the block AI dialog -->
+  <string name="ai_controls_block_dialog_what_will_be_blocked">Що буде заблоковано:</string>
+  <!-- Cancel button text in the block AI enhancements confirmation dialog -->
+  <string name="ai_controls_block_dialog_cancel">Скасувати</string>
+  <!-- Block button text in the block AI enhancements confirmation dialog -->
+  <string name="ai_controls_block_dialog_block">Блокувати</string>
   <!--
     Locale Settings Fragment
 
@@ -612,8 +639,12 @@
 
   <!-- "Continue" onboarding button. -->
   <string name="nova_onboarding_continue_button">Продовжити</string>
+  <!-- "Continue browsing" onboarding button. -->
+  <string name="nova_onboarding_continue_browsing_button" tools:ignore="UnusedResources">Продовжити перегляд</string>
   <!-- "Not now" onboarding button. -->
   <string name="nova_onboarding_negative_button">Не зараз</string>
+  <!-- "Skip" onboarding button. -->
+  <string name="nova_onboarding_skip_button" tools:ignore="UnusedResources">Пропустити</string>
   <!-- Terms of use (ToU) onboarding title. -->
   <string name="nova_onboarding_tou_title" tools:ignore="UnusedResources">Приготуйтеся до свободи</string>
   <!-- Terms of use (ToU) onboarding subtitle. -->
@@ -1544,18 +1575,10 @@
   <string name="add_tab">Додати вкладку</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_private_tab">Додати приватну вкладку</string>
-  <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
-  <string name="tab_drawer_fab_content" tools:ignore="UnusedResources" moz:removedIn="149">Приватно</string>
-  <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
-  <string name="tab_drawer_fab_sync" tools:ignore="UnusedResources" moz:removedIn="149">Синхронізація</string>
   <!-- Text for the tab search bar placeholder -->
   <string name="tab_manager_search_bar_placeholder">Шукати у вкладках</string>
-  <!-- Text shown in the menu for sharing all tabs -->
-  <string name="tab_tray_menu_item_share" tools:ignore="UnusedResources" moz:removedIn="149">Поділитися всіма вкладками</string>
   <!-- Text shown in the menu to view recently closed tabs -->
   <string name="tab_tray_menu_recently_closed">Недавно закриті вкладки</string>
-  <!-- Text shown in the tabs tray inactive tabs section -->
-  <string name="tab_tray_inactive_recently_closed" tools:ignore="UnusedResources" moz:removedIn="149">Недавно закриті</string>
   <!-- Text shown in the menu to view account settings -->
   <string name="tab_tray_menu_account_settings">Обліковий запис</string>
   <!-- Text shown in the menu to view tab settings -->
@@ -1570,12 +1593,8 @@
   <string name="tab_manager_close_all_tabs_dialog_confirm">Закрити вкладки</string>
   <!-- Text shown on the cancel button in the Close all tabs confirmation dialog -->
   <string name="tab_manager_close_all_tabs_dialog_cancel">Скасувати</string>
-  <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
-  <string name="tab_tray_multiselect_menu_item_bookmark" tools:ignore="UnusedResources" moz:removedIn="149">Додати до закладок</string>
   <!-- Content description (not visible, for screen readers etc.): Bookmarks selected tabs. -->
   <string name="tab_manager_multiselect_menu_item_bookmark_content_description">Додати закладки для вибраних вкладок</string>
-  <!-- Text shown in the multiselect menu for closing selected tabs. -->
-  <string name="tab_tray_multiselect_menu_item_close" tools:ignore="UnusedResources" moz:removedIn="149">Закрити</string>
   <!-- Content description (not visible, for screen readers etc.): Closes selected tabs. -->
   <string name="tab_manager_multiselect_menu_item_close_content_description">Закрити вибрані вкладки</string>
   <!-- Text shown in the multiselect menu for sharing selected tabs. -->
@@ -1737,6 +1756,13 @@
   <string name="download_rename_dialog_label">Назва</string>
   <string name="download_rename_dialog_confirm_button">Зберегти</string>
   <string name="download_rename_dialog_cancel_button">Скасувати</string>
+  <!--
+    Error message when renaming with a name that already exists.
+    %s is the proposed file name.
+  -->
+  <string name="download_rename_error_exists_error">Файл з назвою “%s” вже існує в цьому розташуванні</string>
+  <!-- Error message when renaming with an invalid file name. -->
+  <string name="download_rename_error_invalid_name_error">Назви файлів не можуть містити символ “/”</string>
   <!-- Title for the alert dialog when the file cannot be renamed. -->
   <string name="download_rename_error_cannot_rename_title">Не вдається перейменувати файл</string>
   <!-- Description message for the alert dialog when the file cannot be renamed. -->
@@ -2225,8 +2251,6 @@
   <string name="toast_copy_link_to_clipboard">Скопійовано у буфер обміну</string>
   <!-- An option from the share dialog to sign into sync -->
   <string name="sync_sign_in">Увійти до Синхронізації</string>
-  <!-- An option from the three dot menu to sign in -->
-  <string name="sync_menu_sign_in" tools:ignore="UnusedResources" moz:removedIn="149">Увійти</string>
   <!-- An option from the share dialog to send link to all other sync devices -->
   <string name="sync_send_to_all">Надіслати на всі пристрої</string>
   <!-- An option from the share dialog to reconnect to sync -->
@@ -2383,8 +2407,6 @@
   <string name="preferences_delete_browsing_data_on_quit">Видаляти дані перегляду при виході</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
   <string name="preference_summary_delete_browsing_data_on_quit_2">Автоматично видаляє дані перегляду при виборі \"Вихід\" в головному меню</string>
-  <!-- Action item in menu for the Delete browsing data on quit feature -->
-  <string name="delete_browsing_data_on_quit_action" tools:ignore="UnusedResources" moz:removedIn="149">Вихід</string>
   <!-- Title text of a delete browsing data dialog. -->
   <string name="delete_history_prompt_title">Проміжок часу для видалення</string>
   <!-- Body text of a delete browsing data dialog. -->
@@ -2475,10 +2497,6 @@
   <string name="preference_enhanced_tracking_protection_strict">Надійний</string>
   <!-- Preference description for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict_description_4">Кращий захист від стеження і продуктивність, але деякі сайти можуть працювати неправильно.</string>
-  <!-- Preference description for the checkbox setting for "baseline" exceptions (a set of content blocking exceptions applied to fix major website breakage). %1$s is the name of the application (e.g. Fenix). -->
-  <string name="preference_enhanced_tracking_protection_allow_list_baseline" tools:ignore="UnusedResources" moz:removedIn="144">Дозволити %1$s автоматично застосовувати винятки для запобігання збоям у роботі вебсайтів.</string>
-  <!-- Preference description for the checkbox setting for "convenience" exceptions (a set of content blocking exceptions applied to fix convenience site features). -->
-  <string name="preference_enhanced_tracking_protection_allow_list_convenience" tools:ignore="UnusedResources" moz:removedIn="144">Також автоматично застосовувати винятки, необхідні для виправлення лише незначних проблем та забезпечення доступності зручних функцій.</string>
   <!-- Preference label for the enhanced tracking protection option to fix major site issues caused by tracker blocking -->
   <string name="preference_enhanced_tracking_protection_allow_list_baseline_2">Усувати значні проблеми з сайтами (рекомендовано)</string>
   <!-- Preference label for the enhanced tracking protection option to fix minor site issues caused by tracker blocking -->
@@ -2861,6 +2879,10 @@
   <string name="preferences_email_masks_suggest_learn_more">Докладніше</string>
   <!-- Title for the Manage Email Masks links to Firefox Relay dashboard -->
   <string name="preferences_email_masks_manage_title">Керувати масками е-пошти</string>
+  <!-- The message displayed when a user has used all of their free-tier email masks, so now the application will choose an existing one at random. -->
+  <string name="email_masks_max_free_tier_reached">Ви використали свої 5 безплатних масок електронної пошти, тому ми вибрали одну з них для повторного використання.</string>
+  <!-- The message displayed when there was an error with the email mask or Firefox Account services. -->
+  <string name="email_masks_error_retrieving_masks">Маски електронної пошти зараз недоступні. Повторіть спробу за кілька хвилин.</string>
   <!--
     Autofill
 
@@ -3096,26 +3118,12 @@
     the certificate authority that verified the ticket
   -->
   <string name="certificate_info_verified_by">Засвідчено: %1$s</string>
-  <!-- Login overflow menu delete button -->
-  <string name="login_menu_delete_button" tools:ignore="UnusedResources" moz:removedIn="149">Видалити</string>
-  <!-- Login overflow menu edit button -->
-  <string name="login_menu_edit_button" tools:ignore="UnusedResources" moz:removedIn="149">Змінити</string>
   <!-- Message in delete confirmation dialog for password -->
   <string name="login_deletion_confirmation_2">Ви дійсно хочете видалити цей пароль?</string>
   <!-- Positive action of a dialog asking to delete -->
   <string name="dialog_delete_positive">Видалити</string>
   <!-- Negative action of a dialog asking to delete login -->
   <string name="dialog_delete_negative">Скасувати</string>
-  <!-- The saved password options menu description. -->
-  <string name="login_options_menu_2" tools:ignore="UnusedResources" moz:removedIn="149">Параметри пароля</string>
-  <!-- The editable text field for a website address. -->
-  <string name="saved_login_hostname_description_3" tools:ignore="UnusedResources" moz:removedIn="149">Текстове поле для редагування адреси вебсайту.</string>
-  <!-- The editable text field for a username. -->
-  <string name="saved_login_username_description_3" tools:ignore="UnusedResources" moz:removedIn="149">Текстове поле для редагування імені користувача.</string>
-  <!-- The editable text field for a login's password. -->
-  <string name="saved_login_password_description_2" tools:ignore="UnusedResources" moz:removedIn="149">Текстове поле для редагування пароля.</string>
-  <!-- The button description to save changes to an edited password. -->
-  <string name="save_changes_to_login_2" tools:ignore="UnusedResources" moz:removedIn="149">Зберегти зміни.</string>
   <!-- The page title for editing a saved password. -->
   <string name="edit_2">Редагувати пароль</string>
   <!-- The page title for adding new password. -->
@@ -3284,16 +3292,6 @@
   <string name="experiments_snackbar">Увімкнути телеметрію для надсилання даних.</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">Перейти до налаштувань</string>
-  <!--
-    Review quality check feature
-
-    Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
-  -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Кожному відгуку про товар ми присвоюємо <b>буквену оцінку</b> від A до F.]]></string>
-  <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>Скоригований рейтинг</b> на основі лише відгуків, які ми вважаємо надійними.]]></string>
-  <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>Обрані</b> беруться з відгуків %s за останні 80 днів, які ми вважаємо надійними.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 

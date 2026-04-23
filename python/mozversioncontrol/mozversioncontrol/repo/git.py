@@ -64,6 +64,10 @@ class GitRepository(Repository):
 
     @property
     def head_ref(self):
+        return self.branch or "HEAD"
+
+    @property
+    def head_rev(self):
         return self._run("rev-parse", "HEAD").strip()
 
     def is_cinnabar_repo(self) -> bool:
@@ -146,7 +150,7 @@ class GitRepository(Repository):
         ).splitlines()
         if refs:
             return refs[-1][1:]  # boundary starts with a prefix `-`
-        return self.head_ref
+        return self.head_rev
 
     def base_ref_as_hg(self):
         base_ref = self.base_ref
@@ -361,7 +365,8 @@ class GitRepository(Repository):
                 args.append(f"{ref}:refs/heads/{dest_branch}")
             else:
                 args.append(ref)
-        self._run(*args)
+        (cmd, _, env) = self._process_run_args(*args)
+        subprocess.check_call(cmd, cwd=self.path, env=env)
 
     def push_to_try(
         self,
@@ -397,6 +402,16 @@ class GitRepository(Repository):
                 )
             else:
                 subprocess.check_call(cmd, cwd=self.path)
+
+    def add_note(
+        self,
+        note: str,
+        content: str,
+        commit: Optional[str] = None,
+    ):
+        if not note.startswith("refs/notes/"):
+            note = f"refs/notes/{note}"
+        self._run("notes", "--ref", note, "add", "-f", "-m", content, commit or "HEAD")
 
     def set_config(self, name, value):
         self._run("config", name, value)
@@ -462,7 +477,7 @@ class GitRepository(Repository):
         This function returns a tuple of the ref of the new head and a function
         that can be called to remove the head from the local repository.
         """
-        current_head = self.head_ref
+        current_head = self.head_rev
 
         def data(content):
             return f"data {len(content)}\n{content}"

@@ -566,12 +566,7 @@ Maybe<nsRect> AnchorPositioningUtils::GetAnchorPosRect(
     bool aCBRectIsvalid) {
   auto rect = [&]() -> Maybe<nsRect> {
     if (aCBRectIsvalid) {
-      const nsRect result =
-          nsLayoutUtils::GetCombinedFragmentRects(aAnchor).mRect;
-      const auto offset =
-          aAnchor->GetOffsetToIgnoringScrolling(aAbsoluteContainingBlock);
-      // Easy, just use the existing function.
-      return Some(result + offset);
+      return Some(ReassembleAnchorRect(aAnchor, aAbsoluteContainingBlock));
     }
 
     // Ok, containing block doesn't have its rect fully resolved. Figure out
@@ -904,15 +899,18 @@ Maybe<ScopedNameRef> AnchorPositioningUtils::GetUsedAnchorName(
     return Some(aAnchorName);
   }
 
-  const auto& defaultAnchor = aPositioned->StylePosition()->mPositionAnchor;
-  if (defaultAnchor.value.IsNone()) {
+  const auto* stylePosition = aPositioned->StylePosition();
+  if (!stylePosition->CanHaveDefaultAnchor()) {
     return Nothing{};
   }
 
+  const auto& defaultAnchor = stylePosition->mPositionAnchor;
   if (defaultAnchor.value.IsIdent()) {
     return Some(ScopedNameRef(defaultAnchor.value.AsIdent().AsAtom(),
                               defaultAnchor.scope));
   }
+
+  MOZ_ASSERT(defaultAnchor.value.IsNormal() || defaultAnchor.value.IsAuto());
 
   if (aPositioned->Style()->IsPseudoElement()) {
     return Some(ScopedNameRef(nsGkAtoms::AnchorPosImplicitAnchor,
@@ -1112,7 +1110,7 @@ static ScrollShifts FindScrollCompensatedAnchorShift(
   // end up containing scroll offset in their position. For now, walk the chain
   // to account for those deltas too.
   const nsPoint chainedDelta = [&]() -> nsPoint {
-    if (defaultAnchor->StylePosition()->mPositionAnchor.value.IsNone()) {
+    if (!defaultAnchor->StylePosition()->CanHaveDefaultAnchor()) {
       return {};
     }
     const auto* referenceData =

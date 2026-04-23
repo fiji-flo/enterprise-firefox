@@ -195,6 +195,20 @@ var SettingGroupManager = ChromeUtils.importESModule(
  * @type {Record<string, SettingPaneConfig>}
  */
 const CONFIG_PANES = Object.freeze({
+  accessibility: {
+    l10nId: "preferences-accessibility-header",
+    groupIds: [
+      "zoom",
+      "fonts",
+      "contrast",
+      "keyboardAndScrolling",
+      "motionAndLink",
+    ],
+    module: "chrome://browser/content/preferences/config/accessibility.mjs",
+    iconSrc: "chrome://browser/skin/preferences/category-accessibility.svg",
+    visible: () =>
+      Services.prefs.getBoolPref("browser.settings-redesign.enabled", false),
+  },
   ai: {
     l10nId: "preferences-ai-controls-header",
     iconSrc: "chrome://global/skin/icons/highlights.svg",
@@ -203,20 +217,34 @@ const CONFIG_PANES = Object.freeze({
     visible: () =>
       Services.prefs.getBoolPref("browser.preferences.aiControls", false),
   },
+  connectionSecurity: {
+    parent: "privacy",
+    l10nId: "preferences-connection-header",
+    groupIds: [
+      "httpsOnly",
+      "networkProxy",
+      "browsingProtection",
+      "certificates",
+    ],
+    replaces: "privacy",
+  },
   dnsOverHttps: {
     parent: "privacy",
     l10nId: "preferences-doh-header2",
     groupIds: ["dnsOverHttpsAdvanced"],
+    replaces: "privacy",
   },
   etp: {
     parent: "privacy",
     l10nId: "preferences-etp-header",
     groupIds: ["etpBanner", "etpAdvanced"],
+    replaces: "privacy",
   },
   etpCustomize: {
     parent: "etp",
     l10nId: "preferences-etp-customize-header",
     groupIds: ["etpCustomize", "etpReset"],
+    replaces: "privacy",
   },
   general: {
     l10nId: "pane-general-title",
@@ -226,6 +254,7 @@ const CONFIG_PANES = Object.freeze({
     parent: "privacy",
     l10nId: "history-header2",
     groupIds: ["historyAdvanced"],
+    replaces: "privacy",
   },
   home: {
     l10nId: "home-section",
@@ -239,6 +268,7 @@ const CONFIG_PANES = Object.freeze({
     l10nId: "autofill-addresses-manage-addresses-title",
     groupIds: ["manageAddresses"],
     iconSrc: "chrome://browser/skin/notification-icons/geo.svg",
+    replaces: "privacy",
   },
   manageMemories: {
     parent: "personalizeSmartWindow",
@@ -252,6 +282,7 @@ const CONFIG_PANES = Object.freeze({
     l10nId: "autofill-payment-methods-manage-payments-title",
     groupIds: ["managePayments"],
     iconSrc: "chrome://browser/skin/payment-methods-16.svg",
+    replaces: "privacy",
   },
   profiles: {
     parent: srdSectionEnabled("sync") ? "sync" : "general",
@@ -278,6 +309,33 @@ const CONFIG_PANES = Object.freeze({
     module: "chrome://browser/content/preferences/config/search.mjs",
     replaces: "search",
   },
+  privacy: {
+    l10nId: "pane-privacy-section",
+    iconSrc: "chrome://browser/skin/preferences/category-privacy-security.svg",
+    groupIds: [
+      "securityPrivacyStatus",
+      "securityPrivacyWarnings",
+      "etpStatus",
+      "ipprotection",
+      "cookiesAndSiteData2",
+      // Bug 1968111: move this elsewhere
+      "passwords",
+      // Bug 1968111: move this elsewhere
+      "addresses",
+      // Bug 1968111: move this elsewhere
+      "payments",
+      "history2",
+      // Bug 1968118: move these elsewhere
+      "permissions",
+      // Bug 1968118: move these elsewhere
+      "dataCollection",
+      "nonTechnicalPrivacy2",
+      "dnsOverHttps",
+      "connectionLink",
+    ],
+    module: "chrome://browser/content/preferences/config/privacy.mjs",
+    replaces: "privacy",
+  },
   sync: {
     l10nId: "account-sync-section",
     iconSrc: "chrome://browser/skin/fxa/avatar-empty.svg",
@@ -291,10 +349,6 @@ const CONFIG_PANES = Object.freeze({
     ],
     module: "chrome://browser/content/preferences/config/account-sync.mjs",
     replaces: "sync",
-  },
-  privacy: {
-    l10nId: "privacy-header",
-    groupIds: [],
   },
   translations: {
     parent: "general",
@@ -395,6 +449,7 @@ function init_all() {
     if (!redesignEnabled && config.replaces) {
       continue;
     }
+
     SettingPaneManager.registerPane(id, config);
   }
 

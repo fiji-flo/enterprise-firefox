@@ -19,8 +19,8 @@
 #include <algorithm>
 #include <bit>
 #include <cctype>
-#include <iostream>
 #include <optional>
+#include <ostream>
 
 #ifdef JS_JITSPEW
 #  include <queue>
@@ -650,7 +650,7 @@ std::ostream& operator<<(std::ostream& os, const AsHex& c);
 // std::cerr when used.
 class StdoutStream : public std::ostream {
  public:
-  StdoutStream() : std::ostream(std::cerr.rdbuf()) {}
+  StdoutStream();
 };
 
 // Reuse existing Maybe implementation
@@ -958,6 +958,12 @@ class FixedIntegerArray : public ByteArray {
     FixedIntegerArray<T> f;
     f.setValue(object.value());
     return f;
+  }
+
+  SafeHeapObjectSize length() const {
+    uint32_t byteLength = ByteArray::length().value();
+    MOZ_ASSERT(byteLength % sizeof(T) == 0);
+    return SafeHeapObjectSize(byteLength / sizeof(T));
   }
 };
 

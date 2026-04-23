@@ -157,7 +157,7 @@ export class DiscoveryStreamFeed {
   pocketNewTabExperimentChanged() {
     this.store.dispatch(
       ac.OnlyToMain({
-        type: at.INFERRED_PERSONALIZATION_REFRESH,
+        type: at.INFERRED_PERSONALIZATION_CLEAR_INTEREST_VECTOR,
       })
     );
   }

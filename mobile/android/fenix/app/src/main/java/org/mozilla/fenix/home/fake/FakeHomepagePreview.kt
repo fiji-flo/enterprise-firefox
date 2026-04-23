@@ -48,6 +48,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHigh
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.search.HomeSearchInteractor
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
+import org.mozilla.fenix.home.sports.SportsInteractor
 import org.mozilla.fenix.home.store.NimbusMessageState
 import org.mozilla.fenix.home.termsofuse.PrivacyNoticeBannerInteractor
 import org.mozilla.fenix.home.termsofuse.PrivacyNoticeBannerInteractorNoOp
@@ -77,6 +78,7 @@ internal object FakeHomepagePreview {
             HomeSearchInteractor by homeSearchInteractor,
             CollectionInteractor by collectionInteractor,
             PocketStoriesInteractor by storiesInteractor,
+            SportsInteractor by sportsInteractor,
             PrivacyNoticeBannerInteractor by PrivacyNoticeBannerInteractorNoOp {
             override fun reportSessionMetrics(state: AppState) { /* no op */ }
 
@@ -96,7 +98,14 @@ internal object FakeHomepagePreview {
 
             override fun onRemoveChecklistButtonClicked() { /* no op */ }
 
-            override fun onLogoClicked() { /* no op */ }
+            override fun onLogoLongClicked() { /* no op */ }
+
+            override fun onPrivacyReportTapped() { /* no op */ }
+        }
+
+    internal val sportsInteractor
+        get() = object : SportsInteractor {
+            override fun onCountriesSelected(countryCodes: Set<String>) { /* no op */ }
         }
 
     internal val storiesInteractor

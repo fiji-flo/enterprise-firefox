@@ -27,6 +27,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(PaymentResponse,
                                                   DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRequest)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mShippingAddress)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPromise)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTimer)
@@ -34,6 +35,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(PaymentResponse,
                                                 DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mRequest)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mShippingAddress)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPromise)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTimer)
@@ -217,8 +219,9 @@ void PaymentResponse::RespondComplete() {
 
 already_AddRefed<Promise> PaymentResponse::Retry(
     JSContext* aCx, const PaymentValidationErrors& aErrors, ErrorResult& aRv) {
-  MOZ_ASSERT(mRequest);
-  if (!mRequest->InFullyActiveDocument()) {
+  RefPtr<PaymentRequest> request(mRequest);
+  MOZ_ASSERT(request);
+  if (!request->InFullyActiveDocument()) {
     aRv.ThrowAbortError("The owner document is not fully active");
     return nullptr;
   }
@@ -256,8 +259,12 @@ already_AddRefed<Promise> PaymentResponse::Retry(
     return nullptr;
   }
 
-  MOZ_ASSERT(mRequest);
-  mRequest->RetryPayment(aCx, aErrors, aRv);
+  if (!request->InFullyActiveDocument()) {
+    aRv.ThrowAbortError("The owner document is not fully active");
+    return nullptr;
+  }
+
+  request->RetryPayment(aCx, aErrors, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

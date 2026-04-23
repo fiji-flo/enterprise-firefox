@@ -16,6 +16,10 @@ require("resource://devtools/shared/specs/style/style-types.js");
 types.addDictType("domstylerule.queryContainerForNodeReturn", {
   node: "nullable:domnode",
   containerType: "nullable:string",
+  containerName: "nullable:string",
+  queryFeatures: "nullable:array:json",
+  // @backward-compat { version 151 } `blockSize` and `inlineSize` are no longer returned,
+  // so the 2 lines below can be removed when 151 hits release.
   blockSize: "nullable:string",
   inlineSize: "nullable:string",
 });

@@ -19,6 +19,7 @@ import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendati
 import org.mozilla.fenix.components.appstate.search.SearchState
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
+import org.mozilla.fenix.components.appstate.sports.SportsWidgetState
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -83,6 +84,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property voiceSearchState The [VoiceSearchState] representing the current state of voice search functionality.
  * @property isDefaultBrowser Whether Firefox is the default browser or not.
  * @property trackersBlockedCount The total number of trackers blocked to display in the privacy report.
+ * @property sportsWidgetState The [sportsWidgetState] to display.
  */
 data class AppState(
     val isForeground: Boolean = true,
@@ -122,4 +124,5 @@ data class AppState(
     val voiceSearchState: VoiceSearchState = VoiceSearchState(),
     val isDefaultBrowser: Boolean = false,
     val trackersBlockedCount: Int = 0,
+    val sportsWidgetState: SportsWidgetState = SportsWidgetState(),
 ) : State

@@ -15,6 +15,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
+import org.mozilla.fenix.components.appstate.sports.SportsWidgetState
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
@@ -87,6 +88,8 @@ internal sealed class HomepageState {
      * @property showCollections Whether to show the collections section.
      * @property showPrivacyReport Whether to show the privacy report section.
      * @property trackersBlockedCount The number of trackers blocked for the privacy report.
+     * @property showSportsWidget Whether to show the sports widget.
+     * @property sportsWidgetState State of the sports widget on the homepage.
      * @property headerState State related to the header of the homepage.
      * @property searchBarVisible Whether the middle search bar should be visible or not.
      * @property searchBarEnabled Whether the middle search bar is enabled or not.
@@ -119,6 +122,8 @@ internal sealed class HomepageState {
         val showCollections: Boolean,
         val showPrivacyReport: Boolean,
         val trackersBlockedCount: Int,
+        val showSportsWidget: Boolean,
+        val sportsWidgetState: SportsWidgetState,
         override val headerState: HeaderState,
         val searchBarVisible: Boolean,
         val searchBarEnabled: Boolean,
@@ -247,6 +252,8 @@ internal sealed class HomepageState {
                 showPrivacyReport = settings.showPrivacyReportSectionToggle &&
                     settings.showPrivacyReportFeature,
                 trackersBlockedCount = trackersBlockedCount,
+                showSportsWidget = settings.enableHomepageSportsWidget,
+                sportsWidgetState = sportsWidgetState,
                 headerState = buildHeaderState(
                     settings = settings,
                     textColor = wallpaperState.textColor,

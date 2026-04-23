@@ -20,6 +20,7 @@ struct already_AddRefed;
 namespace mozilla {
 
 class ErrorResult;
+struct StyleVariableReferenceValue;
 
 namespace dom {
 
@@ -32,6 +33,10 @@ class CSSVariableReferenceValue final : public nsISupports,
   CSSVariableReferenceValue(nsCOMPtr<nsISupports> aParent,
                             const nsACString& aVariable,
                             RefPtr<CSSUnparsedValue> aFallback);
+
+  static RefPtr<CSSVariableReferenceValue> Create(
+      nsCOMPtr<nsISupports> aParent,
+      const StyleVariableReferenceValue& aVariableReferenceValue);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(CSSVariableReferenceValue)

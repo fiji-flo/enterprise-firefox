@@ -1031,7 +1031,7 @@ pwmgr:
       - stored_content
     notification_emails:
       - passwords-dev@mozilla.org
-    expires: 152
+    expires: 153
     send_in_pings:
       - pwmgr-origin-failure
     extra_keys:

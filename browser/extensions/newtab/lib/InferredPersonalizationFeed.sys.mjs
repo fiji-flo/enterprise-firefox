@@ -628,6 +628,12 @@ export class InferredPersonalizationFeed {
           await this.loadInterestVector();
         }
         break;
+      case at.INFERRED_PERSONALIZATION_CLEAR_INTEREST_VECTOR:
+        if (this.cache) {
+          // Clear the interest vector. It will be recalculated on the next tick if the feature is enabled.
+          await this.cache.set("interest_vector", {});
+        }
+        break;
       case at.INFERRED_PERSONALIZATION_REFRESH:
         if (this.isEnabled()) {
           await this.reset();

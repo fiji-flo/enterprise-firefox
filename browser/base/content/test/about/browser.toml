@@ -64,6 +64,8 @@ support-files = [
   "blank_page.sjs",
 ]
 
+["browser_aboutNetError_contentEncodingError.js"]
+
 ["browser_aboutNetError_csp_iframe.js"]
 https_first_disabled = true
 support-files = [

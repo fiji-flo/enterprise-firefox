@@ -11,6 +11,8 @@ ChromeUtils.defineESModuleGetters(this, {
 
 const AT = {
   INFERRED_PERSONALIZATION_REFRESH: "INFERRED_PERSONALIZATION_REFRESH",
+  INFERRED_PERSONALIZATION_CLEAR_INTEREST_VECTOR:
+    "INFERRED_PERSONALIZATION_CLEAR_INTEREST_VECTOR",
   INFERRED_PERSONALIZATION_DEBUG_FEATURES_REQUEST:
     "INFERRED_PERSONALIZATION_DEBUG_FEATURES_REQUEST",
   INFERRED_PERSONALIZATION_DEBUG_FEATURES_UPDATE:
@@ -93,7 +95,6 @@ add_task(async function test_clearOldDataOfTable() {
     Math.floor(FIXED_TIMESTAMP_MS / 1000) - preserveAgeDays * 24 * 60 * 60;
 
   await feed.clearOldDataOfTable(preserveAgeDays, table, fakePlacesUtils);
-
   const expectedSQL = `DELETE FROM ${table}
       WHERE timestamp_s < ${expectedTimestamp}`;
 
@@ -577,3 +578,56 @@ add_task(function test_computeAverageCTRFromTopics_multipleIntervals() {
     `Multiple intervals averaged correctly: ${avg}`
   );
 });
+add_task(async function test_onAction_clear_interest_vector_clears_cache() {
+  const sandbox = sinon.createSandbox();
+  const cacheSetStub = sandbox.stub().resolves();
+  sandbox
+    .stub(InferredPersonalizationFeed.prototype, "PersistentCache")
+    .returns({
+      set: cacheSetStub,
+      get: sandbox.stub().resolves(null),
+    });
+
+  const feed = new InferredPersonalizationFeed();
+  feed.store = {
+    dispatch: sandbox.stub(),
+    getState: () => ({ Prefs: { values: {} } }),
+  };
+
+  await feed.onAction({
+    type: AT.INFERRED_PERSONALIZATION_CLEAR_INTEREST_VECTOR,
+  });
+
+  Assert.equal(cacheSetStub.callCount, 1, "cache.set was called once");
+  deepEqual(
+    cacheSetStub.firstCall.args,
+    ["interest_vector", {}],
+    "Interest vector is cleared to an empty object"
+  );
+
+  sandbox.restore();
+});
+
+add_task(
+  async function test_onAction_clear_interest_vector_noop_without_cache() {
+    const sandbox = sinon.createSandbox();
+    sandbox
+      .stub(InferredPersonalizationFeed.prototype, "PersistentCache")
+      .returns(null);
+
+    const feed = new InferredPersonalizationFeed();
+    feed.cache = null;
+    feed.store = {
+      dispatch: sandbox.stub(),
+      getState: () => ({ Prefs: { values: {} } }),
+    };
+
+    await feed.onAction({
+      type: AT.INFERRED_PERSONALIZATION_CLEAR_INTEREST_VECTOR,
+    });
+
+    ok(true, "No error when cache is null");
+
+    sandbox.restore();
+  }
+);

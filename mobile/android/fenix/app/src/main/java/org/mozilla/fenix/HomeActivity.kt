@@ -105,7 +105,9 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.menu.share.QRCodeDialogFragment
 import org.mozilla.fenix.components.metrics.BreadcrumbsRecorder
 import org.mozilla.fenix.components.metrics.GrowthDataWorker
-import org.mozilla.fenix.components.metrics.MarketingAttributionService
+import org.mozilla.fenix.components.metrics.InstallReferrerHandlingService
+import org.mozilla.fenix.components.metrics.MarketingAttributionHandler
+import org.mozilla.fenix.components.metrics.RtamoAttributionHandler
 import org.mozilla.fenix.components.metrics.fonts.FontEnumerationWorker
 import org.mozilla.fenix.components.share.QR_CODE_URI_KEY
 import org.mozilla.fenix.components.share.SEND_TO_DEVICES_ACTION
@@ -164,10 +166,13 @@ import org.mozilla.fenix.session.PrivateNotificationService
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.shortcut.NewTabShortcutIntentProcessor.Companion.ACTION_OPEN_PRIVATE_TAB
 import org.mozilla.fenix.splashscreen.ApplyExperimentsOperation
+import org.mozilla.fenix.splashscreen.CompositeSplashScreenOperation
 import org.mozilla.fenix.splashscreen.DefaultExperimentsOperationStorage
 import org.mozilla.fenix.splashscreen.DefaultSplashScreenStorage
 import org.mozilla.fenix.splashscreen.FetchExperimentsOperation
+import org.mozilla.fenix.splashscreen.RtamoSplashScreenOperation
 import org.mozilla.fenix.splashscreen.SplashScreenManager
+import org.mozilla.fenix.splashscreen.SplashScreenOperation
 import org.mozilla.fenix.tabhistory.TabHistoryDialogFragment
 import org.mozilla.fenix.theme.DefaultThemeManager
 import org.mozilla.fenix.theme.StatusBarColorManager
@@ -432,25 +437,8 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
             isLauncherIntent = isLauncherIntent,
         )
 
-        // This is a temporary solution to determine if we should show the marketing onboarding card.
-        if (shouldShowOnboarding) {
-            lifecycleScope.launch(IO) {
-                MarketingAttributionService(applicationContext).start()
-            }
-        }
-
         SplashScreenManager(
-            splashScreenOperation = if (FxNimbus.features.splashScreen.value().offTrainOnboarding) {
-                ApplyExperimentsOperation(
-                    storage = DefaultExperimentsOperationStorage(components.settings),
-                    nimbus = components.nimbus.sdk,
-                )
-            } else {
-                FetchExperimentsOperation(
-                    storage = DefaultExperimentsOperationStorage(components.settings),
-                    nimbus = components.nimbus.sdk,
-                )
-            },
+            splashScreenOperation = createSplashScreenOperation(shouldShowOnboarding),
             scope = lifecycleScope,
             splashScreenTimeout = FxNimbus.features.splashScreen.value().maximumDurationMs.toLong(),
             storage = DefaultSplashScreenStorage(components.settings),
@@ -888,7 +876,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
         components.core.pocketStoriesService.stopPeriodicSponsoredContentsRefresh()
         privateNotificationObserver?.stop()
         components.notificationsDelegate.unBindActivity(this)
-        MarketingAttributionService(applicationContext).stop()
 
         // clear hierarchy change listener set by AndroidX SplashScreen
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1950295
@@ -1235,6 +1222,37 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity, Crash
             return it.getBooleanExtra(START_IN_RECENTS_SCREEN, false)
         }
         return false
+    }
+
+    private fun createSplashScreenOperation(shouldShowOnboarding: Boolean): SplashScreenOperation {
+        val nimbusOperation = if (FxNimbus.features.splashScreen.value().offTrainOnboarding) {
+            ApplyExperimentsOperation(
+                storage = DefaultExperimentsOperationStorage(components.settings),
+                nimbus = components.nimbus.sdk,
+            )
+        } else {
+            FetchExperimentsOperation(
+                storage = DefaultExperimentsOperationStorage(components.settings),
+                nimbus = components.nimbus.sdk,
+            )
+        }
+
+        if (!shouldShowOnboarding) return nimbusOperation
+
+        val rtamoHandler = RtamoAttributionHandler(settings(), components.addonsProvider)
+        val installReferrerHandlingService = InstallReferrerHandlingService(
+            context = applicationContext,
+            handlers = listOf(
+                rtamoHandler,
+                MarketingAttributionHandler(settings(), components.distributionIdManager),
+            ),
+        )
+        return CompositeSplashScreenOperation(
+            listOf(
+                nimbusOperation,
+                RtamoSplashScreenOperation(installReferrerHandlingService, rtamoHandler),
+            ),
+        )
     }
 
     private fun setupTheme() {

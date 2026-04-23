@@ -71,6 +71,41 @@ describe("ASRouterStorage", () => {
         event: "INDEXEDDB_DELETE_FAILED",
       });
     });
+
+    it("should register onversionchange handler on the database", async () => {
+      const dbObj = { close: sandbox.stub() };
+      indexedDB.open.resolves(dbObj);
+
+      await storage.db;
+      assert.isFunction(dbObj.onversionchange);
+    });
+
+    it("should close db and clear cache on versionchange", async () => {
+      const dbObj = { close: sandbox.stub() };
+      indexedDB.open.resolves(dbObj);
+
+      await storage.db;
+      dbObj.onversionchange();
+
+      assert.calledOnce(dbObj.close);
+      assert.isNull(storage._db);
+    });
+
+    it("should clear db cache on close event and allow re-open", async () => {
+      const dbObj1 = { close: sandbox.stub() };
+      const dbObj2 = {};
+      indexedDB.open.onFirstCall().resolves(dbObj1);
+      indexedDB.open.onSecondCall().resolves(dbObj2);
+
+      await storage.db;
+      dbObj1.onclose();
+
+      assert.isNull(storage._db);
+
+      const db = await storage.db;
+      assert.equal(db, dbObj2);
+      assert.calledTwice(indexedDB.open);
+    });
   });
   describe("#getDbTable", () => {
     let testStorage;
@@ -125,11 +160,20 @@ describe("ASRouterStorage", () => {
       assert.throws(() => storage.getDbTable("undefined_store"));
     });
   });
-  it("should get the correct objectStore when calling _getStore", async () => {
+  it("should open objectStore in readonly mode by default", async () => {
     const objectStoreStub = sandbox.stub();
     indexedDB.open.resolves({ objectStore: objectStoreStub });
 
     await storage._getStore("foo");
+
+    assert.calledOnce(objectStoreStub);
+    assert.calledWithExactly(objectStoreStub, "foo", "readonly");
+  });
+  it("should open objectStore in readwrite mode when specified", async () => {
+    const objectStoreStub = sandbox.stub();
+    indexedDB.open.resolves({ objectStore: objectStoreStub });
+
+    await storage._getStore("foo", "readwrite");
 
     assert.calledOnce(objectStoreStub);
     assert.calledWithExactly(objectStoreStub, "foo", "readwrite");
@@ -180,6 +224,30 @@ describe("ASRouterStorage", () => {
     indexedDB.open.args[0][2](dbStub);
 
     assert.notCalled(dbStub.createObjectStore);
+  });
+  it("should propagate createObjectStore errors during upgrade", async () => {
+    const error = new Error("disk error");
+    const dbStub = {
+      createObjectStore: sandbox.stub().throws(error),
+      objectStoreNames: { contains: sandbox.stub().returns(false) },
+    };
+
+    indexedDB.open.callsFake((name, version, callback) => {
+      callback(dbStub);
+      return Promise.reject(error);
+    });
+
+    storage = new ASRouterStorage({
+      storeNames: ["storage_test"],
+      telemetry: { handleUndesiredEvent: sandbox.stub() },
+    });
+
+    try {
+      await storage._openDatabase();
+      assert.fail("should have thrown");
+    } catch (e) {
+      assert.equal(e, error);
+    }
   });
   describe("#_requestWrapper", () => {
     it("should return a successful result", async () => {

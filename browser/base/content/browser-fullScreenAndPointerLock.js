@@ -1,5 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -46,13 +45,22 @@ var PointerlockFsWarning = {
     }
   },
 
+  _getTimeout(keyboardLockEnabled) {
+    if (keyboardLockEnabled) {
+      return Services.prefs.getIntPref(
+        "full-screen-api.keyboardlock-warning.timeout"
+      );
+    }
+    return Services.prefs.getIntPref("full-screen-api.warning.timeout");
+  },
+
   // Show info that top level has entered fullscreen. Ultimately, it is always
   // ancestors who are in control of what is displayed on screen.
   // By always displaying the top level, we try to make that clear to the user.
   showFullScreen(browsingContext, keyboardLockEnabled) {
     const origin =
       browsingContext.top.currentWindowGlobal.documentPrincipal.originNoSuffix;
-    let timeout = Services.prefs.getIntPref("full-screen-api.warning.timeout");
+    const timeout = this._getTimeout(keyboardLockEnabled);
     let delay = Services.prefs.getIntPref("full-screen-api.warning.delay");
     this.show(
       origin,

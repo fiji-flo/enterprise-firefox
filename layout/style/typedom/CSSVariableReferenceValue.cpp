@@ -7,6 +7,7 @@
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/dom/CSSUnparsedValue.h"
 #include "mozilla/dom/CSSVariableReferenceValueBinding.h"
 #include "nsCSSProps.h"
@@ -21,6 +22,21 @@ CSSVariableReferenceValue::CSSVariableReferenceValue(
       mVariable(aVariable),
       mFallback(std::move(aFallback)) {
   MOZ_ASSERT(mParent);
+}
+
+// static
+RefPtr<CSSVariableReferenceValue> CSSVariableReferenceValue::Create(
+    nsCOMPtr<nsISupports> aParent,
+    const StyleVariableReferenceValue& aVariableReferenceValue) {
+  RefPtr<CSSUnparsedValue> fallback;
+  if (aVariableReferenceValue.has_fallback) {
+    fallback =
+        CSSUnparsedValue::Create(aParent, aVariableReferenceValue.fallback);
+  }
+
+  return MakeRefPtr<CSSVariableReferenceValue>(std::move(aParent),
+                                               aVariableReferenceValue.variable,
+                                               std::move(fallback));
 }
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CSSVariableReferenceValue)

@@ -59,6 +59,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.button.FloatingActionButton
+import mozilla.components.compose.base.button.RadioButton
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
@@ -67,7 +68,6 @@ import mozilla.components.compose.base.snackbar.Snackbar
 import mozilla.components.compose.base.snackbar.displaySnackbar
 import mozilla.components.compose.base.text.Text
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.button.RadioButton
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.downloads.DownloadsScreenTestTag
 import org.mozilla.fenix.downloads.listscreen.store.DownloadListItem

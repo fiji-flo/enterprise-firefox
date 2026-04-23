@@ -7,6 +7,8 @@ prefs = "browser.crashReports.onDemand=true"
 
 ["test_ChildCrashHandler.js"]
 
+["test_DelayedInit.js"]
+
 ["test_GeckoViewAppConstants.js"]
 
 ["test_RemoteSettingsCrashPull.js"]

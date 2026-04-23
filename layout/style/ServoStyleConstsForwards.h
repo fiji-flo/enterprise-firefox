@@ -54,8 +54,13 @@ namespace mozilla {
 // references the type below in the generated code.
 struct StyleCalcLengthPercentage;
 
+// Forward declaration for `StyleVariableReferenceValue`, which references the
+// the type below in the generated code.
+struct StyleUnparsedSegment;
+using StyleUnparsedValue = CopyableTArray<StyleUnparsedSegment>;
+
 // Forward declaration required due to a circular type dependency between
-// StyleNumericValue and StyleSumValue.
+// StyleNumericValue and StyleMathSum.
 // cbindgen does not currently emit this forward declaration automatically.
 struct StyleNumericValue;
 

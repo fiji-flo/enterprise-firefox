@@ -2178,6 +2178,14 @@ NS_IMETHODIMP AppWindow::CreateNewWindow(int32_t aChromeFlags,
                                          nsIAppWindow** _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
 
+  // If a position change is pending (e.g. this window was just dragged to a
+  // different display), flush it now so the new window reads our current
+  // position from the XULStore rather than the stale one still queued behind
+  // the SIZE_PERSISTENCE_TIMEOUT timer.
+  if (mPersistentAttributesDirty.contains(PersistentAttribute::Position)) {
+    PersistentAttributesDirty(PersistentAttribute::Position, Sync);
+  }
+
   if (aChromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME) {
     MOZ_RELEASE_ASSERT(
         !aOpenWindowInfo,

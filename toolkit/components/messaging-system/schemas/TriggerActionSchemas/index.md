@@ -65,8 +65,10 @@ let patterns: string[];
 - [`elementClicked`](#elementclicked)
 - [`ipProtectionReady`](#ipprotectionready)
 - [`ipProtectionPanelClosed`](#ipprotectionpanelclosed)
+- [`ipProtectionBandwidthReset`](#ipprotectionbandwidthreset)
 - [`selectableProfilesUpdated`](#selectableprofilesupdated)
 - [`smartWindowNewTab`](#smartwindownewtab)
+- [`relayMaskUsed`](#relaymaskused)
 
 ### `openArticleURL`
 
@@ -456,6 +458,17 @@ The `hasUsedSiteExceptions` boolean context variable is available in targeting, 
 }
 ```
 
+### `ipProtectionBandwidthReset`
+
+Fires when the IP protection bandwidth quota resets at the start of a new month.
+
+```js
+{
+  trigger: { id: "ipProtectionBandwidthReset" },
+  targeting: "'browser.ipProtection.userEnableCount' | preferenceValue > 0",
+}
+```
+
 ### `selectableProfilesUpdated`
 
 Fires to keep multi-profile feature users informed of changes to data collection settings. Within a profile group, any update to these shared profile settings triggers this event for all other running remote profile instances.
@@ -488,5 +501,23 @@ Occurs every time a user opens a new Smart Window tab.
 {
   trigger: { id: "smartWindowNewTab" },
   targeting: "isAIWindow && 'browser.smartwindow.firstrun.hasCompleted' | preferenceValue",
+}
+```
+
+### `relayMaskUsed`
+
+Happens when the user uses a Firefox Relay email mask. The trigger tracks the number of masks used in a session.
+
+Does not filter by host or patterns.
+
+The `masksUsedCount` context variable is available in targeting and represents the cumulative number of times the user has used a Relay mask during the current session.
+
+```js
+// Register a message with the following trigger and include
+// the masksUsedCount context variable in the targeting.
+// Here, the message triggers after the first Relay mask is used.
+{
+  trigger: { id: "relayMaskUsed" },
+  targeting: "masksUsedCount >= 1"
 }
 ```

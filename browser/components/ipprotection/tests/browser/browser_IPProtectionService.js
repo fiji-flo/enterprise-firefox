@@ -239,7 +239,6 @@ add_task(async function test_IPProtectionService_update_usage_on_sign_in() {
   setupService({
     isSignedIn: true,
     isEnrolledAndEntitled: true,
-    isLinkedToGuardian: true,
     usageInfo: usage,
   });
   // Dispatch a sign-in event to trigger the usage refresh.

@@ -67,6 +67,7 @@
 #include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/Try.h"
+#include "mozilla/UseCounter.h"
 #include "mozilla/dom/AnimatableBinding.h"
 #include "mozilla/dom/Animation.h"
 #include "mozilla/dom/Attr.h"
@@ -4756,6 +4757,10 @@ void Element::ReleaseCapture() {
 already_AddRefed<Promise> Element::RequestFullscreen(
     const FullscreenOptions& aOptions, CallerType aCallerType,
     ErrorResult& aRv) {
+  if (aOptions.mKeyboardLock == FullscreenKeyboardLock::Browser) {
+    OwnerDoc()->SetUseCounter(eUseCounter_custom_RequestedKeyboardLock);
+  }
+
   auto request =
       FullscreenRequest::Create(this, aOptions.mKeyboardLock, aCallerType, aRv);
   RefPtr<Promise> promise = request->GetPromise();

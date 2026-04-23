@@ -1744,12 +1744,14 @@ class MOZ_RAII AutoLockTelemetry : public LockGuard<Mutex> {
   AutoLockTelemetry() : Base(getMutex()) {}
 };
 
-using TelemetrySamples = mozilla::Vector<uint32_t, 0, js::SystemAllocPolicy>;
+using TelemetrySamples =
+    mozilla::Vector<JSTelemetryData, 0, js::SystemAllocPolicy>;
 constinit static mozilla::Array<UniquePtr<TelemetrySamples>,
                                 size_t(JSMetric::Count)>
     recordedTelemetrySamples;
 
-static void AccumulateTelemetryDataCallback(JSMetric id, uint32_t sample) {
+static void AccumulateTelemetryDataCallback(JSMetric id,
+                                            const JSTelemetryData& sample) {
   AutoLockTelemetry alt;
   TelemetrySamples* samples = recordedTelemetrySamples[size_t(id)].get();
   if (!samples) {
@@ -1866,8 +1868,16 @@ static bool GetTelemetrySamples(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  for (uint32_t sample : *samples) {
-    if (!NewbornArrayPush(cx, array, NumberValue(sample))) {
+  for (const JSTelemetryData& sample : *samples) {
+    Value value;
+    if (sample.is<bool>()) {
+      value = BooleanValue(sample.as<bool>());
+    } else if (sample.is<size_t>()) {
+      value = NumberValue(sample.as<size_t>());
+    } else {
+      value = NumberValue(sample.as<mozilla::TimeDuration>().ToMilliseconds());
+    }
+    if (!NewbornArrayPush(cx, array, value)) {
       return false;
     }
   }
@@ -13019,8 +13029,6 @@ bool InitOptionParser(OptionParser& op) {
                           "Branch pruning (default: on, off to disable)") ||
       !op.addStringOption('\0', "ion-range-analysis", "on/off",
                           "Range analysis (default: on, off to disable)") ||
-      !op.addStringOption('\0', "ion-sink", "on/off",
-                          "Sink code motion (default: off, on to enable)") ||
       !op.addStringOption(
           '\0', "ion-instruction-reordering", "on/off",
           "Instruction reordering (default: off, on to enable)") ||
@@ -14011,16 +14019,6 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
       jit::JitOptions.disableRangeAnalysis = true;
     } else {
       return OptionFailure("ion-range-analysis", str);
-    }
-  }
-
-  if (const char* str = op.getStringOption("ion-sink")) {
-    if (strcmp(str, "on") == 0) {
-      jit::JitOptions.disableSink = false;
-    } else if (strcmp(str, "off") == 0) {
-      jit::JitOptions.disableSink = true;
-    } else {
-      return OptionFailure("ion-sink", str);
     }
   }
 

@@ -148,26 +148,7 @@ HRESULT MFMediaEngineVideoStream::CreateMediaType(const TrackInfo& aInfo,
   const auto rotation = ToMFVideoRotationFormat(videoInfo.mRotation);
   RETURN_IF_FAILED(mediaType->SetUINT32(MF_MT_VIDEO_ROTATION, rotation));
 
-  static const auto ToMFVideoTransFunc =
-      [](const Maybe<gfx::YUVColorSpace>& aColorSpace) {
-        using YUVColorSpace = gfx::YUVColorSpace;
-        if (!aColorSpace) {
-          return MFVideoTransFunc_Unknown;
-        }
-        // https://docs.microsoft.com/en-us/windows/win32/api/mfobjects/ne-mfobjects-mfvideotransferfunction
-        switch (*aColorSpace) {
-          case YUVColorSpace::BT601:
-          case YUVColorSpace::BT709:
-            return MFVideoTransFunc_709;
-          case YUVColorSpace::BT2020:
-            return MFVideoTransFunc_2020;
-          case YUVColorSpace::Identity:
-            return MFVideoTransFunc_sRGB;
-          default:
-            return MFVideoTransFunc_Unknown;
-        }
-      };
-  const auto transFunc = ToMFVideoTransFunc(videoInfo.mColorSpace);
+  const auto transFunc = ToMFVideoTransFunc(videoInfo.mTransferFunction);
   RETURN_IF_FAILED(mediaType->SetUINT32(MF_MT_TRANSFER_FUNCTION, transFunc));
 
   static const auto ToMFVideoPrimaries =
@@ -249,9 +230,11 @@ bool MFMediaEngineVideoStream::IsDCompImageReady() {
 RefPtr<MediaDataDecoder::DecodePromise> MFMediaEngineVideoStream::OutputData(
     RefPtr<MediaRawData> aSample) {
   if (IsShutdown()) {
+    mVideoDecodeBeforeDcompPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED,
+                                                  __func__);
     return MediaDataDecoder::DecodePromise::CreateAndReject(
         MediaResult(NS_ERROR_FAILURE,
-                    RESULT_DETAIL("MFMediaEngineStream is shutdown")),
+                    RESULT_DETAIL("MFMediaEngineVideoStream is shutdown")),
         __func__);
   }
   AssertOnTaskQueue();
@@ -289,6 +272,15 @@ already_AddRefed<MediaData> MFMediaEngineVideoStream::OutputDataInternal() {
 }
 
 RefPtr<MediaDataDecoder::DecodePromise> MFMediaEngineVideoStream::Drain() {
+  if (IsShutdown()) {
+    mPendingDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
+    mVideoDecodeBeforeDcompPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED,
+                                                  __func__);
+    return MediaDataDecoder::DecodePromise::CreateAndReject(
+        MediaResult(NS_ERROR_FAILURE,
+                    RESULT_DETAIL("MFMediaEngineVideoStream is shutdown")),
+        __func__);
+  }
   AssertOnTaskQueue();
   MediaDataDecoder::DecodedData outputs;
   if (!IsDCompImageReady()) {
@@ -309,6 +301,15 @@ RefPtr<MediaDataDecoder::DecodePromise> MFMediaEngineVideoStream::Drain() {
 }
 
 RefPtr<MediaDataDecoder::FlushPromise> MFMediaEngineVideoStream::Flush() {
+  if (IsShutdown()) {
+    mPendingDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
+    mVideoDecodeBeforeDcompPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED,
+                                                  __func__);
+    return MediaDataDecoder::FlushPromise::CreateAndReject(
+        MediaResult(NS_ERROR_FAILURE,
+                    RESULT_DETAIL("MFMediaEngineVideoStream is shutdown")),
+        __func__);
+  }
   AssertOnTaskQueue();
   auto promise = MFMediaEngineStream::Flush();
   mPendingDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);

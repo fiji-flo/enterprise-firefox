@@ -823,7 +823,7 @@ void AudioInputProcessing::ProcessOutputData(AudioProcessingTrack* aTrack,
       std::min<uint32_t>(aChunk.ChannelCount(), MAX_CHANNELS);
   if (channelCount != mOutputBufferChannelCount ||
       channelCount * framesPerPacket != mOutputBuffer.Length()) {
-    mOutputBuffer.SetLength(channelCount * framesPerPacket);
+    MOZ_RELEASE_ASSERT(mOutputBuffer.SetLength(channelCount * framesPerPacket));
     mOutputBufferChannelCount = channelCount;
     // It's ok to drop the audio still in the packetizer here: if this changes,
     // we changed devices or something.
@@ -929,17 +929,13 @@ void AudioInputProcessing::PacketizeAndProcess(AudioProcessingTrack* aTrack,
 
   while (mPacketizerInput->PacketsAvailable()) {
     mPacketCount++;
-    uint32_t samplesPerPacket =
-        mPacketizerInput->mPacketSize * mPacketizerInput->mChannels;
-    if (mInputBuffer.Length() < samplesPerPacket) {
-      mInputBuffer.SetLength(samplesPerPacket);
-    }
-    if (mDeinterleavedBuffer.Length() < samplesPerPacket) {
-      mDeinterleavedBuffer.SetLength(samplesPerPacket);
-    }
+    MOZ_ASSERT(mInputBuffer.Length() ==
+               mPacketizerInput->mPacketSize * mPacketizerInput->mChannels);
+    MOZ_ASSERT(mDeinterleavedBuffer.Length() ==
+               mPacketizerInput->mPacketSize * mPacketizerInput->mChannels);
     float* packet = mInputBuffer.Data();
     mPacketizerInput->Output(packet);
-    mInputDump->Write(packet, samplesPerPacket);
+    mInputDump->Write(packet, mInputBuffer.Length());
 
     // Downmix from mPacketizerInput->mChannels to mono if needed. We always
     // have floats here, the packetizer performed the conversion.
@@ -1249,6 +1245,10 @@ void AudioInputProcessing::EnsurePacketizer(AudioProcessingTrack* aTrack) {
   mInputDump.reset();
   mOutputDump.reset();
   mPacketizerInput.emplace(GetPacketSize(aTrack->mSampleRate), channelCount);
+  MOZ_RELEASE_ASSERT(
+      mInputBuffer.SetLength(mPacketizerInput->mPacketSize * channelCount));
+  MOZ_RELEASE_ASSERT(mDeinterleavedBuffer.SetLength(
+      mPacketizerInput->mPacketSize * channelCount));
   mInputDump.emplace();
   mInputDump->Open("AudioProcessingInput", channelCount, aTrack->mSampleRate);
 

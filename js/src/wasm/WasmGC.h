@@ -233,6 +233,14 @@ struct StackMap final {
     return calcBitmapNumElems(header.numMappedWords) * sizeof(bitmap[0]);
   }
 
+  inline uint32_t numMappedWords() const { return header.numMappedWords; }
+
+#ifdef JS_JITSPEW
+  // Dumps a summary of the stackmap to the JitSpew_Codegen channel.
+  // `codeOffset` is the intended assembler buffer offset for the map.
+  void show(uint32_t codeOffset) const;
+#endif
+
  private:
   static constexpr uint32_t bitsPerMappedWord = 2;
   static constexpr uint32_t mappedWordsPerBitmapElem =
@@ -349,6 +357,11 @@ class StackMaps {
 
   // Add a finalized stack map with a given code offset.
   [[nodiscard]] bool add(uint32_t codeOffset, StackMap* map) {
+#ifdef JS_JITSPEW
+    if (JitSpewEnabled(jit::JitSpew_Codegen)) {
+      map->show(codeOffset);
+    }
+#endif
     MOZ_ASSERT(!createdButNotFinalized_);
     MOZ_ASSERT(stackMaps_.contains(map));
     return codeOffsetToStackMap_.put(codeOffset, map);

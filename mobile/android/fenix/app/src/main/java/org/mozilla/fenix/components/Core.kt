@@ -222,7 +222,8 @@ class Core(
                     DownloadLocationManager(context).defaultLocation
                 },
             ),
-            )
+            useContentBlockingDatabase = context.settings().shouldUseTrackingProtectionDatabase,
+        )
 
         // Apply fingerprinting protection overrides if the feature is enabled in Nimbus
         if (FxNimbus.features.fingerprintingProtection.value().enabled) {

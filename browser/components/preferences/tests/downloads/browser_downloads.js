@@ -55,7 +55,7 @@ add_task(async function testSelectDownloadDir() {
       : `\u2066${downloadsDirPath}\u2069`;
 
   // Initialize file picker
-  MockFilePicker.init(window.browsingContext);
+  MockFilePicker.init();
   MockFilePicker.returnValue = MockFilePicker.returnOK;
 
   function mockFilePickerWithDirectory(dir) {

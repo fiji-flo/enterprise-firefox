@@ -26,6 +26,8 @@ namespace mozilla {
 
 struct CSSPropertyId;
 class ErrorResult;
+struct StyleUnparsedSegment;
+using StyleUnparsedValue = CopyableTArray<StyleUnparsedSegment>;
 
 namespace dom {
 
@@ -35,6 +37,9 @@ class CSSUnparsedValue final : public CSSStyleValue {
  public:
   CSSUnparsedValue(nsCOMPtr<nsISupports> aParent,
                    Sequence<OwningCSSUnparsedSegment> aTokens);
+
+  static RefPtr<CSSUnparsedValue> Create(
+      nsCOMPtr<nsISupports> aParent, const StyleUnparsedValue& aUnparsedValue);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(CSSUnparsedValue, CSSStyleValue)

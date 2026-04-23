@@ -161,7 +161,7 @@ export const EnterpriseHandler = {
         }
         let isLockedDown = false;
         try {
-          isLockedDown = !Services.policies.isAllowedForURI("jit", location);
+          isLockedDown = Services.policies.hasSitePoliciesForURI(location);
         } catch (e) {
           lazy.log.warn("Failed to check lockdown state for URI: ", e);
         }

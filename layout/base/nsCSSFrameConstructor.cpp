@@ -99,6 +99,7 @@
 #include "nsTableRowFrame.h"
 #include "nsTableRowGroupFrame.h"
 #include "nsTableWrapperFrame.h"
+#include "nsTextControlFrame.h"
 #include "nsTextNode.h"
 #include "nsTransitionManager.h"
 #include "nsUnicharUtils.h"
@@ -2175,7 +2176,8 @@ nsIFrame* nsCSSFrameConstructor::ConstructTableCol(
   int32_t span = colFrame->GetSpan();
   for (int32_t spanX = 1; spanX < span; spanX++) {
     nsTableColFrame* newCol = NS_NewTableColFrame(mPresShell, computedStyle);
-    InitAndRestoreFrame(aState, content, aParentFrame, newCol, false);
+    InitAndRestoreFrame(aState, content, aParentFrame, newCol,
+                        AllowCounters::No);
     aFrameList.LastChild()->SetNextContinuation(newCol);
     newCol->SetPrevContinuation(aFrameList.LastChild());
     aFrameList.AppendFrame(nullptr, newCol);
@@ -2993,58 +2995,28 @@ nsIFrame* nsCSSFrameConstructor::ConstructListBoxSelectFrame(
     nsFrameConstructorState& aState, FrameConstructionItem& aItem,
     nsContainerFrame* aParentFrame, const nsStyleDisplay* aStyleDisplay,
     nsFrameList& aFrameList) {
-  nsIContent* const content = aItem.mContent;
-  ComputedStyle* const computedStyle = aItem.mComputedStyle;
-
-  // Listbox, not combobox
   nsContainerFrame* listFrame =
-      NS_NewListControlFrame(mPresShell, computedStyle);
-
-  nsContainerFrame* scrolledFrame = NS_NewBlockFrame(mPresShell, computedStyle);
-
-  // ******* this code stolen from Initialze ScrollFrame ********
-  // please adjust this code to use BuildScrollFrame.
-
-  InitializeListboxSelect(aState, listFrame, scrolledFrame, content,
-                          aParentFrame, computedStyle, aFrameList);
-
+      NS_NewListControlFrame(mPresShell, aItem.mComputedStyle);
+  InitAndRestoreFrame(aState, aItem.mContent,
+                      aState.GetGeometricParent(*aStyleDisplay, aParentFrame),
+                      listFrame);
+  ConstructScrollableBlockWithScrollContainer(
+      aState, aItem, aParentFrame, aStyleDisplay, aFrameList, listFrame);
   return listFrame;
 }
 
-void nsCSSFrameConstructor::InitializeListboxSelect(
-    nsFrameConstructorState& aState, nsContainerFrame* scrollFrame,
-    nsContainerFrame* scrolledFrame, nsIContent* aContent,
-    nsContainerFrame* aParentFrame, ComputedStyle* aComputedStyle,
+nsIFrame* nsCSSFrameConstructor::ConstructTextControl(
+    nsFrameConstructorState& aState, FrameConstructionItem& aItem,
+    nsContainerFrame* aParentFrame, const nsStyleDisplay* aStyleDisplay,
     nsFrameList& aFrameList) {
-  // Initialize it
-  nsContainerFrame* geometricParent =
-      aState.GetGeometricParent(*aComputedStyle->StyleDisplay(), aParentFrame);
-
-  // We don't call InitAndRestoreFrame for scrollFrame because we can only
-  // restore the frame state after its parts have been created (in particular,
-  // the scrollable view). So we have to split Init and Restore.
-
-  scrollFrame->Init(aContent, geometricParent, nullptr);
-  aState.AddChild(scrollFrame, aFrameList, aContent, aParentFrame);
-  BuildScrollContainerFrame(aState, aContent, aComputedStyle, scrolledFrame,
-                            geometricParent, scrollFrame);
-  if (aState.mFrameState) {
-    // Restore frame state for the scroll frame
-    RestoreFrameStateFor(scrollFrame, aState.mFrameState);
-  }
-
-  nsFrameConstructorSaveState floatSaveState;
-  aState.MaybePushFloatContainingBlock(scrolledFrame, floatSaveState);
-
-  // Process children
-  nsFrameList childList;
-
-  ProcessChildren(aState, aContent, aComputedStyle, scrolledFrame, false,
-                  childList, false);
-
-  // Set the scrolled frame's initial child lists
-  scrolledFrame->SetInitialChildList(FrameChildListID::Principal,
-                                     std::move(childList));
+  nsContainerFrame* tcf =
+      NS_NewTextControlFrame(mPresShell, aItem.mComputedStyle);
+  InitAndRestoreFrame(aState, aItem.mContent,
+                      aState.GetGeometricParent(*aStyleDisplay, aParentFrame),
+                      tcf);
+  ConstructScrollableBlockWithScrollContainer(aState, aItem, aParentFrame,
+                                              aStyleDisplay, aFrameList, tcf);
+  return tcf;
 }
 
 nsIFrame* nsCSSFrameConstructor::ConstructFieldSetFrame(
@@ -3444,7 +3416,7 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
       SIMPLE_TAG_CREATE(wbr, NS_NewWBRFrame),
       SIMPLE_TAG_CHAIN(button, nsCSSFrameConstructor::FindHTMLButtonData),
       SIMPLE_TAG_CHAIN(input, nsCSSFrameConstructor::FindInputData),
-      SIMPLE_TAG_CREATE(textarea, NS_NewTextControlFrame),
+      SIMPLE_TAG_CREATE(textarea, &nsCSSFrameConstructor::ConstructTextControl),
       SIMPLE_TAG_CHAIN(select, nsCSSFrameConstructor::FindSelectData),
       SIMPLE_TAG_CHAIN(object, nsCSSFrameConstructor::FindObjectData),
       SIMPLE_TAG_CHAIN(embed, nsCSSFrameConstructor::FindObjectData),
@@ -3555,23 +3527,32 @@ nsCSSFrameConstructor::FindInputData(const Element& aElement,
       SIMPLE_INT_CREATE(FormControlType::InputFile, NS_NewFileControlFrame),
       SIMPLE_INT_CHAIN(FormControlType::InputImage,
                        nsCSSFrameConstructor::FindImgControlData),
-      SIMPLE_INT_CREATE(FormControlType::InputEmail, NS_NewTextControlFrame),
-      SIMPLE_INT_CREATE(FormControlType::InputText, NS_NewTextControlFrame),
-      SIMPLE_INT_CREATE(FormControlType::InputTel, NS_NewTextControlFrame),
-      SIMPLE_INT_CREATE(FormControlType::InputUrl, NS_NewTextControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputEmail,
+                        &nsCSSFrameConstructor::ConstructTextControl),
+      SIMPLE_INT_CREATE(FormControlType::InputText,
+                        &nsCSSFrameConstructor::ConstructTextControl),
+      SIMPLE_INT_CREATE(FormControlType::InputTel,
+                        &nsCSSFrameConstructor::ConstructTextControl),
+      SIMPLE_INT_CREATE(FormControlType::InputUrl,
+                        &nsCSSFrameConstructor::ConstructTextControl),
       SIMPLE_INT_CREATE(FormControlType::InputRange, NS_NewRangeFrame),
-      SIMPLE_INT_CREATE(FormControlType::InputPassword, NS_NewTextControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputPassword,
+                        &nsCSSFrameConstructor::ConstructTextControl),
       SIMPLE_INT_CREATE(FormControlType::InputColor, NS_NewColorControlFrame),
-      SIMPLE_INT_CREATE(FormControlType::InputSearch, NS_NewTextControlFrame),
-      SIMPLE_INT_CREATE(FormControlType::InputNumber, NS_NewTextControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputSearch,
+                        &nsCSSFrameConstructor::ConstructTextControl),
+      SIMPLE_INT_CREATE(FormControlType::InputNumber,
+                        &nsCSSFrameConstructor::ConstructTextControl),
       SIMPLE_INT_CREATE(FormControlType::InputTime, NS_NewDateTimeControlFrame),
       SIMPLE_INT_CREATE(FormControlType::InputDate, NS_NewDateTimeControlFrame),
       SIMPLE_INT_CREATE(FormControlType::InputDatetimeLocal,
                         NS_NewDateTimeControlFrame),
       // TODO: this is temporary until a frame is written: bug 888320
-      SIMPLE_INT_CREATE(FormControlType::InputMonth, NS_NewTextControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputMonth,
+                        &nsCSSFrameConstructor::ConstructTextControl),
       // TODO: this is temporary until a frame is written: bug 888320
-      SIMPLE_INT_CREATE(FormControlType::InputWeek, NS_NewTextControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputWeek,
+                        &nsCSSFrameConstructor::ConstructTextControl),
       SIMPLE_INT_CREATE(FormControlType::InputSubmit,
                         NS_NewInputButtonControlFrame),
       SIMPLE_INT_CREATE(FormControlType::InputReset,
@@ -4323,14 +4304,25 @@ nsIFrame* nsCSSFrameConstructor::ConstructScrollableBlock(
     nsFrameConstructorState& aState, FrameConstructionItem& aItem,
     nsContainerFrame* aParentFrame, const nsStyleDisplay* aDisplay,
     nsFrameList& aFrameList) {
+  nsContainerFrame* newFrame = nullptr;
+  ConstructScrollableBlockWithScrollContainer(aState, aItem, aParentFrame,
+                                              aDisplay, aFrameList, newFrame);
+  MOZ_ASSERT(newFrame);
+  return newFrame;
+}
+
+void nsCSSFrameConstructor::ConstructScrollableBlockWithScrollContainer(
+    nsFrameConstructorState& aState, FrameConstructionItem& aItem,
+    nsContainerFrame* aParentFrame, const nsStyleDisplay* aDisplay,
+    nsFrameList& aFrameList, nsContainerFrame*& aNewFrame) {
   nsIContent* const content = aItem.mContent;
   ComputedStyle* const computedStyle = aItem.mComputedStyle;
+  MOZ_ASSERT_IF(aNewFrame, aNewFrame->IsScrollContainerOrSubclass());
 
-  nsContainerFrame* newFrame = nullptr;
   RefPtr<ComputedStyle> scrolledContentStyle =
       BeginBuildingScrollContainerFrame(
           aState, content, computedStyle,
-          aState.GetGeometricParent(*aDisplay, aParentFrame), false, newFrame);
+          aState.GetGeometricParent(*aDisplay, aParentFrame), false, aNewFrame);
 
   // Create our block frame
   // pass a temporary stylecontext, the correct one will be set later
@@ -4338,18 +4330,16 @@ nsIFrame* nsCSSFrameConstructor::ConstructScrollableBlock(
 
   // Make sure to AddChild before we call ConstructBlock so that we
   // end up before our descendants in fixed-pos lists as needed.
-  aState.AddChild(newFrame, aFrameList, content, aParentFrame);
+  aState.AddChild(aNewFrame, aFrameList, content, aParentFrame);
 
   nsFrameList blockList;
-  ConstructBlock(aState, content, newFrame, newFrame, scrolledContentStyle,
+  ConstructBlock(aState, content, aNewFrame, aNewFrame, scrolledContentStyle,
                  &scrolledFrame, blockList,
-                 newFrame->IsAbsPosContainingBlock() ? newFrame : nullptr);
+                 aNewFrame->IsAbsPosContainingBlock() ? aNewFrame : nullptr);
 
   MOZ_ASSERT(blockList.OnlyChild() == scrolledFrame,
              "Scrollframe's frameList should be exactly the scrolled frame!");
-  FinishBuildingScrollContainerFrame(newFrame, scrolledFrame);
-
-  return newFrame;
+  FinishBuildingScrollContainerFrame(aNewFrame, scrolledFrame);
 }
 
 nsIFrame* nsCSSFrameConstructor::ConstructNonScrollableBlock(
@@ -4367,7 +4357,8 @@ nsIFrame* nsCSSFrameConstructor::ConstructNonScrollableBlock(
 
 void nsCSSFrameConstructor::InitAndRestoreFrame(
     const nsFrameConstructorState& aState, nsIContent* aContent,
-    nsContainerFrame* aParentFrame, nsIFrame* aNewFrame, bool aAllowCounters) {
+    nsContainerFrame* aParentFrame, nsIFrame* aNewFrame,
+    AllowCounters aAllowCounters) {
   MOZ_ASSERT(aNewFrame, "Null frame cannot be initialized");
 
   // Initialize the frame
@@ -4379,7 +4370,7 @@ void nsCSSFrameConstructor::InitAndRestoreFrame(
     RestoreFrameStateFor(aNewFrame, aState.mFrameState);
   }
 
-  if (aAllowCounters &&
+  if (aAllowCounters == AllowCounters::Yes &&
       mContainStyleScopeManager.AddCounterChanges(aNewFrame)) {
     CountersDirty();
   }
@@ -5149,13 +5140,6 @@ void nsCSSFrameConstructor::AddFrameConstructionItemsInternal(
   if (bits & FCDATA_SUPPRESS_FRAME) {
     return;
   }
-  // Inside colgroups, suppress everything except columns.
-  if (aParentFrame && aParentFrame->IsTableColGroupFrame() &&
-      (!(bits & FCDATA_IS_TABLE_PART) ||
-       display.mDisplay != StyleDisplay::TableColumn)) {
-    return;
-  }
-
   // Create our shadow tree lazily if needed.
   // NOTE(emilio): This is rather hacky, we should ideally remove this and make
   // shadow tree creation faster, see bug 2017005.
@@ -8599,6 +8583,12 @@ void nsCSSFrameConstructor::CreateNeededPseudoContainers(
       continue;
     }
 
+    if (ourParentType == eTypeColGroup) {
+      // Suppress non-col items of colgroups.
+      iter.DeleteItemsTo(this, endIter);
+      continue;
+    }
+
     // Now group together all the items between iter and endIter.  The right
     // parent type to use depends on ourParentType.
     ParentType wrapperType;
@@ -8617,7 +8607,7 @@ void nsCSSFrameConstructor::CreateNeededPseudoContainers(
             groupingParentType == eTypeColGroup ? eTypeColGroup : eTypeRowGroup;
         break;
       case eTypeColGroup:
-        MOZ_CRASH("Colgroups should be suppresing non-col child items");
+        MOZ_FALLTHROUGH_ASSERT("handled above");
       default:
         NS_ASSERTION(ourParentType == eTypeBlock, "Unrecognized parent type");
         if (IsRubyParentType(groupingParentType)) {
@@ -10255,7 +10245,8 @@ nsFrameList nsCSSFrameConstructor::CreateColumnSpanSiblings(
             PseudoStyleType::MozColumnSpanWrapper);
     nsBlockFrame* columnSpanWrapper =
         NS_NewBlockFrame(mPresShell, columnSpanWrapperStyle);
-    InitAndRestoreFrame(aState, content, parentFrame, columnSpanWrapper, false);
+    InitAndRestoreFrame(aState, content, parentFrame, columnSpanWrapper,
+                        AllowCounters::No);
     columnSpanWrapper->AddStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR |
                                     NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
 
@@ -10548,7 +10539,8 @@ void nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
     // right now. The anonymous block will be the parent of these block
     // children of the inline.
     nsBlockFrame* blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
-    InitAndRestoreFrame(aState, content, parentFrame, blockFrame, false);
+    InitAndRestoreFrame(aState, content, parentFrame, blockFrame,
+                        AllowCounters::No);
     if (aInitialInline->HasAnyStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR)) {
       blockFrame->AddStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR);
     }
@@ -10591,7 +10583,8 @@ void nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
     // Now grab the initial inlines in aChildList and put them into an inline
     // frame.
     nsInlineFrame* inlineFrame = NS_NewInlineFrame(mPresShell, computedStyle);
-    InitAndRestoreFrame(aState, content, parentFrame, inlineFrame, false);
+    InitAndRestoreFrame(aState, content, parentFrame, inlineFrame,
+                        AllowCounters::No);
     inlineFrame->AddStateBits(NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
     if (aInitialInline->HasAnyStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR)) {
       inlineFrame->AddStateBits(NS_FRAME_HAS_MULTI_COLUMN_ANCESTOR);

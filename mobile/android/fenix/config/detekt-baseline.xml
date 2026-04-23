@@ -77,7 +77,7 @@
     <ID>ForbiddenSuppress:MainMenu.kt$@Suppress("LongMethod")</ID>
     <ID>ForbiddenSuppress:MainMenu.kt$@Suppress("LongParameterList", "LongMethod", "CognitiveComplexMethod")</ID>
     <ID>ForbiddenSuppress:MainMenu.kt$@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "CognitiveComplexMethod")</ID>
-    <ID>ForbiddenSuppress:MarketingAttributionService.kt$MarketingAttributionService$@Suppress("CognitiveComplexMethod")</ID>
+    <ID>ForbiddenSuppress:InstallReferrerHandlingService.kt$InstallReferrerHandlingService$@Suppress("CognitiveComplexMethod")</ID>
     <ID>ForbiddenSuppress:MarketingDataOnboardingPage.kt$@Suppress("LongMethod")</ID>
     <ID>ForbiddenSuppress:MarketingDataOnboardingPageRedesign.kt$@Suppress("LongMethod")</ID>
     <ID>ForbiddenSuppress:Menu.kt$@Suppress("LongMethod", "CognitiveComplexMethod")</ID>
@@ -135,12 +135,11 @@
     <ID>ForbiddenSuppress:TabTools.kt$@Suppress("LongMethod")</ID>
     <ID>ForbiddenSuppress:TabsTray.kt$@Suppress("LongMethod")</ID>
     <ID>ForbiddenSuppress:TabsTray.kt$@Suppress("LongMethod", "LongParameterList")</ID>
-    <ID>ForbiddenSuppress:TabsTrayBanner.kt$@Suppress("DEPRECATION", "LongMethod")</ID>
     <ID>ForbiddenSuppress:TabsTrayBanner.kt$@Suppress("LongMethod", "LongParameterList")</ID>
     <ID>ForbiddenSuppress:TabsTrayBanner.kt$@Suppress("LongParameterList", "LongMethod")</ID>
     <ID>ForbiddenSuppress:TelemetryMiddleware.kt$TelemetryMiddleware$@Suppress("TooGenericExceptionCaught", "CognitiveComplexMethod", "NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")</ID>
     <ID>ForbiddenSuppress:ThemeOnboardingPage.kt$@Suppress("LongMethod")</ID>
-    <ID>ForbiddenSuppress:ToolbarGestureHandler.kt$ToolbarGestureHandler$@Suppress("CognitiveComplexMethod")</ID>
+    <ID>ForbiddenSuppress:ToolbarHorizontalGesturesHandler.kt$ToolbarHorizontalGesturesHandler$@Suppress("CognitiveComplexMethod")</ID>
     <ID>ForbiddenSuppress:TopSites.kt$@Suppress( "LongMethod", "LongParameterList", "Deprecation", )</ID>
     <ID>ForbiddenSuppress:TrackingProtectionPanelView.kt$TrackingProtectionPanelView$@Suppress("CognitiveComplexMethod")</ID>
     <ID>ForbiddenSuppress:TranslationSettings.kt$@Suppress("LongMethod", "CognitiveComplexMethod")</ID>

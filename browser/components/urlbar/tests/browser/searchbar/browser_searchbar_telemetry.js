@@ -64,6 +64,7 @@ add_task(async function test_plainQuery() {
     source: "searchbar",
     count: 1,
   });
+  searchbar.handleRevert();
 });
 
 add_task(async function test_pasteAndGo() {
@@ -82,6 +83,7 @@ add_task(async function test_pasteAndGo() {
     source: "searchbar",
     count: 1,
   });
+  searchbar.handleRevert();
 });
 
 add_task(async function test_searchMode() {

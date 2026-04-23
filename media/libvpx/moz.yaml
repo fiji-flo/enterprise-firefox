@@ -57,6 +57,7 @@ vendoring:
     - input_frame_validation.patch
     - input_frame_validation_vp9.patch
     - reset_post_proc_state.patch
+    - svc_multi_spatial_layers.patch
 
   update-actions:
     - action: move-file

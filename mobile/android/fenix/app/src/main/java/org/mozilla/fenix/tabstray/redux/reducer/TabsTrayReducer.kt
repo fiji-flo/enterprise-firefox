@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.tabstray.redux.reducer
 
-import org.mozilla.fenix.tabstray.data.TabsTrayItem
 import org.mozilla.fenix.tabstray.navigation.TabManagerNavDestination
 import org.mozilla.fenix.tabstray.redux.action.TabGroupAction
 import org.mozilla.fenix.tabstray.redux.action.TabSearchAction
@@ -29,8 +28,8 @@ internal object TabsTrayReducer {
             // Selection Mode Actions
             is TabsTrayAction.EnterSelectMode,
             is TabsTrayAction.ExitSelectMode,
-            is TabsTrayAction.AddSelectTabItem,
-            is TabsTrayAction.RemoveSelectTabItem,
+            is TabsTrayAction.AddSelectTab,
+            is TabsTrayAction.RemoveSelectTab,
                  -> handleSelectionModeActions(state, action)
 
             // Tab Update Actions
@@ -95,47 +94,19 @@ internal object TabsTrayReducer {
                 )
             is TabsTrayAction.ExitSelectMode ->
                 state.copy(mode = TabsTrayState.Mode.Normal)
-            is TabsTrayAction.AddSelectTabItem -> {
+
+            is TabsTrayAction.AddSelectTab ->
+                state.copy(mode = TabsTrayState.Mode.Select(selectedTabs = state.mode.selectedTabs + action.tab))
+            is TabsTrayAction.RemoveSelectTab -> {
                 val selectedTabs = state.mode.selectedTabs.toHashSet()
-                val selectedTabGroups = state.mode.selectedTabGroups.toHashSet()
-
-                when (action.item) {
-                    is TabsTrayItem.Tab -> selectedTabs.add(action.item)
-                    is TabsTrayItem.TabGroup -> {
-                        selectedTabGroups.add(action.item)
-                        selectedTabs.addAll(action.item.tabs)
-                    }
-                }
-
+                selectedTabs.remove(action.tab)
                 state.copy(
-                    mode = TabsTrayState.Mode.Select(
-                        selectedTabs = selectedTabs,
-                        selectedTabGroups = selectedTabGroups,
-                    ),
+                    mode = if (selectedTabs.isEmpty()) {
+                        TabsTrayState.Mode.Normal
+                    } else {
+                        TabsTrayState.Mode.Select(selectedTabs = selectedTabs)
+                    },
                 )
-            }
-            is TabsTrayAction.RemoveSelectTabItem -> {
-                val selectedTabs = state.mode.selectedTabs.toHashSet()
-                val selectedTabGroups = state.mode.selectedTabGroups.toHashSet()
-
-                when (action.item) {
-                    is TabsTrayItem.Tab -> selectedTabs.remove(action.item)
-                    is TabsTrayItem.TabGroup -> {
-                        selectedTabGroups.remove(action.item)
-                        selectedTabs.removeAll(action.item.tabs.toSet())
-                    }
-                }
-
-                val newMode = if (selectedTabs.isEmpty() && selectedTabGroups.isEmpty()) {
-                    TabsTrayState.Mode.Normal
-                } else {
-                    TabsTrayState.Mode.Select(
-                        selectedTabs = selectedTabs,
-                        selectedTabGroups = selectedTabGroups,
-                    )
-                }
-
-                state.copy(mode = newMode)
             }
             else -> state
         }
@@ -143,17 +114,30 @@ internal object TabsTrayReducer {
 
     private fun handleTabUpdates(state: TabsTrayState, action: TabsTrayAction): TabsTrayState {
         return when (action) {
-            is TabsTrayAction.UpdateNormalTabs -> state.copy(normalTabs = action.tabs)
+            is TabsTrayAction.UpdateNormalTabs -> state.copy(
+                normalTabsState = state.normalTabsState.copy(
+                    items = action.tabs,
+                ),
+            )
             is TabsTrayAction.UpdatePrivateTabs -> state.copy(
                 privateBrowsing = state.privateBrowsing.copy(tabs = action.tabs),
             )
             is TabsTrayAction.UpdateSelectedTabId -> state.copy(selectedTabId = action.tabId)
             is TabsTrayAction.TabDataUpdateReceived -> state.copy(
                 selectedTabId = action.tabStorageUpdate.selectedTabId,
-                normalTabs = action.tabStorageUpdate.normalTabs,
+                normalTabsState = state.normalTabsState.copy(
+                    items = action.tabStorageUpdate.normalItems,
+                    selectedItemIndex = action.tabStorageUpdate.selectedNormalItemIndex,
+                    tabCount = action.tabStorageUpdate.normalTabCount,
+                ),
                 inactiveTabs = state.inactiveTabs.copy(tabs = action.tabStorageUpdate.inactiveTabs),
-                privateBrowsing = state.privateBrowsing.copy(tabs = action.tabStorageUpdate.privateTabs),
-                tabGroups = action.tabStorageUpdate.tabGroups,
+                privateBrowsing = state.privateBrowsing.copy(
+                    tabs = action.tabStorageUpdate.privateTabs,
+                    selectedItemIndex = action.tabStorageUpdate.selectedPrivateItemIndex,
+                ),
+                tabGroupState = state.tabGroupState.copy(
+                    groups = action.tabStorageUpdate.tabGroups,
+                ),
             )
             else -> state
         }

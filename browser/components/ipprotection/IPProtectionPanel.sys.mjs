@@ -24,8 +24,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs",
   IPPUsageHelper:
     "moz-src:///browser/components/ipprotection/IPPUsageHelper.sys.mjs",
-  UsageStates:
-    "moz-src:///browser/components/ipprotection/IPPUsageHelper.sys.mjs",
   IPProtectionService:
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
   IPProtection:
@@ -36,6 +34,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/ipprotection/fxa/IPPSignInWatcher.sys.mjs",
   IPProtectionStates:
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
+  PanelMultiView:
+    "moz-src:///browser/components/customizableui/PanelMultiView.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
@@ -49,9 +49,14 @@ import {
 } from "chrome://browser/content/ipprotection/ipprotection-constants.mjs";
 
 const BANDWIDTH_THRESHOLD_PREF = "browser.ipProtection.bandwidthThreshold";
+const BANDWIDTH_WARNING_DISMISSED_PREF =
+  "browser.ipProtection.bandwidthWarningDismissedThreshold";
+const BANDWIDTH_RESET_DATE_PREF = "browser.ipProtection.bandwidthResetDate";
 const DEFAULT_EGRESS_LOCATION = { name: "United States", code: "us" };
 const EGRESS_LOCATION_PREF = "browser.ipProtection.egressLocationEnabled";
 const USER_OPENED_PREF = "browser.ipProtection.everOpenedPanel";
+const OPENED_WITH_LOCATION_PREF =
+  "browser.ipProtection.openedPanelWithLocation";
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -73,11 +78,13 @@ let hasCustomElements = new WeakSet();
  * Manages updates for a IP Protection panelView in a given browser window.
  */
 export class IPProtectionPanel {
+  static MAIN_PANELVIEW = "PanelUI-ipprotection";
+  static LOCATIONS_PANELVIEW = "PanelUI-ipprotection-locations";
   static CONTENT_TAGNAME = "ipprotection-content";
+  static LOCATIONS_TAGNAME = "ipprotection-locations";
   static CUSTOM_ELEMENTS_SCRIPT =
     "chrome://browser/content/ipprotection/ipprotection-customelements.js";
   static WIDGET_ID = "ipprotection-button";
-  static PANEL_ID = "PanelUI-ipprotection";
   static TITLE_L10N_ID = "ipprotection-title";
   static HEADER_AREA_ID = "PanelUI-ipprotection-header";
   static CONTENT_AREA_ID = "PanelUI-ipprotection-content";
@@ -141,10 +148,11 @@ export class IPProtectionPanel {
    */
   state = {};
   panel = null;
+  components = new WeakSet();
   initiatedUpgrade = false;
   #window = null;
-  #lastDismissedUsageState = "none";
   #panelView = null;
+  #headerButtons = [];
   // Bug 2020733: Adds a key listener at the panel level
   //  since moz-button (header button) traps key events in its shadow DOM.
   //  This also avoids duplicate listeners across panel components.
@@ -194,11 +202,24 @@ export class IPProtectionPanel {
    * it is active (open or showing).
    */
   get active() {
-    let panelParent = this.panel?.closest("panel");
-    if (!panelParent) {
+    if (!this.panel) {
       return false;
     }
-    return panelParent.state == "open" || panelParent.state == "showing";
+    return this.panel.state == "open" || this.panel.state == "showing";
+  }
+
+  get locationsView() {
+    if (!this.panel) {
+      return null;
+    }
+    return lazy.PanelMultiView.getViewNode(
+      this.panel.ownerDocument,
+      IPProtectionPanel.LOCATIONS_PANELVIEW
+    );
+  }
+
+  get panelMultiView() {
+    return this.panel?.querySelector("panelmultiview");
   }
 
   /**
@@ -307,20 +328,38 @@ export class IPProtectionPanel {
   }
 
   /**
-   * Updates the state of the panel component.
+   * Updates the state of all components.
    *
-   * @param {object} state
+   * @param {object} [state]
    *   The state object from IPProtectionPanel.
-   * @param {Element} panelEl
-   *   The panelEl element to update the state on.
    */
-  updateState(state = this.state, panelEl = this.panel) {
-    if (!panelEl?.isConnected || !panelEl.state) {
+  updateState(state = this.state) {
+    for (let component of ChromeUtils.nondeterministicGetWeakSetKeys(
+      this.components
+    )) {
+      this.updateComponentState(component, state);
+    }
+  }
+
+  /**
+   * Updates the state of a single component.
+   *
+   * @param {Element} element
+   *   The target element to update the state on.
+   * @param {object} [state]
+   *   The state object from IPProtectionPanel.
+   */
+  updateComponentState(element, state = this.state) {
+    if (!element?.isConnected || !element.state) {
       return;
     }
 
-    panelEl.state = state;
-    panelEl.requestUpdate();
+    if (!this.components.has(element)) {
+      this.components.add(element);
+    }
+
+    element.state = state;
+    element.requestUpdate();
   }
 
   async #startProxy() {
@@ -365,6 +404,12 @@ export class IPProtectionPanel {
     }
   }
 
+  #handleHeaderButtonKeypress(e) {
+    if (e.code == "Space" || e.code == "Enter") {
+      IPProtectionPanel.showHelpPage(e);
+    }
+  }
+
   /**
    * Updates the visibility of the panel components before they will shown.
    *
@@ -395,12 +440,31 @@ export class IPProtectionPanel {
     if (this.panel) {
       this.updateState();
     } else {
-      this.#createPanel(panelView);
+      this.panel = panelView.closest("panel");
+      this.#addPanelListeners(panelView.ownerDocument);
+      let contentEl = this.#createPanel(
+        panelView,
+        IPProtectionPanel.CONTENT_TAGNAME
+      );
+      if (contentEl) {
+        contentEl.dataset.capturesFocus = "true";
+        this.#panelView = panelView;
+        panelView.addEventListener("keydown", this.#panelKeyListener, {
+          capture: true,
+        });
+      }
     }
 
     let hasUserEverOpenedPanel = Services.prefs.getBoolPref(USER_OPENED_PREF);
     if (!hasUserEverOpenedPanel) {
       Services.prefs.setBoolPref(USER_OPENED_PREF, true);
+    }
+
+    let hasOpenedPanelWithLocation = Services.prefs.getBoolPref(
+      OPENED_WITH_LOCATION_PREF
+    );
+    if (!hasOpenedPanelWithLocation) {
+      Services.prefs.setBoolPref(OPENED_WITH_LOCATION_PREF, true);
     }
   }
 
@@ -427,54 +491,37 @@ export class IPProtectionPanel {
   }
 
   /**
-   * Creates a panel component in a panelView.
+   * Create a content element and header for a panel view.
    *
    * @param {MozBrowser} panelView
+   * @param {string} contentTagName
+   * @returns {Element|null} The newly-appended content element, or null if the
+   *   content area was already populated.
    */
-  #createPanel(panelView) {
+  #createPanel(panelView, contentTagName) {
     let { ownerDocument } = panelView;
-
-    let headerArea = panelView.querySelector(
-      `#${IPProtectionPanel.HEADER_AREA_ID}`
-    );
-    let headerButton = headerArea.querySelector(
-      `#${IPProtectionPanel.HEADER_BUTTON_ID}`
-    );
-
-    if (AppConstants.MOZ_ENTERPRISE) {
-      const newHeaderButton =
-        this.#createAccessConnectorStatusLabel(ownerDocument);
-      if (headerButton) {
-        headerArea.replaceChild(newHeaderButton, headerButton);
-      } else {
-        headerArea.appendChild(newHeaderButton);
-      }
-      headerButton = newHeaderButton;
-    } else if (!headerButton) {
-      headerButton = this.#createHeaderButton(ownerDocument);
-      headerArea.appendChild(headerButton);
+    let contentArea = panelView.querySelector(".panel-subview-body");
+    if (!contentArea || contentArea.children.length) {
+      return null;
     }
+
+    let headerButton = panelView.querySelector(".panel-info-button");
+    if (AppConstants.MOZ_ENTERPRISE) {
+      headerButton.replaceWith(
+        this.#createAccessConnectorStatusLabel(ownerDocument)
+      );
+    }
+
+    headerButton.addEventListener("click", IPProtectionPanel.showHelpPage);
+    headerButton.addEventListener("keypress", this.#handleHeaderButtonKeypress);
     // Reset the tab index to ensure it is focusable.
     headerButton.setAttribute("tabindex", "0");
+    this.#headerButtons.push(headerButton);
 
-    let contentEl = ownerDocument.createElement(
-      IPProtectionPanel.CONTENT_TAGNAME
-    );
-    this.panel = contentEl;
-
-    contentEl.dataset.capturesFocus = "true";
-
-    this.#panelView = panelView;
-    panelView.addEventListener("keydown", this.#panelKeyListener, {
-      capture: true,
-    });
-
-    this.#addPanelListeners(ownerDocument);
-
-    let contentArea = panelView.querySelector(
-      `#${IPProtectionPanel.CONTENT_AREA_ID}`
-    );
+    let contentEl = ownerDocument.createElement(contentTagName);
     contentArea.appendChild(contentEl);
+    this.components.add(contentEl);
+    return contentEl;
   }
 
   #createAccessConnectorStatusLabel(ownerDocument) {
@@ -492,26 +539,6 @@ export class IPProtectionPanel {
     return statusLabel;
   }
 
-  #createHeaderButton(ownerDocument) {
-    const headerButton = ownerDocument.createElement("moz-button");
-
-    headerButton.id = IPProtectionPanel.HEADER_BUTTON_ID;
-    headerButton.className = "panel-info-button";
-    headerButton.dataset.capturesFocus = "true";
-    headerButton.type = "ghost";
-    headerButton.iconSrc = "chrome://global/skin/icons/info.svg";
-    headerButton.size = "small";
-
-    ownerDocument.l10n.setAttributes(headerButton, "ipprotection-help-button");
-    headerButton.addEventListener("click", IPProtectionPanel.showHelpPage);
-    headerButton.addEventListener("keypress", e => {
-      if (e.code == "Space" || e.code == "Enter") {
-        IPProtectionPanel.showHelpPage(e);
-      }
-    });
-    return headerButton;
-  }
-
   /**
    * Open the IP Protection panel in the given window.
    *
@@ -525,18 +552,14 @@ export class IPProtectionPanel {
 
     let widget = lazy.CustomizableUI.getWidget(IPProtectionPanel.WIDGET_ID);
     let anchor = widget.forWindow(window).anchor;
-    await window.PanelUI.showSubView(IPProtectionPanel.PANEL_ID, anchor);
+    await window.PanelUI.showSubView(IPProtectionPanel.MAIN_PANELVIEW, anchor);
   }
 
   /**
    * Close the containing panel popup.
    */
   close() {
-    let panelParent = this.panel?.closest("panel");
-    if (!panelParent) {
-      return;
-    }
-    panelParent.hidePopup();
+    this.panel?.hidePopup();
   }
 
   /**
@@ -599,25 +622,58 @@ export class IPProtectionPanel {
   }
 
   /**
+   * Show the Locations subview and create its components if necessary.
+   */
+  async showLocationSelector() {
+    let view = this.locationsView;
+    if (!view) {
+      return;
+    }
+    let viewShown = new Promise(resolve => {
+      view.addEventListener("ViewShown", resolve, { once: true });
+    });
+    this.panelMultiView?.showSubView(IPProtectionPanel.LOCATIONS_PANELVIEW);
+    this.#createPanel(view, IPProtectionPanel.LOCATIONS_TAGNAME);
+
+    await viewShown;
+  }
+
+  /**
    * Remove added elements and listeners.
    */
   destroy() {
-    if (this.panel) {
-      const doc = this.panel.ownerDocument;
-      this.#panelView?.removeEventListener("keydown", this.#panelKeyListener, {
-        capture: true,
-      });
-      this.#panelView = null;
-      this.panel.remove();
-      this.#removePanelListeners(doc);
-      this.panel = null;
-      if (this.state.error) {
-        this.setState({
-          error: "",
-        });
-        this.toolbarButton?.updateState(null, { error: "" });
-      }
+    if (!this.panel) {
+      return;
     }
+
+    this.#panelView?.removeEventListener("keydown", this.#panelKeyListener, {
+      capture: true,
+    });
+    this.#panelView = null;
+
+    for (let button of this.#headerButtons) {
+      button.removeEventListener("click", IPProtectionPanel.showHelpPage);
+      button.removeEventListener("keypress", this.#handleHeaderButtonKeypress);
+    }
+    this.#headerButtons = [];
+
+    this.#removePanelListeners(this.panel.ownerDocument);
+
+    for (let component of ChromeUtils.nondeterministicGetWeakSetKeys(
+      this.components
+    )) {
+      component.remove();
+      this.components.delete(component);
+    }
+
+    if (this.state.error) {
+      this.setState({
+        error: "",
+      });
+      this.toolbarButton?.updateState(null, { error: "" });
+    }
+
+    this.panel = null;
   }
 
   uninit() {
@@ -643,6 +699,7 @@ export class IPProtectionPanel {
       "IPProtection:DismissBandwidthWarning",
       this.handleEvent
     );
+    doc.addEventListener("IPProtection:UserShowLocations", this.handleEvent);
   }
 
   #removePanelListeners(doc) {
@@ -664,6 +721,7 @@ export class IPProtectionPanel {
       "IPProtection:DismissBandwidthWarning",
       this.handleEvent
     );
+    doc.removeEventListener("IPProtection:UserShowLocations", this.handleEvent);
   }
 
   #addProxyListeners() {
@@ -722,14 +780,15 @@ export class IPProtectionPanel {
 
   #shouldShowBandwidthWarning() {
     const state = lazy.IPPUsageHelper.state;
-    if (
-      (state == "warning-75-percent" || state == "warning-90-percent") &&
-      state !== this.#lastDismissedUsageState
-    ) {
-      return true;
+    let threshold = 0;
+    if (state === "warning-75-percent") {
+      threshold = 75;
+    } else if (state === "warning-90-percent") {
+      threshold = 90;
+    } else {
+      return false;
     }
-
-    return false;
+    return lazy.IPPUsageHelper.getDismissedThresholds().panel < threshold;
   }
 
   #addProgressListener() {
@@ -746,18 +805,30 @@ export class IPProtectionPanel {
 
   #addPrefObserver() {
     Services.prefs.addObserver(EGRESS_LOCATION_PREF, this.handlePrefChange);
+    Services.prefs.addObserver(
+      BANDWIDTH_WARNING_DISMISSED_PREF,
+      this.handlePrefChange
+    );
   }
 
   #removePrefObserver() {
     Services.prefs.removeObserver(EGRESS_LOCATION_PREF, this.handlePrefChange);
+    Services.prefs.removeObserver(
+      BANDWIDTH_WARNING_DISMISSED_PREF,
+      this.handlePrefChange
+    );
   }
 
-  #handlePrefChange(subject, topic, data) {
+  #handlePrefChange(_subject, _topic, data) {
     if (data === EGRESS_LOCATION_PREF) {
       const isEnabled = Services.prefs.getBoolPref(EGRESS_LOCATION_PREF, false);
       this.setState({
         location: isEnabled ? DEFAULT_EGRESS_LOCATION : null,
       });
+    } else if (data === BANDWIDTH_WARNING_DISMISSED_PREF) {
+      if (!this.#shouldShowBandwidthWarning()) {
+        this.setState({ bandwidthWarning: false });
+      }
     }
   }
 
@@ -851,7 +922,7 @@ export class IPProtectionPanel {
 
   #handleEvent(event) {
     if (event.type == "IPProtection:Init") {
-      this.updateState();
+      this.updateComponentState(event.target);
     } else if (event.type == "IPProtection:Close") {
       this.close();
     } else if (event.type == "IPProtection:UserEnable") {
@@ -922,7 +993,22 @@ export class IPProtectionPanel {
       lazy.IPPExceptionsManager.setExclusion(principal, true);
       Glean.ipprotection.exclusionToggled.record({ excluded: true });
     } else if (event.type == "IPProtection:DismissBandwidthWarning") {
-      this.#lastDismissedUsageState = lazy.IPPUsageHelper.state;
+      const state = lazy.IPPUsageHelper.state;
+      let threshold = 0;
+      if (state === "warning-75-percent") {
+        threshold = 75;
+      } else if (state === "warning-90-percent") {
+        threshold = 90;
+      }
+      if (threshold > 0) {
+        const current = lazy.IPPUsageHelper.getDismissedThresholds();
+        if (threshold > current.panel) {
+          lazy.IPPUsageHelper.setDismissedThresholds({
+            ...current,
+            panel: threshold,
+          });
+        }
+      }
       this.setState({ bandwidthWarning: false });
     } else if (event.type == "IPPProxyManager:UsageChanged") {
       const usage = event.detail.usage;
@@ -970,6 +1056,17 @@ export class IPProtectionPanel {
         this.#measureBandwidthThreshold(threshold, lastRecordedThreshold);
       }
 
+      const resetDate = usage.reset.toString();
+      const lastResetDate = Services.prefs.getStringPref(
+        BANDWIDTH_RESET_DATE_PREF,
+        ""
+      );
+      Services.prefs.setStringPref(BANDWIDTH_RESET_DATE_PREF, resetDate);
+
+      if (threshold === 0 && lastResetDate && resetDate !== lastResetDate) {
+        this.#sendBandwidthResetTrigger();
+      }
+
       if (lazy.BANDWIDTH_USAGE_ENABLED) {
         this.setState({
           bandwidthUsage: {
@@ -980,11 +1077,20 @@ export class IPProtectionPanel {
         });
       }
     } else if (event.type == "IPPUsageHelper:StateChanged") {
-      if (lazy.IPPUsageHelper.state === lazy.UsageStates.NONE) {
-        this.#lastDismissedUsageState = lazy.UsageStates.NONE;
-      }
       this.setState({ bandwidthWarning: this.#shouldShowBandwidthWarning() });
+    } else if (event.type == "IPProtection:UserShowLocations") {
+      this.showLocationSelector();
     }
+  }
+
+  async #sendBandwidthResetTrigger() {
+    await lazy.ASRouter.waitForInitialized;
+    const win = Services.wm.getMostRecentBrowserWindow();
+    const browser = win?.gBrowser?.selectedBrowser;
+    await lazy.ASRouter.sendTriggerMessage({
+      browser,
+      id: "ipProtectionBandwidthReset",
+    });
   }
 
   #measureBandwidthThreshold(threshold, lastRecordedThreshold) {

@@ -2,15 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 const lazy = {};
 
-ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () =>
-  ChromeUtils.importESModule(
-    "resource://gre/modules/FxAccounts.sys.mjs"
-  ).getFxAccountsSingleton()
-);
 ChromeUtils.defineESModuleGetters(lazy, {
   IPPProxyManager:
     "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs",
@@ -20,32 +13,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
 });
 
-const GUARDIAN_ENDPOINT_PREF = "browser.ipProtection.guardian.endpoint";
-const GUARDIAN_ENDPOINT_DEFAULT = "https://vpn.mozilla.com";
-
-const CLIENT_ID_MAP = {
-  "http://localhost:3000": "6089c54fdc970aed",
-  "https://guardian-dev.herokuapp.com": "64ef9b544a31bca8",
-  "https://dev.vpn.nonprod.webservices.mozgcp.net": "64ef9b544a31bca8",
-  "https://stage.guardian.nonprod.cloudops.mozgcp.net": "e6eb0d1e856335fc",
-  "https://stage.vpn.nonprod.webservices.mozgcp.net": "e6eb0d1e856335fc",
-  "https://fpn.firefox.com": "e6eb0d1e856335fc",
-  "https://vpn.mozilla.org": "e6eb0d1e856335fc",
-};
-
-const LOG_PREF = "browser.ipProtection.log";
-
-ChromeUtils.defineLazyGetter(lazy, "logConsole", function () {
-  return console.createInstance({
-    prefix: "IPPEnrollAndEntitleManager",
-    maxLogLevel: Services.prefs.getBoolPref(LOG_PREF, false) ? "Debug" : "Warn",
-  });
-});
-
 /**
  * Manages enrollment and entitlement for the IP Protection proxy service.
- * Enrollment links the user's FxA account to Guardian via a hidden browser sign-in flow.
- * Entitlement is an FxA-account-scoped grant that allows access to the proxy service.
+ * Delegates enrollment and entitlement fetching to the active auth provider.
  */
 class IPPEnrollAndEntitleManagerSingleton extends EventTarget {
   #entitlement = null;
@@ -201,8 +171,6 @@ class IPPEnrollAndEntitleManagerSingleton extends EventTarget {
   /**
    * Enroll and entitle the current Firefox account.
    *
-   * This will attempt to enroll the user if they are not enrolled, and then fetch
-   *
    * @param {AbortSignal} abortSignal - a signal to abort the enrollment
    * @returns {Promise<object>} status
    * @returns {boolean} status.isEnrolledAndEntitled - True if the user is enrolled and entitled.
@@ -213,27 +181,17 @@ class IPPEnrollAndEntitleManagerSingleton extends EventTarget {
       return { isEnrolledAndEntitled: true };
     }
 
-    const { enrollment, error: enrollmentError } =
-      // Duck typing: enroll() is not part of the base IPPAuthProvider contract.
-      // This manager requires the active auth provider to be an IPPFxaAuthProvider.
-      await lazy.IPProtectionService.authProvider.enroll(abortSignal);
+    // Duck typing: enrollAndEntitle() is not part of the base IPPAuthProvider
+    // contract. This manager requires a provider that implements it.
+    const { isEnrolledAndEntitled, entitlement, error } =
+      await lazy.IPProtectionService.authProvider.enrollAndEntitle(abortSignal);
 
-    if (enrollmentError || !enrollment) {
-      // Unset the entitlement if enrollment failed.
+    if (!isEnrolledAndEntitled) {
       this.#setEntitlement(null);
-      return { isEnrolledAndEntitled: false, error: enrollmentError };
+      return { isEnrolledAndEntitled: false, error };
     }
 
-    const { entitlement, error: entitlementError } =
-      await IPPEnrollAndEntitleManagerSingleton.#getEntitlement();
-
-    if (entitlementError || !entitlement) {
-      // Unset the entitlement if not available.
-      this.#setEntitlement(null);
-      return { isEnrolledAndEntitled: false, error: entitlementError };
-    }
-
-    this.#setEntitlement(entitlement);
+    this.#setEntitlement(entitlement ?? null);
     return { isEnrolledAndEntitled: true };
   }
 
@@ -250,22 +208,10 @@ class IPPEnrollAndEntitleManagerSingleton extends EventTarget {
       return { isEntitled: true };
     }
 
-    // Linked does not mean enrolled: it could be that the link comes from a
-    // previous MozillaVPN subscription.
-    let isLinked = await this.isLinkedToGuardian(!forceRefetch);
-
-    if (!isLinked) {
-      this.#setEntitlement(null);
-      return { isEntitled: false };
-    }
-
-    // Enrolling will handle updating the entitlement.
-    if (this.#enrollingPromise) {
-      return { isEntitled: false };
-    }
-
-    let { entitlement, error } =
-      await IPPEnrollAndEntitleManagerSingleton.#getEntitlement();
+    // Duck typing: getEntitlement() is not part of the base IPPAuthProvider
+    // contract. This manager requires a provider that implements it.
+    const { entitlement, error } =
+      await lazy.IPProtectionService.authProvider.getEntitlement(forceRefetch);
 
     if (error || !entitlement) {
       this.#setEntitlement(null);
@@ -277,65 +223,6 @@ class IPPEnrollAndEntitleManagerSingleton extends EventTarget {
   }
 
   /**
-   * Checks if the current FxA account is linked to Guardian by inspecting
-   * the list of attached FxA OAuth clients for a matching Guardian client ID.
-   *
-   * @param {boolean} useCache - If true, will use the cached client list if available.
-   * @returns {Promise<boolean>} - True if linked, false otherwise.
-   */
-  async isLinkedToGuardian(useCache = true) {
-    if (AppConstants.MOZ_ENTERPRISE) {
-      return true;
-    }
-    try {
-      const endpoint = Services.prefs.getCharPref(
-        GUARDIAN_ENDPOINT_PREF,
-        GUARDIAN_ENDPOINT_DEFAULT
-      );
-      const clientId = CLIENT_ID_MAP[new URL(endpoint).origin];
-      if (!clientId) {
-        return false;
-      }
-      const cached = await lazy.fxAccounts.listAttachedOAuthClients();
-      if (cached.some(c => c.id === clientId)) {
-        return true;
-      }
-      if (useCache) {
-        return false;
-      }
-      const refreshed = await lazy.fxAccounts.listAttachedOAuthClients(true);
-      return refreshed.some(c => c.id === clientId);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /**
-   * Fetches the entitlement for the current Firefox account.
-   *
-   * Static to avoid changing internal state of the singleton.
-   *
-   * @returns {Promise<object>} status
-   * @returns {object} status.entitlement - The entitlement object.
-   * @returns {string} [status.error] - Error message if fetching entitlement failed.
-   */
-  static async #getEntitlement() {
-    try {
-      const { status, entitlement, error } =
-        await lazy.IPProtectionService.guardian.fetchUserInfo();
-      lazy.logConsole.debug("Entitlement:", { status, entitlement, error });
-
-      if (error || !entitlement || status != 200) {
-        return { entitlement: null, error: error || `Status: ${status}` };
-      }
-
-      return { entitlement };
-    } catch (error) {
-      return { entitlement: null, error: error.message };
-    }
-  }
-
-  /**
    * Sets the entitlement and updates the cache and IPProtectionService state.
    *
    * @param {object | null} entitlement - The entitlement object or null to unset.
@@ -343,6 +230,10 @@ class IPPEnrollAndEntitleManagerSingleton extends EventTarget {
   #setEntitlement(entitlement) {
     this.#entitlement = entitlement;
     lazy.IPPStartupCache.storeEntitlement(this.#entitlement);
+
+    if (!this.#signInWatcher) {
+      return;
+    }
 
     lazy.IPProtectionService.updateState();
 

@@ -32,6 +32,9 @@ export class AIChatContent extends MozLitElement {
 
   #lastScrollReq = null;
   #overflowObserver = null;
+  #scrollHandler = null;
+  #scrollClickHandler = null;
+  #scrollRafId = null;
 
   constructor() {
     super();
@@ -66,12 +69,14 @@ export class AIChatContent extends MozLitElement {
     );
     this.#initFooterActionListeners();
     this.#initOverflowObserver();
+    this.#initScrollListener();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.#overflowObserver?.disconnect();
     this.#overflowObserver = null;
+    this.#teardownScrollListener();
   }
 
   #dispatchAction(action, detail) {
@@ -196,6 +201,67 @@ export class AIChatContent extends MozLitElement {
     });
   }
 
+  get #wrapper() {
+    return this.shadowRoot?.querySelector(".chat-content-wrapper");
+  }
+
+  get #jumpButton() {
+    return this.shadowRoot?.querySelector(".jump-to-bottom-button");
+  }
+
+  #initScrollListener() {
+    this.updateComplete.then(() => {
+      if (!this.isConnected) {
+        return;
+      }
+      const wrapper = this.#wrapper;
+      const btn = this.#jumpButton;
+      if (!wrapper || !btn) {
+        return;
+      }
+      this.#scrollHandler = () => {
+        if (this.#scrollRafId) {
+          return;
+        }
+        this.#scrollRafId = requestAnimationFrame(() => {
+          this.#scrollRafId = null;
+          const distanceFromBottom =
+            wrapper.scrollHeight - wrapper.scrollTop - wrapper.clientHeight;
+          const threshold = wrapper.clientHeight * 0.5;
+          const show = distanceFromBottom > threshold;
+          const atBottom = distanceFromBottom < 1;
+          if (btn.hasAttribute("visible") !== show) {
+            btn.toggleAttribute("visible", show);
+            btn.toggleAttribute("disabled", !show);
+          }
+          if (wrapper.hasAttribute("scrolled-to-bottom") !== atBottom) {
+            wrapper.toggleAttribute("scrolled-to-bottom", atBottom);
+          }
+        });
+      };
+      this.#scrollClickHandler = () => {
+        wrapper.scrollTop = wrapper.scrollHeight;
+      };
+      wrapper.addEventListener("scroll", this.#scrollHandler);
+      btn.addEventListener("click", this.#scrollClickHandler);
+    });
+  }
+
+  #teardownScrollListener() {
+    if (this.#scrollRafId) {
+      cancelAnimationFrame(this.#scrollRafId);
+      this.#scrollRafId = null;
+    }
+    if (this.#scrollHandler) {
+      this.#wrapper?.removeEventListener("scroll", this.#scrollHandler);
+      this.#scrollHandler = null;
+    }
+    if (this.#scrollClickHandler) {
+      this.#jumpButton?.removeEventListener("click", this.#scrollClickHandler);
+      this.#scrollClickHandler = null;
+    }
+  }
+
   #getAssistantMessageBody(messageId) {
     if (!messageId) {
       return "";
@@ -269,15 +335,13 @@ export class AIChatContent extends MozLitElement {
   }
 
   #setMessageCompleteAttr(message) {
+    this.assistantIsLoading = false;
     const assistantLastMessage = this.conversationState.findLast(
       msg => msg?.messageId === message.content.id
     );
-
-    if (!assistantLastMessage) {
-      return;
+    if (assistantLastMessage) {
+      assistantLastMessage.isLastChunk = true;
     }
-
-    assistantLastMessage.isLastChunk = true;
     this.requestUpdate();
   }
 
@@ -302,6 +366,8 @@ export class AIChatContent extends MozLitElement {
     if (convIdChanged || isReloadingSameConvo) {
       this.conversationState = [];
       this.followUpSuggestions = [];
+      this.assistantIsLoading = false;
+      this.isSearching = false;
       if (convIdChanged) {
         this.shadowRoot
           ?.querySelector(".chat-inner-wrapper")
@@ -599,6 +665,13 @@ export class AIChatContent extends MozLitElement {
           ${this.#renderLoader()} ${this.#renderError()}
         </div>
       </div>
+      <moz-button
+        class="jump-to-bottom-button"
+        data-l10n-id="aiwindow-jump-to-bottom"
+        data-l10n-attrs="aria-label,tooltiptext"
+        iconsrc="chrome://global/skin/icons/shaft-arrow-down.svg"
+        disabled
+      ></moz-button>
     `;
   }
 }

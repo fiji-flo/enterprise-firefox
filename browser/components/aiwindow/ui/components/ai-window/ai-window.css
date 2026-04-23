@@ -168,6 +168,7 @@ smartwindow-prompts {
 
 .sidebar-header {
   display: flex;
+  gap: var(--space-small);
   grid-area: sidebar-header;
 }
 
@@ -176,16 +177,23 @@ smartwindow-prompts {
   grid-area: fullpage-header;
 }
 
-moz-button.new-chat-icon-button {
-  --button-border-radius: var(--border-radius-large);
-  /* Updating background color for light only, persisting default dark background-color */
-  --button-background-color: light-dark(var(--color-violet-0), rgba(0, 0, 0, 0.33));
-  --button-text-color: light-dark(var(--color-gray-70), var(--color-white));
-  --button-background-color-hover: color-mix(in srgb, currentColor 11%, transparent);
+moz-button.new-chat-icon-button,
+moz-button.close-sidebar-button {
+  --button-border-radius: var(--border-radius-circle);
+  --button-background-color: light-dark(var(--color-white), var(--color-black-alpha-30));
+  --button-background-color-hover: light-dark(var(--color-violet-20), color-mix(in srgb, currentColor 11%, transparent));
+  --button-background-color-active: light-dark(var(--color-violet-30), color-mix(in srgb, currentColor 17%, transparent));
+  --button-text-color: light-dark(var(--color-violet-90), var(--color-violet-0));
 }
 
-moz-button.new-chat-icon-button::part(button) {
+moz-button.new-chat-icon-button::part(button),
+moz-button.close-sidebar-button::part(button) {
+  backdrop-filter: blur(12px);
   box-shadow: var(--box-shadow-level-1);
+}
+
+moz-button.close-sidebar-button {
+  --icon-size: calc(var(--icon-size-xsmall) - 2px);
 }
 
 #smartbar-toggle-button:not([hidden]) {
@@ -235,4 +243,14 @@ smartwindow-footer {
   width: 100%;
   display: flex;
   justify-content: center;
+}
+
+.sr-only {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }

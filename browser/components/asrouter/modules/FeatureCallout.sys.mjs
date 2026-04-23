@@ -1598,8 +1598,7 @@ export class FeatureCallout {
     const handleActorMessage =
       lazy.AboutWelcomeParent.prototype.onContentMessage.bind({});
     const getActionHandler = name => data =>
-      handleActorMessage(`AWPage:${name}`, data, this.doc);
-
+      handleActorMessage(`AWPage:${name}`, data, this.browser);
     const telemetryMessageHandler = getActionHandler("TELEMETRY_EVENT");
     const AWSendEventTelemetry = data => {
       if (this.config?.metrics !== "block") {
@@ -1611,6 +1610,7 @@ export class FeatureCallout {
       AWGetFeatureConfig: () => this.config,
       AWGetSelectedTheme: getActionHandler("GET_SELECTED_THEME"),
       AWGetInstalledAddons: getActionHandler("GET_INSTALLED_ADDONS"),
+      AWEnsureAddonInstalled: getActionHandler("ENSURE_ADDON_INSTALLED"),
       // Do not send telemetry if message config sets metrics as 'block'.
       AWSendEventTelemetry,
       AWSendToDeviceEmailsSupported: getActionHandler(
@@ -2530,7 +2530,7 @@ export class FeatureCallout {
           "Menu linear-gradient(var(--panel-background), var(--panel-background))",
         color: "var(--panel-color)",
         border: "var(--panel-border-color)",
-        "accent-color": "var(--focus-outline-color)",
+        "accent-color": "var(--fc-primary-button-color)",
         // Button Background
         "button-background": "var(--button-background-color)",
         "button-background-hover": "var(--button-background-color-hover)",

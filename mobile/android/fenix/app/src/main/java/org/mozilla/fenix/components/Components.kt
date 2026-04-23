@@ -54,6 +54,7 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistState
 import org.mozilla.fenix.components.appstate.setup.checklist.getSetupChecklistCollection
+import org.mozilla.fenix.components.appstate.sports.SportsWidgetState
 import org.mozilla.fenix.components.llm.Llm
 import org.mozilla.fenix.components.llm.ext.accessTokenProvider
 import org.mozilla.fenix.components.metrics.MetricsMiddleware
@@ -305,6 +306,7 @@ class Components(private val context: Context) {
                 },
                 recentHistory = emptyList(),
                 setupChecklistState = setupChecklistState(),
+                sportsWidgetState = setupSportsWidgetState(),
             ).run { filterState(blocklistHandler) },
             middlewares = listOf(
                 ProfileMarkerMiddleware(markerName = "AppStore", profiler = core.engine.profiler),
@@ -363,6 +365,10 @@ class Components(private val context: Context) {
     } else {
         null
     }
+
+    private fun setupSportsWidgetState() = SportsWidgetState(
+        countriesSelected = settings.sportsSelectedCountries,
+    )
 
     val fxSuggest by lazyMonitored { FxSuggest(context, remoteSettingsService.value, analytics.crashReporter) }
 

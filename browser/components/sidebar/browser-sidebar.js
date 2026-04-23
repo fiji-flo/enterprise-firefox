@@ -1605,9 +1605,8 @@ var SidebarController = {
   },
 
   updatePinnedTabsHeightOnResize() {
-    // Skip during sidebar width drag to prevent unpinned tabs from jumping.
-    // The drop handler calls this function once cleanly after drag ends.
-    if (this.isLauncherDragging) {
+    // Skip during any splitter drag to avoid flickering.
+    if (this.isLauncherDragging || this.isPinnedTabsDragging) {
       return;
     }
 
@@ -1617,11 +1616,6 @@ var SidebarController = {
 
     if (!preferredHeight || !this._pinnedTabsContainer.childElementCount) {
       return;
-    }
-
-    if (this.isLauncherDragging) {
-      // Clear height during drag so we can measure the natural content height accurately
-      this._pinnedTabsContainer.style.height = "";
     }
 
     let itemsWrapperHeight = window.windowUtils.getBoundsWithoutFlushing(

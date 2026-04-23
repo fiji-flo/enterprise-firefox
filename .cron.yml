@@ -510,3 +510,13 @@ jobs:
           - mozilla-central
       when:
           - {hour: 3, minute: 0}
+
+    - name: run-missing-tests
+      job:
+          type: trigger-action
+          action-name: run-missing-tests
+          include-cron-input: false
+      run-on-projects:
+          - mozilla-beta
+      when:
+          - {minute: 15}

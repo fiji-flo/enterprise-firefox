@@ -216,6 +216,8 @@ skip-if = [
 
 ["test_exportFunction.js"]
 
+["test_exportFunction_constructor.js"]
+
 ["test_file2.js"]
 
 ["test_fileReader.js"]

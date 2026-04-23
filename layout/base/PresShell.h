@@ -1439,6 +1439,8 @@ class PresShell final : public nsStubDocumentObserver,
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD LineMove(bool aForward, bool aExtend) override;
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD IntraLineMove(bool aForward,
                                               bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD ParagraphMove(bool aForward,
+                                              bool aExtend) override;
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD PageMove(bool aForward, bool aExtend) override;
   NS_IMETHOD ScrollPage(bool aForward) override;
   NS_IMETHOD ScrollLine(bool aForward) override;
@@ -3512,6 +3514,10 @@ class PresShell final : public nsStubDocumentObserver,
   // Additionally this will also be set to true on a root presshell if anchor
   // positioning has ever been seen in any descendant presshell.
   bool mHasSeenAnchorPos : 1;
+
+  // Whether we have already shown a warning about how to exit fullscreen for
+  // the current Escape key down long-press.
+  bool mHasShownFullscreenWarningForCurrentEscapeKeyLongPress : 1;
 
   // The last TimeStamp when the keyup event did not exit fullscreen because it
   // was consumed.

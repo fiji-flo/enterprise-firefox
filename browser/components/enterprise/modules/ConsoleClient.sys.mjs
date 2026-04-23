@@ -717,7 +717,8 @@ export const ConsoleClient = {
     switch (topic) {
       case "xpcom-shutdown": {
         Services.obs.removeObserver(this, "xpcom-shutdown");
-        Services.prefs.removeObserver(this, "enterprise.console.address");
+        Services.prefs.removeObserver("enterprise.console.address", this);
+        //this.clearTokenData(false);
         this._refreshPromise = null;
         this._refreshResolve = null;
         break;

@@ -23,55 +23,122 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/ipprotection/IPProtectionService.sys.mjs",
 });
 
+const CLIENT_ID_MAP = {
+  "http://localhost:3000": "6089c54fdc970aed",
+  "https://guardian-dev.herokuapp.com": "64ef9b544a31bca8",
+  "https://dev.vpn.nonprod.webservices.mozgcp.net": "64ef9b544a31bca8",
+  "https://stage.guardian.nonprod.cloudops.mozgcp.net": "e6eb0d1e856335fc",
+  "https://stage.vpn.nonprod.webservices.mozgcp.net": "e6eb0d1e856335fc",
+  "https://fpn.firefox.com": "e6eb0d1e856335fc",
+  "https://vpn.mozilla.org": "e6eb0d1e856335fc",
+};
+
+const GUARDIAN_ENDPOINT_PREF = "browser.ipProtection.guardian.endpoint";
+const GUARDIAN_ENDPOINT_DEFAULT = "https://vpn.mozilla.com";
+
 /**
  * FxA implementation of IPPAuthProvider. Handles OAuth token retrieval,
  * enrollment via Guardian, and FxA-specific proxy bypass rules.
  */
 class IPPFxaAuthProviderSingleton extends IPPAuthProvider {
   #signInWatcher = null;
-  #enrollFn = null;
+  #enrollAndEntitleFn = null;
 
   /**
    * @param {object} [signInWatcher] - Custom sign-in watcher. Defaults to IPPSignInWatcher.
-   * @param {Function} [enrollFn] - Custom enroll function. Defaults to the FxA hidden-window flow.
+   * @param {Function} [enrollAndEntitleFn] - Custom enroll function. Defaults to the FxA hidden-window flow.
    */
-  constructor(signInWatcher = null, enrollFn = null) {
+  constructor(signInWatcher = null, enrollAndEntitleFn = null) {
     super();
     this.#signInWatcher = signInWatcher;
-    this.#enrollFn = enrollFn ?? IPPFxaAuthProviderSingleton.#defaultEnroll;
+    this.#enrollAndEntitleFn =
+      enrollAndEntitleFn ??
+      IPPFxaAuthProviderSingleton.#defaultEnrollAndEntitle;
   }
 
   get signInWatcher() {
     return this.#signInWatcher ?? lazy.IPPSignInWatcher;
   }
 
-  async enroll(abortSignal) {
-    return this.#enrollFn(abortSignal);
+  /**
+   * @param {AbortSignal} [abortSignal]
+   * @returns {Promise<{isEnrolledAndEntitled: boolean, entitlement?: object, error?: string}>}
+   */
+  async enrollAndEntitle(abortSignal) {
+    return this.#enrollAndEntitleFn(abortSignal);
   }
 
-  /**
-   * Enrolls the current FxA account with Guardian.
-   *
-   * Static to avoid changing internal state of the singleton.
-   *
-   * @param {AbortSignal} [abortSignal=null] - a signal to indicate the enrollment should be aborted
-   * @returns {Promise<object>} status
-   * @returns {boolean} status.enrollment - True if enrollment succeeded.
-   * @returns {string} [status.error] - Error message if enrollment failed.
-   */
-  static async #defaultEnroll(abortSignal = null) {
+  static async #defaultEnrollAndEntitle(abortSignal = null) {
     try {
-      const enrollment = await lazy.IPProtectionService.guardian.enrollWithFxa(
+      const result = await lazy.IPProtectionService.guardian.enrollWithFxa(
         GUARDIAN_EXPERIMENT_TYPE,
         abortSignal
       );
-      if (!enrollment?.ok) {
-        return { enrollment: null, error: enrollment?.error };
+      if (!result?.ok) {
+        return { isEnrolledAndEntitled: false, error: result?.error };
       }
     } catch (error) {
-      return { enrollment: null, error: error?.message };
+      return { isEnrolledAndEntitled: false, error: error?.message };
     }
-    return { enrollment: true };
+    const { entitlement, error } =
+      await IPPFxaAuthProviderSingleton.#fetchEntitlement();
+    if (error || !entitlement) {
+      return { isEnrolledAndEntitled: false, error };
+    }
+    return { isEnrolledAndEntitled: true, entitlement };
+  }
+
+  /**
+   * @param {boolean} [forceRefetch=false]
+   * @returns {Promise<{entitlement?: object, error?: string}>}
+   */
+  async getEntitlement(forceRefetch = false) {
+    const isLinked = await this.#isLinkedToGuardian(!forceRefetch);
+    if (!isLinked) {
+      return {};
+    }
+    return IPPFxaAuthProviderSingleton.#fetchEntitlement();
+  }
+
+  async #isLinkedToGuardian(useCache = true) {
+    if (AppConstants.MOZ_ENTERPRISE) {
+      return true;
+    }
+
+    try {
+      const endpoint = Services.prefs.getCharPref(
+        GUARDIAN_ENDPOINT_PREF,
+        GUARDIAN_ENDPOINT_DEFAULT
+      );
+      const clientId = CLIENT_ID_MAP[new URL(endpoint).origin];
+      if (!clientId) {
+        return false;
+      }
+      const cached = await lazy.fxAccounts.listAttachedOAuthClients();
+      if (cached.some(c => c.id === clientId)) {
+        return true;
+      }
+      if (useCache) {
+        return false;
+      }
+      const refreshed = await lazy.fxAccounts.listAttachedOAuthClients(true);
+      return refreshed.some(c => c.id === clientId);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static async #fetchEntitlement() {
+    try {
+      const { status, entitlement, error } =
+        await lazy.IPProtectionService.guardian.fetchUserInfo();
+      if (error || !entitlement || status != 200) {
+        return { error: error || `Status: ${status}` };
+      }
+      return { entitlement };
+    } catch (error) {
+      return { error: error.message };
+    }
   }
 
   get helpers() {

@@ -423,6 +423,12 @@
         <action
             android:id="@+id/action_browserFragment_to_summarizationFragment"
             app:destination="@id/summarizationFragment" />
+        <action
+            android:id="@+id/action_browserFragment_to_storiesFragment"
+            app:destination="@id/storiesFragment"
+            app:popUpTo="@id/storiesFragment"
+            app:popUpToInclusive="false"
+            app:launchSingleTop="true" />
     </fragment>
 
     <fragment
@@ -1857,6 +1863,12 @@
                 android:defaultValue="false"
                 app:argType="boolean" />
             <action
+               android:id="@+id/action_menuDialogFragment_to_storiesFragment"
+                app:destination="@id/storiesFragment"
+                app:popUpTo="@id/storiesFragment"
+                app:popUpToInclusive="false"
+                app:launchSingleTop="true" />
+            <action
                 android:id="@+id/action_menuDialogFragment_to_translationsDialogFragment"
                 app:destination="@id/translationsDialogFragment" />
             <action
@@ -1953,6 +1965,9 @@
             <argument
                 android:name="isLocalPdf"
                 app:argType="boolean" />
+            <action
+                android:id="@+id/action_trustPanelFragment_to_ipProtectionFragment"
+                app:destination="@id/ipProtectionFragment" />
         </dialog>
     </navigation>
     <dialog

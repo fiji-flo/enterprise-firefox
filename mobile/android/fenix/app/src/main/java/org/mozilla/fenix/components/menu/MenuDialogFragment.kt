@@ -92,6 +92,7 @@ import org.mozilla.fenix.components.menu.store.SummarizationMenuState
 import org.mozilla.fenix.components.menu.store.TranslationInfo
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.components.share.ShareSheetLauncherImpl
+import org.mozilla.fenix.ext.canGoBackInHistoryOrToStories
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.openToBrowser
@@ -668,7 +669,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isReaderViewActive = isReaderViewActive,
                                     isMoreMenuHighlighted = isOpenInAppMenuHighlighted ||
                                             summarizationMenuState.overflowMenuHighlighted,
-                                    canGoBack = selectedTab?.content?.canGoBack ?: true,
+                                    canGoBack = browserStore.state.canGoBackInHistoryOrToStories(),
                                     canGoForward = selectedTab?.content?.canGoForward ?: true,
                                     extensionsMenuItemDescription = extensionsMenuItemDescription,
                                     scrollState = scrollState,
@@ -763,8 +764,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         }
                                     },
                                     onIPProtectionClick = {
-                                        // Toggle handled by the feature observing IPProtectionStore.
-                                        // Dispatch is a no-op placeholder until bug 2030143.
+                                        // will be implemented in https://bugzilla.mozilla.org/show_bug.cgi?id=2030143
                                     },
                                     onIPProtectionNavigate = {
                                         store.dispatch(MenuAction.Navigate.IPProtectionSettings)

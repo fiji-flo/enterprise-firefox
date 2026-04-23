@@ -190,6 +190,7 @@ pub enum CustomDeclarationValue {
 
 /// A custom property declaration with the property name and the declared value.
 #[derive(Clone, PartialEq, ToCss, ToShmem, MallocSizeOf, ToTyped)]
+#[typed(todo_derive_fields)]
 pub struct CustomDeclaration {
     /// The name of the custom property.
     #[css(skip)]
@@ -1439,6 +1440,16 @@ impl ToCss for UnparsedValue {
             self.variable_value.to_css(dest)?;
         }
         Ok(())
+    }
+}
+
+impl ToTyped for UnparsedValue {
+    fn to_typed(&self, dest: &mut ThinVec<TypedValue>) -> Result<(), ()> {
+        if self.from_shorthand.is_none() {
+            self.variable_value.to_typed(dest)?;
+            return Ok(());
+        }
+        Err(())
     }
 }
 

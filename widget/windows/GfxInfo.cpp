@@ -1614,12 +1614,6 @@ const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
     ////////////////////////////////////
     // FEATURE_DX_P010
 
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::Windows, DeviceFamily::NvidiaAll,
-        nsIGfxInfo::FEATURE_DX_P010, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
-        "FEATURE_UNQUALIFIED_P010_NVIDIA");
-
     ////////////////////////////////////
     // FEATURE_HW_DECODED_VIDEO_ZERO_COPY
 

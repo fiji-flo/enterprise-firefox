@@ -179,6 +179,8 @@ interface WindowGlobalParent : WindowContext {
   // has active peer connections.  If this is called for a non-top-level
   // context, it always returns false.
   boolean hasActivePeerConnections();
+
+  undefined updateFullscreenKeyboardLockStatus(FullscreenKeyboardLock status);
 };
 
 [Exposed=Window, ChromeOnly]

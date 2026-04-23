@@ -18,6 +18,7 @@ import org.mozilla.fenix.components.appstate.search.SearchStateReducer
 import org.mozilla.fenix.components.appstate.setup.checklist.SetupChecklistReducer
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarStateReducer
+import org.mozilla.fenix.components.appstate.sports.SportsWidgetReducer
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatReducer
 import org.mozilla.fenix.ext.filterOutTab
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
@@ -285,6 +286,8 @@ internal object AppStoreReducer {
         is AppAction.UpdateTrackersBlockedCount -> state.copy(
             trackersBlockedCount = action.count,
         )
+
+        is AppAction.SportsWidgetAction -> SportsWidgetReducer.reduce(state, action)
     }
 }
 

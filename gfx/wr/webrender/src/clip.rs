@@ -93,26 +93,23 @@
 //!
 
 use api::{BorderRadius, ClipMode, ImageMask, ClipId, ClipChainId};
-use api::{BoxShadowClipMode, FillRule, ImageKey, ImageRendering};
+use api::{FillRule, ImageKey, ImageRendering};
 use api::units::*;
 use crate::image_tiling::{self, Repetition};
 use crate::border::{ensure_no_corner_overlap, BorderRadiusAu};
-use crate::box_shadow::{BLUR_SAMPLE_SCALE, BoxShadowClipSource, BoxShadowCacheKey};
 use crate::renderer::GpuBufferBuilderF;
 use crate::spatial_tree::{SceneSpatialTree, SpatialTree, SpatialNodeIndex};
 use crate::ellipse::Ellipse;
-use crate::gpu_types::{BoxShadowStretchMode};
 use crate::intern;
 use crate::internal_types::{FastHashMap, FastHashSet, LayoutPrimitiveInfo};
 use crate::prim_store::{VisibleMaskImageTile};
-use crate::prim_store::{PointKey, SizeKey, RectKey, PolygonKey};
-use crate::render_task_cache::to_cache_size;
+use crate::prim_store::{PointKey, SizeKey, PolygonKey};
 use crate::render_task::RenderTask;
 use crate::render_task_graph::RenderTaskGraphBuilder;
 use crate::resource_cache::{ImageRequest, ResourceCache};
 use crate::scene_builder_thread::Interners;
 use crate::space::SpaceMapper;
-use crate::util::{clamp_to_scale_factor, extract_inner_rect_safe, project_rect, MatrixHelpers, MaxRect, ScaleOffset};
+use crate::util::{extract_inner_rect_safe, project_rect, MatrixHelpers, MaxRect, ScaleOffset};
 use euclid::approxeq::ApproxEq;
 use std::{iter, ops, u32, mem};
 
@@ -126,7 +123,7 @@ pub struct ClipTreeNode {
     pub clip_rect_origin: LayoutPoint,
     pub parent: ClipNodeId,
 
-    children: Vec<ClipNodeId>,
+    children: FastHashMap<ClipEntry, ClipNodeId>,
 
     // TODO(gw): Consider adding a default leaf for cases when the local_clip_rect is not relevant,
     //           that can be shared among primitives (to reduce amount of clip-chain building).
@@ -196,7 +193,7 @@ impl ClipTree {
                     handle: ClipDataHandle::INVALID,
                     spatial_node_index: SpatialNodeIndex::INVALID,
                     clip_rect_origin: LayoutPoint::zero(),
-                    children: Vec::new(),
+                    children: FastHashMap::default(),
                     parent: ClipNodeId::NONE,
                 }
             ],
@@ -213,7 +210,7 @@ impl ClipTree {
             handle: ClipDataHandle::INVALID,
             spatial_node_index: SpatialNodeIndex::INVALID,
             clip_rect_origin: LayoutPoint::zero(),
-            children: Vec::new(),
+            children: FastHashMap::default(),
             parent: ClipNodeId::NONE,
         });
 
@@ -226,50 +223,40 @@ impl ClipTree {
     /// Add a set of clips to the provided tree node id, reusing existing
     /// nodes in the tree where possible
     fn add_impl(
-        id: ClipNodeId,
+        mut id: ClipNodeId,
         clips: &[ClipEntry],
         nodes: &mut Vec<ClipTreeNode>,
     ) -> ClipNodeId {
         if clips.is_empty() {
             return id;
         }
-
-        let ClipEntry { handle, spatial_node_index, clip_rect_origin } = clips[0];
-        let clip_rect_origin_pt: LayoutPoint = clip_rect_origin.into();
-        let next_clips = &clips[1..];
-
-        let node_index = nodes[id.0 as usize]
-            .children
-            .iter()
-            .find(|n| {
-                let node = &nodes[n.0 as usize];
-                node.handle == handle && node.spatial_node_index == spatial_node_index &&
-                node.clip_rect_origin == clip_rect_origin_pt
-            })
-            .cloned();
-
-        let node_index = match node_index {
-            Some(node_index) => node_index,
-            None => {
-                let node_index = ClipNodeId(nodes.len() as u32);
-                nodes[id.0 as usize].children.push(node_index);
-                let node = ClipTreeNode {
-                    handle,
-                    spatial_node_index,
-                    clip_rect_origin: clip_rect_origin_pt,
-                    children: Vec::new(),
-                    parent: id,
-                };
-                nodes.push(node);
-                node_index
-            }
-        };
-
-        ClipTree::add_impl(
-            node_index,
-            next_clips,
-            nodes,
-        )
+        
+        for clip in clips {
+            let key = *clip; // ClipEntry is Copy
+            
+            let node_index = nodes[id.0 as usize]
+                .children
+                .get(&key)
+                .cloned();
+            
+            let node_index = match node_index {
+                Some(node_index) => node_index,
+                None => {
+                    let node_index = ClipNodeId(nodes.len() as u32);
+                    nodes[id.0 as usize].children.insert(key, node_index);
+                    nodes.push(ClipTreeNode {
+                        handle: key.handle,
+                        spatial_node_index: key.spatial_node_index,
+                        clip_rect_origin: key.clip_rect_origin.into(),
+                        children: FastHashMap::default(),
+                        parent: id,
+                    });
+                    node_index
+                }
+            };
+            id = node_index;
+        }
+        id
     }
 
     /// Add a set of clips to the provided tree node id, reusing existing
@@ -349,7 +336,7 @@ impl ClipTree {
             pt.new_level(format!("{:?}", id));
             pt.add_item(format!("{:?}", node.handle));
 
-            for child_id in &node.children {
+            for child_id in node.children.values() {
                 print_node(*child_id, nodes, pt);
             }
 
@@ -424,7 +411,7 @@ impl ClipTree {
 }
 
 /// A reference to an interned clip paired with the spatial node that positions it.
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, MallocSizeOf)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct ClipEntry {
@@ -1026,16 +1013,6 @@ impl From<ClipItemKey> for ClipNode {
                     polygon_handle,
                 }
             }
-            ClipItemKeyKind::BoxShadow(shadow_rect_fract_offset, shadow_rect_size, shadow_radius, prim_shadow_rect, blur_radius, clip_mode) => {
-                ClipItemKind::new_box_shadow(
-                    shadow_rect_fract_offset.into(),
-                    shadow_rect_size.into(),
-                    shadow_radius.into(),
-                    prim_shadow_rect.into(),
-                    blur_radius.to_f32_px(),
-                    clip_mode,
-                )
-            }
         };
 
         ClipNode {
@@ -1324,44 +1301,6 @@ impl ClipNodeInfo {
     }
 }
 
-impl ClipNode {
-    pub fn update(
-        &mut self,
-        device_pixel_scale: DevicePixelScale,
-    ) {
-        match self.item.kind {
-            ClipItemKind::Image { .. } |
-            ClipItemKind::Rectangle { .. } |
-            ClipItemKind::RoundedRectangle { .. } => {}
-
-            ClipItemKind::BoxShadow { ref mut source } => {
-                // Only reachable when use_quad_box_shadow is not set.
-                let blur_radius_dp = source.blur_radius * 0.5;
-
-                // Create scaling from requested size to cache size.
-                let mut content_scale = LayoutToWorldScale::new(1.0) * device_pixel_scale;
-                content_scale.0 = clamp_to_scale_factor(content_scale.0, false);
-
-                // Create the cache key for this box-shadow render task.
-                let cache_size = to_cache_size(source.shadow_rect_alloc_size, &mut content_scale);
-
-                let bs_cache_key = BoxShadowCacheKey {
-                    blur_radius_dp: Au::from_f32_px((blur_radius_dp * content_scale.0).round()),
-                    clip_mode: source.clip_mode,
-                    original_alloc_size: (source.original_alloc_size * content_scale).round().to_i32(),
-                    br_top_left: (source.shadow_radius.top_left * content_scale).round().to_i32(),
-                    br_top_right: (source.shadow_radius.top_right * content_scale).round().to_i32(),
-                    br_bottom_right: (source.shadow_radius.bottom_right * content_scale).round().to_i32(),
-                    br_bottom_left: (source.shadow_radius.bottom_left * content_scale).round().to_i32(),
-                    device_pixel_scale: Au::from_f32_px(content_scale.0),
-                };
-
-                source.cache_key = Some((cache_size, bs_cache_key));
-            }
-        }
-    }
-}
-
 #[derive(Default)]
 pub struct ClipStoreScratchBuffer {
     clip_node_instances: Vec<ClipNodeInstance>,
@@ -1550,7 +1489,6 @@ impl ClipStore {
                 // inner rects for now
                 ClipItemKind::Rectangle { mode: ClipMode::ClipOut, .. } |
                 ClipItemKind::Image { .. } |
-                ClipItemKind::BoxShadow { .. } |
                 ClipItemKind::RoundedRectangle { mode: ClipMode::ClipOut, .. } => {
                     return None;
                 }
@@ -1621,7 +1559,6 @@ impl ClipStore {
         spatial_tree: &SpatialTree,
         gpu_buffer: &mut GpuBufferBuilderF,
         resource_cache: &mut ResourceCache,
-        device_pixel_scale: DevicePixelScale,
         culling_rect: &VisRect,
         clip_data_store: &mut ClipDataStore,
         rg_builder: &mut RenderTaskGraphBuilder,
@@ -1682,9 +1619,6 @@ impl ClipStore {
                 ClipResult::Partial => {
                     // Needs a mask -> add to clip node indices
 
-                    // TODO(gw): Ensure this only runs once on each node per frame?
-                    node.update(device_pixel_scale);
-
                     // Create the clip node instance for this clip node
                     if let Some(instance) = node_info.create_instance(
                         node,
@@ -1705,8 +1639,7 @@ impl ClipStore {
                         needs_mask |= match node.item.kind {
                             ClipItemKind::Rectangle { mode: ClipMode::ClipOut, .. } |
                             ClipItemKind::RoundedRectangle { .. } |
-                            ClipItemKind::Image { .. } |
-                            ClipItemKind::BoxShadow { .. } => {
+                            ClipItemKind::Image { .. } => {
                                 true
                             }
 
@@ -1792,7 +1725,6 @@ pub enum ClipItemKeyKind {
     Rectangle(SizeKey, ClipMode),
     RoundedRectangle(SizeKey, BorderRadiusAu, ClipMode),
     ImageMask(SizeKey, ImageKey, Option<PolygonDataHandle>),
-    BoxShadow(PointKey, SizeKey, BorderRadiusAu, RectKey, Au, BoxShadowClipMode),
 }
 
 impl ClipItemKeyKind {
@@ -1822,36 +1754,13 @@ impl ClipItemKeyKind {
         )
     }
 
-    pub fn box_shadow(
-        shadow_rect: LayoutRect,
-        shadow_radius: BorderRadius,
-        prim_shadow_rect: LayoutRect,
-        blur_radius: f32,
-        clip_mode: BoxShadowClipMode,
-    ) -> Self {
-        let fract_offset = LayoutPoint::new(
-            shadow_rect.min.x.fract().abs(),
-            shadow_rect.min.y.fract().abs(),
-        );
-
-        ClipItemKeyKind::BoxShadow(
-            fract_offset.into(),
-            shadow_rect.size().into(),
-            shadow_radius.into(),
-            prim_shadow_rect.into(),
-            Au::from_f32_px(blur_radius),
-            clip_mode,
-        )
-    }
-
     pub fn node_kind(&self) -> ClipNodeKind {
         match *self {
             ClipItemKeyKind::Rectangle(_, ClipMode::Clip) => ClipNodeKind::Rectangle,
 
             ClipItemKeyKind::Rectangle(_, ClipMode::ClipOut) |
             ClipItemKeyKind::RoundedRectangle(..) |
-            ClipItemKeyKind::ImageMask(..) |
-            ClipItemKeyKind::BoxShadow(..) => ClipNodeKind::Complex,
+            ClipItemKeyKind::ImageMask(..) => ClipNodeKind::Complex,
         }
     }
 }
@@ -1906,9 +1815,6 @@ pub enum ClipItemKind {
         size: LayoutSize,
         polygon_handle: Option<PolygonDataHandle>,
     },
-    BoxShadow {
-        source: BoxShadowClipSource,
-    },
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -1918,161 +1824,7 @@ pub struct ClipItem {
     pub kind: ClipItemKind,
 }
 
-fn compute_box_shadow_parameters(
-    shadow_rect_fract_offset: LayoutPoint,
-    shadow_rect_size: LayoutSize,
-    mut shadow_radius: BorderRadius,
-    prim_shadow_rect: LayoutRect,
-    blur_radius: f32,
-    clip_mode: BoxShadowClipMode,
-) -> BoxShadowClipSource {
-    // Make sure corners don't overlap.
-    ensure_no_corner_overlap(&mut shadow_radius, shadow_rect_size);
-
-    let fract_size = LayoutSize::new(
-        shadow_rect_size.width.fract().abs(),
-        shadow_rect_size.height.fract().abs(),
-    );
-
-    // Create a minimal size primitive mask to blur. In this
-    // case, we ensure the size of each corner is the same,
-    // to simplify the shader logic that stretches the blurred
-    // result across the primitive.
-    let max_corner_width = shadow_radius.top_left.width
-                                .max(shadow_radius.bottom_left.width)
-                                .max(shadow_radius.top_right.width)
-                                .max(shadow_radius.bottom_right.width);
-    let max_corner_height = shadow_radius.top_left.height
-                                .max(shadow_radius.bottom_left.height)
-                                .max(shadow_radius.top_right.height)
-                                .max(shadow_radius.bottom_right.height);
-
-    // Get maximum distance that can be affected by given blur radius.
-    let blur_region = (BLUR_SAMPLE_SCALE * blur_radius).ceil();
-
-    // If the largest corner is smaller than the blur radius, we need to ensure
-    // that it's big enough that the corners don't affect the middle segments.
-    let used_corner_width = max_corner_width.max(blur_region);
-    let used_corner_height = max_corner_height.max(blur_region);
-
-    // Minimal nine-patch size, corner + internal + corner.
-    let min_shadow_rect_size = LayoutSize::new(
-        2.0 * used_corner_width + blur_region,
-        2.0 * used_corner_height + blur_region,
-    );
-
-    // The minimal rect to blur.
-    let mut minimal_shadow_rect = LayoutRect::from_origin_and_size(
-        LayoutPoint::new(
-            blur_region + shadow_rect_fract_offset.x,
-            blur_region + shadow_rect_fract_offset.y,
-        ),
-        LayoutSize::new(
-            min_shadow_rect_size.width + fract_size.width,
-            min_shadow_rect_size.height + fract_size.height,
-        ),
-    );
-
-    // If the width or height ends up being bigger than the original
-    // primitive shadow rect, just blur the entire rect along that
-    // axis and draw that as a simple blit. This is necessary for
-    // correctness, since the blur of one corner may affect the blur
-    // in another corner.
-    let mut stretch_mode_x = BoxShadowStretchMode::Stretch;
-    if shadow_rect_size.width < minimal_shadow_rect.width() {
-        minimal_shadow_rect.max.x = minimal_shadow_rect.min.x + shadow_rect_size.width;
-        stretch_mode_x = BoxShadowStretchMode::Simple;
-    }
-
-    let mut stretch_mode_y = BoxShadowStretchMode::Stretch;
-    if shadow_rect_size.height < minimal_shadow_rect.height() {
-        minimal_shadow_rect.max.y = minimal_shadow_rect.min.y + shadow_rect_size.height;
-        stretch_mode_y = BoxShadowStretchMode::Simple;
-    }
-
-    // Expand the shadow rect by enough room for the blur to take effect.
-    let shadow_rect_alloc_size = LayoutSize::new(
-        2.0 * blur_region + minimal_shadow_rect.width().ceil(),
-        2.0 * blur_region + minimal_shadow_rect.height().ceil(),
-    );
-
-    BoxShadowClipSource {
-        original_alloc_size: shadow_rect_alloc_size,
-        shadow_rect_alloc_size,
-        shadow_radius,
-        prim_shadow_rect,
-        blur_radius,
-        clip_mode,
-        stretch_mode_x,
-        stretch_mode_y,
-        render_task: None,
-        cache_key: None,
-        minimal_shadow_rect,
-    }
-}
-
 impl ClipItemKind {
-    pub fn new_box_shadow(
-        shadow_rect_fract_offset: LayoutPoint,
-        shadow_rect_size: LayoutSize,
-        mut shadow_radius: BorderRadius,
-        prim_shadow_rect: LayoutRect,
-        blur_radius: f32,
-        clip_mode: BoxShadowClipMode,
-    ) -> Self {
-        let mut source = compute_box_shadow_parameters(
-            shadow_rect_fract_offset,
-            shadow_rect_size,
-            shadow_radius,
-            prim_shadow_rect,
-            blur_radius,
-            clip_mode,
-        );
-
-        fn needed_downscaling(source: &BoxShadowClipSource) -> Option<f32> {
-            // This size is fairly arbitrary, but it's the same as the size that
-            // we use to avoid caching big blurred stacking contexts.
-            //
-            // If you change it, ensure that the reftests
-            // box-shadow-large-blur-radius-* still hit the downscaling path,
-            // and that they render correctly.
-            const MAX_SIZE: f32 = 2048.;
-
-            let max_dimension =
-                source.shadow_rect_alloc_size.width.max(source.shadow_rect_alloc_size.height);
-
-            if max_dimension > MAX_SIZE {
-                Some(MAX_SIZE / max_dimension)
-            } else {
-                None
-            }
-        }
-
-        if let Some(downscale) = needed_downscaling(&source) {
-            shadow_radius.bottom_left.height *= downscale;
-            shadow_radius.bottom_left.width *= downscale;
-            shadow_radius.bottom_right.height *= downscale;
-            shadow_radius.bottom_right.width *= downscale;
-            shadow_radius.top_left.height *= downscale;
-            shadow_radius.top_left.width *= downscale;
-            shadow_radius.top_right.height *= downscale;
-            shadow_radius.top_right.width *= downscale;
-
-            let original_alloc_size = source.shadow_rect_alloc_size;
-
-            source = compute_box_shadow_parameters(
-                shadow_rect_fract_offset * downscale,
-                shadow_rect_size * downscale,
-                shadow_radius,
-                prim_shadow_rect,
-                blur_radius * downscale,
-                clip_mode,
-            );
-            source.original_alloc_size = original_alloc_size;
-        }
-        ClipItemKind::BoxShadow { source }
-    }
-
     /// Returns true if this clip mask can run through the fast path
     /// for the given clip item type.
     ///
@@ -2080,8 +1832,7 @@ impl ClipItemKind {
     fn supports_fast_path_rendering(&self) -> bool {
         match *self {
             ClipItemKind::Rectangle { .. } |
-            ClipItemKind::Image { .. } |
-            ClipItemKind::BoxShadow { .. } => {
+            ClipItemKind::Image { .. } => {
                 false
             }
             ClipItemKind::RoundedRectangle { size, ref radius, .. } => {
@@ -2108,7 +1859,6 @@ impl ClipItemKind {
             ClipItemKind::Image { size, .. } => {
                 Some(LayoutRect::from_origin_and_size(origin, size))
             }
-            ClipItemKind::BoxShadow { .. } => None,
         }
     }
 
@@ -2137,9 +1887,6 @@ impl ClipItemKind {
             ClipItemKind::Image { size, .. } => {
                 let rect = LayoutRect::from_origin_and_size(origin, size);
                 (rect, None, ClipMode::Clip)
-            }
-            ClipItemKind::BoxShadow { .. } => {
-                return ClipResult::Partial;
             }
         };
 
@@ -2257,9 +2004,6 @@ impl ClipItemKind {
                         ClipResult::Reject
                     }
                 }
-            }
-            ClipItemKind::BoxShadow { .. } => {
-                ClipResult::Partial
             }
         }
     }

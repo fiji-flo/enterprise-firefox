@@ -336,6 +336,10 @@ class CustomizationFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFrag
             isVisible = isSwipeToolbarToSwitchTabsVisible
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_swipe_toolbar_show_tabs).apply {
+            isChecked = context.settings().isSwipeToolbarToShowTabsEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_shake_gesture_enabled).apply {
             isVisible = context.settings().shakeToSummarizeFeatureFlagEnabled &&
                     isSummarizationEnabled

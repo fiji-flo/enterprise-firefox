@@ -690,6 +690,7 @@ TestRunner.testFinished = function (tests) {
     TestRunner._currentTest == TestRunner._lastTestFinished &&
     !TestRunner._loopIsRestarting
   ) {
+    record(false, false, "called finish() multiple times");
     TestRunner.structuredLogger.testEnd(
       TestRunner.currentTestURL,
       "FAIL",
@@ -828,10 +829,10 @@ TestRunner.testFinished = function (tests) {
           var testwin = $("testframe").contentWindow;
           if (testwin.SimpleTest) {
             if (typeof testwin.SimpleTest.testsLength === "undefined") {
-              TestRunner.structuredLogger.error(
-                "TEST-UNEXPECTED-FAIL | " +
-                  TestRunner.currentTestURL +
-                  " fired an unload callback with missing test data," +
+              record(
+                false,
+                false,
+                "fired an unload callback with missing test data," +
                   " possibly due to the test navigating or reloading"
               );
               TestRunner.updateUI([{ result: false }]);
@@ -847,11 +848,10 @@ TestRunner.testFinished = function (tests) {
                 wrongtestname =
                   testwin.SimpleTest._tests[testwin.SimpleTest.testsLength + i]
                     .name;
-                TestRunner.structuredLogger.error(
-                  "TEST-UNEXPECTED-FAIL | " +
-                    TestRunner.currentTestURL +
-                    " logged result after SimpleTest.finish(): " +
-                    wrongtestname
+                record(
+                  false,
+                  false,
+                  "logged result after SimpleTest.finish(): " + wrongtestname
                 );
                 didReportError = true;
               }
@@ -860,10 +860,10 @@ TestRunner.testFinished = function (tests) {
                 // here (e.g. if wrongtestlength is somehow negative), it's
                 // important that we log *something* for the { result: false }
                 // test-failure that we're about to post.
-                TestRunner.structuredLogger.error(
-                  "TEST-UNEXPECTED-FAIL | " +
-                    TestRunner.currentTestURL +
-                    " hit an unexpected condition when checking for" +
+                record(
+                  false,
+                  false,
+                  "hit an unexpected condition when checking for" +
                     " logged results after SimpleTest.finish()"
                 );
               }
@@ -962,41 +962,37 @@ TestRunner.testUnloaded = function (result, runtime) {
     result = "TIMEOUT";
   }
 
-  TestRunner.structuredLogger.testEnd(
-    TestRunner.currentTestURL,
-    result,
-    "PASS",
-    TestRunner._currentTestTimedOut
-      ? "Test timed out"
-      : "Finished in " + runtime + "ms",
-    { runtime }
-  );
-
-  // Always do this, so we can "reset" preferences between tests.
+  // Compare preferences before testEnd so that any changed-pref failures
+  // are attributed to the test that changed them. This also resets
+  // preferences between tests.
   // Note: this is for mochitest-plain only; browser tests do not
   // unconditionally reset between tests, see
   // checkPreferencesAfterTest in testing/mochitest/browser-test.js
-  SpecialPowers.comparePrefsToBaseline(
-    TestRunner.ignorePrefs,
-    TestRunner.verifyPrefsNextTest
-  );
-};
+  SpecialPowers.comparePrefsToBaseline(TestRunner.ignorePrefs, function (p) {
+    if (TestRunner.comparePrefs) {
+      let prefs = Array.from(SpecialPowers.Cu.waiveXrays(p), x =>
+        SpecialPowers.unwrapIfWrapped(SpecialPowers.Cu.unwaiveXrays(x))
+      );
+      for (let pr of prefs) {
+        record(false, false, "changed preference: " + pr);
+      }
+      if (prefs.length && result == "PASS") {
+        result = "FAIL";
+      }
+    }
 
-TestRunner.verifyPrefsNextTest = function (p) {
-  if (TestRunner.comparePrefs) {
-    let prefs = Array.from(SpecialPowers.Cu.waiveXrays(p), x =>
-      SpecialPowers.unwrapIfWrapped(SpecialPowers.Cu.unwaiveXrays(x))
+    TestRunner.structuredLogger.testEnd(
+      TestRunner.currentTestURL,
+      result,
+      "PASS",
+      TestRunner._currentTestTimedOut
+        ? "Test timed out"
+        : "Finished in " + runtime + "ms",
+      { runtime }
     );
-    prefs.forEach(pr =>
-      TestRunner.structuredLogger.error(
-        "TEST-UNEXPECTED-FAIL | " +
-          TestRunner.currentTestURL +
-          " | changed preference: " +
-          pr
-      )
-    );
-  }
-  TestRunner.doNextTest();
+
+    TestRunner.doNextTest();
+  });
 };
 
 TestRunner.doNextTest = function () {

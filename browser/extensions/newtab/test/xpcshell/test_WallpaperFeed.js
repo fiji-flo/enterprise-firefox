@@ -202,6 +202,60 @@ add_task(async function test_Wallpaper_Upload() {
   sandbox.restore();
 });
 
+add_task(async function test_updateWallpapers_category_order() {
+  let sandbox = sinon.createSandbox();
+  let feed = new WallpaperFeed();
+  Services.prefs.setBoolPref(PREF_WALLPAPERS_ENABLED, true);
+  Services.prefs.setBoolPref(
+    "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled",
+    true
+  );
+
+  const records = [
+    { category: "solid-colors", attachment: { location: "a" } },
+    { category: "photographs", attachment: { location: "b" } },
+    { category: "celestial", attachment: { location: "c" } },
+    { category: "abstracts", attachment: { location: "d" } },
+    { category: "firefox", attachment: { location: "e" } },
+  ];
+
+  sandbox.stub(feed, "RemoteSettings").returns({
+    get: () => records,
+    on: () => {},
+  });
+  sandbox
+    .stub(Utils, "baseAttachmentsURL")
+    .returns("http://localhost:8888/base_url/");
+
+  feed.store = { dispatch: sinon.spy() };
+
+  info(
+    "WallpaperFeed.updateWallpapers should dispatch categories in the correct display order"
+  );
+
+  await feed.wallpaperSetup(false);
+
+  const categoryCall = feed.store.dispatch
+    .getCalls()
+    .find(call => call.args[0].type === actionTypes.WALLPAPERS_CATEGORY_SET);
+
+  Assert.ok(categoryCall, "Expected a WALLPAPERS_CATEGORY_SET dispatch call");
+  Assert.deepEqual(categoryCall.args[0].data, [
+    "custom-wallpaper",
+    "firefox",
+    "abstracts",
+    "celestial",
+    "photographs",
+    "solid-colors",
+  ]);
+
+  Services.prefs.clearUserPref(PREF_WALLPAPERS_ENABLED);
+  Services.prefs.clearUserPref(
+    "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled"
+  );
+  sandbox.restore();
+});
+
 add_task(async function test_onAction_PREF_CHANGED_customColor() {
   let sandbox = sinon.createSandbox();
   let feed = new WallpaperFeed();

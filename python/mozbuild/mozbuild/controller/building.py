@@ -733,6 +733,11 @@ class BuildOutputManager(OutputManager):
 
     def _is_third_party_path(self, filepath):
         path = mozpath.normsep(filepath)
+        # Handle the case where we have relative path from Unified build
+        if not os.path.isabs(path):
+            stripped = re.sub(r"^([./\\])*[/\\]", "", path)
+            if os.path.exists(stripped):
+                path = mozpath.abspath(stripped)
         if not path.startswith(self.monitor.topsrcdir):
             return True
         if not self._third_party_dirs:
@@ -1434,7 +1439,6 @@ class BuildDriver(MozbuildObject):
             mozbuild_metrics.ccache.set(get_substs_flag("CCACHE"))
             using_sccache = get_substs_flag("MOZ_USING_SCCACHE")
             mozbuild_metrics.sccache.set(using_sccache)
-            mozbuild_metrics.icecream.set(get_substs_flag("CXX_IS_ICECREAM"))
             mozbuild_metrics.project.set(substs.get("MOZ_BUILD_APP", ""))
             mozbuild_metrics.target.set(target)
 

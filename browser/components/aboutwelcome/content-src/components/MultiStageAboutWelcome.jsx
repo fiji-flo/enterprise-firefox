@@ -764,6 +764,12 @@ export class WelcomeScreen extends React.PureComponent {
     let actionResult;
     if (["OPEN_URL", "SHOW_FIREFOX_ACCOUNTS"].includes(action.type)) {
       this.handleOpenURL(action, props.flowParams, props.UTMTerm);
+    } else if (action.type === "INSTALL_ADDON_FROM_URL") {
+      const url =
+        props.addonURL && props.isRtamo ? props.addonURL : action.data?.url;
+      // Set add-on url in action.data.url property from JSON
+      action.data = { ...action.data, url };
+      AboutWelcomeUtils.handleUserAction(action);
     } else if (action.type) {
       let actionPromise = AboutWelcomeUtils.handleUserAction(action);
       if (action.needsAwait) {
@@ -776,17 +782,6 @@ export class WelcomeScreen extends React.PureComponent {
           "FXA_SIGNIN_FLOW",
           { writeInMicrosurvey: props.writeInMicrosurvey }
         );
-      }
-
-      if (action.type === "INSTALL_ADDON_FROM_URL") {
-        const url = props.addonURL;
-        if (!action.data) {
-          return;
-        }
-        // Set add-on url in action.data.url property from JSON
-        action.data = { ...action.data, url };
-
-        AboutWelcomeUtils.handleUserAction(action);
       }
       // Wait until migration closes to complete the action
       await this.handleMigrationIfNeeded(action, props);
