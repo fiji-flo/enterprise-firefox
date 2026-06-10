@@ -1126,19 +1126,9 @@ BrowserGlue.prototype = {
           }
 
           // Load the PK11 token
-          const tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].getService(
-            Ci.nsIPK11TokenDB
-          );
-
-          let pk11token;
-          try {
-            pk11token = tokenDB.getInternalKeyToken();
-          } catch (e) {
-            console.error(
-              "EnterpriseStorageEncryption.load: Error getting PK11 token: " + e
-            );
-            return;
-          }
+          const pk11token = Cc[
+            "@mozilla.org/security/internalkeytoken;1"
+          ].createInstance(Ci.nsIPKCS11Token);
 
           // Check if the PK11 token needs initialization
           if (pk11token.needsUserInit) {
