@@ -1129,13 +1129,11 @@ BrowserGlue.prototype = {
           }
 
           // Load the PK11 token
-          const tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].getService(
-            Ci.nsIPK11TokenDB
-          );
-
           let pk11token;
           try {
-            pk11token = tokenDB.getInternalKeyToken();
+            pk11token = Cc[
+              "@mozilla.org/security/internalkeytoken;1"
+            ].createInstance(Ci.nsIPKCS11Token);
           } catch (e) {
             console.error(
               "EnterpriseStorageEncryption.load: Error getting PK11 token: " + e
@@ -1153,7 +1151,7 @@ BrowserGlue.prototype = {
                   e
               );
             }
-          } else if (!pk11token.needsLogin()) {
+          } else if (!pk11token.hasPassword) {
             // Token doesn't need login (empty password), set it to primarySecret
             try {
               pk11token.changePassword("", primarySecret);
@@ -1167,7 +1165,10 @@ BrowserGlue.prototype = {
             // Token needs login - verify the password matches primarySecret
             let isPasswordValid;
             try {
-              isPasswordValid = pk11token.checkPassword(primarySecret);
+              let sdr = Cc["@mozilla.org/security/sdr;1"].getService(
+                Ci.nsISecretDecoderRing
+              );
+              isPasswordValid = sdr.login(primarySecret);
             } catch (e) {
               console.error(
                 "EnterpriseStorageEncryption.load: Error checking password against PK11 token: " +
