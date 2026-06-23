@@ -1142,16 +1142,7 @@ BrowserGlue.prototype = {
           }
 
           // Check if the PK11 token needs initialization
-          if (pk11token.needsUserInit) {
-            try {
-              pk11token.initPassword(primarySecret);
-            } catch (e) {
-              console.error(
-                "EnterpriseStorageEncryption.load: Failed to initialize PK11 token password: " +
-                  e
-              );
-            }
-          } else if (!pk11token.hasPassword) {
+          if (!pk11token.hasPassword) {
             // Token doesn't need login (empty password), set it to primarySecret
             try {
               pk11token.changePassword("", primarySecret);
@@ -1171,7 +1162,7 @@ BrowserGlue.prototype = {
               isPasswordValid = sdr.login(primarySecret);
             } catch (e) {
               console.error(
-                "EnterpriseStorageEncryption.load: Error checking password against PK11 token: " +
+                "EnterpriseStorageEncryption.load: Error logging into the Secret Decoder Ring with the primary secret: " +
                   e
               );
               return;
