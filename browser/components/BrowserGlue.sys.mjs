@@ -1129,13 +1129,11 @@ BrowserGlue.prototype = {
           }
 
           // Load the PK11 token
-          const tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].getService(
-            Ci.nsIPK11TokenDB
-          );
-
           let pk11token;
           try {
-            pk11token = tokenDB.getInternalKeyToken();
+            pk11token = Cc[
+              "@mozilla.org/security/internalkeytoken;1"
+            ].createInstance(Ci.nsIPKCS11Token);
           } catch (e) {
             console.error(
               "EnterpriseStorageEncryption.load: Error getting PK11 token: " + e
@@ -1144,16 +1142,7 @@ BrowserGlue.prototype = {
           }
 
           // Check if the PK11 token needs initialization
-          if (pk11token.needsUserInit) {
-            try {
-              pk11token.initPassword(primarySecret);
-            } catch (e) {
-              console.error(
-                "EnterpriseStorageEncryption.load: Failed to initialize PK11 token password: " +
-                  e
-              );
-            }
-          } else if (!pk11token.needsLogin()) {
+          if (!pk11token.hasPassword) {
             // Token doesn't need login (empty password), set it to primarySecret
             try {
               pk11token.changePassword("", primarySecret);
@@ -1167,10 +1156,13 @@ BrowserGlue.prototype = {
             // Token needs login - verify the password matches primarySecret
             let isPasswordValid;
             try {
-              isPasswordValid = pk11token.checkPassword(primarySecret);
+              let sdr = Cc["@mozilla.org/security/sdr;1"].getService(
+                Ci.nsISecretDecoderRing
+              );
+              isPasswordValid = sdr.login(primarySecret);
             } catch (e) {
               console.error(
-                "EnterpriseStorageEncryption.load: Error checking password against PK11 token: " +
+                "EnterpriseStorageEncryption.load: Error logging into the Secret Decoder Ring with the primary secret: " +
                   e
               );
               return;
