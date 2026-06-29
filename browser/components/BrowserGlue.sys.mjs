@@ -1539,15 +1539,15 @@ BrowserGlue.prototype = {
    * is persisted into `enterprise.lock_on_quit` so subsequent silent quits
    * repeat it.
    *
-   * Lock and Sign Out drive different IPC paths (felt UI and felt browser
-   * are separate Firefox instances with separate pref stores, so we can't
-   * tell felt UI's exit handler what to do via a cross-process pref):
-   *   - Lock:     proceed with a normal quit; felt UI's FirefoxNormalExit
-   *               handler stores the refresh token via FeltLocking.store().
-   *   - Sign out: cancel the current quit and call
-   *               `Services.felt.performSignout()`, which sends
-   *               LogoutShutdown to felt UI and runs the existing logout
-   *               flow (server signout, clearTokens, FirefoxLogoutExit).
+   * Lock and Sign Out are dispatched as explicit, symmetric IPC calls to felt
+   * UI (which is a separate Firefox instance), so the intent is never inferred
+   * from the exit path:
+   *   - Lock:     `Services.felt.performLock()` sends Lock to felt UI, which
+   *               persists the refresh token (FeltLocking.store()), clears the
+   *               live tokens, and shuts this browser down.
+   *   - Sign out: `Services.felt.performSignout()` sends LogoutShutdown to felt
+   *               UI, which runs the logout flow (server signout, clear any
+   *               stored token, clearTokens, FirefoxLogoutExit).
    */
   _handleEnterpriseQuit(aCancelQuit) {
     this._quitSource = "unknown";
@@ -1635,18 +1635,20 @@ BrowserGlue.prototype = {
   },
 
   _dispatchEnterpriseQuit(aCancelQuit, lock) {
-    if (lock) {
-      aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = false;
-      return;
-    }
+    // Lock and Sign out are symmetric: both cancel this quit and hand off to
+    // felt UI over IPC (performLock / performSignout). Felt UI persists or
+    // signs out the session and then shuts this browser down, which re-enters
+    // _onQuitRequest; _skipSignoutPrompt suppresses the modal that next time.
     aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = true;
-    // The LogoutShutdown roundtrip re-enters _onQuitRequest via
-    // Services.startup.quit(); skip our modal that next time around.
     lazy.EnterpriseHandler._skipSignoutPrompt = true;
     try {
-      Services.felt.performSignout();
+      if (lock) {
+        Services.felt.performLock();
+      } else {
+        Services.felt.performSignout();
+      }
     } catch (e) {
-      console.error("Enterprise signout via felt failed:", e);
+      console.error("Enterprise quit via felt failed:", e);
       lazy.EnterpriseHandler._skipSignoutPrompt = false;
       Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
     }

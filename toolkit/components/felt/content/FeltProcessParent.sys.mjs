@@ -104,6 +104,7 @@ const kBrowserObserverTopics = [
   "felt-firefox-restarting",
   "felt-ready",
   "felt-firefox-logout",
+  "felt-firefox-lock",
   "felt-firefox-tokens",
   "felt-firefox-refresh-tokens",
 ];
@@ -251,6 +252,10 @@ export class FeltProcessParent extends JSProcessActorParent {
 
           case "felt-firefox-logout":
             gFeltProcessParentInstance.logoutFirefox();
+            break;
+
+          case "felt-firefox-lock":
+            gFeltProcessParentInstance.lockFirefox();
             break;
 
           case "felt-firefox-tokens": {
@@ -752,12 +757,55 @@ export class FeltProcessParent extends JSProcessActorParent {
         lazy.log.error(`Server signout failed: ${err}`);
       })
       .finally(() => {
-        // clear token data on the FELT side, then shut Firefox down
+        // Drop any stored locked-session token and clear token data on the
+        // FELT side, then shut Firefox down.
+        lazy.FeltLocking.clear();
         Services.felt.clearTokens();
         Services.felt.shutdownFirefox();
         gFeltProcessParentInstance.proc.exitPromise.then(_ => {
           Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {
             reason: "logout",
+          });
+        });
+      });
+  }
+
+  /**
+   * Lock the session on the FELT side: persist the (encrypted) refresh token
+   * so it can be unlocked later, then shut Firefox down without signing the
+   * server session out. Mirrors logoutFirefox().
+   */
+  lockFirefox() {
+    if (!Services.felt.isFeltUI()) {
+      throw new Error("Lock handling should only happen on FELT side.");
+    }
+
+    if (gFeltProcessParentInstance.logoutReported) {
+      lazy.log.debug("lockFirefox: shutdown already in progress, skipping.");
+      return;
+    }
+
+    // Reuse logoutReported so startFirefox()'s exit handler does not also send
+    // FirefoxNormalExit (which would sign the session out).
+    gFeltProcessParentInstance.logoutReported = true;
+
+    lazy.FeltLocking.store(Services.felt.getRefreshToken())
+      .catch(async err => {
+        // If we cannot persist the session there is nothing to unlock later,
+        // so fall back to a server signout rather than leaving a dangling
+        // session behind, and drop any stale stored token.
+        lazy.log.error(`Locking failed, falling back to signout: ${err}`);
+        await lazy.FeltLocking.clear();
+        return lazy.ConsoleClient.performServerSignout().catch(e => {
+          lazy.log.error(`Server signout failed: ${e}`);
+        });
+      })
+      .finally(() => {
+        Services.felt.clearTokens();
+        Services.felt.shutdownFirefox();
+        gFeltProcessParentInstance.proc.exitPromise.then(_ => {
+          Services.cpmm.sendAsyncMessage("FeltParent:FirefoxLogoutExit", {
+            reason: "lock",
           });
         });
       });
@@ -770,7 +818,11 @@ export class FeltProcessParent extends JSProcessActorParent {
     switch (message.name) {
       case "FeltChild:StartFirefox":
         {
-          if (!message.data?.refresh_token) {
+          // An unlock resumes with the refresh token already set on the FELT
+          // side (see FeltLocking.tryUnlock), so message.data is empty; a fresh
+          // SSO login carries the tokens here.
+          const isUnlock = !message.data?.refresh_token;
+          if (isUnlock) {
             if (!Services.felt.getRefreshToken()) {
               throw new Error("No token!");
             }
@@ -783,7 +835,6 @@ export class FeltProcessParent extends JSProcessActorParent {
             const expires_at =
               Math.floor(Date.now() / 1000) + Number(expires_in);
             Services.felt.setTokens(access_token, refresh_token, expires_at);
-            await lazy.FeltLocking.store(refresh_token);
           }
 
           // TODO: Bug 2003001 - Pass user info from Felt to Firefox to avoid network request on startup
@@ -795,8 +846,11 @@ export class FeltProcessParent extends JSProcessActorParent {
 
           const ssoCollectedCookies = this.getAllCookies();
           lazy.log.debug(`Collected cookies: ${ssoCollectedCookies.length}`);
-          // When a restart was reported we assume cookies were stored properly on the
-          // browser side?
+          // A fresh SSO login must carry session cookies; an unlock legitimately
+          // has none since it resumes from the stored refresh token.
+          if (!isUnlock && !ssoCollectedCookies.length) {
+            throw new Error("Not enough cookies!!");
+          }
           this.startFirefox(
             PROCESS_START_REASON.INITIAL_START,
             ssoCollectedCookies

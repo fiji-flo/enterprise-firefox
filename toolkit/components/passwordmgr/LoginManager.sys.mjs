@@ -507,11 +507,11 @@ LoginManager.prototype = {
   },
 
   get uiBusy() {
-    return this._storage?.uiBusy ?? false;
+    return this._storage.uiBusy;
   },
 
   get isLoggedIn() {
-    return this._storage?.isLoggedIn ?? false;
+    return this._storage.isLoggedIn;
   },
 
   /**

@@ -264,24 +264,28 @@ export class Felt {
           this
         );
 
-        (lazy.FeltLocking.enabled
-          ? lazy.FeltLocking.store(Services.felt.getRefreshToken())
-          : lazy.ConsoleClient.performServerSignout().catch(err => {
-              console.error(`Failed to post signout on exit: ${err}`);
-            })
-        ).finally(() => {
-          Services.felt.clearTokens();
-          // This is only useful for testing purpose when we need to exit the
-          // browser cleanly but need to keep felt alive for some processing after
-          if (!lazy.isBlockingShutdown()) {
-            Services.startup.quit(
-              Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
-            );
-          } else if (!this._win) {
-            Services.felt.makeBackgroundProcess(false);
-            this.showWindow();
-          }
-        });
+        // A clean browser exit means signing out: locking is an explicit
+        // action that travels its own path (FeltParent handles
+        // "felt-firefox-lock"), so here we always sign out the server session
+        // and drop any token left over from a previous lock.
+        lazy.ConsoleClient.performServerSignout()
+          .catch(err => {
+            console.error(`Failed to post signout on exit: ${err}`);
+          })
+          .finally(async () => {
+            await lazy.FeltLocking.clear();
+            Services.felt.clearTokens();
+            // This is only useful for testing purpose when we need to exit the
+            // browser cleanly but need to keep felt alive for some processing after
+            if (!lazy.isBlockingShutdown()) {
+              Services.startup.quit(
+                Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eConsiderQuit
+              );
+            } else if (!this._win) {
+              Services.felt.makeBackgroundProcess(false);
+              this.showWindow();
+            }
+          });
         break;
       }
 

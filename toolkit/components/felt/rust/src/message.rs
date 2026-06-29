@@ -61,6 +61,7 @@ pub enum FeltMessage {
     RestartForced,
     Restarting,
     LogoutShutdown,
+    Lock,
     Exiting,
     UpdateReady,
     Shutdown,
@@ -72,4 +73,4 @@ pub enum FocusHint {
     Timestamp(u32),
 }
 
-pub const FELT_IPC_VERSION: u32 = 11;
+pub const FELT_IPC_VERSION: u32 = 12;
