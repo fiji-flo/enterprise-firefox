@@ -56,6 +56,7 @@ enterprise-quit-shortcut-prompt-title-with-tabs = Quit { -brand-short-name } or 
 enterprise-quit-shortcut-prompt-title = Close window and quit { -brand-short-name }?
 enterprise-quit-shortcut-prompt-message = Quitting will sign you out of your session. You’ll need to reauthenticate through your organization’s SSO provider.
 enterprise-quit-shortcut-prompt-primary-btn-label = Quit and sign out
+enterprise-quit-shortcut-prompt-lock-btn-label = Lock
 
 restart-forced-title = Restart { -brand-short-name }
 restart-forced-heading = Restart to continue using { -brand-short-name }.

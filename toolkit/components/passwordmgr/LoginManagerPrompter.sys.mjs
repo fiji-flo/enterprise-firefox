@@ -685,18 +685,22 @@ export class LoginManagerPrompter {
               const usernameField = chromeDoc.getElementById(
                 "password-notification-username"
               );
-              usernameField.removeEventListener("input", onUsernameInput);
-              usernameField.removeEventListener("keyup", onKeyUp);
-              usernameField.removeEventListener(
-                "dropmarker-click",
-                onDropmarkerClick
-              );
-              usernameField.inputEl?.detachController();
+              if (usernameField) {
+                usernameField.removeEventListener("input", onUsernameInput);
+                usernameField.removeEventListener("keyup", onKeyUp);
+                usernameField.removeEventListener(
+                  "dropmarker-click",
+                  onDropmarkerClick
+                );
+                usernameField.inputEl?.detachController();
+              }
               const passwordField = chromeDoc.getElementById(
                 "password-notification-password"
               );
-              passwordField.removeEventListener("input", onPasswordInput);
-              passwordField.removeEventListener("keyup", onKeyUp);
+              if (passwordField) {
+                passwordField.removeEventListener("input", onPasswordInput);
+                passwordField.removeEventListener("keyup", onKeyUp);
+              }
               break;
             }
           }

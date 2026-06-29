@@ -1529,6 +1529,129 @@ BrowserGlue.prototype = {
     this._quitSource = source;
   },
 
+  /**
+   * Handle the enterprise (felt) quit confirmation. Always returns true to
+   * indicate the caller should bail out of the standard `_onQuitRequest` flow.
+   *
+   * Shows a 2- or 3-button prompt (Sign out, Cancel, optional Lock) when
+   * `enterprise.prompt_on_signout` is true. Unchecking the "warn me" checkbox
+   * stores `enterprise.prompt_on_signout=false`, and the user's last action
+   * is persisted into `enterprise.lock_on_quit` so subsequent silent quits
+   * repeat it.
+   *
+   * Lock and Sign Out drive different IPC paths (felt UI and felt browser
+   * are separate Firefox instances with separate pref stores, so we can't
+   * tell felt UI's exit handler what to do via a cross-process pref):
+   *   - Lock:     proceed with a normal quit; felt UI's FirefoxNormalExit
+   *               handler stores the refresh token via FeltLocking.store().
+   *   - Sign out: cancel the current quit and call
+   *               `Services.felt.performSignout()`, which sends
+   *               LogoutShutdown to felt UI and runs the existing logout
+   *               flow (server signout, clearTokens, FirefoxLogoutExit).
+   */
+  _handleEnterpriseQuit(aCancelQuit) {
+    this._quitSource = "unknown";
+
+    // The panel "Sign out…" flow sets _skipSignoutPrompt and already
+    // initiated performSignout(); let that quit proceed cleanly.
+    if (lazy.EnterpriseHandler._skipSignoutPrompt) {
+      lazy.EnterpriseHandler._skipSignoutPrompt = false;
+      return true;
+    }
+
+    const lockingEnabled = Services.prefs.getBoolPref(
+      "enterprise.locking.enabled",
+      false
+    );
+    const promptOnSignout = Services.prefs.getBoolPref(
+      "enterprise.prompt_on_signout",
+      true
+    );
+
+    if (!promptOnSignout) {
+      const lockOnQuit =
+        lockingEnabled &&
+        Services.prefs.getBoolPref("enterprise.lock_on_quit", false);
+      this._dispatchEnterpriseQuit(aCancelQuit, lockOnQuit);
+      return true;
+    }
+
+    const win = lazy.BrowserWindowTracker.getTopWindow({
+      allowFromInactiveWorkspace: true,
+    });
+    if (win?.gDialogBox) {
+      win.gDialogBox.replaceDialogIfOpen();
+    }
+
+    const stringIds = [
+      "enterprise-quit-shortcut-prompt-title",
+      "enterprise-quit-shortcut-prompt-message",
+      "enterprise-quit-shortcut-prompt-primary-btn-label",
+      "enterprise-close-prompt-checkbox-label",
+    ];
+    if (lockingEnabled) {
+      stringIds.push("enterprise-quit-shortcut-prompt-lock-btn-label");
+    }
+    const [title, message, signOutLabel, checkboxLabel, lockLabel] =
+      lazy.localization.formatValuesSync(stringIds);
+
+    let warnOnSignout = { value: true };
+
+    let flags =
+      Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0 +
+      Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1;
+    if (lockingEnabled) {
+      flags +=
+        Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_2;
+    }
+    flags |= Services.prompt.BUTTON_POS_1_IS_SECONDARY;
+
+    const buttonPressed = Services.prompt.confirmEx(
+      win,
+      title,
+      message,
+      flags,
+      signOutLabel,
+      null,
+      lockingEnabled ? lockLabel : null,
+      checkboxLabel,
+      warnOnSignout
+    );
+
+    if (buttonPressed === 1) {
+      // Cancel button pressed.
+      aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = true;
+      return true;
+    }
+
+    const userChoseLock = buttonPressed === 2;
+    Services.prefs.setBoolPref("enterprise.lock_on_quit", userChoseLock);
+    if (!warnOnSignout.value) {
+      Services.prefs.setBoolPref("enterprise.prompt_on_signout", false);
+    }
+
+    this._dispatchEnterpriseQuit(aCancelQuit, userChoseLock);
+    return true;
+  },
+
+  _dispatchEnterpriseQuit(aCancelQuit, lock) {
+    if (lock) {
+      aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = false;
+      return;
+    }
+    aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = true;
+    // The LogoutShutdown roundtrip re-enters _onQuitRequest via
+    // Services.startup.quit(); skip our modal that next time around.
+    lazy.EnterpriseHandler._skipSignoutPrompt = true;
+    try {
+      Services.felt.performSignout();
+    } catch (e) {
+      console.error("Enterprise signout via felt failed:", e);
+      lazy.EnterpriseHandler._skipSignoutPrompt = false;
+      Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+    }
+  },
+
   _onQuitRequest: function BG__onQuitRequest(aCancelQuit, aQuitType) {
     // If user has already dismissed quit request, then do nothing
     if (aCancelQuit instanceof Ci.nsISupportsPRBool && aCancelQuit.data) {
@@ -1555,25 +1678,11 @@ BrowserGlue.prototype = {
       return;
     }
 
-    // When Firefox was launched by FELT, show a signout confirmation prompt
-    // instead of the standard quit dialog.
+    // When Firefox was launched by FELT, show the enterprise quit prompt
+    // with a signout confirmation (and optional Lock action) instead of the
+    // standard quit dialog.
     if (AppConstants.MOZ_ENTERPRISE && Services.felt?.isFeltBrowser()) {
-      if (lazy.EnterpriseHandler.shouldShowClosePrompt()) {
-        aCancelQuit.QueryInterface(Ci.nsISupportsPRBool).data = true;
-        this._quitSource = "unknown";
-        const promptWindow = lazy.BrowserWindowTracker.getTopWindow({
-          allowFromInactiveWorkspace: true,
-        });
-        lazy.EnterpriseHandler.showSignoutPrompt(promptWindow)
-          .then(proceed => {
-            if (proceed) {
-              Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
-            }
-          })
-          .catch(e => {
-            console.error("Enterprise signout prompt failed, quitting:", e);
-            Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
-          });
+      if (this._handleEnterpriseQuit(aCancelQuit)) {
         return;
       }
     }

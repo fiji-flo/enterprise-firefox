@@ -542,6 +542,10 @@ export const EnterpriseHandler = {
   },
 
   initiateShutdown() {
+    // Panel sign-out always signs out (never locks), and the user already
+    // confirmed via showSignoutPrompt — bypass the BrowserGlue quit prompt.
+    Services.prefs.setBoolPref("enterprise.lock_on_quit", false);
+    this._skipSignoutPrompt = true;
     // TODO: Bug 2001029 - Assert or force-enable session restore?
     try {
       Services.felt.performSignout();

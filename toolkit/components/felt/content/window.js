@@ -12,6 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FeltCommon: "chrome://felt/content/FeltCommon.sys.mjs",
   FeltErrorReport: "resource://gre/modules/enterprise/FeltErrorReport.sys.mjs",
   ERROR_SOURCE: "resource://gre/modules/enterprise/FeltErrorReport.sys.mjs",
+  FeltLocking: "chrome://felt/content/FeltLocking.sys.mjs",
   FeltStorage: "resource://gre/modules/enterprise/FeltStorage.sys.mjs",
   PopupNotifications: "resource://gre/modules/PopupNotifications.sys.mjs",
   Updates: "resource://gre/modules/enterprise/Updates.sys.mjs",
@@ -27,6 +28,11 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 Services.obs.notifyObservers(window, "browser-delayed-startup-finished");
 
 async function connectToConsole(email) {
+  const browser = document.getElementById("browser");
+  if (await lazy.FeltLocking.tryUnlock(email, browser)) {
+    return;
+  }
+
   let posture;
   try {
     posture = await lazy.ConsoleClient.sendDevicePosture();
@@ -46,7 +52,6 @@ async function connectToConsole(email) {
     posture.posture
   );
 
-  const browser = document.getElementById("browser");
   browser.setAttribute("maychangeremoteness", "true");
   browser.setAttribute(
     "remoteType",
