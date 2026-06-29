@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const ENTERPRISE_LOCKING_TOKENS_PREF = "enterprise.locking.tokens";
 const ENTERPRISE_LOCKING_ENABLED_PREF = "enterprise.locking.enabled";
 
 const lazy = {};
@@ -34,36 +33,17 @@ function currentEmail() {
   return lazy.FeltStorage.getLastSignedInUser();
 }
 
-async function updateTokensPref(tokens, email, token) {
-  if (token) {
-    const encryptedUpdatedRefreshToken = await lazy.OSKeyStore.encrypt(
-      token,
-      "",
-      false
-    );
-    tokens[email] = encryptedUpdatedRefreshToken;
-  } else {
-    delete tokens[email];
-  }
-  Services.prefs.setStringPref(
-    ENTERPRISE_LOCKING_TOKENS_PREF,
-    JSON.stringify(tokens)
-  );
-}
-
-function getTokens() {
-  const tokensString = Services.prefs.getStringPref(
-    ENTERPRISE_LOCKING_TOKENS_PREF,
-    "{}"
-  );
-  let tokens;
-  try {
-    tokens = JSON.parse(tokensString);
-  } catch {
-    console.warn(`FeltLocking: unable to parse tokens from pref`);
-    tokens = {};
-  }
-  return tokens;
+/**
+ * Encrypts the refresh token and persists it for the given user via
+ * FeltStorage, so the value never lands in a plaintext pref / about:config.
+ *
+ * @param {string} email
+ * @param {string} token The plaintext refresh token.
+ * @returns {Promise<void>}
+ */
+async function storeToken(email, token) {
+  const encryptedRefreshToken = await lazy.OSKeyStore.encrypt(token);
+  lazy.FeltStorage.setLockingToken(email, encryptedRefreshToken);
 }
 
 export const FeltLocking = {
@@ -81,8 +61,7 @@ export const FeltLocking = {
    */
   tryUnlock: async (email, browser) => {
     if (lockingEnabled()) {
-      const tokens = getTokens();
-      const token = tokens?.[email];
+      const token = lazy.FeltStorage.getLockingToken(email);
       if (token) {
         const { authenticated } = await lazy.OSKeyStore.ensureLoggedIn(
           "Trying to unlock existing session",
@@ -92,7 +71,7 @@ export const FeltLocking = {
           const refreshToken = await lazy.OSKeyStore.decrypt(token, "", false);
           if (!refreshToken) {
             Services.felt.setTokens("", "", 0);
-            await updateTokensPref(tokens, email, null);
+            lazy.FeltStorage.clearLockingToken(email);
             return false;
           }
           // Only set the refresh token since that's all we have.
@@ -103,7 +82,7 @@ export const FeltLocking = {
               await lazy.ConsoleClient.refreshTokens();
             Services.felt.setTokens(access_token, refresh_token, expires_at);
 
-            await updateTokensPref(tokens, email, refresh_token);
+            await storeToken(email, refresh_token);
 
             const parentActor =
               browser.browsingContext.currentWindowGlobal.domProcess.getActor(
@@ -115,9 +94,18 @@ export const FeltLocking = {
             });
             return true;
           } catch (err) {
-            console.warn(`FeltLocking: Error resuming from token: ${err}`);
             Services.felt.setTokens("", "", 0);
-            await updateTokensPref(tokens, email, null);
+            if (err?.name === "ReauthRequiredError") {
+              // The refresh token is genuinely invalid/revoked: drop it so we
+              // fall back to a full SSO sign-in.
+              lazy.FeltStorage.clearLockingToken(email);
+            } else {
+              // Transient failure (offline, server error, ...): keep the stored
+              // token so the session can still be unlocked later.
+              lazy.log.warn(
+                `tryUnlock: transient failure resuming from token, keeping it: ${err}`
+              );
+            }
           }
         }
       }
@@ -127,9 +115,11 @@ export const FeltLocking = {
 
   /**
    * Persist the (encrypted) refresh token for the current user so the session
-   * can later be unlocked. No-op when locking is disabled or no user is known.
+   * can later be unlocked. No-op when locking is disabled.
    *
    * @param {string} refresh_token
+   * @throws {Error} If locking is enabled but no signed-in user is known, so the
+   *   caller can fall back to signing out instead of locking.
    * @returns {Promise<void>}
    */
   store: async refresh_token => {
@@ -138,13 +128,14 @@ export const FeltLocking = {
     }
     const email = currentEmail();
     if (!email) {
-      lazy.log.warn(
+      // Surface this as an error so the caller (e.g. lockFirefox) can fall back
+      // to signing out, rather than silently leaving a session that is neither
+      // restorable nor signed out.
+      throw new Error(
         "store: no signed-in user known, cannot persist locked session"
       );
-      return;
     }
-    const tokens = getTokens();
-    await updateTokensPref(tokens, email, refresh_token);
+    await storeToken(email, refresh_token);
   },
 
   /**
@@ -159,9 +150,6 @@ export const FeltLocking = {
     if (!email) {
       return;
     }
-    const tokens = getTokens();
-    if (email in tokens) {
-      await updateTokensPref(tokens, email, null);
-    }
+    lazy.FeltStorage.clearLockingToken(email);
   },
 };
