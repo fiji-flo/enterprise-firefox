@@ -2974,6 +2974,57 @@
       "examples": [true, false]
     },
 
+    "Watermark": {
+      "type": "object",
+      "x-category": "Miscellaneous",
+      "description": "Display a tiled, diagonal watermark over a list of websites.",
+      "examples": [
+        {
+          "Pages": [
+            "https://intranet.example.com/*",
+            "https://*.corp.example.com/*"
+          ],
+          "Copy": "CONFIDENTIAL",
+          "Color": "rgba(200, 0, 0, 0.2)",
+          "FontSize": 28,
+          "Angle": -45,
+          "SecondaryCopy": "%t - %e"
+        }
+      ],
+      "required": ["Pages"],
+      "properties": {
+        "Pages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Copy": {
+          "type": "string",
+          "description": "Text to display in the watermark. Falls back to the logged-in user's email, or a generic default, if not set. %t is replaced with the current timestamp, and %e with the logged-in user's email. Defaults to \"%e\""
+        },
+        "Color": {
+          "type": "string"
+        },
+        "FontSize": {
+          "type": "number",
+          "description": "Font size of the watermark text, in CSS pixels. Defaults to 28, limit is 64."
+        },
+        "Angle": {
+          "type": "number",
+          "description": "Rotation angle of the watermark text, in degrees. Defaults to -45."
+        },
+        "Size": {
+          "type": "number",
+          "description": "Size of a single background tile, in CSS pixels. Defaults to 300, limit is 2048."
+        },
+        "SecondaryCopy": {
+          "type": "string",
+          "description": "Template for a smaller second row of text below Copy. %t is replaced with the current timestamp, and %e with the logged-in user's email. Defaults to \"%t\"; set to an empty string to omit the second row."
+        }
+      }
+    },
+
     "WebsiteFilter": {
       "type": "object",
       "x-category": "Browsing restrictions",

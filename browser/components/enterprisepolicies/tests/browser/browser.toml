@@ -157,6 +157,11 @@ support-files = [
 
 ["browser_policy_usermessaging.js"]
 
+["browser_policy_watermark.js"]
+support-files = ["policy_watermark.html"]
+# Only run in MOZ_ENTERPRISE builds
+run-if = ["enterprise"]
+
 ["browser_policy_websitefilter.js"]
 
 ["browser_policy_websitefilter_telemetry.js"]

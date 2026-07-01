@@ -79,6 +79,10 @@ support-files = ["config_popups_cookies_addons.json"]
 
 ["test_telemetry.js"]
 
+["test_watermark.js"]
+# Only run in MOZ_ENTERPRISE builds
+run-if = ["enterprise"]
+
 ["test_webserial.js"]
 
 ["test_websitefilter.js"]
