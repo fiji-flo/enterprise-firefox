@@ -9,6 +9,9 @@ EXTRA_JS_MODULES.policies += [
     "AIChatbotPolicies.sys.mjs",
     "BookmarksPolicies.sys.mjs",
     "ProxyPolicies.sys.mjs",
+    "WatermarkChild.sys.mjs",
+    "WatermarkParent.sys.mjs",
+    "WatermarkPolicy.sys.mjs",
     "WebsiteFilter.sys.mjs",
 ]
 

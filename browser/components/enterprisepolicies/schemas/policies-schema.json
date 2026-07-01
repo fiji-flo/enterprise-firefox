@@ -2846,6 +2846,36 @@
       "description": "Enable or disable visual search.",
       "examples": [true, false]
     },
+    "Watermark": {
+      "type": "object",
+      "x-category": "Miscellaneous",
+      "description": "Display a tiled, diagonal watermark over a list of websites.",
+      "examples": [
+        {
+          "Pages": [
+            "https://intranet.example.com/*",
+            "https://*.corp.example.com/*"
+          ],
+          "Copy": "CONFIDENTIAL",
+          "Color": "rgba(200, 0, 0, 0.2)"
+        }
+      ],
+      "required": ["Pages", "Copy"],
+      "properties": {
+        "Pages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Copy": {
+          "type": "string"
+        },
+        "Color": {
+          "type": "string"
+        }
+      }
+    },
     "WebsiteFilter": {
       "type": "object",
       "contentMediaType": "application/json",

@@ -79,4 +79,6 @@ support-files = ["config_popups_cookies_addons.json"]
 
 ["test_telemetry.js"]
 
+["test_watermark.js"]
+
 ["test_webserial.js"]

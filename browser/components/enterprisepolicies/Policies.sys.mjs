@@ -35,6 +35,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
   AIChatbotPolicies: "resource:///modules/policies/AIChatbotPolicies.sys.mjs",
   QuickSuggest: "moz-src:///browser/components/urlbar/QuickSuggest.sys.mjs",
+  WatermarkPolicy: "resource:///modules/policies/WatermarkPolicy.sys.mjs",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.sys.mjs",
   SyncPolicy: "resource:///modules/policies/SyncPolicy.sys.mjs",
 });
@@ -102,6 +103,13 @@ export var Policies = {
     onBeforeUIStartup() {
       if (Cu.isInAutomation || isXpcshell) {
         console.log("_cleanup from onBeforeUIStartup");
+      }
+      // Tear down the watermark when the engine is reloaded without the
+      // Watermark policy (e.g. the enterprise console removed all policies).
+      // The key string matches WATERMARK_SHARED_DATA_KEY; checking it here
+      // avoids importing the helper module on profiles that never used it.
+      if (Services.ppmm.sharedData.get("EnterprisePolicies:Watermark")) {
+        lazy.WatermarkPolicy.cleanup();
       }
     },
     onAllWindowsRestored() {
@@ -3872,6 +3880,15 @@ export var Policies = {
   VisualSearchEnabled: {
     onBeforeAddons(manager, param) {
       setAndLockPref("browser.search.visualSearch.featureGate", param);
+    },
+  },
+
+  Watermark: {
+    onBeforeUIStartup(manager, param) {
+      lazy.WatermarkPolicy.init(param.Pages || [], param.Copy, param.Color);
+    },
+    onRemove() {
+      lazy.WatermarkPolicy.cleanup();
     },
   },
 
