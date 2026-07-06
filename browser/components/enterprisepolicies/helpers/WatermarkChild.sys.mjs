@@ -29,7 +29,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
     "resource://gre/modules/Console.sys.mjs"
   );
   return new ConsoleAPI({
-    prefix: "Watermark Policy",
+    prefix: "WatermarkPolicy",
     maxLogLevel: "error",
     maxLogLevelPref: PREF_LOGLEVEL,
   });
@@ -322,7 +322,10 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     }
 
     // Reflects when the document was printed, rather than when it was loaded.
-    let watermarkConfig = { ...config, timestamp: new Date().toISOString() };
+    let watermarkConfig = {
+      ...config,
+      timestamp: new Date().toLocaleDateString(),
+    };
 
     try {
       let node = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
