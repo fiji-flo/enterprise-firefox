@@ -125,14 +125,14 @@ add_task(async function test_watermark_live_apply_and_remove() {
       );
 
       await setupPolicyEngineWithJson(MATCHING_POLICY);
-      await BrowserTestUtils.waitForCondition(
+      await TestUtils.waitForCondition(
         () => isShowingWatermark(browser),
         "Watermark should appear on the already-open tab after the policy is applied"
       );
       ok(true, "Watermark appears on an already-open tab (live apply)");
 
       await setupPolicyEngineWithJson("");
-      await BrowserTestUtils.waitForCondition(
+      await TestUtils.waitForCondition(
         async () => !(await isShowingWatermark(browser)),
         "Watermark should be removed from the already-open tab after the policy is removed"
       );

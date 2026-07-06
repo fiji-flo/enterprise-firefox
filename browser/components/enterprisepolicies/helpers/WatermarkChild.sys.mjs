@@ -287,7 +287,8 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
 
   /**
    * (Re-)draws the on-screen watermark as anonymous content, and keeps it
-   * sized to the document via a ResizeObserver.
+   * sized to the document via a ResizeObserver. A no-op if `config` is
+   * falsy (e.g. the policy has just been removed).
    *
    * @param {WatermarkConfig?} config Watermark configuration. Defaults to
    *   the configuration currently published in sharedData.
@@ -299,7 +300,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
 
     let win = this.contentWindow;
     let doc = this.document;
-    if (!win || !doc) {
+    if (!win || !doc || !config) {
       return;
     }
 
@@ -370,6 +371,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   /**
    * Inserts a real (non-anonymous) watermark node into the document for
    * printing, since anonymous content isn't included in cloned print documents.
+   * A no-op if `config` is falsy (e.g. the policy has just been removed).
    *
    * @param {WatermarkConfig?} config Watermark configuration. Defaults to
    *   the configuration currently published in sharedData.
@@ -380,7 +382,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     this.#removePrintWatermark();
 
     let doc = this.document;
-    if (!doc?.documentElement) {
+    if (!doc?.documentElement || !config) {
       return;
     }
 
