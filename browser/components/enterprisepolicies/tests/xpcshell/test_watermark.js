@@ -287,7 +287,7 @@ add_task(async function test_watermark_config_published() {
   await setupPolicyEngineWithJson({
     policies: {
       Watermark: {
-        Pages: [
+        Match: [
           "https://example.com/*",
           "https://*.corp.example.com/*",
           "this is not a valid pattern",
@@ -305,7 +305,7 @@ add_task(async function test_watermark_config_published() {
   let config = Services.ppmm.sharedData.get(SHARED_DATA_KEY);
   Assert.ok(config, "Watermark config is published to shared data");
   Assert.deepEqual(
-    config.pages,
+    config.match,
     ["https://example.com/*", "https://*.corp.example.com/*"],
     "Invalid match patterns are filtered out"
   );

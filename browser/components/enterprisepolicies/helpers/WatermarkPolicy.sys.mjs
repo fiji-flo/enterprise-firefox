@@ -59,19 +59,19 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 export let WatermarkPolicy = {
-  async init(pages, copy, color, fontSize, angle, secondaryCopy, size) {
-    let validPages = [];
+  async init(match, copy, color, fontSize, angle, secondaryCopy, size) {
+    let validMatches = [];
 
-    for (let i = 0; i < pages.length && i < LIST_LENGTH_LIMIT; i++) {
+    for (let i = 0; i < match.length && i < LIST_LENGTH_LIMIT; i++) {
       try {
-        new MatchPattern(pages[i]);
-        validPages.push(pages[i]);
+        new MatchPattern(match[i]);
+        validMatches.push(match[i]);
       } catch (e) {
-        lazy.log.error(`Invalid pattern on Watermark. Pages: ${pages[i]}`);
+        lazy.log.error(`Invalid pattern on Watermark. Pages: ${match[i]}`);
       }
     }
 
-    if (!validPages.length) {
+    if (!validMatches.length) {
       lazy.log.error("Watermark policy has no valid pages; not applying.");
       this._unregisterActor();
       Services.ppmm.sharedData.delete(WATERMARK_SHARED_DATA_KEY);
@@ -102,7 +102,7 @@ export let WatermarkPolicy = {
     }
 
     let config = {
-      pages: validPages,
+      match: validMatches,
       copy,
       color: sanitizeCSSColor(color) ?? DEFAULT_COLOR,
       size: Math.min(Math.max(MIN_TILE_SIZE, size), MAX_TILE_SIZE),
@@ -117,7 +117,7 @@ export let WatermarkPolicy = {
       email: email || "",
     };
 
-    this._registerActor(validPages);
+    this._registerActor(validMatches);
 
     Services.ppmm.sharedData.set(WATERMARK_SHARED_DATA_KEY, config);
     Services.ppmm.sharedData.flush();
@@ -134,7 +134,7 @@ export let WatermarkPolicy = {
     this._refreshOpenTabs(null);
   },
 
-  _registerActor(pages) {
+  _registerActor(matches) {
     ChromeUtils.unregisterWindowActor(WATERMARK_ACTOR_NAME);
     ChromeUtils.registerWindowActor(WATERMARK_ACTOR_NAME, {
       child: {
@@ -144,7 +144,7 @@ export let WatermarkPolicy = {
           pageshow: {},
         },
       },
-      matches: pages,
+      matches,
       messageManagerGroups: ["browsers"],
       safeForUntrustedWebProcess: true,
     });

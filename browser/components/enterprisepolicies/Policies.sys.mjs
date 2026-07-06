@@ -4279,7 +4279,7 @@ export var Policies = {
   Watermark: {
     onBeforeUIStartup(manager, param) {
       lazy.WatermarkPolicy.init(
-        param.Pages || [],
+        param.Match || [],
         param.Copy,
         param.Color,
         param.FontSize,

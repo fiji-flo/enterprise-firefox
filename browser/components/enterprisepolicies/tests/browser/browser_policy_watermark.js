@@ -8,7 +8,7 @@ const PAGE_URL =
 const MATCHING_POLICY = {
   policies: {
     Watermark: {
-      Pages: ["*://mochi.test/*policy_watermark*"],
+      Match: ["*://mochi.test/*policy_watermark*"],
       Copy: "CONFIDENTIAL",
       Color: "rgba(200, 0, 0, 0.2)",
     },
@@ -18,7 +18,7 @@ const MATCHING_POLICY = {
 const NON_MATCHING_POLICY = {
   policies: {
     Watermark: {
-      Pages: ["*://nomatch.example.com/*"],
+      Match: ["*://nomatch.example.com/*"],
       Copy: "CONFIDENTIAL",
       Color: "rgba(200, 0, 0, 0.2)",
     },

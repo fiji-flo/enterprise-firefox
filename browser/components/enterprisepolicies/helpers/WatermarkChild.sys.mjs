@@ -4,7 +4,7 @@
 
 /*
  * Content-process side of the Watermark policy. When the document matches one
- * of the configured pages, this draws a tiled, diagonal watermark over the
+ * of the configured matches, this draws a tiled, diagonal watermark over the
  * page using the DevTools CanvasFrameAnonymousContentHelper, which inserts the
  * markup into the document's canvasFrame anonymous content and keeps it in sync
  * across in-document navigations.
@@ -220,7 +220,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   }
 
   #documentMatches(config) {
-    if (!config || !config.pages?.length || !config.copy) {
+    if (!config || !config.match?.length || !config.copy) {
       return false;
     }
 
@@ -230,7 +230,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     }
 
     try {
-      return new MatchPatternSet(config.pages).matches(uri);
+      return new MatchPatternSet(config.match).matches(uri);
     } catch (e) {
       lazy.log.error(`Failed to match ${uri}: ${e}`);
       return false;
