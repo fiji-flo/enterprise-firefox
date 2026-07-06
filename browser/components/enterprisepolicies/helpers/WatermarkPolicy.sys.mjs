@@ -58,7 +58,43 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   });
 });
 
+/**
+ * Watermark configuration, as constructed by WatermarkPolicy.init() and
+ * published to content processes through `sharedData`.
+ *
+ * @typedef {object} WatermarkConfig
+ * @property {Array<string>} match MatchPattern strings for the pages to watermark.
+ * @property {string} copy Primary watermark text.
+ * @property {string} color CSS color for the watermark text.
+ * @property {number} size Tile size in pixels.
+ * @property {number} fontSize Font size in pixels.
+ * @property {number} angle Rotation angle in degrees for the tiled text.
+ * @property {string} secondaryCopy Secondary line of text, supporting the
+ *   "%t" (timestamp) and "%e" (email) placeholders.
+ * @property {string} email Logged in user's email, or "" if unavailable.
+ * @property {string} [timestamp] Date the watermark was drawn/printed. Set by
+ *   WatermarkChild; absent from the config published by WatermarkPolicy.
+ */
+
 export let WatermarkPolicy = {
+  /**
+   * Validates the policy's configuration, publishes it to content processes,
+   * and (re-)registers the WatermarkPolicy actor so it only runs on matching
+   * pages.
+   *
+   * @param {Array<string>} match MatchPattern strings for the pages to watermark.
+   * @param {string} [copy] Primary watermark text. Defaults to the logged in
+   *   user's email, or "CONFIDENTIAL" if unavailable.
+   * @param {string} [color] CSS color for the watermark text. Falls back to
+   *   DEFAULT_COLOR if invalid or omitted.
+   * @param {number} [fontSize] Font size in pixels, clamped to MAX_FONT_SIZE.
+   * @param {number} [angle] Rotation angle in degrees for the tiled text.
+   * @param {string} [secondaryCopy] Secondary line of text, supporting the
+   *   "%t" (timestamp) and "%e" (email) placeholders. Defaults to "%t".
+   * @param {number} [size] Tile size in pixels, clamped between
+   *   MIN_TILE_SIZE and MAX_TILE_SIZE.
+   * @returns {Promise<void>}
+   */
   async init(match, copy, color, fontSize, angle, secondaryCopy, size) {
     let validMatches = [];
 
@@ -125,6 +161,9 @@ export let WatermarkPolicy = {
     this._refreshOpenTabs(config);
   },
 
+  /**
+   * Removes the watermark from all open tabs and unregisters the actor.
+   */
   cleanup() {
     this._unregisterActor();
 
@@ -134,6 +173,12 @@ export let WatermarkPolicy = {
     this._refreshOpenTabs(null);
   },
 
+  /**
+   * Registers the WatermarkPolicy content-process actor, restricted to the
+   * given matches so it's only created for pages that can be watermarked.
+   *
+   * @param {Array<string>} matches MatchPattern strings for the actor's `matches`.
+   */
   _registerActor(matches) {
     ChromeUtils.unregisterWindowActor(WATERMARK_ACTOR_NAME);
     ChromeUtils.registerWindowActor(WATERMARK_ACTOR_NAME, {
@@ -150,10 +195,20 @@ export let WatermarkPolicy = {
     });
   },
 
+  /**
+   * Unregisters the WatermarkPolicy content-process actor.
+   */
   _unregisterActor() {
     ChromeUtils.unregisterWindowActor(WATERMARK_ACTOR_NAME);
   },
 
+  /**
+   * Tells the WatermarkPolicy actor of every open browser to re-apply the
+   * watermark with the given configuration.
+   *
+   * @param {WatermarkConfig?} config Watermark configuration, or null to
+   *   remove the watermark.
+   */
   _refreshOpenTabs(config) {
     let windows;
     try {
@@ -180,6 +235,12 @@ export let WatermarkPolicy = {
   },
 };
 
+/**
+ * Returns `value` if it's a valid CSS color, or null otherwise.
+ *
+ * @param {*} value
+ * @returns {string?}
+ */
 function sanitizeCSSColor(value) {
   if (typeof value !== "string") {
     return null;

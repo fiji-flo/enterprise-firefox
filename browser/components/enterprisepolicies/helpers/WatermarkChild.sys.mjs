@@ -20,6 +20,10 @@
 // Must be kept in sync with WatermarkPolicy.sys.mjs.
 const WATERMARK_SHARED_DATA_KEY = "EnterprisePolicies:Watermark";
 
+/**
+ * @typedef {import("./WatermarkPolicy.sys.mjs").WatermarkConfig} WatermarkConfig
+ */
+
 const PREF_LOGLEVEL = "browser.policies.loglevel";
 
 const lazy = {};
@@ -49,6 +53,12 @@ ChromeUtils.defineLazyGetter(lazy, "DevTools", () => {
   };
 });
 
+/**
+ * Escapes characters that are special in XML/SVG markup.
+ *
+ * @param {*} str
+ * @returns {string}
+ */
 function escapeXML(str) {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -58,6 +68,13 @@ function escapeXML(str) {
     .replaceAll("'", "&apos;");
 }
 
+/**
+ * Substitutes the "%t" (timestamp) and "%e" (email) placeholders in `copy`.
+ *
+ * @param {string} copy Watermark text, possibly containing placeholders.
+ * @param {WatermarkConfig} config Watermark configuration providing `timestamp` and `email`.
+ * @returns {string}
+ */
 function templateWatermarkText(copy, config) {
   if (!copy) {
     return "";
@@ -67,6 +84,13 @@ function templateWatermarkText(copy, config) {
     .replaceAll("%e", config.email ?? "");
 }
 
+/**
+ * Builds a `url("data:image/svg+xml,...")` value for a single watermark
+ * tile, containing the (optionally two-line) rotated watermark text.
+ *
+ * @param {WatermarkConfig} config Watermark configuration.
+ * @returns {string}
+ */
 function watermarkBackgroundImage(config) {
   let color = escapeXML(config.color);
   let copy = escapeXML(templateWatermarkText(config.copy, config));
@@ -104,6 +128,13 @@ function watermarkBackgroundImage(config) {
 
 const PRINT_EVENT_OPTIONS = { mozSystemGroup: true };
 
+/**
+ * Returns the height, in pixels, that the watermark should cover to fill
+ * the visible viewport as well as any content that overflows it.
+ *
+ * @param {Document} doc
+ * @returns {number}
+ */
 function documentHeight(doc) {
   return Math.max(
     doc.defaultView?.innerHeight ?? 0,
@@ -112,6 +143,12 @@ function documentHeight(doc) {
   );
 }
 
+/**
+ * CSS declarations shared by the on-screen and print watermark nodes.
+ *
+ * @param {WatermarkConfig} config Watermark configuration.
+ * @returns {Array<string>}
+ */
 function watermarkCommonStyle(config) {
   return [
     "pointer-events: none !important",
@@ -121,8 +158,15 @@ function watermarkCommonStyle(config) {
   ];
 }
 
-// For anonymous content 100% is in regard to view port so we have to set the
-// height explicitly.
+/**
+ * CSS declarations for the on-screen watermark node. For anonymous content,
+ * 100% is in regard to the viewport, so the height has to be set explicitly
+ * to also cover content that overflows it.
+ *
+ * @param {WatermarkConfig} config Watermark configuration.
+ * @param {number} height Height in pixels, from documentHeight().
+ * @returns {string}
+ */
 function watermarkScreenStyle(config, height) {
   return [
     "position: absolute !important",
@@ -134,6 +178,12 @@ function watermarkScreenStyle(config, height) {
   ].join("; ");
 }
 
+/**
+ * CSS declarations for the print-only watermark node.
+ *
+ * @param {WatermarkConfig} config Watermark configuration.
+ * @returns {string}
+ */
 function watermarkPrintStyle(config) {
   return [
     "position: fixed !important",
@@ -156,6 +206,10 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   #printNode = null;
   #resizeObserver = null;
 
+  /**
+   * Registers the "beforeprint"/"afterprint" listeners used to show a
+   * separate, non-anonymous watermark node while printing.
+   */
   actorCreated() {
     this.contentWindow?.addEventListener(
       "beforeprint",
@@ -169,6 +223,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     );
   }
 
+  /**
+   * @param {Event} event
+   */
   handleEvent(event) {
     switch (event.type) {
       case "DOMContentLoaded":
@@ -186,6 +243,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     }
   }
 
+  /**
+   * @param {ReceiveMessageArgument} message
+   */
   receiveMessage(message) {
     switch (message.name) {
       case "Watermark:Refresh":
@@ -204,6 +264,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     return !!this.#printNode;
   }
 
+  /**
+   * Removes the print listeners and tears down both watermark nodes.
+   */
   didDestroy() {
     this.contentWindow?.removeEventListener(
       "beforeprint",
@@ -219,6 +282,14 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     this.#removePrintWatermark();
   }
 
+  /**
+   * (Re-)draws the on-screen watermark using the DevTools
+   * CanvasFrameAnonymousContentHelper, and keeps it sized to the document
+   * via a ResizeObserver.
+   *
+   * @param {WatermarkConfig?} config Watermark configuration. Defaults to
+   *   the configuration currently published in sharedData.
+   */
   #applyWatermark(
     config = Services.cpmm.sharedData.get(WATERMARK_SHARED_DATA_KEY)
   ) {
@@ -265,6 +336,12 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     }
   }
 
+  /**
+   * Builds the anonymous content node that displays the on-screen watermark.
+   *
+   * @param {WatermarkConfig} config Watermark configuration.
+   * @returns {Element}
+   */
   #buildNode(config) {
     let doc = this.document;
     let container = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
@@ -276,6 +353,10 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     return container;
   }
 
+  /**
+   * Undoes #applyWatermark, tearing down the resize observer, anonymous
+   * content helper, and highlighter environment.
+   */
   #destroyWatermark() {
     this.#resizeObserver?.disconnect();
     this.#resizeObserver = null;
@@ -289,6 +370,13 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     }
   }
 
+  /**
+   * Inserts a real (non-anonymous) watermark node into the document for
+   * printing, since anonymous content isn't included in cloned print documents.
+   *
+   * @param {WatermarkConfig?} config Watermark configuration. Defaults to
+   *   the configuration currently published in sharedData.
+   */
   #applyPrintWatermark(
     config = Services.cpmm.sharedData.get(WATERMARK_SHARED_DATA_KEY)
   ) {
@@ -317,6 +405,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     }
   }
 
+  /**
+   * Removes the print-only watermark node inserted by #applyPrintWatermark.
+   */
   #removePrintWatermark() {
     this.#printNode?.remove();
     this.#printNode = null;
