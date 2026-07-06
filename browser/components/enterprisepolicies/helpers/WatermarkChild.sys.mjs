@@ -5,9 +5,9 @@
 /*
  * Content-process side of the Watermark policy. When the document matches one
  * of the configured matches, this draws a tiled, diagonal watermark over the
- * page using the DevTools CanvasFrameAnonymousContentHelper, which inserts the
- * markup into the document's canvasFrame anonymous content and keeps it in sync
- * across in-document navigations.
+ * page using Document.insertAnonymousContent(), which inserts the markup into
+ * the document's canvasFrame anonymous content, on top of the page but
+ * inaccessible to it.
  *
  * Anonymous content isn't included when a document is cloned for printing,
  * so it's not enough to watermark printed pages. For that, a second,
@@ -37,20 +37,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
     maxLogLevel: "error",
     maxLogLevelPref: PREF_LOGLEVEL,
   });
-});
-
-ChromeUtils.defineLazyGetter(lazy, "DevTools", () => {
-  const { require } = ChromeUtils.importESModule(
-    "resource://devtools/shared/loader/Loader.sys.mjs"
-  );
-  return {
-    HighlighterEnvironment:
-      require("resource://devtools/server/actors/highlighters.js")
-        .HighlighterEnvironment,
-    CanvasFrameAnonymousContentHelper:
-      require("resource://devtools/server/actors/highlighters/utils/markup.js")
-        .CanvasFrameAnonymousContentHelper,
-  };
 });
 
 /**
@@ -144,6 +130,21 @@ function documentHeight(doc) {
 }
 
 /**
+ * Returns the width, in pixels, that the watermark should cover to fill
+ * the visible viewport as well as any content that overflows it.
+ *
+ * @param {Document} doc
+ * @returns {number}
+ */
+function documentWidth(doc) {
+  return Math.max(
+    doc.defaultView?.innerWidth ?? 0,
+    doc.documentElement?.scrollWidth ?? 0,
+    doc.body?.scrollWidth ?? 0
+  );
+}
+
+/**
  * CSS declarations shared by the on-screen and print watermark nodes.
  *
  * @param {WatermarkConfig} config Watermark configuration.
@@ -164,17 +165,19 @@ function watermarkCommonStyle(config) {
  * to also cover content that overflows it.
  *
  * @param {WatermarkConfig} config Watermark configuration.
+ * @param {number} width Width in pixels, from documentWidth().
  * @param {number} height Height in pixels, from documentHeight().
  * @returns {string}
  */
-function watermarkScreenStyle(config, height) {
+function watermarkScreenStyle(config, width, height) {
   return [
     "position: absolute !important",
     "top: 0 !important",
     "left: 0 !important",
-    "width: 100% !important",
-    `height: ${height}px !important`,
+    `min-width: ${width}px !important`,
+    `min-height: ${height}px !important`,
     ...watermarkCommonStyle(config),
+    "print-color-adjust: exact !important",
   ].join("; ");
 }
 
@@ -189,8 +192,8 @@ function watermarkPrintStyle(config) {
     "position: fixed !important",
     "top: 0 !important",
     "left: 0 !important",
-    "width: 100% !important",
-    "height: 100% !important",
+    "min-width: 100% !important",
+    "min-height: 100% !important",
     ...watermarkCommonStyle(config),
     "print-color-adjust: exact !important",
   ].join("; ");
@@ -201,8 +204,8 @@ function watermarkPrintStyle(config) {
  * Watermark policy configuration.
  */
 export class WatermarkPolicyChild extends JSWindowActorChild {
-  #helper = null;
-  #env = null;
+  #content = null;
+  #node = null;
   #printNode = null;
   #resizeObserver = null;
 
@@ -230,7 +233,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     switch (event.type) {
       case "DOMContentLoaded":
       case "pageshow":
-        if (!this.#helper) {
+        if (!this.#content) {
           this.#applyWatermark();
         }
         break;
@@ -256,7 +259,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
 
   // Test-only introspection
   get isShowingWatermark() {
-    return !!this.#helper;
+    return !!this.#content;
   }
 
   // Test-only introspection
@@ -283,9 +286,8 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   }
 
   /**
-   * (Re-)draws the on-screen watermark using the DevTools
-   * CanvasFrameAnonymousContentHelper, and keeps it sized to the document
-   * via a ResizeObserver.
+   * (Re-)draws the on-screen watermark as anonymous content, and keeps it
+   * sized to the document via a ResizeObserver.
    *
    * @param {WatermarkConfig?} config Watermark configuration. Defaults to
    *   the configuration currently published in sharedData.
@@ -295,12 +297,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   ) {
     this.#destroyWatermark();
 
-    //if (!this.#documentMatches(config)) {
-    //  return;
-    //}
-
     let win = this.contentWindow;
-    if (!win) {
+    let doc = this.document;
+    if (!win || !doc) {
       return;
     }
 
@@ -311,25 +310,21 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     };
 
     try {
-      let { HighlighterEnvironment, CanvasFrameAnonymousContentHelper } =
-        lazy.DevTools;
-
-      this.#env = new HighlighterEnvironment();
-      this.#env.initFromWindow(win);
-
-      this.#helper = new CanvasFrameAnonymousContentHelper(this.#env, () =>
-        this.#buildNode(watermarkConfig)
-      );
-      this.#helper.initialize();
+      this.#content = doc.insertAnonymousContent();
+      this.#node = this.#buildNode(watermarkConfig);
+      this.#content.root.appendChild(this.#node);
 
       this.#resizeObserver = new win.ResizeObserver(() => {
-        this.#helper?.setAttributeForElement(
-          "enterprise-watermark",
+        this.#node?.setAttribute(
           "style",
-          watermarkScreenStyle(watermarkConfig, documentHeight(win.document))
+          watermarkScreenStyle(
+            watermarkConfig,
+            documentWidth(doc),
+            documentHeight(doc)
+          )
         );
       });
-      this.#resizeObserver.observe(win.document.documentElement);
+      this.#resizeObserver.observe(doc.documentElement);
     } catch (e) {
       lazy.log.error(`Failed to draw watermark: ${e}`);
       this.#destroyWatermark();
@@ -354,19 +349,21 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   }
 
   /**
-   * Undoes #applyWatermark, tearing down the resize observer, anonymous
-   * content helper, and highlighter environment.
+   * Undoes #applyWatermark, tearing down the resize observer and removing
+   * the anonymous content node.
    */
   #destroyWatermark() {
     this.#resizeObserver?.disconnect();
     this.#resizeObserver = null;
-    if (this.#helper) {
-      this.#helper.destroy();
-      this.#helper = null;
-    }
-    if (this.#env) {
-      this.#env.destroy();
-      this.#env = null;
+    this.#node = null;
+    if (this.#content) {
+      try {
+        this.document.removeAnonymousContent(this.#content);
+      } catch (e) {
+        // The document the content was inserted into may already be gone;
+        // ignore.
+      }
+      this.#content = null;
     }
   }
 
