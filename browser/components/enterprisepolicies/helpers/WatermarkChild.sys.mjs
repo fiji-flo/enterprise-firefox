@@ -114,10 +114,10 @@ function documentHeight(doc) {
 
 function watermarkCommonStyle(config) {
   return [
-    "pointer-events: none",
-    "z-index: 2147483647",
-    `background-image: ${watermarkBackgroundImage(config)}`,
-    "background-repeat: repeat",
+    "pointer-events: none !important",
+    "z-index: 2147483647 !important",
+    `background-image: ${watermarkBackgroundImage(config)} !important`,
+    "background-repeat: repeat !important",
   ];
 }
 
@@ -125,24 +125,24 @@ function watermarkCommonStyle(config) {
 // height explicitly.
 function watermarkScreenStyle(config, height) {
   return [
-    "position: absolute",
-    "top: 0",
-    "left: 0",
-    "width: 100%",
-    `height: ${height}px`,
+    "position: absolute !important",
+    "top: 0 !important",
+    "left: 0 !important",
+    "width: 100% !important",
+    `height: ${height}px !important`,
     ...watermarkCommonStyle(config),
   ].join("; ");
 }
 
 function watermarkPrintStyle(config) {
   return [
-    "position: fixed",
-    "top: 0",
-    "left: 0",
-    "width: 100%",
-    "height: 100%",
+    "position: fixed !important",
+    "top: 0 !important",
+    "left: 0 !important",
+    "width: 100% !important",
+    "height: 100% !important",
     ...watermarkCommonStyle(config),
-    "print-color-adjust: exact",
+    "print-color-adjust: exact !important",
   ].join("; ");
 }
 
@@ -219,32 +219,14 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     this.#removePrintWatermark();
   }
 
-  #documentMatches(config) {
-    if (!config || !config.match?.length || !config.copy) {
-      return false;
-    }
-
-    let uri = this.document?.documentURI;
-    if (!uri) {
-      return false;
-    }
-
-    try {
-      return new MatchPatternSet(config.match).matches(uri);
-    } catch (e) {
-      lazy.log.error(`Failed to match ${uri}: ${e}`);
-      return false;
-    }
-  }
-
   #applyWatermark(
     config = Services.cpmm.sharedData.get(WATERMARK_SHARED_DATA_KEY)
   ) {
     this.#destroyWatermark();
 
-    if (!this.#documentMatches(config)) {
-      return;
-    }
+    //if (!this.#documentMatches(config)) {
+    //  return;
+    //}
 
     let win = this.contentWindow;
     if (!win) {
@@ -311,10 +293,6 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     config = Services.cpmm.sharedData.get(WATERMARK_SHARED_DATA_KEY)
   ) {
     this.#removePrintWatermark();
-
-    if (!this.#documentMatches(config)) {
-      return;
-    }
 
     let doc = this.document;
     if (!doc?.documentElement) {
