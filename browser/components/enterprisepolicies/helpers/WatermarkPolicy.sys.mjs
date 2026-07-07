@@ -16,7 +16,7 @@
  * (which would mean creating it, and running its DOMContentLoaded/pageshow
  * listeners, on every navigation everywhere, even with no policy applied),
  * this module registers the actor itself with `matches` set to the policy's
- * own Pages list, so the actor only ever gets constructed for pages that can
+ * own Match list, so the actor only ever gets constructed for pages that can
  * possibly be watermarked. It (re-)registers the actor whenever the policy is
  * applied or changed, and unregisters it when the policy is removed.
  */
@@ -103,12 +103,12 @@ export let WatermarkPolicy = {
         new MatchPattern(match[i]);
         validMatches.push(match[i]);
       } catch (e) {
-        lazy.log.error(`Invalid pattern on Watermark. Pages: ${match[i]}`);
+        lazy.log.error(`Invalid pattern on Watermark. Match: ${match[i]}`);
       }
     }
 
     if (!validMatches.length) {
-      lazy.log.error("Watermark policy has no valid pages; not applying.");
+      lazy.log.error("Watermark policy has no valid matches; not applying.");
       this._unregisterActor();
       Services.ppmm.sharedData.delete(WATERMARK_SHARED_DATA_KEY);
       Services.ppmm.sharedData.flush();
