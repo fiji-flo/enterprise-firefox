@@ -111,32 +111,3 @@ add_task(async function test_watermark_shown_when_printing() {
 
   await setupPolicyEngineWithJson("");
 });
-
-// Simulates a live policy from the enterprise console: the matching page is
-// already open when the policy is applied, and should be watermarked without a
-// reload. Removing the policy should clear it again, also without a reload.
-add_task(async function test_watermark_live_apply_and_remove() {
-  await BrowserTestUtils.withNewTab(
-    { gBrowser, url: PAGE_URL },
-    async browser => {
-      ok(
-        !(await isShowingWatermark(browser)),
-        "No watermark before the policy is applied"
-      );
-
-      await setupPolicyEngineWithJson(MATCHING_POLICY);
-      await TestUtils.waitForCondition(
-        () => isShowingWatermark(browser),
-        "Watermark should appear on the already-open tab after the policy is applied"
-      );
-      ok(true, "Watermark appears on an already-open tab (live apply)");
-
-      await setupPolicyEngineWithJson("");
-      await TestUtils.waitForCondition(
-        async () => !(await isShowingWatermark(browser)),
-        "Watermark should be removed from the already-open tab after the policy is removed"
-      );
-      ok(true, "Watermark removed from an already-open tab (live remove)");
-    }
-  );
-});

@@ -307,7 +307,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     // Captured once per watermark application.
     let watermarkConfig = {
       ...config,
-      timestamp: new Date().toLocaleDateString(),
+      timestamp: Temporal.Now.instant().toString({ smallestUnit: "second" }),
     };
 
     try {
@@ -389,7 +389,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     // Reflects when the document was printed, rather than when it was loaded.
     let watermarkConfig = {
       ...config,
-      timestamp: new Date().toLocaleDateString(),
+      timestamp: Temporal.Now.instant().toString({ smallestUnit: "second" }),
     };
 
     try {
