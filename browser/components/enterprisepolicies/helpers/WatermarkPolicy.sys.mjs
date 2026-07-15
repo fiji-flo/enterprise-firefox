@@ -281,7 +281,7 @@ async function sanitizeConfig({
     copy = email || "CONFIDENTIAL";
   }
   return {
-    match,
+    match: validMatches,
     copy,
     secondaryCopy,
     color: sanitizeCSSColor(color) ?? DEFAULT_COLOR,
