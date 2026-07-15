@@ -29,7 +29,7 @@ export const WATERMARK_SHARED_DATA_KEY = "EnterprisePolicies:Watermark";
 
 const WATERMARK_ACTOR_NAME = "WatermarkPolicy";
 
-const LIST_LENGTH_LIMIT = 1000;
+const LIST_LENGTH_LIMIT = 1000; // Same limit as in WebsiteFilter.
 const DEFAULT_COLOR = "rgba(200, 0, 0, 0.5)";
 const DEFAULT_FONT_SIZE = 28;
 const MAX_FONT_SIZE = 64;
@@ -59,6 +59,22 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 /**
+ * Initial watermark configuration, needs to be validated and sanitized.
+ *
+ * @typedef {object} WatermarkInitialConfig
+ * @property {Array<string>} [match] MatchPattern strings for the pages to watermark.
+ * @property {string} [copy] Primary watermark text. Defaults to the logged in
+ *   user's email, or "CONFIDENTIAL" if unavailable.
+ * @property {string} [color] CSS color for the watermark text. Falls back to
+ *   DEFAULT_COLOR if invalid or omitted.
+ * @property {number} [fontSize] Font size in pixels, clamped to MAX_FONT_SIZE.
+ * @property {number} [angle] Rotation angle in degrees for the tiled text.
+ * @property {string} [secondaryCopy] Secondary line of text, supporting the
+ *   "%t" (timestamp) and "%e" (email) placeholders. Defaults to "%t".
+ * @property {number} [size] Tile size in pixels, clamped between
+ *   MIN_TILE_SIZE and MAX_TILE_SIZE.
+ *
+ *
  * Watermark configuration, as constructed by WatermarkPolicy.init() and
  * published to content processes through `sharedData`.
  *
@@ -82,32 +98,14 @@ export let WatermarkPolicy = {
    * and (re-)registers the WatermarkPolicy actor so it only runs on matching
    * pages.
    *
-   * @param {Array<string>} match MatchPattern strings for the pages to watermark.
-   * @param {string} [copy] Primary watermark text. Defaults to the logged in
-   *   user's email, or "CONFIDENTIAL" if unavailable.
-   * @param {string} [color] CSS color for the watermark text. Falls back to
-   *   DEFAULT_COLOR if invalid or omitted.
-   * @param {number} [fontSize] Font size in pixels, clamped to MAX_FONT_SIZE.
-   * @param {number} [angle] Rotation angle in degrees for the tiled text.
-   * @param {string} [secondaryCopy] Secondary line of text, supporting the
-   *   "%t" (timestamp) and "%e" (email) placeholders. Defaults to "%t".
-   * @param {number} [size] Tile size in pixels, clamped between
-   *   MIN_TILE_SIZE and MAX_TILE_SIZE.
+   * @param {WatermarkInitialConfig} params
    * @returns {Promise<void>}
    */
-  async init(match, copy, color, fontSize, angle, secondaryCopy, size) {
-    let validMatches = [];
-
-    for (let i = 0; i < match.length && i < LIST_LENGTH_LIMIT; i++) {
-      try {
-        new MatchPattern(match[i]);
-        validMatches.push(match[i]);
-      } catch (e) {
-        lazy.log.error(`Invalid pattern on Watermark. Match: ${match[i]}`);
-      }
-    }
-
-    if (!validMatches.length) {
+  async init(params) {
+    let config;
+    try {
+      config = await sanitizeConfig(params);
+    } catch (e) {
       lazy.log.error("Watermark policy has no valid matches; not applying.");
       this._unregisterActor();
       Services.ppmm.sharedData.delete(WATERMARK_SHARED_DATA_KEY);
@@ -116,44 +114,7 @@ export let WatermarkPolicy = {
       return;
     }
 
-    if (typeof secondaryCopy !== "string") {
-      secondaryCopy = "%t";
-    }
-
-    if (typeof size !== "number") {
-      size = DEFAULT_TILE_SIZE;
-    }
-
-    let email;
-    if (!copy || copy?.includes?.("%e") || secondaryCopy.includes("%e")) {
-      try {
-        email = (await lazy.ConsoleClient.getLoggedInUserInfo())?.email;
-      } catch (e) {
-        lazy.log.error(`Failed to get logged in user info for Watermark: ${e}`);
-      }
-    }
-
-    if (!copy) {
-      copy = email || "CONFIDENTIAL";
-    }
-
-    let config = {
-      match: validMatches,
-      copy,
-      color: sanitizeCSSColor(color) ?? DEFAULT_COLOR,
-      size: Math.min(Math.max(MIN_TILE_SIZE, size), MAX_TILE_SIZE),
-      fontSize: Math.min(
-        typeof fontSize === "number" && fontSize > 0
-          ? fontSize
-          : DEFAULT_FONT_SIZE,
-        MAX_FONT_SIZE
-      ),
-      angle: (typeof angle === "number" ? angle : DEFAULT_ANGLE) % 360,
-      secondaryCopy,
-      email: email || "",
-    };
-
-    this._registerActor(validMatches);
+    this._registerActor(config.match);
 
     Services.ppmm.sharedData.set(WATERMARK_SHARED_DATA_KEY, config);
     Services.ppmm.sharedData.flush();
@@ -253,4 +214,71 @@ function sanitizeCSSColor(value) {
   }
 
   return value;
+}
+
+/**
+ * Returns sanitized config.
+ *
+ * @param {WatermarkInitialConfig} _
+ * @returns {Promise<WatermarkConfig>}
+ */
+async function sanitizeConfig({
+  match = [],
+  copy,
+  color,
+  size,
+  fontSize,
+  angle,
+  secondaryCopy,
+} = {}) {
+  const validMatches = [];
+
+  for (let i = 0; i < match.length && i < LIST_LENGTH_LIMIT; i++) {
+    try {
+      new MatchPattern(match[i]);
+      validMatches.push(match[i]);
+    } catch (e) {
+      lazy.log.error(`Invalid pattern on Watermark. Match: ${match[i]}`);
+    }
+  }
+
+  if (!validMatches.length) {
+    throw new Error("Watermark policy has no valid matches; not applying.");
+  }
+
+  if (typeof secondaryCopy !== "string") {
+    secondaryCopy = "%t";
+  }
+
+  if (typeof size !== "number") {
+    size = DEFAULT_TILE_SIZE;
+  }
+
+  let email;
+  if (!copy || copy?.includes?.("%e") || secondaryCopy.includes("%e")) {
+    try {
+      email = (await lazy.ConsoleClient.getLoggedInUserInfo())?.email;
+    } catch (e) {
+      lazy.log.error(`Failed to get logged in user info for Watermark: ${e}`);
+    }
+  }
+
+  if (!copy) {
+    copy = email || "CONFIDENTIAL";
+  }
+  return {
+    match,
+    copy,
+    secondaryCopy,
+    color: sanitizeCSSColor(color) ?? DEFAULT_COLOR,
+    size: Math.min(Math.max(MIN_TILE_SIZE, size), MAX_TILE_SIZE),
+    fontSize: Math.min(
+      typeof fontSize === "number" && fontSize > 0
+        ? fontSize
+        : DEFAULT_FONT_SIZE,
+      MAX_FONT_SIZE
+    ),
+    angle: (typeof angle === "number" ? angle : DEFAULT_ANGLE) % 360,
+    email: email || "",
+  };
 }

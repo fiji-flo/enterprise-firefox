@@ -4278,15 +4278,15 @@ export var Policies = {
 
   Watermark: {
     onBeforeUIStartup(manager, param) {
-      lazy.WatermarkPolicy.init(
-        param.Match || [],
-        param.Copy,
-        param.Color,
-        param.FontSize,
-        param.Angle,
-        param.SecondaryCopy,
-        param.Size
-      );
+      lazy.WatermarkPolicy.init({
+        match: param.Match,
+        copy: param.Copy,
+        color: param.Color,
+        fontSize: param.FontSize,
+        angle: param.Angle,
+        secondaryCopy: param.SecondaryCopy,
+        size: param.Size,
+      });
     },
     onRemove() {
       lazy.WatermarkPolicy.cleanup();
