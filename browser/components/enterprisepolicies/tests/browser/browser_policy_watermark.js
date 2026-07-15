@@ -57,7 +57,7 @@ add_task(async function test_watermark_shown_on_matching_page() {
     async browser => {
       // The child fetches its configuration from the parent asynchronously, so
       // the watermark may be drawn slightly after the page finishes loading.
-      await BrowserTestUtils.waitForCondition(
+      await TestUtils.waitForCondition(
         () => isShowingWatermark(browser),
         "Watermark is drawn on a matching page"
       );
@@ -95,7 +95,7 @@ add_task(async function test_watermark_shown_when_printing() {
       // Wait for the async configuration fetch to complete (signalled by the
       // on-screen watermark appearing) so the print handler, which runs
       // synchronously, has a configuration to draw from.
-      await BrowserTestUtils.waitForCondition(
+      await TestUtils.waitForCondition(
         () => isShowingWatermark(browser),
         "Watermark is drawn before printing"
       );
