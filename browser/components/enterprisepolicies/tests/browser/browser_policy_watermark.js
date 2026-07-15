@@ -25,6 +25,12 @@ const NON_MATCHING_POLICY = {
   },
 };
 
+// Reader Mode and View Source wrap PAGE_URL in their own scheme. The watermark
+// should follow the wrapped URL, not the wrapper: these are watermarked under
+// MATCHING_POLICY (whose Match covers PAGE_URL) but not under NON_MATCHING_POLICY.
+const READER_URL = "about:reader?url=" + encodeURIComponent(PAGE_URL);
+const VIEW_SOURCE_URL = "view-source:" + PAGE_URL;
+
 function isShowingWatermark(browser) {
   return SpecialPowers.spawn(browser, [], async () => {
     // Use getExistingActor rather than getActor: the actor is only
@@ -40,6 +46,13 @@ function isShowingPrintWatermark(browser) {
   return SpecialPowers.spawn(browser, [], async () => {
     let actor = content.windowGlobalChild.getExistingActor("WatermarkPolicy");
     return actor?.isShowingPrintWatermark ?? false;
+  });
+}
+
+function hasReceivedConfig(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    let actor = content.windowGlobalChild.getExistingActor("WatermarkPolicy");
+    return actor?.hasReceivedConfig ?? false;
   });
 }
 
@@ -115,6 +128,116 @@ add_task(async function test_watermark_shown_when_printing() {
       ok(
         !(await isShowingPrintWatermark(browser)),
         "Print watermark is removed again after afterprint"
+      );
+    }
+  );
+
+  await setupPolicyEngineWithJson("");
+});
+
+// Reader Mode wraps the original URL as about:reader?url=..., which doesn't
+// match the policy's site patterns directly; WatermarkChild unwraps it and
+// matches the original URL instead.
+add_task(async function test_watermark_shown_on_matching_reader_page() {
+  await setupPolicyEngineWithJson(MATCHING_POLICY);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: READER_URL },
+    async browser => {
+      await TestUtils.waitForCondition(
+        () => isShowingWatermark(browser),
+        "Watermark is drawn on a reader page whose original URL matches"
+      );
+    }
+  );
+
+  await setupPolicyEngineWithJson("");
+});
+
+add_task(async function test_watermark_not_shown_on_non_matching_reader_page() {
+  await setupPolicyEngineWithJson(NON_MATCHING_POLICY);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: READER_URL },
+    async browser => {
+      // The actor IS created for reader pages, then decides asynchronously not
+      // to draw. Wait until it has its config before asserting it didn't draw.
+      await TestUtils.waitForCondition(
+        () => hasReceivedConfig(browser),
+        "Watermark actor received its configuration"
+      );
+      ok(
+        !(await isShowingWatermark(browser)),
+        "Watermark is not drawn on a reader page whose original URL doesn't match"
+      );
+    }
+  );
+
+  await setupPolicyEngineWithJson("");
+});
+
+// View Source wraps the original URL as view-source:..., handled the same way.
+add_task(async function test_watermark_shown_on_matching_view_source_page() {
+  await setupPolicyEngineWithJson(MATCHING_POLICY);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: VIEW_SOURCE_URL },
+    async browser => {
+      await TestUtils.waitForCondition(
+        () => isShowingWatermark(browser),
+        "Watermark is drawn on a view-source page whose original URL matches"
+      );
+    }
+  );
+
+  await setupPolicyEngineWithJson("");
+});
+
+add_task(
+  async function test_watermark_not_shown_on_non_matching_view_source_page() {
+    await setupPolicyEngineWithJson(NON_MATCHING_POLICY);
+
+    await BrowserTestUtils.withNewTab(
+      { gBrowser, url: VIEW_SOURCE_URL },
+      async browser => {
+        await TestUtils.waitForCondition(
+          () => hasReceivedConfig(browser),
+          "Watermark actor received its configuration"
+        );
+        ok(
+          !(await isShowingWatermark(browser)),
+          "Watermark is not drawn on a view-source page whose original URL doesn't match"
+        );
+      }
+    );
+
+    await setupPolicyEngineWithJson("");
+  }
+);
+
+// Printing a matching reader page exercises the print-watermark path together
+// with the reader-URL match gate.
+add_task(async function test_watermark_shown_when_printing_reader_page() {
+  await setupPolicyEngineWithJson(MATCHING_POLICY);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: READER_URL },
+    async browser => {
+      await TestUtils.waitForCondition(
+        () => isShowingWatermark(browser),
+        "Watermark is drawn before printing the reader page"
+      );
+
+      await dispatchPrintEvent(browser, "beforeprint");
+      ok(
+        await isShowingPrintWatermark(browser),
+        "Print watermark is inserted for beforeprint on a reader page"
+      );
+
+      await dispatchPrintEvent(browser, "afterprint");
+      ok(
+        !(await isShowingPrintWatermark(browser)),
+        "Print watermark is removed again after afterprint on a reader page"
       );
     }
   );

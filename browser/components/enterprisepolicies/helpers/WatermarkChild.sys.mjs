@@ -24,6 +24,10 @@ const PREF_LOGLEVEL = "browser.policies.loglevel";
 
 const lazy = {};
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
+});
+
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
   let { ConsoleAPI } = ChromeUtils.importESModule(
     "resource://gre/modules/Console.sys.mjs"
@@ -292,6 +296,47 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     return !!this.#printNode;
   }
 
+  // Test-only introspection
+  get hasReceivedConfig() {
+    return !!this.#config;
+  }
+
+  /**
+   * Whether the current document should be watermarked given `config`. Normal
+   * documents always qualify: the actor is only constructed for them because a
+   * configured site pattern already matched the document URI. Reader Mode
+   * (about:reader) and View Source (view-source:) wrap another URL, so the
+   * actor is also constructed for those; they qualify only when the wrapped
+   * URL matches the configured patterns.
+   *
+   * @param {WatermarkConfig} config
+   * @returns {boolean}
+   */
+  #matchesDocument(config) {
+    let doc = this.document;
+    if (!doc) {
+      return false;
+    }
+    let documentURI = doc.documentURI;
+    let url;
+    if (documentURI.startsWith("view-source:")) {
+      url = documentURI.substring("view-source:".length);
+    } else if (documentURI.startsWith("about:reader")) {
+      url = lazy.ReaderMode.getOriginalUrl(documentURI);
+    } else {
+      return true;
+    }
+    if (!url) {
+      return false;
+    }
+    try {
+      return new MatchPatternSet(config.match).matches(url);
+    } catch (e) {
+      lazy.log.error(`Failed to match wrapped document URL: ${e}`);
+      return false;
+    }
+  }
+
   /**
    * Removes the print listeners and tears down both watermark nodes.
    */
@@ -322,6 +367,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     let doc = this.document;
     let config = this.#config;
     if (!win || !doc || !config) {
+      return;
+    }
+    if (!this.#matchesDocument(config)) {
       return;
     }
 
@@ -402,6 +450,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     let doc = this.document;
     let config = this.#config;
     if (!doc?.documentElement || !config) {
+      return;
+    }
+    if (!this.#matchesDocument(config)) {
       return;
     }
 

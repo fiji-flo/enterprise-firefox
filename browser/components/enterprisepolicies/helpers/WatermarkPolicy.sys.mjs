@@ -19,14 +19,22 @@
  * (which would mean creating it, and running its DOMContentLoaded/pageshow
  * listeners, on every navigation everywhere, even with no policy applied),
  * this module registers the actor itself with `matches` set to the policy's
- * own Match list, so the actor only ever gets constructed for pages that can
- * possibly be watermarked. It (re-)registers the actor whenever the policy is
- * applied or changed, and unregisters it when the policy is removed.
+ * own Match list (plus `about:reader` and `view-source:`, which wrap another
+ * URL, so Reader Mode and View Source of matching pages are covered too), so
+ * the actor only ever gets constructed for pages that can possibly be
+ * watermarked. It (re-)registers the actor whenever the policy is applied or
+ * changed, and unregisters it when the policy is removed.
  */
 
 const PREF_LOGLEVEL = "browser.policies.loglevel";
 
 const WATERMARK_ACTOR_NAME = "WatermarkPolicy";
+
+// Wrapper-scheme pages that show the content of another URL (Reader Mode and
+// View Source). The actor is registered for these in addition to the policy's
+// site patterns; WatermarkChild then matches the wrapped URL before drawing.
+const READER_MATCH_PATTERN = "about:reader?url=*";
+const VIEW_SOURCE_MATCH_PATTERN = "view-source:*";
 
 const LIST_LENGTH_LIMIT = 1000; // Same limit as in WebsiteFilter.
 const DEFAULT_COLOR = "rgba(200, 0, 0, 0.5)";
@@ -164,7 +172,7 @@ export let WatermarkPolicy = {
           pageshow: {},
         },
       },
-      matches,
+      matches: [...matches, READER_MATCH_PATTERN, VIEW_SOURCE_MATCH_PATTERN],
       messageManagerGroups: ["browsers"],
       safeForUntrustedWebProcess: true,
     });
