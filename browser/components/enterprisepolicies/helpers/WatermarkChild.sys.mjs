@@ -16,10 +16,6 @@
  * #applyPrintWatermark).
  */
 
-// Key used to read the watermark configuration published by WatermarkPolicy.
-// Must be kept in sync with WatermarkPolicy.sys.mjs.
-const WATERMARK_SHARED_DATA_KEY = "EnterprisePolicies:Watermark";
-
 /**
  * @typedef {import("./WatermarkPolicy.sys.mjs").WatermarkConfig} WatermarkConfig
  */
@@ -208,12 +204,20 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   #node = null;
   #printNode = null;
   #resizeObserver = null;
+  // Watermark configuration for this document, fetched from the parent when
+  // the actor is created and updated by "Watermark:Refresh". Null until it has
+  // been received, or when the policy isn't applied.
+  #config = null;
+  // Whether a "DOMContentLoaded"/"pageshow" event has fired, so we know the
+  // document is ready to be watermarked once the configuration arrives.
+  #loaded = false;
 
   /**
    * Registers the "beforeprint"/"afterprint" listeners used to show a
-   * separate, non-anonymous watermark node while printing.
+   * separate, non-anonymous watermark node while printing, and fetches the
+   * watermark configuration from the parent.
    */
-  actorCreated() {
+  async actorCreated() {
     this.contentWindow?.addEventListener(
       "beforeprint",
       this,
@@ -224,6 +228,25 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
       this,
       PRINT_EVENT_OPTIONS
     );
+
+    let config;
+    try {
+      config = await this.sendQuery("Watermark:GetConfig");
+    } catch (e) {
+      // The actor may have been destroyed before the query resolved; there's
+      // nothing to draw in that case.
+      return;
+    }
+
+    // A "Watermark:Refresh" may have delivered a newer config while the query
+    // was in flight; don't clobber it.
+    this.#config ??= config;
+
+    // The document may already have loaded while the configuration was in
+    // flight, in which case nothing else will trigger the initial draw.
+    if (this.#loaded && !this.#content && this.#config) {
+      this.#applyWatermark();
+    }
   }
 
   /**
@@ -233,7 +256,8 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     switch (event.type) {
       case "DOMContentLoaded":
       case "pageshow":
-        if (!this.#content) {
+        this.#loaded = true;
+        if (this.#config && !this.#content) {
           this.#applyWatermark();
         }
         break;
@@ -252,7 +276,8 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   receiveMessage(message) {
     switch (message.name) {
       case "Watermark:Refresh":
-        this.#applyWatermark(message.data.config);
+        this.#config = message.data.config;
+        this.#applyWatermark();
         break;
     }
   }
@@ -287,19 +312,15 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
 
   /**
    * (Re-)draws the on-screen watermark as anonymous content, and keeps it
-   * sized to the document via a ResizeObserver. A no-op if `config` is
-   * falsy (e.g. the policy has just been removed).
-   *
-   * @param {WatermarkConfig?} config Watermark configuration. Defaults to
-   *   the configuration currently published in sharedData.
+   * sized to the document via a ResizeObserver. A no-op if no configuration
+   * has been received yet, or the policy has just been removed.
    */
-  #applyWatermark(
-    config = Services.cpmm.sharedData.get(WATERMARK_SHARED_DATA_KEY)
-  ) {
+  #applyWatermark() {
     this.#destroyWatermark();
 
     let win = this.contentWindow;
     let doc = this.document;
+    let config = this.#config;
     if (!win || !doc || !config) {
       return;
     }
@@ -371,17 +392,15 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
   /**
    * Inserts a real (non-anonymous) watermark node into the document for
    * printing, since anonymous content isn't included in cloned print documents.
-   * A no-op if `config` is falsy (e.g. the policy has just been removed).
-   *
-   * @param {WatermarkConfig?} config Watermark configuration. Defaults to
-   *   the configuration currently published in sharedData.
+   * Uses the configuration cached by the actor, so it can run synchronously
+   * within the "beforeprint" handler. A no-op if no configuration has been
+   * received yet, or the policy has just been removed.
    */
-  #applyPrintWatermark(
-    config = Services.cpmm.sharedData.get(WATERMARK_SHARED_DATA_KEY)
-  ) {
+  #applyPrintWatermark() {
     this.#removePrintWatermark();
 
     let doc = this.document;
+    let config = this.#config;
     if (!doc?.documentElement || !config) {
       return;
     }

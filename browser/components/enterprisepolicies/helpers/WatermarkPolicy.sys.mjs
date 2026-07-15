@@ -10,8 +10,11 @@
  * documented at
  * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Match_patterns.
  *
- * The configuration is published to content processes through `sharedData`,
- * and the actual drawing happens in the content process from WatermarkChild.
+ * The configuration is provided to content processes over the WatermarkPolicy
+ * actor's own message channel (the child queries "Watermark:GetConfig" when it
+ * is created, and the parent pushes "Watermark:Refresh" when the policy
+ * changes), and the actual drawing happens in the content process from
+ * WatermarkChild.
  * Rather than registering the WatermarkPolicy actor for every http(s) page
  * (which would mean creating it, and running its DOMContentLoaded/pageshow
  * listeners, on every navigation everywhere, even with no policy applied),
@@ -22,10 +25,6 @@
  */
 
 const PREF_LOGLEVEL = "browser.policies.loglevel";
-
-// Key used to publish the watermark configuration to content processes through
-// `sharedData`. Must be kept in sync with WatermarkChild.sys.mjs.
-export const WATERMARK_SHARED_DATA_KEY = "EnterprisePolicies:Watermark";
 
 const WATERMARK_ACTOR_NAME = "WatermarkPolicy";
 
@@ -76,7 +75,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
  *
  *
  * Watermark configuration, as constructed by WatermarkPolicy.init() and
- * published to content processes through `sharedData`.
+ * provided to content processes over the WatermarkPolicy actor messages.
  *
  * @typedef {object} WatermarkConfig
  * @property {Array<string>} match MatchPattern strings for the pages to watermark.
@@ -92,11 +91,26 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
  *   WatermarkChild; absent from the config published by WatermarkPolicy.
  */
 
+// The current sanitized watermark configuration, or null when the policy
+// isn't applied. Served to content processes by the WatermarkPolicy parent
+// actor in response to "Watermark:GetConfig".
+let currentConfig = null;
+
+/**
+ * Returns the watermark configuration currently in effect, or null when the
+ * policy isn't applied.
+ *
+ * @returns {WatermarkConfig?}
+ */
+export function getWatermarkConfig() {
+  return currentConfig;
+}
+
 export let WatermarkPolicy = {
   /**
-   * Validates the policy's configuration, publishes it to content processes,
-   * and (re-)registers the WatermarkPolicy actor so it only runs on matching
-   * pages.
+   * Validates the policy's configuration, stores it for content processes to
+   * query, and (re-)registers the WatermarkPolicy actor so it only runs on
+   * matching pages.
    *
    * @param {WatermarkInitialConfig} params
    * @returns {Promise<void>}
@@ -108,16 +122,14 @@ export let WatermarkPolicy = {
     } catch (e) {
       lazy.log.error("Watermark policy has no valid matches; not applying.");
       this._unregisterActor();
-      Services.ppmm.sharedData.delete(WATERMARK_SHARED_DATA_KEY);
-      Services.ppmm.sharedData.flush();
+      currentConfig = null;
       this._refreshOpenTabs(null);
       return;
     }
 
     this._registerActor(config.match);
 
-    Services.ppmm.sharedData.set(WATERMARK_SHARED_DATA_KEY, config);
-    Services.ppmm.sharedData.flush();
+    currentConfig = config;
 
     this._refreshOpenTabs(config);
   },
@@ -128,8 +140,7 @@ export let WatermarkPolicy = {
   cleanup() {
     this._unregisterActor();
 
-    Services.ppmm.sharedData.delete(WATERMARK_SHARED_DATA_KEY);
-    Services.ppmm.sharedData.flush();
+    currentConfig = null;
 
     this._refreshOpenTabs(null);
   },
@@ -143,6 +154,9 @@ export let WatermarkPolicy = {
   _registerActor(matches) {
     ChromeUtils.unregisterWindowActor(WATERMARK_ACTOR_NAME);
     ChromeUtils.registerWindowActor(WATERMARK_ACTOR_NAME, {
+      parent: {
+        esModuleURI: "resource:///modules/policies/WatermarkParent.sys.mjs",
+      },
       child: {
         esModuleURI: "resource:///modules/policies/WatermarkChild.sys.mjs",
         events: {

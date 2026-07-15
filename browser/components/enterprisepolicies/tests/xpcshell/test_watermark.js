@@ -5,18 +5,16 @@
 const { ConsoleClient } = ChromeUtils.importESModule(
   "resource://gre/modules/enterprise/ConsoleClient.sys.mjs"
 );
-const { WatermarkPolicy } = ChromeUtils.importESModule(
+const { WatermarkPolicy, getWatermarkConfig } = ChromeUtils.importESModule(
   "resource:///modules/policies/WatermarkPolicy.sys.mjs"
 );
-
-const SHARED_DATA_KEY = "EnterprisePolicies:Watermark";
 
 // All but one of these tests exercise WatermarkPolicy.init()/cleanup()
 // directly, rather than through setupPolicyEngineWithJson(): that goes
 // through a full, file-based policy engine cycle, which periodically
 // re-checks the policies.json file for changes, and a late-firing recheck
-// (from this or an earlier test) can race with, and overwrite, the shared
-// data these tests assert on. test_watermark_config_published is the
+// (from this or an earlier test) can race with, and overwrite, the
+// configuration these tests assert on. test_watermark_config_published is the
 // exception, kept as an integration test to make sure Policies.sys.mjs wires
 // all the Watermark policy's parameters through to WatermarkPolicy.init().
 add_task(async function test_watermark_copy_falls_back_to_user_email() {
@@ -26,10 +24,10 @@ add_task(async function test_watermark_copy_falls_back_to_user_email() {
   });
 
   try {
-    await WatermarkPolicy.init(["https://example.com/*"]);
+    await WatermarkPolicy.init({ match: ["https://example.com/*"] });
 
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.copy,
+      getWatermarkConfig()?.copy,
       "user@example.com",
       "Copy falls back to the logged-in user's email when not configured"
     );
@@ -46,10 +44,10 @@ add_task(async function test_watermark_no_copy_no_email() {
   };
 
   try {
-    await WatermarkPolicy.init(["https://example.com/*"]);
+    await WatermarkPolicy.init({ match: ["https://example.com/*"] });
 
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.copy,
+      getWatermarkConfig()?.copy,
       "CONFIDENTIAL",
       "Copy falls back to a generic default when there's no Copy and no email"
     );
@@ -69,16 +67,13 @@ add_task(
     try {
       // Copy is provided, so the email would normally not need to be fetched,
       // except SecondaryCopy references %e.
-      await WatermarkPolicy.init(
-        ["https://example.com/*"],
-        "CONFIDENTIAL",
-        undefined,
-        undefined,
-        undefined,
-        "%t - %e"
-      );
+      await WatermarkPolicy.init({
+        match: ["https://example.com/*"],
+        copy: "CONFIDENTIAL",
+        secondaryCopy: "%t - %e",
+      });
 
-      let config = Services.ppmm.sharedData.get(SHARED_DATA_KEY);
+      let config = getWatermarkConfig();
       Assert.equal(config?.copy, "CONFIDENTIAL", "Copy is unaffected");
       Assert.equal(
         config?.email,
@@ -100,14 +95,17 @@ add_task(async function test_watermark_copy_email_fetched_for_percent_e() {
 
   try {
     // Copy itself can also reference %e; WatermarkChild does the actual
-    // substitution, so the raw template is what gets published here.
-    await WatermarkPolicy.init(["https://example.com/*"], "Printed by %e");
+    // substitution, so the raw template is what gets stored here.
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "Printed by %e",
+    });
 
-    let config = Services.ppmm.sharedData.get(SHARED_DATA_KEY);
+    let config = getWatermarkConfig();
     Assert.equal(
       config?.copy,
       "Printed by %e",
-      "Copy is published as the raw, unsubstituted template"
+      "Copy is stored as the raw, unsubstituted template"
     );
     Assert.equal(
       config?.email,
@@ -122,11 +120,14 @@ add_task(async function test_watermark_copy_email_fetched_for_percent_e() {
 
 add_task(async function test_watermark_defaults() {
   try {
-    await WatermarkPolicy.init(["https://example.com/*"], "INTERNAL");
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+    });
 
-    let config = Services.ppmm.sharedData.get(SHARED_DATA_KEY);
-    Assert.ok(config, "Watermark config is published to shared data");
-    Assert.equal(config.copy, "INTERNAL", "Copy is published");
+    let config = getWatermarkConfig();
+    Assert.ok(config, "Watermark config is available");
+    Assert.equal(config.copy, "INTERNAL", "Copy is stored");
     Assert.equal(
       config.color,
       "rgba(200, 0, 0, 0.5)",
@@ -159,17 +160,14 @@ add_task(async function test_watermark_defaults() {
 
 add_task(async function test_watermark_secondary_copy_disabled() {
   try {
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      undefined,
-      undefined,
-      undefined,
-      ""
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      secondaryCopy: "",
+    });
 
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.secondaryCopy,
+      getWatermarkConfig()?.secondaryCopy,
       "",
       "SecondaryCopy can be explicitly disabled with an empty string"
     );
@@ -180,15 +178,14 @@ add_task(async function test_watermark_secondary_copy_disabled() {
 
 add_task(async function test_watermark_font_size_clamped() {
   try {
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      undefined,
-      1000
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      fontSize: 1000,
+    });
 
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.fontSize,
+      getWatermarkConfig()?.fontSize,
       64,
       "FontSize is clamped to a maximum value"
     );
@@ -199,32 +196,24 @@ add_task(async function test_watermark_font_size_clamped() {
 
 add_task(async function test_watermark_size_clamped() {
   try {
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      1
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      size: 1,
+    });
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.size,
+      getWatermarkConfig()?.size,
       100,
       "Size is clamped to a minimum value"
     );
 
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      5000
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      size: 5000,
+    });
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.size,
+      getWatermarkConfig()?.size,
       2048,
       "Size is clamped to a maximum value"
     );
@@ -235,16 +224,14 @@ add_task(async function test_watermark_size_clamped() {
 
 add_task(async function test_watermark_angle_normalized() {
   try {
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      undefined,
-      undefined,
-      400
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      angle: 400,
+    });
 
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.angle,
+      getWatermarkConfig()?.angle,
       40,
       "Angle is normalized to a value less than 360 degrees"
     );
@@ -255,24 +242,24 @@ add_task(async function test_watermark_angle_normalized() {
 
 add_task(async function test_watermark_color_sanitized() {
   try {
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      "not-a-color"
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      color: "not-a-color",
+    });
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.color,
+      getWatermarkConfig()?.color,
       "rgba(200, 0, 0, 0.5)",
       "An invalid Color falls back to the default"
     );
 
-    await WatermarkPolicy.init(
-      ["https://example.com/*"],
-      "INTERNAL",
-      "hsl(0, 100%, 50%)"
-    );
+    await WatermarkPolicy.init({
+      match: ["https://example.com/*"],
+      copy: "INTERNAL",
+      color: "hsl(0, 100%, 50%)",
+    });
     Assert.equal(
-      Services.ppmm.sharedData.get(SHARED_DATA_KEY)?.color,
+      getWatermarkConfig()?.color,
       "hsl(0, 100%, 50%)",
       "A valid Color in any CSS color syntax is accepted"
     );
@@ -302,19 +289,19 @@ add_task(async function test_watermark_config_published() {
     },
   });
 
-  let config = Services.ppmm.sharedData.get(SHARED_DATA_KEY);
-  Assert.ok(config, "Watermark config is published to shared data");
+  let config = getWatermarkConfig();
+  Assert.ok(config, "Watermark config is available");
   Assert.deepEqual(
     config.match,
     ["https://example.com/*", "https://*.corp.example.com/*"],
     "Invalid match patterns are filtered out"
   );
-  Assert.equal(config.copy, "CONFIDENTIAL", "Copy is published");
-  Assert.equal(config.color, "rgba(200, 0, 0, 0.2)", "Color is published");
-  Assert.equal(config.fontSize, 40, "FontSize is published");
-  Assert.equal(config.angle, 30, "Angle is published");
-  Assert.equal(config.secondaryCopy, "%t - %e", "SecondaryCopy is published");
-  Assert.equal(config.size, 500, "Size is published");
+  Assert.equal(config.copy, "CONFIDENTIAL", "Copy is stored");
+  Assert.equal(config.color, "rgba(200, 0, 0, 0.2)", "Color is stored");
+  Assert.equal(config.fontSize, 40, "FontSize is stored");
+  Assert.equal(config.angle, 30, "Angle is stored");
+  Assert.equal(config.secondaryCopy, "%t - %e", "SecondaryCopy is stored");
+  Assert.equal(config.size, 500, "Size is stored");
 
   await setupPolicyEngineWithJson("");
 });
