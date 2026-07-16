@@ -101,7 +101,7 @@ function watermarkBackgroundImage(config) {
   if (secondRowText) {
     texts +=
       `<text x='${width / 2}' y='${height / 2 + rowGap}' ${textStyle} ` +
-      `font-size='${fontSize}'>${secondRowText}</text>`;
+      `font-size='${fontSize * 0.7}'>${secondRowText}</text>`;
   }
 
   let svg =
