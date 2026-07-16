@@ -3001,7 +3001,7 @@
         },
         "Copy": {
           "type": "string",
-          "description": "Text to display in the watermark. Falls back to the logged-in user's email, or a generic default, if not set. %t is replaced with the current timestamp, and %e with the logged-in user's email. Defaults to \"%e\""
+          "description": "Text to display in the watermark. Falls back to the logged-in user's email, or a generic default, if unavailable. %t is replaced with the current timestamp, and %e with the logged-in user's email. Defaults to \"%e\""
         },
         "Color": {
           "type": "string"
