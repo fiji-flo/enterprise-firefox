@@ -56,6 +56,13 @@ function hasReceivedConfig(browser) {
   });
 }
 
+function getPrintWatermarkBackground(browser) {
+  return SpecialPowers.spawn(browser, [], async () => {
+    let node = content.document.getElementById("enterprise-watermark-print");
+    return node ? content.getComputedStyle(node).backgroundImage : "";
+  });
+}
+
 function dispatchPrintEvent(browser, eventType) {
   return SpecialPowers.spawn(browser, [eventType], type => {
     content.dispatchEvent(new content.Event(type));
@@ -232,6 +239,11 @@ add_task(async function test_watermark_shown_when_printing_reader_page() {
       ok(
         await isShowingPrintWatermark(browser),
         "Print watermark is inserted for beforeprint on a reader page"
+      );
+      let background = await getPrintWatermarkBackground(browser);
+      ok(
+        background && background != "none",
+        "Print watermark node is styled despite the reader page's CSP"
       );
 
       await dispatchPrintEvent(browser, "afterprint");

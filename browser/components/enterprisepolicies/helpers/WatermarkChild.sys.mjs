@@ -465,7 +465,8 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     try {
       let node = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
       node.setAttribute("id", "enterprise-watermark-print");
-      node.setAttribute("style", watermarkPrintStyle(watermarkConfig));
+      // Style via CSSOM to avoid CSP violation.
+      node.style.cssText = watermarkPrintStyle(watermarkConfig);
       doc.documentElement.appendChild(node);
       this.#printNode = node;
     } catch (e) {
