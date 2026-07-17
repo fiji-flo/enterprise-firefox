@@ -158,7 +158,7 @@ support-files = [
 ["browser_policy_usermessaging.js"]
 
 ["browser_policy_watermark.js"]
-support-files = ["policy_watermark.html"]
+support-files = ["policy_watermark.html", "policy_watermark.sjs"]
 # Only run in MOZ_ENTERPRISE builds
 run-if = ["enterprise"]
 # Bypass the Felt UI launcher process so the harness's profile/marionette

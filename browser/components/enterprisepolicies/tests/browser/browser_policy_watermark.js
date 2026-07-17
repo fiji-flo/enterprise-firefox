@@ -31,6 +31,13 @@ const NON_MATCHING_POLICY = {
 const READER_URL = "about:reader?url=" + encodeURIComponent(PAGE_URL);
 const VIEW_SOURCE_URL = "view-source:" + PAGE_URL;
 
+// Served as application/json, so it renders in the built-in JSON viewer. Its
+// URL matches MATCHING_POLICY and its document URI is that same URL, so the
+// actor applies directly. The viewer's strict CSP (img-src 'self') would block
+// a data: background image, exercising the inline-SVG rendering.
+const JSON_URL =
+  "http://mochi.test:8888/browser/browser/components/enterprisepolicies/tests/browser/policy_watermark.sjs";
+
 function isShowingWatermark(browser) {
   return SpecialPowers.spawn(browser, [], async () => {
     // Use getExistingActor rather than getActor: the actor is only
@@ -56,10 +63,19 @@ function hasReceivedConfig(browser) {
   });
 }
 
-function getPrintWatermarkBackground(browser) {
+// The print watermark is a real DOM node, so it's subject to the page's
+// Content-Security-Policy. It must be drawn as inline SVG (a tiled <pattern>,
+// not a data: URL background image, which strict CSPs like the JSON viewer's
+// block) and be laid out with a non-zero size. Returns whether both hold.
+function isPrintWatermarkRendered(browser) {
   return SpecialPowers.spawn(browser, [], async () => {
     let node = content.document.getElementById("enterprise-watermark-print");
-    return node ? content.getComputedStyle(node).backgroundImage : "";
+    let svg = node?.querySelector("svg");
+    if (!svg || !svg.querySelector("pattern")) {
+      return false;
+    }
+    let rect = svg.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
   });
 }
 
@@ -240,10 +256,9 @@ add_task(async function test_watermark_shown_when_printing_reader_page() {
         await isShowingPrintWatermark(browser),
         "Print watermark is inserted for beforeprint on a reader page"
       );
-      let background = await getPrintWatermarkBackground(browser);
       ok(
-        background && background != "none",
-        "Print watermark node is styled despite the reader page's CSP"
+        await isPrintWatermarkRendered(browser),
+        "Print watermark renders as inline SVG despite the reader page's CSP"
       );
 
       await dispatchPrintEvent(browser, "afterprint");
@@ -251,6 +266,33 @@ add_task(async function test_watermark_shown_when_printing_reader_page() {
         !(await isShowingPrintWatermark(browser)),
         "Print watermark is removed again after afterprint on a reader page"
       );
+    }
+  );
+
+  await setupPolicyEngineWithJson("");
+});
+
+// The JSON viewer renders the resource at its own URL under a strict CSP
+// (default-src 'none'; img-src 'self'), which blocks inline styles and data:
+// background images. The watermark must still appear, both on screen and when
+// printing, via inline SVG styled through the CSSOM.
+add_task(async function test_watermark_shown_in_json_viewer() {
+  await setupPolicyEngineWithJson(MATCHING_POLICY);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: JSON_URL },
+    async browser => {
+      await TestUtils.waitForCondition(
+        () => isShowingWatermark(browser),
+        "Watermark is drawn in the JSON viewer"
+      );
+
+      await dispatchPrintEvent(browser, "beforeprint");
+      ok(
+        await isPrintWatermarkRendered(browser),
+        "Print watermark renders as inline SVG despite the JSON viewer's CSP"
+      );
+      await dispatchPrintEvent(browser, "afterprint");
     }
   );
 

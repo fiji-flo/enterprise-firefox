@@ -40,21 +40,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 /**
- * Escapes characters that are special in XML/SVG markup.
- *
- * @param {*} str
- * @returns {string}
- */
-function escapeXML(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
-}
-
-/**
  * Substitutes the "%t" (timestamp) and "%e" (email) placeholders in `copy`.
  *
  * @param {string} copy Watermark text, possibly containing placeholders.
@@ -70,46 +55,75 @@ function templateWatermarkText(copy, config) {
     .replaceAll("%e", config.email ?? "");
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 /**
- * Builds a `url("data:image/svg+xml,...")` value for a single watermark
- * tile, containing the (optionally two-line) rotated watermark text.
+ * Builds an inline SVG element that tiles the (optionally two-line) rotated
+ * watermark text across its whole area.
+ * The watermark is drawn as in-document SVG (a tiled `<pattern>`). The element
+ * fills its positioned parent through absolute insets set via the CSSOM.
  *
+ * @param {Document} doc
  * @param {WatermarkConfig} config Watermark configuration.
- * @returns {string}
+ * @param {string} patternId Document-unique id for the tiling `<pattern>`.
+ * @returns {SVGElement}
  */
-function watermarkBackgroundImage(config) {
-  let color = escapeXML(config.color);
-  let copy = escapeXML(templateWatermarkText(config.copy, config));
-  let secondRowText = escapeXML(
-    templateWatermarkText(config.secondaryCopy, config)
-  );
+function watermarkSvg(doc, config, patternId) {
+  let size = config.size;
   let fontSize = config.fontSize;
-  let angle = config.angle;
-  let width = config.size;
-  let height = config.size;
   let rowGap = fontSize * 0.5;
-  let textStyle =
-    `fill='${color}' stroke='contrast-color(${color})' stroke-width='0.5' ` +
-    `font-family='sans-serif' text-anchor='middle' dominant-baseline='middle'`;
+  let copy = templateWatermarkText(config.copy, config);
+  let secondRowText = templateWatermarkText(config.secondaryCopy, config);
+
+  let svg = doc.createElementNS(SVG_NS, "svg");
+  svg.style.cssText = "position: absolute !important; inset: 0 !important; width: 100%; height: 100%;";
+
+  let pattern = doc.createElementNS(SVG_NS, "pattern");
+  pattern.setAttribute("id", patternId);
+  pattern.setAttribute("width", size);
+  pattern.setAttribute("height", size);
+  pattern.setAttribute("patternUnits", "userSpaceOnUse");
+
+  let group = doc.createElementNS(SVG_NS, "g");
+  group.setAttribute(
+    "transform",
+    `rotate(${config.angle} ${size / 2} ${size / 2})`
+  );
+
+  let addText = (text, y, textFontSize) => {
+    let node = doc.createElementNS(SVG_NS, "text");
+    node.setAttribute("x", size / 2);
+    node.setAttribute("y", y);
+    node.setAttribute("fill", config.color);
+    node.setAttribute("stroke", `contrast-color(${config.color})`);
+    node.setAttribute("stroke-width", "0.5");
+    node.setAttribute("font-family", "sans-serif");
+    node.setAttribute("text-anchor", "middle");
+    node.setAttribute("dominant-baseline", "middle");
+    node.setAttribute("font-size", textFontSize);
+    node.textContent = text;
+    group.appendChild(node);
+  };
 
   // Centered on its own when there's no second row, otherwise shifted up to
   // make room for it below.
-  let copyY = secondRowText ? height / 2 - rowGap : height / 2;
-  let texts =
-    `<text x='${width / 2}' y='${copyY}' ${textStyle} ` +
-    `font-size='${fontSize}'>${copy}</text>`;
+  addText(copy, secondRowText ? size / 2 - rowGap : size / 2, fontSize);
   if (secondRowText) {
-    texts +=
-      `<text x='${width / 2}' y='${height / 2 + rowGap}' ${textStyle} ` +
-      `font-size='${fontSize * 0.7}'>${secondRowText}</text>`;
+    addText(secondRowText, size / 2 + rowGap, fontSize * 0.7);
   }
 
-  let svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' ` +
-    `width='${width}' height='${height}'>` +
-    `<g transform='rotate(${angle} ${width / 2} ${height / 2})'>${texts}</g>` +
-    `</svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  pattern.appendChild(group);
+  let defs = doc.createElementNS(SVG_NS, "defs");
+  defs.appendChild(pattern);
+  svg.appendChild(defs);
+
+  let rect = doc.createElementNS(SVG_NS, "rect");
+  rect.setAttribute("width", "100%");
+  rect.setAttribute("height", "100%");
+  rect.setAttribute("fill", `url(#${patternId})`);
+  svg.appendChild(rect);
+
+  return svg;
 }
 
 const PRINT_EVENT_OPTIONS = { mozSystemGroup: true };
@@ -145,18 +159,11 @@ function documentWidth(doc) {
 }
 
 /**
- * CSS declarations shared by the on-screen and print watermark nodes.
  *
- * @param {WatermarkConfig} config Watermark configuration.
  * @returns {Array<string>}
  */
-function watermarkCommonStyle(config) {
-  return [
-    "pointer-events: none !important",
-    "z-index: 2147483647 !important",
-    `background-image: ${watermarkBackgroundImage(config)} !important`,
-    "background-repeat: repeat !important",
-  ];
+function watermarkCommonStyle() {
+  return ["pointer-events: none !important", "z-index: 2147483647 !important"];
 }
 
 /**
@@ -164,19 +171,18 @@ function watermarkCommonStyle(config) {
  * 100% is in regard to the viewport, so the height has to be set explicitly
  * to also cover content that overflows it.
  *
- * @param {WatermarkConfig} config Watermark configuration.
  * @param {number} width Width in pixels, from documentWidth().
  * @param {number} height Height in pixels, from documentHeight().
  * @returns {string}
  */
-function watermarkScreenStyle(config, width, height) {
+function watermarkScreenStyle(width, height) {
   return [
     "position: absolute !important",
     "top: 0 !important",
     "left: 0 !important",
     `min-width: ${width}px !important`,
     `min-height: ${height}px !important`,
-    ...watermarkCommonStyle(config),
+    ...watermarkCommonStyle(),
     "print-color-adjust: exact !important",
   ].join("; ");
 }
@@ -184,17 +190,16 @@ function watermarkScreenStyle(config, width, height) {
 /**
  * CSS declarations for the print-only watermark node.
  *
- * @param {WatermarkConfig} config Watermark configuration.
  * @returns {string}
  */
-function watermarkPrintStyle(config) {
+function watermarkPrintStyle() {
   return [
     "position: fixed !important",
     "top: 0 !important",
     "left: 0 !important",
     "min-width: 100% !important",
     "min-height: 100% !important",
-    ...watermarkCommonStyle(config),
+    ...watermarkCommonStyle(),
     "print-color-adjust: exact !important",
   ].join("; ");
 }
@@ -387,11 +392,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
       this.#resizeObserver = new win.ResizeObserver(() => {
         this.#node?.setAttribute(
           "style",
-          watermarkScreenStyle(
-            watermarkConfig,
-            documentWidth(doc),
-            documentHeight(doc)
-          )
+          watermarkScreenStyle(documentWidth(doc), documentHeight(doc))
         );
       });
       this.#resizeObserver.observe(doc.documentElement);
@@ -413,7 +414,10 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     container.setAttribute("id", "enterprise-watermark");
     container.setAttribute(
       "style",
-      watermarkScreenStyle(config, documentWidth(doc), documentHeight(doc))
+      watermarkScreenStyle(documentWidth(doc), documentHeight(doc))
+    );
+    container.appendChild(
+      watermarkSvg(doc, config, "enterprise-watermark-pattern")
     );
     return container;
   }
@@ -466,7 +470,10 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
       let node = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
       node.setAttribute("id", "enterprise-watermark-print");
       // Style via CSSOM to avoid CSP violation.
-      node.style.cssText = watermarkPrintStyle(watermarkConfig);
+      node.style.cssText = watermarkPrintStyle();
+      node.appendChild(
+        watermarkSvg(doc, watermarkConfig, "enterprise-watermark-print-pattern")
+      );
       doc.documentElement.appendChild(node);
       this.#printNode = node;
     } catch (e) {
