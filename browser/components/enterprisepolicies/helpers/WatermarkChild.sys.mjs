@@ -460,9 +460,9 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
       return;
     }
 
-    // Reflects when the document was printed, rather than when it was loaded.
     let watermarkConfig = {
       ...config,
+      // Timestamp here reflects when the document was printed, rather than when it was loaded.
       timestamp: Temporal.Now.instant().toString({ smallestUnit: "second" }),
     };
 

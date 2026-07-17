@@ -161,13 +161,9 @@ support-files = [
 support-files = ["policy_watermark.html", "policy_watermark.sjs"]
 # Only run in MOZ_ENTERPRISE builds
 run-if = ["enterprise"]
-# Bypass the Felt UI launcher process so the harness's profile/marionette
-# setup reaches the actual browser process being tested.
-environment = ["MOZ_BYPASS_FELT=1"]
 
 ["browser_policy_websitefilter.js"]
 
 ["browser_policy_websitefilter_telemetry.js"]
 # Only run in MOZ_ENTERPRISE builds
 run-if = ["enterprise"]
-environment = ["MOZ_BYPASS_FELT=1"]
