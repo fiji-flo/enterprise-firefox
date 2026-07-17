@@ -413,7 +413,7 @@ export class WatermarkPolicyChild extends JSWindowActorChild {
     container.setAttribute("id", "enterprise-watermark");
     container.setAttribute(
       "style",
-      watermarkScreenStyle(config, documentHeight(doc))
+      watermarkScreenStyle(config, documentWidth(doc), documentHeight(doc))
     );
     return container;
   }
