@@ -104,20 +104,15 @@ export const GeckoViewIPProtection = {
             lazy.IPProtectionActivator.setAuthProvider(
               lazy.IPPAndroidAuthProvider
             );
-            lazy.IPProtectionActivator.addHelpers(
-              lazy.IPPAndroidAuthProvider.helpers
-            );
           } else if (providerName === "test") {
             lazy.IPProtectionActivator.setAuthProvider(
               lazy.IPPDummyAuthProvider
             );
-            lazy.IPProtectionActivator.addHelpers(
-              lazy.IPPDummyAuthProvider.helpers
-            );
           } else {
             lazy.IPProtectionActivator.setAuthProvider(lazy.IPPGpiAuthProvider);
-            lazy.IPProtectionActivator.addHelpers(
-              lazy.IPPGpiAuthProvider.helpers
+            lazy.IPProtectionActivator.setFallbackAuthProvider(
+              lazy.IPPAndroidAuthProvider,
+              () => Services.prefs.setCharPref(AUTH_PROVIDER_PREF, "fxa")
             );
           }
           lazy.IPProtectionActivator.init();

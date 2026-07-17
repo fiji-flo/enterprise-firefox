@@ -26,6 +26,7 @@ LOCAL_INCLUDES += [
     "/netwerk/base",
     "/netwerk/protocol/http",
     "/netwerk/url-classifier",
+    "/toolkit/components/url-classifier",
 ]
 
 EXTRA_JS_MODULES += [

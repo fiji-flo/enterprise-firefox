@@ -229,7 +229,7 @@ private fun TrackersBlockedMenuItem(
     if (!isSiteProtectionEnabled) {
         MenuItem(
             label = stringResource(id = R.string.protection_panel_etp_disabled_no_trackers_blocked),
-            beforeIconPainter = painterResource(id = iconsR.drawable.mozac_ic_shield_slash_critical_24),
+            beforeIconPainter = painterResource(id = iconsR.drawable.mozac_ic_shield_slash_multicolor_24),
             state = MenuItemState.CRITICAL,
         )
     }
@@ -271,7 +271,7 @@ private fun ConnectionSecurityMenuGroup(
         } else {
             MenuItem(
                 label = stringResource(id = R.string.connection_security_panel_not_secure),
-                beforeIconPainter = painterResource(id = iconsR.drawable.mozac_ic_lock_slash_critical_24),
+                beforeIconPainter = painterResource(id = iconsR.drawable.mozac_ic_lock_slash_multicolor_24),
                 state = MenuItemState.CRITICAL,
             )
         }

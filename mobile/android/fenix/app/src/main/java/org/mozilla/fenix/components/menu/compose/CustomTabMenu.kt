@@ -54,7 +54,6 @@ import mozilla.components.ui.icons.R as iconsR
  * @param isPdf Whether or not the current custom tab is a PDF.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
  * @param isSandboxCustomTab Whether or not the current custom tab is sandboxed.
- * @param isPrivate Whether or not the current custom tab is in a private browsing session.
  * @param isBookmarked Whether or not the current custom tab is bookmarked.
  * @param isExtensionsExpanded Whether or not the extensions submenu is expanded.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
@@ -89,7 +88,6 @@ internal fun CustomTabMenu(
     isPdf: Boolean,
     isDesktopMode: Boolean,
     isSandboxCustomTab: Boolean,
-    isPrivate: Boolean,
     isBookmarked: Boolean,
     isExtensionsExpanded: Boolean,
     isExtensionsProcessDisabled: Boolean,
@@ -244,7 +242,6 @@ internal fun CustomTabMenu(
             if (shouldShowExtensionsMenu) {
                 ExtensionsMenuItem(
                     inCustomTab = true,
-                    isPrivate = isPrivate,
                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                     isExtensionsExpanded = isExtensionsExpanded,
                     isAllWebExtensionsDisabled = isAllWebExtensionsDisabled,
@@ -345,7 +342,6 @@ private fun CustomTabMenuPreview(
                 isPdf = false,
                 isDesktopMode = false,
                 isSandboxCustomTab = false,
-                isPrivate = false,
                 isBookmarked = true,
                 isExtensionsExpanded = false,
                 isExtensionsProcessDisabled = false,
@@ -393,7 +389,6 @@ private fun CustomTabMenuDisabledButtonsPreview(
                 isPdf = true,
                 isDesktopMode = false,
                 isSandboxCustomTab = false,
-                isPrivate = true,
                 isExtensionsExpanded = true,
                 isExtensionsProcessDisabled = true,
                 isAllWebExtensionsDisabled = true,

@@ -22,7 +22,8 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 // TODO Bug 2053495: remove with mistral release pref
 const MISTRAL_RELEASE_PREF = "browser.smartwindow.mistralRelease";
 const { getModelDisplayOrder } = window.IS_STORYBOOK
-  ? { getModelDisplayOrder: () => ["1", "2", "3"] }
+  ? // TODO Bug 2053495: ensure TypeError doesn't occur in Storybook once pref gating has been removed
+    { getModelDisplayOrder: () => ["1", "2", "3"] }
   : ChromeUtils.importESModule(
       "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs"
     );
@@ -45,10 +46,10 @@ const MODEL_ICONS_V2 = {
   3: "chrome://browser/content/aiwindow/assets/model-choice-mistral.svg",
 };
 const BUTTON_LABEL_L10N_IDS = {
-  fast: "aiwindow-input-model-select-button-label-fast",
-  allpurpose: "aiwindow-input-model-select-button-label-allpurpose",
-  personal: "aiwindow-input-model-select-button-label-personal",
-  custom: "aiwindow-input-model-select-button-label-custom",
+  0: "aiwindow-input-model-select-button-label-custom",
+  1: "aiwindow-input-model-select-button-label-fast",
+  2: "aiwindow-input-model-select-button-label-allpurpose",
+  3: "aiwindow-input-model-select-button-label-personal",
 };
 
 /**
@@ -163,16 +164,16 @@ export class InputModelSelect extends MozLitElement {
     );
   }
 
-  #getButtonLabelL10nId(labelId) {
-    return BUTTON_LABEL_L10N_IDS[labelId];
+  #getButtonLabelL10nId(choiceId) {
+    return BUTTON_LABEL_L10N_IDS[choiceId];
   }
 
-  #getDescriptionL10nId(labelId) {
-    if (labelId === "custom") {
+  #getDescriptionL10nId(choiceId) {
+    if (choiceId === "0") {
       return "aiwindow-input-model-select-menu-item-description-custom";
     }
     if (this.mistralRelease) {
-      return BUTTON_LABEL_L10N_IDS[labelId];
+      return BUTTON_LABEL_L10N_IDS[choiceId];
     }
     return "aiwindow-input-model-select-menu-item-description";
   }
@@ -217,7 +218,7 @@ export class InputModelSelect extends MozLitElement {
                     >`
                   : html`<span
                       class="model-item-label"
-                      data-l10n-id=${this.#getButtonLabelL10nId(item.labelId)}
+                      data-l10n-id=${this.#getButtonLabelL10nId(item.index)}
                     ></span>`}
                 ${item.index === this.defaultModelChoiceId
                   ? html`<moz-badge
@@ -229,11 +230,11 @@ export class InputModelSelect extends MozLitElement {
               ${this.mistralRelease
                 ? html`<span
                     class="model-item-details"
-                    data-l10n-id=${this.#getDescriptionL10nId(item.labelId)}
+                    data-l10n-id=${this.#getButtonLabelL10nId(item.index)}
                   ></span>`
                 : html`<span
                     class="model-item-details"
-                    data-l10n-id=${this.#getDescriptionL10nId(item.labelId)}
+                    data-l10n-id=${this.#getDescriptionL10nId(item.index)}
                     data-l10n-args=${JSON.stringify({
                       model: item.model,
                       ownerName: item.ownerName,
@@ -275,7 +276,7 @@ export class InputModelSelect extends MozLitElement {
         .menuId=${this._menuId}
         data-l10n-id=${this.mistralRelease && this.#selectedModel.brandName
           ? nothing
-          : this.#getButtonLabelL10nId(this.#selectedModel.labelId)}
+          : this.#getButtonLabelL10nId(this.#selectedModel.index)}
         label=${this.mistralRelease && this.#selectedModel.brandName
           ? this.#selectedModel.brandName
           : nothing}

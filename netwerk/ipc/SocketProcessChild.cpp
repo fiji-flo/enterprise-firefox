@@ -532,7 +532,15 @@ SocketProcessChild::GetAndRemoveDataBridge(uint64_t aChannelId) {
 
 mozilla::ipc::IPCResult SocketProcessChild::RecvClearSessionCache(
     ClearSessionCacheResolver&& aResolve) {
-  nsNSSComponent::DoClearSSLExternalAndInternalSessionCache();
+  SSLTokensCache::ClearSessionCacheAndTokens();
+  aResolve(void_t{});
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+SocketProcessChild::RecvClearPrivateBrowsingSessionCache(
+    ClearPrivateBrowsingSessionCacheResolver&& aResolve) {
+  SSLTokensCache::ClearSessionCacheAndPBMTokens();
   aResolve(void_t{});
   return IPC_OK();
 }

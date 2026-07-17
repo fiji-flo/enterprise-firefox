@@ -20,7 +20,7 @@ task-defaults:
                 - .*macosx.*shippable.*
             safari-tp:
                 - macosx1400.*
-                - macosx1500.*
+                - macosx1500(?!.*nightlyasrelease).*
             custom-car:
                 - macosx1500.*shippable.*
                 - linux.*-64.*shippable.*
@@ -587,6 +587,7 @@ browsertime-benchmark:
                 by-test-platform:
                     macosx1400.*shippable.*: 4200
                     macosx1500.*shippable.*: 4200
+                    macosx1500.*nightlyasrelease.*: 4200
                     default: 2100
             speedometer2: 2100
             default: 900
@@ -606,6 +607,9 @@ browsertime-benchmark:
                             - --extra-profiler-run
                             - --page-timeout=900000
                         macosx1500.*shippable.*:
+                            - --extra-profiler-run
+                            - --page-timeout=900000
+                        macosx1500.*nightlyasrelease.*:
                             - --extra-profiler-run
                             - --page-timeout=900000
                         default:

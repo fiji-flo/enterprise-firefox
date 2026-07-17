@@ -19,6 +19,7 @@ import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
 /**
  * @import { UrlbarSearchOneOffs } from "moz-src:///browser/components/urlbar/UrlbarSearchOneOffs.sys.mjs"
  * @import { SearchEngine } from "moz-src:///toolkit/components/search/SearchEngine.sys.mjs"
+ * @import { SuggestBackendMerino } from "moz-src:///browser/components/urlbar/private/SuggestBackendMerino.sys.mjs"
  */
 
 /**
@@ -48,6 +49,8 @@ const lazy = XPCOMUtils.declareLazy({
   AIWindow:
     "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs",
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
+  AppProvidedConfigEngine:
+    "moz-src:///toolkit/components/search/ConfigSearchEngine.sys.mjs",
   BrowserSearchTelemetry:
     "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
@@ -63,6 +66,7 @@ const lazy = XPCOMUtils.declareLazy({
   PartnerLinkAttribution: "resource:///modules/PartnerLinkAttribution.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  QuickSuggest: "moz-src:///browser/components/urlbar/QuickSuggest.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
   SharingUtils: "resource:///modules/SharingUtils.sys.mjs",
@@ -73,6 +77,8 @@ const lazy = XPCOMUtils.declareLazy({
     "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
   UrlbarProviderOpenTabs:
     "moz-src:///browser/components/urlbar/UrlbarProviderOpenTabs.sys.mjs",
+  UrlbarTokenizer:
+    "moz-src:///browser/components/urlbar/UrlbarTokenizer.sys.mjs",
   UrlbarSearchUtils:
     "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
   UrlbarUtils: "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
@@ -973,7 +979,7 @@ ${
     const previousSelectionStart = this.selectionStart + offset;
     const previousSelectionEnd = this.selectionEnd + offset;
 
-    this._setValue(value, { allowTrim: true, valueIsTyped: !valid });
+    this.setValue(value, { allowTrim: true, valueIsTyped: !valid });
     this.toggleAttribute("usertyping", !valid && value);
 
     if (this.focused && value != previousUntrimmedValue) {
@@ -1807,6 +1813,7 @@ ${
         }
 
         if (
+          this.#isAddressbar &&
           !this.searchMode &&
           result.heuristic &&
           // If we asked the DNS earlier, avoid the post-facto check.
@@ -1814,7 +1821,6 @@ ${
           // TODO (bug 1642623): for now there is no smart heuristic to skip the
           // DNS lookup, so any value above 0 will run it.
           lazy.UrlbarPrefs.get("dnsResolveSingleWordsAfterSearch") > 0 &&
-          this.window.gKeywordURIFixup &&
           lazy.UrlbarUtils.looksLikeSingleWordHost(originalUntrimmedValue)
         ) {
           // When fixing a single word to a search, the docShell would also
@@ -1865,6 +1871,41 @@ ${
           this._recordSearch(engine, event, actionDetails);
         }
 
+        if (
+          this.#isAddressbar &&
+          !actionDetails.isFormHistory &&
+          !result.payload.inPrivateWindow &&
+          !this.isPrivate &&
+          engine instanceof lazy.AppProvidedConfigEngine &&
+          engine.id == lazy.SearchService.defaultEngine.id
+        ) {
+          let merinoBackend = /** @type {?SuggestBackendMerino} */ (
+            lazy.QuickSuggest.getFeature("SuggestBackendMerino")
+          );
+          if (merinoBackend?.isEnabled) {
+            let selection = (
+              result.payload.suggestion || result.payload.query
+            )?.trim();
+            // Don't record an empty selection, or one that looks like an origin
+            // (e.g. "facebook.com"), which `allowRemoteResults` would otherwise
+            // allow.
+            if (
+              selection &&
+              lazy.UrlUtils.looksLikeOrigin(selection) ==
+                lazy.UrlUtils.LOOKS_LIKE_ORIGIN.NONE
+            ) {
+              // Build a context around the selection so all of
+              // `allowRemoteResults`'s checks apply to it rather than to the
+              // originally typed string.
+              let context = this.#makeQueryContext({ searchString: selection });
+              context.tokens = lazy.UrlbarTokenizer.tokenize(context);
+              merinoBackend
+                .query(selection, { queryContext: context })
+                .catch(console.error);
+            }
+          }
+        }
+
         if (!result.payload.inPrivateWindow) {
           lazy.UrlbarUtils.addToFormHistory(
             this,
@@ -1910,6 +1951,12 @@ ${
             searchSource: this.getSearchSource(event),
             windowMode: this.windowMode,
           });
+          if (result.payload.providesSearchMode) {
+            this.maybeConfirmSearchModeFromResult({
+              result,
+              checkValue: false,
+            });
+          }
           return;
         }
         break;
@@ -2007,11 +2054,12 @@ ${
         lazy.UrlbarUtils.addToInputHistory(url, input).catch(console.error);
       }
 
-      // Re-integration: If the user picks a non-autofill result for a URL
-      // that has a blocked origin, clear the block.
+      // Re-integration: If the user picks a non-autofill result, or a "url"
+      // autofill from manually typing the URL for a blocked origin, clear the
+      // block.
       if (
         lazy.UrlbarPrefs.get("autoFill.adaptiveHistory.enabled") &&
-        !result.autofill &&
+        (!result.autofill || result.autofill.type == "url") &&
         result.type == UrlbarShared.RESULT_TYPE.URL
       ) {
         let isOrigin = lazy.UrlbarUtils.isOriginUrl(url);
@@ -2154,7 +2202,7 @@ ${
       return false;
     }
 
-    // We won't allow trimming when calling _setValue, since it makes too easy
+    // We won't allow trimming when calling setValue, since it makes too easy
     // for the user to wrongly transform `https` into `http`, for example by
     // picking a https://site/path_1 result and editing the path to path_2,
     // then we'd end up visiting http://site/path_2.
@@ -2171,7 +2219,7 @@ ${
       result.autofill ? this._lastSearchString : this.value
     );
     if (canonizedUrl) {
-      this._setValue(canonizedUrl);
+      this.setValue(canonizedUrl);
 
       this.setResultForCurrentValue(result);
       return true;
@@ -2199,7 +2247,7 @@ ${
         });
       }
       if (!enteredSearchMode) {
-        this._setValue(this.#getValueFromResult(result), {
+        this.setValue(this.#getValueFromResult(result), {
           actionType: this.#getActionTypeFromResult(result),
         });
         this.searchMode = null;
@@ -2210,7 +2258,7 @@ ${
 
     if (!result.autofill) {
       let value = this.#getValueFromResult(result, { urlOverride, element });
-      this._setValue(value, {
+      this.setValue(value, {
         actionType: this.#getActionTypeFromResult(result),
       });
     }
@@ -2336,7 +2384,7 @@ ${
       !this.value.endsWith(" ")
     ) {
       this._autofillPlaceholder = null;
-      this._setValue(this.userTypedValue);
+      this.setValue(this.userTypedValue);
     }
 
     return false;
@@ -2894,7 +2942,7 @@ ${
   }
 
   set value(val) {
-    this._setValue(val, { allowTrim: true });
+    this.setValue(val, { allowTrim: true });
   }
 
   get untrimmedValue() {
@@ -3109,7 +3157,7 @@ ${
     this.searchMode = searchMode;
 
     let value = result.payload.query?.trimStart() || "";
-    this._setValue(value);
+    this.setValue(value);
 
     if (startQuery) {
       this.startQuery({ allowAutofill: false });
@@ -3410,7 +3458,7 @@ ${
    *
    * @returns {string} The set value.
    */
-  _setValue(
+  setValue(
     val,
     {
       allowTrim = false,
@@ -3533,6 +3581,7 @@ ${
     // trim the http protocol from the input value, as https-first may upgrade
     // it to https, breaking user expectations.
     let stripHttp =
+      this.#isAddressbar &&
       result.heuristic &&
       result.payload.url.startsWith("http://") &&
       this.userTypedValue &&
@@ -4052,7 +4101,7 @@ ${
   }) {
     // The autofilled value may be a URL that includes a scheme at the
     // beginning.  Do not allow it to be trimmed.
-    this._setValue(value, { untrimmedValue });
+    this.setValue(value, { untrimmedValue });
     this.inputField.setSelectionRange(selectionStart, selectionEnd);
     this._autofillPlaceholder = {
       value,
@@ -4504,7 +4553,7 @@ ${
     }
 
     if (moveCursorToStart) {
-      this._setValue(this._untrimmedValue, {
+      this.setValue(this._untrimmedValue, {
         valueIsTyped: this.valueIsTyped,
       });
       this.setSelectionRange(0, 0);
@@ -4546,7 +4595,7 @@ ${
       selectionEnd += offset;
     }
 
-    this._setValue(this._untrimmedValue, {
+    this.setValue(this._untrimmedValue, {
       valueIsTyped: this.valueIsTyped,
     });
 
@@ -4755,7 +4804,7 @@ ${
 
     lazy.UrlbarUtils.clearAutofillBackspaceEntryForUrl(url);
 
-    this._setValue(this._lastSearchString);
+    this.setValue(this._lastSearchString);
     this.startQuery({
       searchString: this._lastSearchString,
       allowAutofill: false,
@@ -5422,7 +5471,7 @@ ${
     // This is necessary when a protocol was typed, but the whole url has
     // invalid parts, like the origin, then editing and confirming the trimmed
     // value would execute a search instead of visiting the typed url.
-    if (this._protocolIsTrimmed) {
+    if (this.#isAddressbar && this._protocolIsTrimmed) {
       let untrim = false;
       let fixedURI = this._getURIFixupInfo(this.value)?.preferredURI;
       if (fixedURI) {
@@ -5443,7 +5492,7 @@ ${
         }
       }
       if (untrim) {
-        this._setValue(this._untrimmedValue);
+        this.setValue(this._untrimmedValue);
       }
     }
 
@@ -5778,7 +5827,7 @@ ${
       event.stopImmediatePropagation();
 
       const value = oldStart + pasteData + oldEnd;
-      this._setValue(value, { valueIsTyped: true });
+      this.setValue(value, { valueIsTyped: true });
       this.userTypedValue = value;
 
       // Since we prevent the default paste event, we have to ensure the

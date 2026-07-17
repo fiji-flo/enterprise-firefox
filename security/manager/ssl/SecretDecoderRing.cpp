@@ -21,6 +21,7 @@
 #include "nsNetCID.h"
 #include "pk11func.h"
 #include "pk11sdr.h"
+#include "SSLTokensCache.h"
 
 static mozilla::LazyLogModule gSDRLog("sdrlog");
 
@@ -310,11 +311,8 @@ SecretDecoderRing::Login(const nsACString& password, bool* success) {
 NS_IMETHODIMP
 SecretDecoderRing::Logout() {
   PK11_LogoutAll();
-  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(NS_NSSCOMPONENT_CID));
-  if (!nssComponent) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  return nssComponent->ClearSSLExternalAndInternalSessionCache();
+  mozilla::net::SSLTokensCache::ClearSessionCacheAndTokens();
+  return NS_OK;
 }
 
 NS_IMETHODIMP

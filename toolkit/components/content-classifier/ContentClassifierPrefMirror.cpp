@@ -60,6 +60,8 @@ constexpr EngineMapping kProtectionMappings[] = {
      "privacy.trackingprotection.socialtracking.enabled"},
     {"email-trackers", "privacy.trackingprotection.emailtracking.enabled",
      "privacy.trackingprotection.emailtracking.pbmode.enabled"},
+    {"harmful-addon", "privacy.trackingprotection.harmfuladdon.enabled",
+     "privacy.trackingprotection.harmfuladdon.enabled"},
 };
 
 constexpr EngineMapping kAnnotationMappings[] = {
@@ -89,6 +91,7 @@ constexpr const char* kWatchedPrefs[] = {
     "privacy.trackingprotection.socialtracking.enabled",
     "privacy.trackingprotection.emailtracking.enabled",
     "privacy.trackingprotection.emailtracking.pbmode.enabled",
+    "privacy.trackingprotection.harmfuladdon.enabled",
     "privacy.trackingprotection.allow_list.baseline.enabled",
     "privacy.trackingprotection.allow_list.convenience.enabled",
 };

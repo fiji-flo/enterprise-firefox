@@ -27,6 +27,7 @@ const PHRASES = new Set([
   "Extensions and Themes",
   "Find in Page…",
   "Troubleshoot Mode…",
+  "Create a New Profile",
 ]);
 
 let gCUITestUtils = new CustomizableUITestUtils(window);

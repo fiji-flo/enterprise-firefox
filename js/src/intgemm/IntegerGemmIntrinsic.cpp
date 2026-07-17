@@ -11,8 +11,8 @@
 #include "mozilla/TimeStamp.h"
 
 #include <gemmology_fwd.h>
-#include "fmt/format.h"
 
+#include "fmt/format.h"
 #include "js/ErrorReport.h"
 #include "js/HeapAPI.h"
 #include "vm/ArrayBufferObject.h"

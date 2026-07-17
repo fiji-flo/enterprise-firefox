@@ -8,62 +8,59 @@
 #include <psapi.h>
 #include <winioctl.h>
 
-#include "gfxPlatform.h"
-#include "gfxUtils.h"
-#include "nsWindow.h"
-#include "nsWindowDefs.h"
 #include "InputDeviceUtils.h"
 #include "KeyboardLayout.h"
+#include "WindowsUIUtils.h"
+#include "gfxPlatform.h"
+#include "gfxUtils.h"
+#include "imgIContainer.h"
+#include "imgITools.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Logging.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/ProfilerThreadSleep.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/WinHeaderOnlyUtils.h"
+#include "mozilla/WindowsVersion.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/DisplayConfigWindows.h"
 #include "mozilla/gfx/Logging.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/ProfilerThreadSleep.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/SchedulerGroup.h"
 #include "mozilla/widget/WinRegistry.h"
-#include "mozilla/WindowsVersion.h"
-#include "mozilla/WinHeaderOnlyUtils.h"
+#include "nsContentUtils.h"
+#include "nsDirectoryServiceUtils.h"
 #include "nsIContentPolicy.h"
+#include "nsIOutputStream.h"
 #include "nsIReferrerInfo.h"
 #include "nsIURIMutator.h"
-#include "WindowsUIUtils.h"
-#include "nsContentUtils.h"
 #include "nsLookAndFeel.h"
-
-#include "mozilla/Logging.h"
-
-#include "nsString.h"
-#include "nsDirectoryServiceUtils.h"
-#include "imgIContainer.h"
-#include "imgITools.h"
-#include "nsNetUtil.h"
-#include "nsIOutputStream.h"
 #include "nsNetCID.h"
+#include "nsNetUtil.h"
+#include "nsString.h"
+#include "nsWindow.h"
+#include "nsWindowDefs.h"
 #include "prtime.h"
 #ifdef MOZ_PLACES
 #  include "mozilla/places/nsFaviconService.h"
 #endif
-#include "nsIDownloader.h"
-#include "nsIChannel.h"
-#include "nsIThread.h"
-#include "MainThreadUtils.h"
-#include "nsLookAndFeel.h"
-#include "nsUnicharUtils.h"
-#include "nsWindowsHelpers.h"
-#include "WinWindowOcclusionTracker.h"
-
-#include <textstor.h>
-#include "TSFUtils.h"
-
 #include <shellscalingapi.h>
 #include <shlobj.h>
 #include <shlwapi.h>
+#include <textstor.h>
+
+#include "MainThreadUtils.h"
+#include "TSFUtils.h"
+#include "WinWindowOcclusionTracker.h"
+#include "nsIChannel.h"
+#include "nsIDownloader.h"
+#include "nsIThread.h"
+#include "nsLookAndFeel.h"
+#include "nsUnicharUtils.h"
+#include "nsWindowsHelpers.h"
 
 mozilla::LazyLogModule gWindowsLog("Widget");
 

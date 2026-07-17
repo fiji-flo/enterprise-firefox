@@ -41,6 +41,7 @@ const ETP_OFF = {
   "privacy.trackingprotection.fingerprinting.enabled": false,
   "privacy.trackingprotection.cryptomining.enabled": false,
   "privacy.trackingprotection.socialtracking.enabled": false,
+  "privacy.trackingprotection.harmfuladdon.enabled": false,
   "privacy.trackingprotection.emailtracking.enabled": false,
   "privacy.trackingprotection.emailtracking.pbmode.enabled": false,
   "privacy.trackingprotection.allow_list.baseline.enabled": false,
@@ -124,6 +125,7 @@ add_task(async function test_protection_per_feature_mapping() {
     ["privacy.trackingprotection.cryptomining.enabled", "cryptominers"],
     ["privacy.trackingprotection.socialtracking.enabled", "social-trackers"],
     ["privacy.trackingprotection.emailtracking.enabled", "email-trackers"],
+    ["privacy.trackingprotection.harmfuladdon.enabled", "harmful-addon"],
   ];
   for (const [etpPref, engine] of cases) {
     await enableMirror({ [etpPref]: true });

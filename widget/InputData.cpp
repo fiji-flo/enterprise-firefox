@@ -4,19 +4,20 @@
 
 #include "InputData.h"
 
-#include "mozilla/dom/MouseEventBinding.h"
-#include "mozilla/dom/Touch.h"
-#include "mozilla/dom/WheelEventBinding.h"
+#include <type_traits>
+
+#include "UnitTransforms.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/SwipeTracker.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
+#include "mozilla/dom/MouseEventBinding.h"
+#include "mozilla/dom/Touch.h"
+#include "mozilla/dom/WheelEventBinding.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
 #include "nsThreadUtils.h"
-#include "UnitTransforms.h"
-#include <type_traits>
 
 namespace mozilla {
 

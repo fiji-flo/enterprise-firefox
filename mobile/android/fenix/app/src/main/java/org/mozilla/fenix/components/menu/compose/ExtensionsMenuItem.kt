@@ -27,9 +27,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import mozilla.components.feature.addons.Addon
 import mozilla.components.support.base.log.logger.Logger
@@ -39,13 +38,14 @@ import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS_OPTION_CHEVRON
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.theme.ThemedValue
+import org.mozilla.fenix.theme.ThemedValueProvider
 import mozilla.components.ui.icons.R as iconsR
 
 @Suppress("LongParameterList")
 @Composable
 internal fun ExtensionsMenuItem(
     inCustomTab: Boolean,
-    isPrivate: Boolean,
     isExtensionsProcessDisabled: Boolean,
     isExtensionsExpanded: Boolean,
     isAllWebExtensionsDisabled: Boolean,
@@ -61,7 +61,6 @@ internal fun ExtensionsMenuItem(
 
     val beforeIconPainter = beforeIconPainterForExtensions(
         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
-        isPrivate = isPrivate,
     )
 
     val descriptionState = descriptionStateForExtensions(
@@ -148,12 +147,9 @@ private fun stateDescriptionForExtensions(
 @Composable
 private fun beforeIconPainterForExtensions(
     isExtensionsProcessDisabled: Boolean,
-    isPrivate: Boolean,
 ) = when {
-    isExtensionsProcessDisabled && isPrivate ->
-        painterResource(id = iconsR.drawable.mozac_ic_extension_warning_private_24)
     isExtensionsProcessDisabled ->
-        painterResource(id = iconsR.drawable.mozac_ic_extension_warning_24)
+        painterResource(id = iconsR.drawable.mozac_ic_extension_warning_multicolor_24)
     else ->
         painterResource(id = iconsR.drawable.mozac_ic_extension_24)
 }
@@ -313,60 +309,58 @@ private data class ExtensionsMenuItemPreviewState(
 )
 
 private class ExtensionsMenuItemPreviewProvider :
-    PreviewParameterProvider<ExtensionsMenuItemPreviewState> {
-    private val data = listOf(
-        "Collapsed" to ExtensionsMenuItemPreviewState(
-            isExtensionsProcessDisabled = false,
-            isAllWebExtensionsDisabled = false,
-            isExtensionsExpanded = false,
-            webExtensionMenuCount = 3,
-            description = "3 extensions enabled",
+    ThemedValueProvider<ExtensionsMenuItemPreviewState>(
+        sequenceOf(
+            ExtensionsMenuItemPreviewState(
+                isExtensionsProcessDisabled = false,
+                isAllWebExtensionsDisabled = false,
+                isExtensionsExpanded = false,
+                webExtensionMenuCount = 3,
+                description = "3 extensions enabled",
+            ),
+            ExtensionsMenuItemPreviewState(
+                isExtensionsProcessDisabled = false,
+                isAllWebExtensionsDisabled = false,
+                isExtensionsExpanded = true,
+                webExtensionMenuCount = 2,
+                description = "2 extensions enabled",
+            ),
+            ExtensionsMenuItemPreviewState(
+                isExtensionsProcessDisabled = true,
+                isAllWebExtensionsDisabled = false,
+                isExtensionsExpanded = false,
+                webExtensionMenuCount = 0,
+                description = "Extensions are turned off",
+            ),
         ),
-        "Expanded with submenu" to ExtensionsMenuItemPreviewState(
-            isExtensionsProcessDisabled = false,
-            isAllWebExtensionsDisabled = false,
-            isExtensionsExpanded = true,
-            webExtensionMenuCount = 2,
-            description = "2 extensions enabled",
-        ),
-        "Extensions process disabled" to ExtensionsMenuItemPreviewState(
-            isExtensionsProcessDisabled = true,
-            isAllWebExtensionsDisabled = false,
-            isExtensionsExpanded = false,
-            webExtensionMenuCount = 0,
-            description = "Extensions are turned off",
+        displayNames = listOf(
+            "Collapsed",
+            "Expanded with submenu",
+            "Extensions process disabled",
         ),
     )
 
-    override val values: Sequence<ExtensionsMenuItemPreviewState>
-        get() = data.map { it.second }.asSequence()
-
-    override fun getDisplayName(index: Int): String {
-        return data[index].first
-    }
-}
-
-@PreviewLightDark
+@Preview
 @Composable
 private fun ExtensionsMenuItemPreview(
-    @PreviewParameter(ExtensionsMenuItemPreviewProvider::class) state: ExtensionsMenuItemPreviewState,
+    @PreviewParameter(ExtensionsMenuItemPreviewProvider::class)
+    state: ThemedValue<ExtensionsMenuItemPreviewState>,
 ) {
-    FirefoxTheme {
+    FirefoxTheme(state.theme) {
         Surface {
             Column(
                 modifier = Modifier.padding(all = FirefoxTheme.layout.space.static200),
             ) {
                 ExtensionsMenuItem(
                     inCustomTab = false,
-                    isPrivate = false,
-                    isExtensionsProcessDisabled = state.isExtensionsProcessDisabled,
-                    isAllWebExtensionsDisabled = state.isAllWebExtensionsDisabled,
-                    isExtensionsExpanded = state.isExtensionsExpanded,
-                    webExtensionMenuCount = state.webExtensionMenuCount,
-                    extensionsMenuItemDescription = state.description,
+                    isExtensionsProcessDisabled = state.value.isExtensionsProcessDisabled,
+                    isAllWebExtensionsDisabled = state.value.isAllWebExtensionsDisabled,
+                    isExtensionsExpanded = state.value.isExtensionsExpanded,
+                    webExtensionMenuCount = state.value.webExtensionMenuCount,
+                    extensionsMenuItemDescription = state.value.description,
                     onExtensionsMenuClick = {},
                     extensionSubmenu = {
-                        if (state.isExtensionsExpanded) {
+                        if (state.value.isExtensionsExpanded) {
                             WebExtensionMenuItems(
                                 accessPoint = MenuAccessPoint.Browser,
                                 webExtensionMenuItems = previewWebExtensionMenuItems(),

@@ -69,23 +69,38 @@ export class UrlbarProviderActionsSearchMode extends UrlbarProvider {
     });
   }
 
+  /**
+   * Whether an action's button is shown disabled (inactive or hidden). Shared
+   * by the view template and the engagement handler so both agree without the
+   * latter reading the picked DOM element.
+   *
+   * @param {object} action The quick action, from `getAction`.
+   * @returns {boolean} Whether the action is inactive.
+   */
+  #isActionInactive(action) {
+    return (
+      ("isActive" in action && !action.isActive()) ||
+      !(action.isVisible?.() ?? true)
+    );
+  }
+
   onEngagement(queryContext, controller, details) {
-    if (details.element.hasAttribute("disabled")) {
+    let { key, inputLength } = details.result.payload;
+    let action = lazy.ActionsProviderQuickActions.getAction(key);
+    if (this.#isActionInactive(action)) {
       return;
     }
     lazy.ActionsProviderQuickActions.pickAction(
       queryContext,
       controller,
-      details.element,
-      details.element.documentGlobal
+      key,
+      inputLength
     );
   }
 
   getViewTemplate(result) {
     let action = lazy.ActionsProviderQuickActions.getAction(result.payload.key);
-    let inActive =
-      ("isActive" in action && !action.isActive()) ||
-      !(action.isVisible?.() ?? true);
+    let inActive = this.#isActionInactive(action);
     return {
       children: [
         {

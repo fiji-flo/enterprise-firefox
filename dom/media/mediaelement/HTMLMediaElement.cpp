@@ -569,6 +569,37 @@ class HTMLMediaElement::MediaControlKeyListener final
     }
   }
 
+  void SuspendForInterrupt() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    // Only an audible, playing element yields to an interruption; a paused or
+    // inaudible element (muted, volume 0, or no audio track) is left alone.
+    if (!Owner() || Owner()->Paused() || !mIsOwnerAudible) {
+      return;
+    }
+    MEDIACONTROL_LOG("SuspendForInterrupt");
+    // Pausing clears mSuspendedByInterrupt (see NotifyPaused); set it back
+    // right after our own pause so ResumeFromInterrupt knows this element is
+    // the one the interruption suspended.
+    Owner()->Pause();
+    mSuspendedByInterrupt = true;
+  }
+
+  void ResumeFromInterrupt() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    const bool willResume =
+        mSuspendedByInterrupt && Owner() && Owner()->Paused();
+    MEDIACONTROL_LOG("ResumeFromInterrupt, resume={}", willResume);
+    if (willResume) {
+      Owner()->Play();
+    }
+    mSuspendedByInterrupt = false;
+  }
+
+  void NotifyPaused() {
+    MEDIACONTROL_LOG("NotifyPaused, clearing suspended-by-interrupt");
+    mSuspendedByInterrupt = false;
+  }
+
   void UpdateOwnerBrowsingContextIfNeeded() {
     // Has not notified any information about the owner context yet.
     if (!IsStarted()) {
@@ -672,6 +703,9 @@ class HTMLMediaElement::MediaControlKeyListener final
   // initialized and used to route audibility notifications and receiver
   // removal. Uncontrollable sources report audibility but not playback state.
   ControlType mControlType = ControlType::eControllable;
+  // True while this listener paused its element for an audio-focus
+  // interruption, so ResumeFromInterrupt only resumes an element it paused.
+  bool mSuspendedByInterrupt = false;
   MOZ_INIT_OUTSIDE_CTOR uint64_t mOwnerBrowsingContextId = 0;
   const nsID mElementId;
 };
@@ -3759,6 +3793,10 @@ void HTMLMediaElement::PauseInternal() {
     FireTimeUpdate(TimeupdateType::eMandatory);
     QueueEvent(u"pause"_ns);
     AsyncRejectPendingPlayPromises(NS_ERROR_DOM_MEDIA_ABORT_ERR);
+  }
+
+  if (mMediaControlKeyListener) {
+    mMediaControlKeyListener->NotifyPaused();
   }
 }
 

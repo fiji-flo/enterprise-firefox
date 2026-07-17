@@ -39,14 +39,14 @@ class BookmarkSearchPage(composeRule: AndroidComposeTestRule<HomeActivityIntentT
 
     fun verifySearchSuggestionsAreDisplayed(vararg urls: String): BookmarkSearchPage {
         for (url in urls) {
-            mozVerifyAnyContainsText(BookmarkSearchSelectors.AWESOMEBAR_SUGGESTION, url)
+            mozVerifyAnyContainsText(BookmarkSearchSelectors.SEARCH_ITEM, url)
         }
         return this
     }
 
     fun verifySuggestionsAreNotDisplayed(vararg urls: String): BookmarkSearchPage {
         for (url in urls) {
-            mozVerifyNoneContainText(BookmarkSearchSelectors.AWESOMEBAR_SUGGESTION, url)
+            mozVerifyNoneContainText(BookmarkSearchSelectors.SEARCH_ITEM, url)
         }
         return this
     }

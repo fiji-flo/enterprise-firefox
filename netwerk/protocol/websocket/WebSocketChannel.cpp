@@ -3590,21 +3590,12 @@ WebSocketChannel::AsyncOpenNative(nsIURI* aURI, const nsACString& aOrigin,
     return rv;
   }
 
-  // Ideally we'd call newChannelFromURIWithLoadInfo here, but that doesn't
-  // allow setting proxy uri/flags
-  rv = ioService->NewChannelFromURIWithProxyFlags(
+  rv = ioService->NewChannelFromURIWithProxyFlagsAndLoadInfo(
       localURI, mURI,
       nsIProtocolProxyService::RESOLVE_PREFER_SOCKS_PROXY |
           nsIProtocolProxyService::RESOLVE_PREFER_HTTPS_PROXY |
           nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL,
-      mLoadInfo->LoadingNode(), mLoadInfo->GetLoadingPrincipal(),
-      mLoadInfo->TriggeringPrincipal(), mLoadInfo->GetSecurityFlags(),
-      mLoadInfo->InternalContentPolicyType(), getter_AddRefs(localChannel));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Please note that we still call SetLoadInfo on the channel because
-  // we want the same instance of the loadInfo to be set on the channel.
-  rv = localChannel->SetLoadInfo(mLoadInfo);
+      mLoadInfo, getter_AddRefs(localChannel));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Pass most GetInterface() requests through to our instantiator, but handle

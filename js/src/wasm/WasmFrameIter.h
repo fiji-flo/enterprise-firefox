@@ -20,7 +20,6 @@
 #include "js/ColumnNumber.h"  // JS::TaggedColumnNumberOneOrigin
 #include "js/ProfilingFrameIterator.h"
 #include "js/TypeDecls.h"
-
 #include "wasm/WasmCode.h"          // For CodeBlockKind
 #include "wasm/WasmCodegenTypes.h"  // for BytecodeOffsetSpan
 

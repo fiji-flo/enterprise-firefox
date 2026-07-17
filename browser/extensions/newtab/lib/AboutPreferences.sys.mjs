@@ -298,7 +298,6 @@ export class AboutPreferences {
       const { SettingGroupManager } = window;
 
       window.MozXULElement.insertFTLIfNeeded("browser/newtab/newtab.ftl");
-      window.MozXULElement.insertFTLIfNeeded("preview/newtabPreview.ftl");
 
       // We observe 2 signals that about:settings is loading - the
       // PREFERENCES_LOADED_EVENT and PREFERENCES_LOADED_EVENT_SUBPANE

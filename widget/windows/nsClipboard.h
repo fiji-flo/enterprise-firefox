@@ -5,12 +5,12 @@
 #ifndef nsClipboard_h_
 #define nsClipboard_h_
 
+#include <ole2.h>
+#include <windows.h>
+
 #include "nsBaseClipboard.h"
 #include "nsIObserver.h"
 #include "nsIURI.h"
-
-#include <ole2.h>
-#include <windows.h>
 
 class nsITransferable;
 class nsIWidget;

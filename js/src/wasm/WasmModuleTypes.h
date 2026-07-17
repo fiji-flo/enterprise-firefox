@@ -25,7 +25,6 @@
 #include "js/RefCounted.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
-
 #include "wasm/WasmCompileArgs.h"
 #include "wasm/WasmConstants.h"
 #include "wasm/WasmExprType.h"

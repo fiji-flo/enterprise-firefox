@@ -26,6 +26,8 @@ skip-if = [
 
 ["browser_autoshow_bookmarks_toolbar.js"]
 
+["browser_bhTooltip_folder_cropping.js"]
+
 ["browser_bookmarkMenu_hiddenWindow.js"]
 run-if = [
   "os == 'mac'", # Mac-only functionality

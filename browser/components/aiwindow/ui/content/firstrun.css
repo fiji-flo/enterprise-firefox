@@ -428,6 +428,7 @@
       margin-bottom: 0;
       margin-top: 0;
       line-height: normal;
+      text-align: start;
     }
 
     .body-text {
@@ -437,6 +438,7 @@
       grid-area: description;
       line-height: normal;
       margin: 0;
+      text-align: start;
     }
 
     .subtitle-text {
@@ -457,6 +459,32 @@
       height: var(--size-image-small);
       grid-area: icon;
       width: var(--size-image-small);
+    }
+
+    /* Render the "Recommended" badge as an inline pill in the right column,
+       vertically centered, rather than the shared top-corner banner. */
+    .flair {
+      --flair-background-color: light-dark(
+        var(--color-violet-desaturated-0, var(--color-violet-0)),
+        var(--color-violet-desaturated-50, var(--color-violet-50))
+      );
+      /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+      background-color: var(--flair-background-color);
+      border-radius: var(--border-radius-xlarge, var(--border-radius-large));
+      color: var(--text-color);
+      font-size: var(--font-size-small);
+      grid-area: model;
+      height: auto;
+      inset: unset;
+      line-height: normal;
+      padding: var(--space-xxsmall) var(--space-small);
+      position: static;
+      width: fit-content;
+    }
+
+    /* The recommended card shows the badge in place of the model subtitle. */
+    &:has(.flair) .subtitle-text {
+      display: none;
     }
   }
 }

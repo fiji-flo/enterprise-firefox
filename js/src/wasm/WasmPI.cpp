@@ -17,6 +17,7 @@
 #include "wasm/WasmPI.h"
 
 #include "jsfriendapi.h"
+
 #include "builtin/Promise.h"
 #include "debugger/DebugAPI.h"
 #include "debugger/Debugger.h"

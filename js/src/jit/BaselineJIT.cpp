@@ -882,6 +882,9 @@ void BaselineScript::trace(JSTracer* trc) {
 void BaselineScript::Destroy(JS::GCContext* gcx, BaselineScript* script) {
   MOZ_ASSERT(!script->hasPendingIonCompileTask());
 
+  // Trigger write barrier since we are destroying this outside GC.
+  script->method_ = nullptr;
+
   // This allocation is tracked by JSScript::setBaselineScriptImpl.
   gcx->deleteUntracked(script);
 }

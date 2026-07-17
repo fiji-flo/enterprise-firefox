@@ -1175,13 +1175,14 @@ nsresult nsIOService::NewChannelFromURIWithClientAndController(
     const Maybe<ClientInfo>& aLoadingClientInfo,
     const Maybe<ServiceWorkerDescriptor>& aController, uint32_t aSecurityFlags,
     nsContentPolicyType aContentPolicyType, uint32_t aSandboxFlags,
-    nsIChannel** aResult) {
+    uint64_t aAssociatedBrowsingContextID, nsIChannel** aResult) {
   return NewChannelFromURIWithProxyFlagsInternal(
       aURI,
       nullptr,  // aProxyURI
       0,        // aProxyFlags
       aLoadingNode, aLoadingPrincipal, aTriggeringPrincipal, aLoadingClientInfo,
-      aController, aSecurityFlags, aContentPolicyType, aSandboxFlags, aResult);
+      aController, aSecurityFlags, aContentPolicyType, aSandboxFlags,
+      aAssociatedBrowsingContextID, aResult);
 }
 
 NS_IMETHODIMP
@@ -1193,6 +1194,16 @@ nsIOService::NewChannelFromURIWithLoadInfo(nsIURI* aURI, nsILoadInfo* aLoadInfo,
                                                  aLoadInfo, result);
 }
 
+NS_IMETHODIMP
+nsIOService::NewChannelFromURIWithProxyFlagsAndLoadInfo(nsIURI* aURI,
+                                                        nsIURI* aProxyURI,
+                                                        uint32_t aProxyFlags,
+                                                        nsILoadInfo* aLoadInfo,
+                                                        nsIChannel** result) {
+  return NewChannelFromURIWithProxyFlagsInternal(aURI, aProxyURI, aProxyFlags,
+                                                 aLoadInfo, result);
+}
+
 nsresult nsIOService::NewChannelFromURIWithProxyFlagsInternal(
     nsIURI* aURI, nsIURI* aProxyURI, uint32_t aProxyFlags,
     nsINode* aLoadingNode, nsIPrincipal* aLoadingPrincipal,
@@ -1200,10 +1211,14 @@ nsresult nsIOService::NewChannelFromURIWithProxyFlagsInternal(
     const Maybe<ClientInfo>& aLoadingClientInfo,
     const Maybe<ServiceWorkerDescriptor>& aController, uint32_t aSecurityFlags,
     nsContentPolicyType aContentPolicyType, uint32_t aSandboxFlags,
-    nsIChannel** result) {
+    uint64_t aAssociatedBrowsingContextID, nsIChannel** result) {
   nsCOMPtr<nsILoadInfo> loadInfo = MOZ_TRY(LoadInfo::Create(
       aLoadingPrincipal, aTriggeringPrincipal, aLoadingNode, aSecurityFlags,
       aContentPolicyType, aLoadingClientInfo, aController, aSandboxFlags));
+  if (aAssociatedBrowsingContextID) {
+    MOZ_ALWAYS_SUCCEEDS(
+        loadInfo->SetAssociatedBrowsingContextID(aAssociatedBrowsingContextID));
+  }
   return NewChannelFromURIWithProxyFlagsInternal(aURI, aProxyURI, aProxyFlags,
                                                  loadInfo, result);
 }
@@ -1260,8 +1275,8 @@ nsIOService::NewChannelFromURIWithProxyFlags(
   return NewChannelFromURIWithProxyFlagsInternal(
       aURI, aProxyURI, aProxyFlags, aLoadingNode, aLoadingPrincipal,
       aTriggeringPrincipal, Maybe<ClientInfo>(),
-      Maybe<ServiceWorkerDescriptor>(), aSecurityFlags, aContentPolicyType, 0,
-      result);
+      Maybe<ServiceWorkerDescriptor>(), aSecurityFlags, aContentPolicyType,
+      /* aSandboxFlags */ 0, /* aAssociatedBrowsingContextID */ 0, result);
 }
 
 NS_IMETHODIMP

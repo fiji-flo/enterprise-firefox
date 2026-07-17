@@ -3,27 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WaylandSurface.h"
-#include "WaylandBuffer.h"
-#include <wayland-egl.h>
-#include "nsGtkUtils.h"
-#include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/ToString.h"
+
 #include <dlfcn.h>
 #include <fcntl.h>
-#include "ScreenHelperGTK.h"
-#include "nsWindow.h"
+#include <wayland-egl.h>
+
 #include "DMABufFormats.h"
-#include "mozilla/gfx/gfxVars.h"
+#include "ScreenHelperGTK.h"
+#include "WaylandBuffer.h"
+#include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/ToString.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "nsGtkUtils.h"
+#include "nsWindow.h"
 #ifdef MOZ_LOGGING
 #  include "EncoderConfig.h"
 #endif
 
 #undef LOG
 #ifdef MOZ_LOGGING
+#  include "Units.h"
 #  include "mozilla/Logging.h"
 #  include "nsTArray.h"
-#  include "Units.h"
 #  undef LOGWAYLAND
 #  undef LOGVERBOSE
 #  undef LOG_ENABLED_VERBOSE

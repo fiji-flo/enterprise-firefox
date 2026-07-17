@@ -9,7 +9,6 @@
 #include <bit>
 
 #include "jit/shared/Architecture-shared.h"
-
 #include "js/Utility.h"
 
 namespace js {

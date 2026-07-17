@@ -219,8 +219,6 @@
  * this bitmap is managed.
  */
 
-#include "gc/GC-inl.h"
-
 #include "mozilla/Attributes.h"
 #include "mozilla/glue/Debug.h"
 #include "mozilla/ScopeExit.h"
@@ -268,6 +266,7 @@
 #include "vm/SymbolType.h"
 #include "vm/Time.h"
 
+#include "gc/GC-inl.h"
 #include "gc/Heap-inl.h"
 #include "gc/Nursery-inl.h"
 #include "gc/ObjectKind-inl.h"

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "jsapi-tests/tests.h"
+
 #include "mozilla/Assertions.h"  // MOZ_RELEASE_ASSERT
 #include "mozilla/RefPtr.h"      // RefPtr
 #include "mozilla/Utf8.h"        // mozilla::Utf8Unit
@@ -23,10 +25,9 @@
 #include "js/RootingAPI.h"              // JS::MutableHandle, JS::Rooted
 #include "js/SourceText.h"              // JS::SourceOwnership, JS::SourceText
 #include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::StringHasLatin1Chars
-#include "js/UniquePtr.h"  // js::UniquePtr
-#include "js/Utility.h"    // JS::FreePolicy
-#include "js/Value.h"      // JS::NullValue, JS::ObjectValue, JS::Value
-#include "jsapi-tests/tests.h"
+#include "js/UniquePtr.h"      // js::UniquePtr
+#include "js/Utility.h"        // JS::FreePolicy
+#include "js/Value.h"          // JS::NullValue, JS::ObjectValue, JS::Value
 #include "util/Text.h"         // js_strlen
 #include "vm/Compression.h"    // js::Compressor::CHUNK_SIZE
 #include "vm/HelperThreads.h"  // js::RunPendingSourceCompressions

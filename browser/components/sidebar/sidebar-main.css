@@ -33,7 +33,10 @@
       /* TODO: Should this be some other pixel value between 5/6? Need to be careful of Linux where font size is larger */
       --tab-pinned-horizontal-count: 5;
       /* TODO: These --space-* tokens should use semantic names shared with tabs.css */
-      width: calc(var(--tab-pinned-horizontal-count) * var(--tab-pinned-min-width-expanded) + 2 * var(--tab-pinned-container-margin-inline-expanded) + 1px);
+      width: var(
+        --sidebar-expanded-launcher-width,
+        calc(var(--tab-pinned-horizontal-count) * var(--tab-pinned-min-width-expanded) + 2 * var(--tab-pinned-container-margin-inline-expanded) + 1px)
+      );
     }
 
     :host([customWidth]) & {

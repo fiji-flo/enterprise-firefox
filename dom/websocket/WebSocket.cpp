@@ -219,6 +219,8 @@ class WebSocketImpl final : public nsIInterfaceRequestor,
 
   nsCOMPtr<nsIWebSocketChannel> mChannel;
 
+  uint64_t mAssociatedBrowsingContextID = 0;
+
   bool mIsServerSide;  // True if we're implementing the server side of a
                        // websocket connection
 
@@ -1412,6 +1414,9 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(workerPrivate);
 
+    webSocketImpl->mAssociatedBrowsingContextID =
+        workerPrivate->AssociatedBrowsingContextID();
+
     uint32_t lineno;
     JS::ColumnNumberOneOrigin column;
     JS::AutoFilename file;
@@ -1940,6 +1945,16 @@ nsresult WebSocketImpl::InitializeConnection(
       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
       nsIContentPolicy::TYPE_WEBSOCKET, mClientInfo, 0);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  if (mAssociatedBrowsingContextID) {
+    nsCOMPtr<nsILoadInfo> loadInfo;
+    rv = wsChannel->GetLoadInfo(getter_AddRefs(loadInfo));
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (loadInfo) {
+      MOZ_ALWAYS_SUCCEEDS(loadInfo->SetAssociatedBrowsingContextID(
+          mAssociatedBrowsingContextID));
+    }
+  }
 
   if (!mRequestedProtocolList.IsEmpty()) {
     rv = wsChannel->SetProtocol(mRequestedProtocolList);

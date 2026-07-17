@@ -4,17 +4,17 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "nsFilePicker.h"
+#include "mozilla/Preferences.h"
+#include "nsArrayEnumerator.h"
 #include "nsCOMPtr.h"
-#include "nsReadableUtils.h"
-#include "nsNetUtil.h"
+#include "nsCocoaUtils.h"
+#include "nsFilePicker.h"
 #include "nsIFile.h"
 #include "nsILocalFileMac.h"
-#include "nsArrayEnumerator.h"
 #include "nsIStringBundle.h"
-#include "nsCocoaUtils.h"
+#include "nsNetUtil.h"
+#include "nsReadableUtils.h"
 #include "nsThreadUtils.h"
-#include "mozilla/Preferences.h"
 
 // This must be included last:
 #include "nsObjCExceptions.h"

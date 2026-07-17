@@ -5,7 +5,6 @@
 #ifndef mozJSModuleLoader_h
 #define mozJSModuleLoader_h
 
-#include "SyncModuleLoader.h"
 #include "mozilla/Attributes.h"  // MOZ_STACK_CLASS
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/FileLocation.h"
@@ -13,13 +12,15 @@
 #include "mozilla/RefPtr.h"  // RefPtr, mozilla::StaticRefPtr
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ThreadLocal.h"  // MOZ_THREAD_LOCAL
-#include "nsIURI.h"
-#include "nsClassHashtable.h"
+
 #include "jsapi.h"
+#include "nsClassHashtable.h"
+#include "nsIURI.h"
+#include "SyncModuleLoader.h"
+#include "xpcpublic.h"
+
 #include "js/CompileOptions.h"
 #include "js/experimental/JSStencil.h"
-
-#include "xpcpublic.h"
 
 class nsIFile;
 class ModuleLoaderInfo;

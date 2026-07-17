@@ -73,7 +73,6 @@ function templateHTML(options) {
     <link rel="localization" href="branding/brand.ftl" />
     <link rel="localization" href="toolkit/branding/brandings.ftl" />
     <link rel="localization" href="browser/newtab/newtab.ftl" />
-    <link rel="localization" href="preview/newtabPreview.ftl" />
     <link rel="localization" href="toolkit/global/mozMessageBar.ftl" />
     <link
       rel="stylesheet"

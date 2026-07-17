@@ -616,11 +616,11 @@ nsresult FetchDriver::HttpFetch(
                        mLoadGroup, nullptr, /* aCallbacks */
                        loadFlags, ios);
   } else if (mClientInfo.isSome()) {
-    rv = NS_NewChannel(getter_AddRefs(chan), uri, mPrincipal, mClientInfo.ref(),
-                       mController, secFlags, mRequest->ContentPolicyType(),
-                       mCookieJarSettings, mPerformanceStorage, mLoadGroup,
-                       nullptr, /* aCallbacks */
-                       loadFlags, ios);
+    rv = NS_NewChannel(
+        getter_AddRefs(chan), uri, mPrincipal, mClientInfo.ref(), mController,
+        secFlags, mRequest->ContentPolicyType(), mCookieJarSettings,
+        mPerformanceStorage, mLoadGroup, nullptr, /* aCallbacks */
+        loadFlags, ios, /* aSandboxFlags */ 0, mAssociatedBrowsingContextID);
   } else {
     nsCOMPtr<nsIPrincipal> principal = mPrincipal;
     if (principal->IsSystemPrincipal() &&

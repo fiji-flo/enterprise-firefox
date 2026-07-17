@@ -5,8 +5,8 @@
 #ifndef js_wasm_WasmFeatures_h
 #define js_wasm_WasmFeatures_h
 
-#include "js/WasmFeatures.h"
 #include "js/TypeDecls.h"
+#include "js/WasmFeatures.h"
 
 namespace js {
 

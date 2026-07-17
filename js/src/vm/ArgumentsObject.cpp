@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "vm/ArgumentsObject-inl.h"
-
 #include "mozilla/PodOperations.h"
 
 #include <algorithm>
@@ -17,6 +15,7 @@
 
 #include "gc/BufferAllocator-inl.h"
 #include "gc/Nursery-inl.h"
+#include "vm/ArgumentsObject-inl.h"
 #include "vm/FrameIter-inl.h"  // js::FrameIter::unaliasedForEachActual
 #include "vm/NativeObject-inl.h"
 #include "vm/Stack-inl.h"

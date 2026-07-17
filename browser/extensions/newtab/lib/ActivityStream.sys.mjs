@@ -1530,6 +1530,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "widgets.crossword.interaction",
+    {
+      title:
+        "Boolean flag for determining if a user has interacted with the crossword widget",
+      value: false,
+    },
+  ],
+  [
     "widgets.stocks.enabled",
     {
       title: "Enables the stocks widget",

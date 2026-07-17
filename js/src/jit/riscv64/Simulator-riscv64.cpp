@@ -2159,9 +2159,9 @@ void Simulator::DecodeRVRType() {
       reg_t lhs = zext32(rs1());
       reg_t rhs = zext32(rs2());
       if (rhs == 0) {
-        set_rd(UINT32_MAX);
+        set_rd(UINTPTR_MAX);
       } else {
-        set_rd(zext32(lhs / rhs));
+        set_rd(sext32(lhs / rhs));
       }
       break;
     }
@@ -2181,9 +2181,9 @@ void Simulator::DecodeRVRType() {
       reg_t lhs = zext32(rs1());
       reg_t rhs = zext32(rs2());
       if (rhs == 0) {
-        set_rd(zext32(lhs));
+        set_rd(sext32(lhs));
       } else {
-        set_rd(zext32(lhs % rhs));
+        set_rd(sext32(lhs % rhs));
       }
       break;
     }

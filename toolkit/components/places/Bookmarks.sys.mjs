@@ -3244,8 +3244,22 @@ var removeFoldersContents = async function (db, folderGuids, options) {
 
   // Notify listeners in reverse order to serve children before parents.
   let { source = Bookmarks.SOURCES.DEFAULT } = options;
+  itemsRemoved.reverse();
+
+  let untaggedUrls = new Set();
+  for (let item of itemsRemoved) {
+    if (item.url && item._grandParentId == lazy.PlacesUtils.tagsFolderId) {
+      untaggedUrls.add(item.url.href);
+    }
+  }
+  let entriesByUrl = untaggedUrls.size
+    ? // Cannot use {concurrent: true} here because removeFolderContents is invoked inside eraseEverything transaction,
+      // which is already using a connection. Using {concurrent: true} would try to use a different connection and fail.
+      await fetchBookmarksByURLs([...untaggedUrls])
+    : new Map();
   let notifications = [];
-  for (let item of itemsRemoved.reverse()) {
+
+  for (let item of itemsRemoved) {
     let isUntagging = item._grandParentId == lazy.PlacesUtils.tagsFolderId;
     let url = "";
     if (item.type == Bookmarks.TYPE_BOOKMARK) {
@@ -3271,7 +3285,7 @@ var removeFoldersContents = async function (db, folderGuids, options) {
     );
 
     if (isUntagging) {
-      for (let entry of await fetchBookmarksByURL(item, true)) {
+      for (let entry of entriesByUrl.get(url) || []) {
         notifications.push(
           new PlacesBookmarkTags({
             id: entry._id,

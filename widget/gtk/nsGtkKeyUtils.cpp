@@ -2,37 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/Logging.h"
-
 #include "nsGtkKeyUtils.h"
 
-#include <gdk/gdkkeysyms.h>
-#include <algorithm>
-#include <gdk/gdk.h>
 #include <dlfcn.h>
+#include <gdk/gdk.h>
 #include <gdk/gdkkeysyms-compat.h>
+#include <gdk/gdkkeysyms.h>
+
+#include <algorithm>
+
+#include "mozilla/Logging.h"
 #ifdef MOZ_X11
-#  include <gdk/gdkx.h>
 #  include <X11/XKBlib.h>
+#  include <gdk/gdkx.h>
+
 #  include "X11UndefineNone.h"
 #endif
 #include "IMContextWrapper.h"
 #include "WidgetUtils.h"
 #include "WidgetUtilsGtk.h"
-#include "x11/keysym2ucs.h"
+#include "mozilla/MouseEvents.h"
+#include "mozilla/TextEventDispatcher.h"
+#include "mozilla/TextEvents.h"
+#include "mozilla/Utf16.h"
+#include "nsCRT.h"
 #include "nsContentUtils.h"
 #include "nsIBidiKeyboard.h"
 #include "nsPrintfCString.h"
 #include "nsReadableUtils.h"
 #include "nsWindow.h"
-
-#include "mozilla/MouseEvents.h"
-#include "mozilla/TextEventDispatcher.h"
-#include "mozilla/TextEvents.h"
-#include "mozilla/Utf16.h"
+#include "x11/keysym2ucs.h"
 
 #ifdef MOZ_WAYLAND
 #  include <sys/mman.h>
+
 #  include "nsWaylandDisplay.h"
 #endif
 
@@ -2249,8 +2252,8 @@ struct KeyCodeData {
 static struct KeyCodeData gKeyCodes[] = {
 #define NS_DEFINE_VK(aDOMKeyName, aDOMKeyCode) \
   {#aDOMKeyName, sizeof(#aDOMKeyName) - 1, aDOMKeyCode},
-#include "mozilla/VirtualKeyCodeList.inc"
 #include "mozilla/Utf16.h"
+#include "mozilla/VirtualKeyCodeList.inc"
 #undef NS_DEFINE_VK
     {nullptr, 0, 0}};
 

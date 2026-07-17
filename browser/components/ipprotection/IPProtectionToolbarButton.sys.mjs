@@ -22,6 +22,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ERRORS: "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs",
 });
 
+import { getSitePrincipal } from "chrome://browser/content/ipprotection/ipprotection-utils.mjs";
+
 const OPENED_WITH_LOCATION_PREF =
   "browser.ipProtection.openedPanelWithLocation";
 
@@ -258,9 +260,10 @@ export class IPProtectionToolbarButton {
       return;
     }
 
-    let principal = this.gBrowser?.contentPrincipal;
+    let principal = getSitePrincipal(this.gBrowser);
     // Only surface an exclusion for pages the user can manage (normal content
-    // pages), matching the panel: about:/system pages are never shown excluded.
+    // pages), matching the panel: about:/chrome:/system pages are never shown
+    // excluded.
     let isExcluded =
       !!principal &&
       lazy.IPPExceptionsManager.canManage(principal) &&
@@ -376,7 +379,7 @@ export class IPProtectionToolbarButton {
       return;
     }
 
-    let siteOrigin = this.gBrowser?.contentPrincipal?.origin;
+    let siteOrigin = getSitePrincipal(this.gBrowser)?.origin;
     if (!siteOrigin || this.#visitedExcludedSites.has(siteOrigin)) {
       return;
     }

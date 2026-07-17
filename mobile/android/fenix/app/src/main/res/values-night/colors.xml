@@ -128,16 +128,5 @@
     <color name="mozac_ui_tabcounter_default_tint" tools:ignore="UnusedResources">@color/fx_mobile_on_surface</color>
     <color name="mozac_ui_tabcounter_default_text" tools:ignore="UnusedResources">@color/fx_mobile_on_surface</color>
 
-    <!-- Account Sync Avatar fill colors -->
-    <color name="mozac_ui_avatar_warning_bg_fill_critical">@color/fx_mobile_on_surface_variant</color>
-    <color name="mozac_ui_avatar_warning_fill_critical">@color/fx_mobile_error</color>
-
-    <!-- Extensions disabled icon fill colors -->
-    <color name="mozac_ui_extensions_warning_bg_fill_critical">@color/fx_mobile_on_surface_variant</color>
-    <color name="mozac_ui_extensions_warning_fill_critical">@color/fx_mobile_error</color>
-
-    <!-- Lock slash critical fill colors for mozac_ic_lock_slash_critical_24 -->
-    <color name="mozac_ui_lock_slash_bg_fill_critical">@color/fx_mobile_on_surface_variant</color>
-    <color name="mozac_ui_lock_slash_fill_critical">@color/fx_mobile_error</color>
     <color name="preference_scroll_highlight">@color/fx_mobile_surface_container_highest</color>
 </resources>

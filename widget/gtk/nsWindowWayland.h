@@ -5,6 +5,8 @@
 #ifndef _nsWindowWayland_h_
 #define _nsWindowWayland_h_
 
+#include "nsWindow.h"
+
 namespace mozilla::widget {
 
 class nsWindowWayland final : public nsWindow {

@@ -521,6 +521,17 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN homepage trending and recent searches is enabled WHEN clicking the new tab button THEN navigate to home screen without focus`() {
+        settings.enableHomepageTrendingRecentSearch = true
+        val middleware = buildMiddleware()
+        val toolbarStore = buildStore(middleware)
+        val newTabButton = toolbarStore.state.displayState.browserActionsEnd[0] as ActionButtonRes
+        toolbarStore.dispatch(newTabButton.onClick as BrowserToolbarEvent)
+
+        verify { navController.navigate(BrowserFragmentDirections.actionGlobalHome(focusOnAddressBar = false)) }
+    }
+
+    @Test
     fun `WHEN clicking the menu button THEN open the menu`() {
         every { navController.currentDestination?.id } returns R.id.browserFragment
 

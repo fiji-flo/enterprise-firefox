@@ -1029,7 +1029,7 @@ class InjectionContext extends Context {
    * @param {string} _namespace The full path to the namespace of the API, minus
    *     the name of the method or property. E.g. "storage.local".
    * @param {string} _name The name of the method, property or event.
-   * @returns {import("ExtensionCommon.sys.mjs").SchemaAPIInterface}
+   * @returns {import("./ExtensionCommon.sys.mjs").SchemaAPIInterface}
    *          The implementation of the API.
    */
   getImplementation(_namespace, _name) {

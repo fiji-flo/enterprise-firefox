@@ -148,6 +148,30 @@ async function withWindowDensityPane(callback) {
   }
 }
 
+// Click a Window Density radio option in the pane the way a user would. The
+// radio group re-renders asynchronously when browser.uidensity changes, so
+// wait for it to settle (DOM value caught up to the setting model) before
+// clicking to avoid operating on a stale, detached radio element.
+async function selectDensityOption(control, value) {
+  await control.updateComplete;
+  await TestUtils.waitForCondition(
+    () => control.controlEl?.value === control.setting.value,
+    `density radio group settled before selecting "${value}"`
+  );
+  let radio = [...control.controlEl.querySelectorAll("moz-radio")].find(
+    r => r.value == value
+  );
+  ok(radio?.inputEl, `moz-radio option for "${value}" exists`);
+  // Click the radio's input directly. Coordinate-based clicking is unreliable
+  // for the "standard" option, whose nested auto-touch checkbox shifts the
+  // moz-radio's center off the radio input.
+  radio.inputEl.click();
+  await TestUtils.waitForCondition(
+    () => control.setting.value == value,
+    `uiDensity setting reflects "${value}" after clicking`
+  );
+}
+
 add_task(async function test_window_density_group_visible_with_nova() {
   await withWindowDensityPane(async ({ win }) => {
     let group = win.document.querySelector(
@@ -198,20 +222,7 @@ add_task(async function test_window_density_radio_updates_pref() {
     let control = getSettingControl("uiDensity", win);
     await control.updateComplete;
 
-    // The setting writes the pref synchronously when the radio group changes,
-    // so we assert on the pref directly rather than waiting for a "change"
-    // event (which doesn't fire for the auto<->standard case, where the
-    // underlying int stays 0).
-    async function selectOption(value) {
-      await control.updateComplete;
-      let radioGroup = control.controlEl;
-      let radio = [...radioGroup.querySelectorAll("moz-radio")].find(
-        r => r.value == value
-      );
-      ok(radio, `moz-radio option for "${value}" exists`);
-      radioGroup.value = value;
-      radioGroup.dispatchEvent(new Event("change", { bubbles: true }));
-    }
+    let selectOption = value => selectDensityOption(control, value);
 
     await selectOption("compact");
     is(
@@ -245,6 +256,66 @@ add_task(async function test_window_density_radio_updates_pref() {
     );
   });
 });
+
+// When the density is overridden (e.g. forced to touch by tablet mode via
+// browser.touchmode.auto), picking an explicit density must also clear the
+// override so the choice takes effect (bug 2053782). "auto" should leave the
+// auto-touch behavior in place.
+add_task(
+  async function test_window_density_clears_override_on_explicit_choice() {
+    await withWindowDensityPane(async ({ win }) => {
+      let control = getSettingControl("uiDensity", win);
+      await control.updateComplete;
+
+      let gUIDensity = win.browsingContext.topChromeWindow.gUIDensity;
+      let originalGetCurrentDensity = gUIDensity.getCurrentDensity;
+      // Simulate tablet mode's touch override without needing a real tablet.
+      gUIDensity.getCurrentDensity = () => ({
+        mode: gUIDensity.MODE_TOUCH,
+        overridden: true,
+      });
+      registerCleanupFunction(() => {
+        gUIDensity.getCurrentDensity = originalGetCurrentDensity;
+        Services.prefs.clearUserPref("browser.touchmode.auto");
+      });
+
+      let selectOption = value => selectDensityOption(control, value);
+
+      Services.prefs.setBoolPref("browser.touchmode.auto", true);
+      await selectOption("compact");
+      is(
+        Services.prefs.getIntPref("browser.uidensity"),
+        1,
+        "Selecting compact while overridden sets browser.uidensity to 1"
+      );
+      is(
+        Services.prefs.getBoolPref("browser.touchmode.auto"),
+        false,
+        "Selecting compact while overridden clears the auto-touch override"
+      );
+
+      Services.prefs.setBoolPref("browser.touchmode.auto", true);
+      await selectOption("touch");
+      is(
+        Services.prefs.getBoolPref("browser.touchmode.auto"),
+        false,
+        "Selecting touch while overridden clears the auto-touch override"
+      );
+
+      Services.prefs.setBoolPref("browser.touchmode.auto", true);
+      await selectOption("auto");
+      is(
+        Services.prefs.getBoolPref("browser.touchmode.auto"),
+        true,
+        "Selecting automatic leaves the auto-touch behavior in place"
+      );
+      ok(
+        !Services.prefs.prefHasUserValue("browser.uidensity"),
+        "Selecting automatic clears the browser.uidensity user value"
+      );
+    });
+  }
+);
 
 add_task(async function test_browser_layout_group_in_tabs_browsing_pane() {
   await SpecialPowers.pushPrefEnv({

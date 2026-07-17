@@ -10,6 +10,14 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/urlbar/UrlbarUtils.sys.mjs",
 });
 
+// The content-side input/view methods a parent-side provider hook may invoke
+// over the actor (see the `input`/`view` stand-ins on `UrlbarChildControllerProxy`).
+// An allowlist, so an `InvokeContentAction` message can't reach arbitrary methods.
+const INVOKABLE_CONTENT_ACTIONS = {
+  input: new Set(["search", "setValue", "startQuery"]),
+  view: new Set(["acknowledgeFeedback", "close", "startTail150"]),
+};
+
 /**
  * @import {UrlbarParent} from "./UrlbarParent.sys.mjs"
  * @import {UrlbarParentController} from "moz-src:///browser/components/urlbar/UrlbarParentController.sys.mjs"
@@ -102,10 +110,25 @@ export class UrlbarChild extends JSWindowActorChild {
   }
 
   receiveMessage(message) {
-    if (message.name != "Notify") {
-      return;
+    switch (message.name) {
+      case "Notify":
+        this.#receiveNotify(message.data);
+        break;
+      case "InvokeContentAction":
+        this.#invokeContentAction(message.data);
+        break;
     }
-    let { instanceId, name, params } = message.data;
+  }
+
+  /**
+   * Dispatches a parent-side `notify()` to the paired child controller.
+   *
+   * @param {object} data The `Notify` message data.
+   * @param {number} data.instanceId The instance whose child controller to notify.
+   * @param {string} data.name The notification (listener method) name.
+   * @param {any[]} data.params The notification arguments.
+   */
+  #receiveNotify({ instanceId, name, params }) {
     let child = this.#childControllers.get(instanceId)?.deref();
     if (!child) {
       this.#childControllers.delete(instanceId);
@@ -129,5 +152,29 @@ export class UrlbarChild extends JSWindowActorChild {
       }
     }
     child.notify(name, ...deserialized);
+  }
+
+  /**
+   * Invokes an allowed input/view method a parent-side provider hook
+   * requested (e.g. `view.close()`, `input.startQuery()`), on the real
+   * content-side objects.
+   *
+   * @param {object} data The `InvokeContentAction` message data.
+   * @param {number} data.instanceId The instance whose input/view to act on.
+   * @param {"input"|"view"} data.target Which content object to invoke on.
+   * @param {string} data.method The allowed method to call.
+   * @param {any[]} data.args The method arguments.
+   */
+  #invokeContentAction({ instanceId, target, method, args }) {
+    let child = this.#childControllers.get(instanceId)?.deref();
+    if (!child) {
+      this.#childControllers.delete(instanceId);
+      return;
+    }
+    if (!INVOKABLE_CONTENT_ACTIONS[target]?.has(method)) {
+      console.error(`Urlbar: disallowed content action ${target}.${method}`);
+      return;
+    }
+    child[target]?.[method](...args);
   }
 }

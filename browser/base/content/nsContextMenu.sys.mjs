@@ -2482,7 +2482,8 @@ export class nsContextMenu {
       this.onTextInput &&
       this.onSearchField &&
       !this.isLoginForm() &&
-      (uri.schemeIs("http") || uri.schemeIs("https"))
+      (uri.schemeIs("http") || uri.schemeIs("https")) &&
+      Services.policies.isAllowed("installSearchEngine")
     );
   }
 

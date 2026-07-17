@@ -8,7 +8,7 @@ $split-screen-min-height: 280px;
 
 // Suppress fullscreen sizing when rendered inline in about:newtab.
 .onboardingContainer {
-  height: auto;
+  height: 100%;
 
   .screen[pos='center'] {
     background-color: unset;
@@ -19,7 +19,6 @@ $split-screen-min-height: 280px;
     &:where(:not([fullscreen])) {
       margin: auto;
       min-height: $split-screen-min-height; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
-      height: $split-screen-min-height; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
 
       &::before {
         height: 100%;

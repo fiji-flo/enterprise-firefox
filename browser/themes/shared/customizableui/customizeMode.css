@@ -323,6 +323,11 @@ toolbarpaletteitem {
   flex: none;
 }
 
+#wrapper-ai-window-toggle[place="palette"] > #ai-window-toggle > .toolbarbutton-icon {
+  padding: 0;
+  box-shadow: none;
+}
+
 #customization-uidensity-touch-spacer {
   border-top: 1px solid var(--panel-separator-color);
   margin: 6px calc(-1 * var(--panel-padding)) 9px;

@@ -220,19 +220,6 @@ export class UrlbarProviderTabToSearch extends UrlbarProvider {
     }
   }
 
-  onEngagement(queryContext, controller, details) {
-    let { result, element } = details;
-    if (result.type == lazy.UrlbarShared.RESULT_TYPE.DYNAMIC) {
-      // Confirm search mode, but only for the onboarding (dynamic) result. The
-      // input will handle confirming search mode for the non-onboarding
-      // `RESULT_TYPE.SEARCH` result since it sets `providesSearchMode`.
-      element.documentGlobal.gURLBar.maybeConfirmSearchModeFromResult({
-        result,
-        checkValue: false,
-      });
-    }
-  }
-
   /**
    * Defines whether the view should defer user selection events while waiting
    * for the first result from this provider.

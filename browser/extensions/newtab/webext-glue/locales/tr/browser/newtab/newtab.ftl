@@ -166,15 +166,50 @@ home-prefs-mission-message-learn-more-link-srd = Nasıl mı?
 # Context menu item linking to more information about the Privacy widget.
 newtab-privacy-menu-learn-more = Daha fazla bilgi al
 
+## Privacy widget — count readout
+
+# Label shown under the large tracker-count number, appearing like:
+# Line 1: 86
+# Line 2: Trackers blocked today
+# Translations can be adjusted to "Today's blocked trackers" or something
+# similar if this fixed order causes issues.
+# Variables:
+#   $count (number) - Number of trackers blocked today
+newtab-privacy-trackers-blocked-today =
+    { $count ->
+        [one] Bugün engellenen takip kodu
+       *[other] Bugün engellenen takip kodları
+    }
+# Second line of the readout, under the large number and "Trackers blocked
+# today". Counts the sites those trackers were blocked on. The English is
+# shortened from "Blocked across { $count } sites" — translate it that fuller way
+# if the short fragment doesn't work in your language.
+# Variables:
+#   $count (number) - Number of sites where trackers were blocked
+newtab-privacy-across-sites =
+    { $count ->
+        [one] { $count } sitede
+       *[other] { $count } sitede
+    }
+
+## Privacy widget — empty state
+
+# Shown when no trackers have been blocked yet today.
+newtab-privacy-empty = Siz internette gezinirken { -brand-short-name } takip kodlarını engeller. Engellenenleri burada göreceksiniz.
+
 ## Privacy widget — informational messages
 ##
 ## Rotating "info" secondary messages. Each message has a body plus a matched
 ## "-cta" button label sharing the same id stem (the CTA button isn't rendered
 ## yet; the labels are authored so the pairing is ready).
 
+newtab-privacy-message-info-1 = Siz internette gezinirken { -brand-short-name } takip kodlarını otomatik olarak engeller.
+newtab-privacy-message-info-1-cta = Korumaları göster
+newtab-privacy-message-info-2 = Takip kodu engelleme, şirketlerin sizi internette takip etmesini engeller.
 newtab-privacy-message-info-2-cta = Korumaları göster
 newtab-privacy-message-info-3-cta = Korumaları göster
 newtab-privacy-message-info-4-cta = Korumaları göster
+newtab-privacy-message-info-5 = Takip kodları engellendikçe farklı sitelerde sizi takip edebilen şirket sayısı azalır.
 newtab-privacy-message-info-5-cta = Korumaları göster
 newtab-privacy-message-info-6-cta = Daha fazla bilgi al
 newtab-privacy-message-info-7-cta = Korumaları göster
@@ -190,6 +225,7 @@ newtab-privacy-message-info-13-cta = Korumaları göster
 ## Rotating "promo" secondary messages suggesting another Firefox feature. Each
 ## has a body plus a matched "-cta" button label.
 
+newtab-privacy-message-promo-monitor-1 = Kişisel bilgilerinizin ele geçirilip geçirilmediğini öğrenin.
 newtab-privacy-message-promo-monitor-1-cta = Daha fazla bilgi al
 newtab-privacy-message-promo-monitor-2-cta = Daha fazla bilgi al
 newtab-privacy-message-promo-signin-1-cta = Giriş yap
@@ -204,6 +240,12 @@ newtab-privacy-message-promo-private-window-1-cta = Gizli pencere aç
 ## protection). Count-bearing ones interpolate { $count }.
 
 newtab-privacy-message-milestone-week-cta = Korumaları göster
+newtab-privacy-message-milestone-month-cta = Korumaları göster
+newtab-privacy-message-milestone-year-cta = Korumaları göster
+newtab-privacy-message-milestone-total-cta = Korumaları göster
+newtab-privacy-message-daily-cap-cta = Korumaları göster
+newtab-privacy-message-streak-cta = Korumaları göster
+newtab-privacy-message-first-protection-cta = Korumaları göster
 
 ## Strings for the Stocks widget
 
@@ -211,12 +253,34 @@ newtab-privacy-message-milestone-week-cta = Korumaları göster
 newtab-stocks-menu-search = Sembollerde ara
 # Context menu item linking to more information about the Stocks widget.
 newtab-stocks-menu-learn-more = Daha fazla bilgi al
+# Heading for the Stocks widget.
+newtab-stocks-widget-title = Borsa
 
 ## Strings for the Picture of the Day widget
 
 # Title shown at the top of the widget, with the source name appended.
 # "Wikimedia Commons" is a brand name and should not be translated.
 newtab-picture-header = Günün resmi · Wikimedia Commons
+# Shorter title shown at the top of the widget, without the source name.
+newtab-picture-header-main = Günün resmi
+# Attribution line shown under the title once a picture loads: an author
+# credit, a link to the picture's source page, and a link to its license.
+# "©" is the copyright symbol.
+# $author (string) - the name of the image's author.
+newtab-picture-attribution-author = © { $author }
+# Link to the picture's source page (its Wikimedia Commons file page).
+# "Wikimedia Commons" is a brand name and should not be translated.
+newtab-picture-attribution-source-link = Wikimedia Commons
+# Screen-reader label for the license link; the visible text is the license
+# name (for example "CC BY-SA 4.0") provided with the picture.
+# $license (string) - the name of the license.
+newtab-picture-attribution-license =
+    .aria-label = { $license } lisansını göster
+# Tooltip and screen-reader label for the icon-only button that opens the
+# widget's context menu. The button never renders visible text.
+newtab-picture-widget-menu-button =
+    .title = Günün resmi seçenekleri
+    .aria-label = Günün resmi seçenekleri
 # Button that sets the current picture as the New Tab background wallpaper. The
 # button collapses to an icon when not hovered/focused, so .title is its tooltip.
 newtab-picture-set-wallpaper =

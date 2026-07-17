@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <OpenGL/OpenGL.h>
 #include <OpenGL/CGLRenderers.h>
+#include <OpenGL/OpenGL.h>
 
 #include "GfxInfo.h"
-#include "nsUnicharUtils.h"
-#include "nsExceptionHandler.h"
+#include "js/PropertyAndElement.h"  // JS_SetElement, JS_SetProperty
+#include "mozilla/Preferences.h"
 #include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
-#include "mozilla/Preferences.h"
-#include "js/PropertyAndElement.h"  // JS_SetElement, JS_SetProperty
+#include "nsExceptionHandler.h"
+#include "nsUnicharUtils.h"
 
+#import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
 #import <IOKit/IOKitLib.h>
-#import <Cocoa/Cocoa.h>
 
 #include "jsapi.h"
 

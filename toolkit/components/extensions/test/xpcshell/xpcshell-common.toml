@@ -614,6 +614,8 @@ skip-if = [
 
 ["test_ext_runtime_ports_gc.js"]
 
+["test_ext_runtime_ports_membership.js"]
+
 ["test_ext_runtime_sendMessage.js"]
 
 ["test_ext_runtime_sendMessage_errors.js"]

@@ -341,8 +341,10 @@ export class UrlbarParentController {
     // result and bail before notifying if it took over (e.g. entered search
     // mode and restarted the query). On the message path the input lives across
     // the boundary, so it runs `onFirstResult` content-side when it receives the
-    // results instead.
-    if (queryContext.firstResultChanged && this.input) {
+    // results instead. On the message path `this.input` is a forwarding
+    // stand-in without `onFirstResult`, so the capability check also
+    // distinguishes the paths.
+    if (queryContext.firstResultChanged && this.input?.onFirstResult) {
       if (this.input.onFirstResult(queryContext.results[0])) {
         // The input canceled the query and started a new one.
         return;
@@ -444,8 +446,15 @@ export class UrlbarParentController {
    *
    * @param {UrlbarResult} result
    *   The result to remove.
+   * @param {object} [options]
+   *   Options object.
+   * @param {object} [options.acknowledgeDismissalL10n]
+   *   When the result is being dismissed, the l10n for the acknowledgment tip
+   *   that should replace its row. Passed through to the view rather than set on
+   *   the result so the result stays identical on both sides of the actor
+   *   boundary.
    */
-  removeResult(result) {
+  removeResult(result, { acknowledgeDismissalL10n } = {}) {
     if (!result || result.heuristic) {
       return;
     }
@@ -458,12 +467,23 @@ export class UrlbarParentController {
 
     let index = queryContext.results.indexOf(result);
     if (index < 0) {
+      // On the actor message path `result` is reconstructed from the wire, so
+      // it isn't identity-equal to the context's instance; its row index, which
+      // matches the results order, locates it instead. Bug 2052875 will match by
+      // a stable result id so this doesn't rely on that ordering.
+      index = result.rowIndex ?? -1;
+    }
+    if (index < 0 || index >= queryContext.results.length) {
       console.error("Failed to find the selected result in the results");
       return;
     }
 
     queryContext.results.splice(index, 1);
-    this.notify(lazy.UrlbarShared.NOTIFICATIONS.QUERY_RESULT_REMOVED, index);
+    this.notify(
+      lazy.UrlbarShared.NOTIFICATIONS.QUERY_RESULT_REMOVED,
+      index,
+      acknowledgeDismissalL10n
+    );
   }
 
   /**

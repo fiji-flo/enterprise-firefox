@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "vm/GeckoProfiler-inl.h"
-
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Sprintf.h"
 
@@ -22,6 +20,7 @@
 
 #include "gc/Marking-inl.h"
 #include "jit/JSJitFrameIter-inl.h"
+#include "vm/GeckoProfiler-inl.h"
 
 using namespace js;
 using mozilla::Utf8Unit;

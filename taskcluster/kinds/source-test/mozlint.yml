@@ -258,6 +258,8 @@ typescript:
             - 'browser/components/search/**/*.ts'
             - 'browser/components/urlbar/**/*.*js'
             - 'browser/components/urlbar/**/*.ts'
+            - 'toolkit/components/extensions/**/*.*js'
+            - 'toolkit/components/extensions/**/*.ts'
             - 'toolkit/components/places/**/*.*js'
             - 'toolkit/components/places/**/*.ts'
             - 'toolkit/components/search/**/*.*js'

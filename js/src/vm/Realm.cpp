@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "js/shadow/Realm.h"  // JS::shadow::Realm
-#include "vm/Realm-inl.h"
 
 #include "mozilla/MemoryReporting.h"
 
@@ -32,6 +31,7 @@
 #include "gc/Marking-inl.h"
 #include "gc/WeakMap-inl.h"
 #include "vm/JSObject-inl.h"
+#include "vm/Realm-inl.h"
 
 using namespace js;
 

@@ -31,12 +31,14 @@
 #include "nsIStreamLoader.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
+#include "nsProxyRelease.h"
 #include "nsContentUtils.h"
 #include "nsIWebProgressListener.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "nsTHashSet.h"
 #include "nsThreadUtils.h"
+#include "nsUrlClassifierDBService.h"
 
 namespace mozilla {
 
@@ -72,7 +74,7 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_LEVEL_1_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT,
-     NS_ERROR_TRACKING_URI, false,
+     NS_ERROR_TRACKING_URI, false, true,
      Some(nsIScopedPrefs::PRIVACY_TRACKINGPROTECTION_CONTENT_ENABLED),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
     // The annotation variant adds content-track-digest256, which mirrors
@@ -84,14 +86,14 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_LEVEL_2_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT,
-     NS_ERROR_TRACKING_URI, false, Nothing(),
+     NS_ERROR_TRACKING_URI, false, true, Nothing(),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
     {"social-trackers"_ns, Span<const nsLiteralCString>(kSocialTrackersListIds),
      nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_SOCIALTRACKING,
      nsIWebProgressListener::STATE_LOADED_SOCIALTRACKING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT,
-     NS_ERROR_SOCIALTRACKING_URI, false,
+     NS_ERROR_SOCIALTRACKING_URI, false, true,
      Some(nsIScopedPrefs::
               PRIVACY_TRACKINGPROTECTION_CONTENT_SOCIALTRACKING_ENABLED),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
@@ -100,7 +102,7 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_FINGERPRINTING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_FINGERPRINTING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_FINGERPRINTING_CONTENT,
-     NS_ERROR_FINGERPRINTING_URI, false,
+     NS_ERROR_FINGERPRINTING_URI, false, true,
      Some(nsIScopedPrefs::
               PRIVACY_TRACKINGPROTECTION_CONTENT_FINGERPRINTING_ENABLED),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
@@ -109,7 +111,7 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_EMAILTRACKING_LEVEL_1_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT,
-     NS_ERROR_EMAILTRACKING_URI, false,
+     NS_ERROR_EMAILTRACKING_URI, false, true,
      Some(nsIScopedPrefs::
               PRIVACY_TRACKINGPROTECTION_CONTENT_EMAILTRACKING_ENABLED),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
@@ -118,7 +120,7 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_CRYPTOMINING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT,
-     NS_ERROR_CRYPTOMINING_URI, false,
+     NS_ERROR_CRYPTOMINING_URI, false, true,
      Some(nsIScopedPrefs::
               PRIVACY_TRACKINGPROTECTION_CONTENT_CRYPTOMINING_ENABLED),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
@@ -127,18 +129,18 @@ constexpr ContentClassifierFeature kFeatures[] = {
      0,  // mLoadedState: blocking-only feature, not annotated
      0,  // mReplacedState
      0,  // mAllowedState
-     NS_ERROR_HARMFULADDON_URI, false, Nothing(),
+     NS_ERROR_HARMFULADDON_URI, false, true, Nothing(),
      &ContentClassifierFeatureUtils::IsNonRecommendedAddonRequest,
      &ContentClassifierFeatureUtils::HarmfulAddonCancelChannelCallback},
     {"minor-exceptions"_ns,
      Span<const nsLiteralCString>(kMinorExceptionListIds),
      nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_TRACKING, 0, 0, 0,
-     NS_OK, true, Nothing(),
+     NS_OK, true, true, Nothing(),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
     {"major-exceptions"_ns,
      Span<const nsLiteralCString>(kMajorExceptionListIds),
      nsIClassifiedChannel::ClassificationFlags::CLASSIFIED_TRACKING, 0, 0, 0,
-     NS_OK, true, Nothing(),
+     NS_OK, true, true, Nothing(),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
     // Test-only features. Their engines are built directly by the HTTP
     // test loader (driven by the *.test_list_urls prefs) and installed
@@ -149,7 +151,7 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_LEVEL_1_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT,
-     NS_ERROR_TRACKING_URI, false,
+     NS_ERROR_TRACKING_URI, false, false,
      Some(nsIScopedPrefs::PRIVACY_TRACKINGPROTECTION_CONTENT_TEST_ENABLED),
      &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
     {"test_annotate"_ns, Span<const nsLiteralCString>(kTestAnnotateListIds),
@@ -157,7 +159,8 @@ constexpr ContentClassifierFeature kFeatures[] = {
      nsIWebProgressListener::STATE_LOADED_LEVEL_1_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_REPLACED_TRACKING_CONTENT,
      nsIWebProgressListener::STATE_ALLOWED_TRACKING_CONTENT, NS_OK, false,
-     Nothing(), &ContentClassifierFeatureUtils::IsThirdPartyRequest, nullptr},
+     false, Nothing(), &ContentClassifierFeatureUtils::IsThirdPartyRequest,
+     nullptr},
 };
 
 // Prefs that name feature engines built into mEngines.
@@ -194,6 +197,49 @@ void NotifyListsLoadedForTesting() {
 }
 
 }  // namespace
+
+NS_IMPL_ISUPPORTS(ContentClassifierProbeResult, nsIContentClassifierProbeResult)
+
+NS_IMETHODIMP ContentClassifierProbeResult::GetFeatureName(
+    nsACString& aFeatureName) {
+  aFeatureName = mFeatureName;
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierProbeResult::GetMatched(bool* aMatched) {
+  *aMatched = mMatched;
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierProbeResult::GetException(bool* aException) {
+  *aException = mException;
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierProbeResult::GetImportant(bool* aImportant) {
+  *aImportant = mImportant;
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierProbeResult::GetEngineResult(
+    nsresult* aEngineResult) {
+  *aEngineResult = mEngineResult;
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS(ContentClassifierProbeReport, nsIContentClassifierProbeReport)
+
+NS_IMETHODIMP ContentClassifierProbeReport::GetStatus(
+    nsIContentClassifierService::ProbeStatus* aStatus) {
+  *aStatus = mStatus;
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierProbeReport::GetResults(
+    nsTArray<RefPtr<nsIContentClassifierProbeResult>>& aResults) {
+  aResults = mResults.Clone();
+  return NS_OK;
+}
 
 NS_IMPL_ISUPPORTS(ContentClassifierService, nsIAsyncShutdownBlocker,
                   nsIContentClassifierService)
@@ -839,6 +885,227 @@ NS_IMETHODIMP ContentClassifierService::GetFeatureNames(
   for (const auto& feature : GetFeatures()) {
     aNames.AppendElement(feature.mName);
   }
+  return NS_OK;
+}
+
+static already_AddRefed<nsIContentClassifierProbeResult> MakeProbeResult(
+    const ContentClassifierEngineResult& aEngineResult) {
+  RefPtr<ContentClassifierProbeResult> result =
+      new ContentClassifierProbeResult(
+          aEngineResult.Feature().mName, aEngineResult.Matched(),
+          aEngineResult.Exception(), aEngineResult.Important(),
+          aEngineResult.EngineResult());
+  return result.forget();
+}
+
+static void ProbeResultsToArray(
+    const ContentClassifierResult& aResult,
+    nsTArray<RefPtr<nsIContentClassifierProbeResult>>& aOut) {
+  aOut.Clear();
+  for (const auto& engineResult : aResult.EngineResults()) {
+    aOut.AppendElement(MakeProbeResult(engineResult));
+  }
+}
+
+static ContentClassifierRequest BuildRequestFromProbe(
+    nsIContentClassifierProbeRequest* aRequest) {
+  nsAutoCString url, sourceUrl, topWindowUrl, requestType;
+  bool privateBrowsing = false;
+  bool forceThirdPartyToTop = false;
+  bool isNonRecommendedAddon = false;
+  MOZ_ASSERT(aRequest);
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetUrl(url));
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetSourceUrl(sourceUrl));
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetTopWindowUrl(topWindowUrl));
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetRequestType(requestType));
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetPrivateBrowsing(&privateBrowsing));
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetForceThirdPartyToTop(&forceThirdPartyToTop));
+  MOZ_ALWAYS_SUCCEEDS(
+      aRequest->GetIsNonRecommendedAddon(&isNonRecommendedAddon));
+  return ContentClassifierRequest(url, sourceUrl, topWindowUrl, requestType,
+                                  privateBrowsing, forceThirdPartyToTop,
+                                  isNonRecommendedAddon);
+}
+
+static nsresult MakeProbePromise(JSContext* aCx, dom::Promise** aOutPromise) {
+  nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
+  if (NS_WARN_IF(!global)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  ErrorResult result;
+  RefPtr<dom::Promise> promise = dom::Promise::Create(global, result);
+  if (NS_WARN_IF(result.Failed())) {
+    return result.StealNSResult();
+  }
+  promise.forget(aOutPromise);
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierService::ProbeBlocking(
+    nsIContentClassifierProbeRequest* aRequest, JSContext* aCx,
+    dom::Promise** aPromise) {
+  NS_ENSURE_ARG_POINTER(aRequest);
+  NS_ENSURE_ARG_POINTER(aPromise);
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!IsInitialized()) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  ContentClassifierRequest request = BuildRequestFromProbe(aRequest);
+  if (!request.Valid()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  RefPtr<dom::Promise> promise;
+  nsresult rv = MakeProbePromise(aCx, getter_AddRefs(promise));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsMainThreadPtrHandle<dom::Promise> promiseHolder(
+      new nsMainThreadPtrHolder<dom::Promise>(
+          "ContentClassifierService::ProbeBlocking promise", promise));
+
+  nsIThread* backgroundThread = nsUrlClassifierDBService::BackgroundThread();
+  if (backgroundThread) {
+    rv = backgroundThread->Dispatch(
+        NS_NewRunnableFunction(
+            "ContentClassifierService::ProbeBlocking",
+            [self = RefPtr{this}, request = std::move(request),
+             promiseHolder]() {
+              ContentClassifierResult result = self->ClassifyForCancel(request);
+              nsTArray<RefPtr<nsIContentClassifierProbeResult>> results;
+              ProbeResultsToArray(result, results);
+              RefPtr<ContentClassifierProbeReport> report =
+                  new ContentClassifierProbeReport(result.GetStatus(),
+                                                   std::move(results));
+              NS_DispatchToMainThread(NS_NewRunnableFunction(
+                  "ContentClassifierService::ProbeBlocking resolve",
+                  [promiseHolder, report = std::move(report)]() {
+                    promiseHolder->MaybeResolve(report);
+                  }));
+            }),
+        NS_DISPATCH_NORMAL);
+  } else {
+    rv = NS_ERROR_NOT_INITIALIZED;
+  }
+  if (NS_FAILED(rv)) {
+    promise->MaybeReject(rv);
+  }
+  promise.forget(aPromise);
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierService::ProbeAnnotate(
+    nsIContentClassifierProbeRequest* aRequest, JSContext* aCx,
+    dom::Promise** aPromise) {
+  NS_ENSURE_ARG_POINTER(aRequest);
+  NS_ENSURE_ARG_POINTER(aPromise);
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!IsInitialized()) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  ContentClassifierRequest request = BuildRequestFromProbe(aRequest);
+  if (!request.Valid()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  RefPtr<dom::Promise> promise;
+  nsresult rv = MakeProbePromise(aCx, getter_AddRefs(promise));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsMainThreadPtrHandle<dom::Promise> promiseHolder(
+      new nsMainThreadPtrHolder<dom::Promise>(
+          "ContentClassifierService::ProbeAnnotate promise", promise));
+
+  nsIThread* backgroundThread = nsUrlClassifierDBService::BackgroundThread();
+  if (backgroundThread) {
+    rv = backgroundThread->Dispatch(
+        NS_NewRunnableFunction(
+            "ContentClassifierService::ProbeAnnotate",
+            [self = RefPtr{this}, request = std::move(request),
+             promiseHolder]() {
+              ContentClassifierResult result =
+                  self->ClassifyForAnnotate(request);
+              nsTArray<RefPtr<nsIContentClassifierProbeResult>> results;
+              ProbeResultsToArray(result, results);
+              RefPtr<ContentClassifierProbeReport> report =
+                  new ContentClassifierProbeReport(result.GetStatus(),
+                                                   std::move(results));
+              NS_DispatchToMainThread(NS_NewRunnableFunction(
+                  "ContentClassifierService::ProbeAnnotate resolve",
+                  [promiseHolder, report = std::move(report)]() {
+                    promiseHolder->MaybeResolve(report);
+                  }));
+            }),
+        NS_DISPATCH_NORMAL);
+  } else {
+    rv = NS_ERROR_NOT_INITIALIZED;
+  }
+  if (NS_FAILED(rv)) {
+    promise->MaybeReject(rv);
+  }
+  promise.forget(aPromise);
+  return NS_OK;
+}
+
+NS_IMETHODIMP ContentClassifierService::ProbeFeature(
+    const nsACString& aFeatureName, nsIContentClassifierProbeRequest* aRequest,
+    JSContext* aCx, dom::Promise** aPromise) {
+  NS_ENSURE_ARG_POINTER(aRequest);
+  NS_ENSURE_ARG_POINTER(aPromise);
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!IsInitialized()) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  if (GetFeatureByName(aFeatureName).isNothing()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  ContentClassifierRequest request = BuildRequestFromProbe(aRequest);
+  if (!request.Valid()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  RefPtr<ContentClassifierEngine> engine;
+  {
+    MutexAutoLock lock(mLock);
+    auto entry = mEngines.Lookup(nsCString(aFeatureName));
+    if (!entry) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+    engine = entry.Data();
+  }
+
+  RefPtr<dom::Promise> promise;
+  nsresult rv = MakeProbePromise(aCx, getter_AddRefs(promise));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsMainThreadPtrHandle<dom::Promise> promiseHolder(
+      new nsMainThreadPtrHolder<dom::Promise>(
+          "ContentClassifierService::ProbeFeature promise", promise));
+
+  nsIThread* backgroundThread = nsUrlClassifierDBService::BackgroundThread();
+  if (backgroundThread) {
+    rv = backgroundThread->Dispatch(
+        NS_NewRunnableFunction(
+            "ContentClassifierService::ProbeFeature",
+            [engine = std::move(engine), request = std::move(request),
+             promiseHolder]() {
+              ContentClassifierEngineResult er = engine->CheckNetworkRequest(
+                  request, /* aPreviouslyMatched */ false);
+              nsCOMPtr<nsIContentClassifierProbeResult> probe =
+                  MakeProbeResult(er);
+              NS_DispatchToMainThread(NS_NewRunnableFunction(
+                  "ContentClassifierService::ProbeFeature resolve",
+                  [promiseHolder, probe = std::move(probe)]() {
+                    promiseHolder->MaybeResolve(probe);
+                  }));
+            }),
+        NS_DISPATCH_NORMAL);
+  } else {
+    rv = NS_ERROR_NOT_INITIALIZED;
+  }
+  if (NS_FAILED(rv)) {
+    promise->MaybeReject(rv);
+  }
+  promise.forget(aPromise);
   return NS_OK;
 }
 

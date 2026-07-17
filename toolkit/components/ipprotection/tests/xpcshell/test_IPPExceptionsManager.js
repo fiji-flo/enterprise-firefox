@@ -368,13 +368,17 @@ add_task(
 );
 
 /**
- * canManage is true only for normal content pages: about:/resource: pages,
- * the system principal, and loopback/local hosts are not user-manageable.
+ * canManage is true only for normal content pages: about:/chrome:/resource:
+ * pages, the system principal, and loopback/local hosts are not user-manageable.
  */
 add_task(async function test_canManage() {
   IPPExceptionsManager.init();
 
   const aboutPrincipal = makePrincipal("about:preferences");
+  const chromePrincipal = makePrincipal(
+    "chrome://browser/content/browser.xhtml"
+  );
+  const resourcePrincipal = makePrincipal("resource://pdf.js");
   const systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
   const httpsPrincipal = makePrincipal("https://example.com");
   const loopbackPrincipal = makePrincipal("http://localhost");
@@ -384,6 +388,14 @@ add_task(async function test_canManage() {
   Assert.ok(
     !IPPExceptionsManager.canManage(aboutPrincipal),
     "about: page is not manageable"
+  );
+  Assert.ok(
+    !IPPExceptionsManager.canManage(chromePrincipal),
+    "chrome: page is not manageable"
+  );
+  Assert.ok(
+    !IPPExceptionsManager.canManage(resourcePrincipal),
+    "resource: page is not manageable"
   );
   Assert.ok(
     !IPPExceptionsManager.canManage(systemPrincipal),

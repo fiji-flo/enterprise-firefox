@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "gc/Marking-inl.h"
-
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/MathAlgorithms.h"
@@ -28,6 +26,7 @@
 
 #include "gc/BufferAllocator-inl.h"
 #include "gc/GC-inl.h"
+#include "gc/Marking-inl.h"
 #include "gc/PrivateIterators-inl.h"
 #include "gc/TraceMethods-inl.h"
 #include "gc/WeakMap-inl.h"
@@ -679,9 +678,12 @@ void js::TraceGCCellPtrRoot(JSTracer* trc, JS::GCCellPtr* thingp,
 void js::TraceManuallyBarrieredGCCellPtr(JSTracer* trc, JS::GCCellPtr* thingp,
                                          const char* name) {
 #ifdef JS_GC_CONCURRENT_MARKING
-  Cell* thing = thingp->atomicGet().asCell();
+  JS::GCCellPtr ptr = thingp->atomicGet();
+  Cell* thing = ptr.asCell();
+  JS::TraceKind kind = ptr.kind();
 #else
   Cell* thing = thingp->asCell();
+  JS::TraceKind kind = thingp->kind();
 #endif
 
   if (!thing) {
@@ -698,8 +700,8 @@ void js::TraceManuallyBarrieredGCCellPtr(JSTracer* trc, JS::GCCellPtr* thingp,
     // If we are clearing edges, also erase the type. This happens when using
     // ClearEdgesTracer.
     *thingp = JS::GCCellPtr();
-  } else if (traced != thingp->asCell()) {
-    *thingp = JS::GCCellPtr(traced, thingp->kind());
+  } else if (traced != thing) {
+    *thingp = JS::GCCellPtr(traced, kind);
   }
 }
 
@@ -1269,7 +1271,8 @@ template <typename S, typename T>
 void MarkingTracerT<opts>::markAndTraverseEdge(S* source, T* target) {
   if constexpr (std::is_same_v<T, JS::Symbol>) {
     if (markColor() == MarkColor::Black) {
-      MaybeUnmarkGraySymbol(this->runtime(), source->zone(), target);
+      Zone* zone = source->asTenured().zone();
+      MaybeUnmarkGraySymbol(this->runtime(), zone, target);
     }
   }
 

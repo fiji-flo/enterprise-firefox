@@ -4,8 +4,8 @@
 
 #include "nsClipboard.h"
 
-#include <shlobj.h>
 #include <intshcut.h>
+#include <shlobj.h>
 
 // shellapi.h is needed to build with WIN32_LEAN_AND_MEAN
 #include <shellapi.h>
@@ -15,6 +15,11 @@
 #ifdef ACCESSIBILITY
 #  include "mozilla/a11y/Compatibility.h"
 #endif
+#include "SpecialSystemDirectory.h"
+#include "WinOLELock.h"
+#include "WinUtils.h"
+#include "imgIContainer.h"
+#include "imgITools.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Logging.h"
 #include "mozilla/ScopeExit.h"
@@ -22,33 +27,27 @@
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/widget/WebCustomFormatUtils.h"
-#include "SpecialSystemDirectory.h"
-
 #include "nsArrayUtils.h"
 #include "nsCOMPtr.h"
+#include "nsCRT.h"
 #include "nsComponentManagerUtils.h"
 #include "nsDataObj.h"
-#include "nsISupportsPrimitives.h"
-#include "nsString.h"
-#include "nsNativeCharsetUtils.h"
-#include "nsIInputStream.h"
-#include "nsITransferable.h"
-#include "nsXPCOM.h"
-#include "nsReadableUtils.h"
-#include "nsUnicharUtils.h"
-#include "nsPrimitiveHelpers.h"
-#include "nsIWidget.h"
-#include "nsWidgetsCID.h"
-#include "nsCRT.h"
-#include "nsNetUtil.h"
-#include "nsIFileProtocolHandler.h"
 #include "nsEscape.h"
+#include "nsIFileProtocolHandler.h"
+#include "nsIInputStream.h"
 #include "nsIObserverService.h"
+#include "nsISupportsPrimitives.h"
+#include "nsITransferable.h"
+#include "nsIWidget.h"
 #include "nsMimeTypes.h"
-#include "imgITools.h"
-#include "imgIContainer.h"
-#include "WinOLELock.h"
-#include "WinUtils.h"
+#include "nsNativeCharsetUtils.h"
+#include "nsNetUtil.h"
+#include "nsPrimitiveHelpers.h"
+#include "nsReadableUtils.h"
+#include "nsString.h"
+#include "nsUnicharUtils.h"
+#include "nsWidgetsCID.h"
+#include "nsXPCOM.h"
 
 /* static */
 UINT nsClipboard::GetClipboardFileDescriptorFormatA() {

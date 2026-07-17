@@ -648,14 +648,11 @@ RegExpShared::RegExpShared(JSAtom* source, RegExpFlags flags)
 
 void RegExpShared::traceChildren(JSTracer* trc) {
   TraceCellHeaderEdge(trc, this, "RegExpShared source");
-  if (kind() == RegExpShared::Kind::Atom) {
-    TraceEdge(trc, &patternAtom_, "RegExpShared pattern atom");
-  } else {
-    for (auto& comp : compilationArray) {
-      TraceEdge(trc, &comp.jitCode, "RegExpShared code");
-    }
-    TraceEdge(trc, &groupsTemplate_, "RegExpShared groups template");
+  TraceEdge(trc, &patternAtom_, "RegExpShared pattern atom");
+  for (auto& comp : compilationArray) {
+    TraceEdge(trc, &comp.jitCode, "RegExpShared code");
   }
+  TraceEdge(trc, &groupsTemplate_, "RegExpShared groups template");
 }
 
 void RegExpShared::discardJitCode() {

@@ -900,8 +900,14 @@ div#feature-callout.hidden {
   width: 100%;
   color: var(--fc-button-background);
 }
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 16px;
+}
 #feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-bar {
-  width: 100%;
+  flex: 1;
   height: 6px;
   padding-block: 0;
   background-color: color-mix(in srgb, var(--fc-color) 25%, transparent);
@@ -910,7 +916,6 @@ div#feature-callout.hidden {
   border-radius: 8px;
   display: flex;
   justify-content: flex-start;
-  margin-block-end: 16px;
 }
 #feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-bar .indicator {
   width: var(--action-checklist-progress-bar-progress);
@@ -920,6 +925,13 @@ div#feature-callout.hidden {
   border-radius: 8px;
   opacity: 1;
   transition: var(--progress-bar-transition);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-text {
+  min-width: 30px;
+  text-align: end;
+  font-size: 0.875em;
+  font-weight: 600;
+  color: var(--fc-color);
 }
 #feature-callout .screen[pos=callout] .action-checklist .action-checklist-items {
   display: flex;
@@ -982,6 +994,23 @@ div#feature-callout.hidden {
 #feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .check-filled {
   background-image: url("chrome://global/skin/icons/check-filled.svg");
   fill: var(--fc-accent-color);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-complete-button {
+  background-color: var(--fc-accent-color);
+  color: var(--fc-primary-button-color);
+  border: none;
+  border-radius: 4px;
+  padding-block: 8px;
+  padding-inline: 16px;
+  margin-block-start: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-complete-button:hover {
+  opacity: 0.9;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-complete-button:active {
+  opacity: 0.8;
 }
 panel#feature-callout:is([side=top], [side=bottom]):not([hide-arrow=permanent]) {
   margin-inline: var(--panel-margin-offset);
@@ -4434,7 +4463,7 @@ html {
 }
 
 .onboardingContainer {
-  height: auto;
+  height: 100%;
 }
 .onboardingContainer .screen[pos=center] {
   background-color: unset;
@@ -4443,7 +4472,6 @@ html {
 .onboardingContainer .screen[pos=split]:where(:not([fullscreen])) {
   margin: auto;
   min-height: 280px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
-  height: 280px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
 }
 .onboardingContainer .screen[pos=split]:where(:not([fullscreen]))::before {
   height: 100%;

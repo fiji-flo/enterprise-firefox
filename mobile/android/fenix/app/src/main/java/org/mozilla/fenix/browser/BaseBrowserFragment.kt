@@ -489,6 +489,7 @@ abstract class BaseBrowserFragment :
             observer = CloseLastSyncedTabObserver(
                 scope = viewLifecycleOwner.lifecycleScope,
                 navController = findNavController(),
+                settings = requireComponents.settings,
             ),
             view = view,
         )
@@ -1468,7 +1469,7 @@ abstract class BaseBrowserFragment :
                     } else {
                         findNavController().navigate(
                             NavGraphDirections.actionGlobalHome(
-                                focusOnAddressBar = true,
+                                focusOnAddressBar = !settings.enableHomepageTrendingRecentSearch,
                             ),
                         )
                     }

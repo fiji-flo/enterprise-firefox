@@ -22,7 +22,7 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.sys.mjs",
   CaptchaDetectionPingUtils:
-    "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
+    "moz-src:///toolkit/components/captchadetection/CaptchaDetectionPingUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(this, "WindowEventDispatcher", () =>

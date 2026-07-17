@@ -5,27 +5,28 @@
 #ifndef js_loader_ModuleLoaderBase_h
 #define js_loader_ModuleLoaderBase_h
 
-#include "LoadedScript.h"
-#include "ScriptLoadRequestList.h"
-
-#include "ImportMap.h"
-#include "js/ColumnNumber.h"  // JS::ColumnNumberOneOrigin
-#include "js/TypeDecls.h"     // JS::MutableHandle, JS::Handle, JS::Root
-#include "js/Modules.h"
-#include "nsRefPtrHashtable.h"
-#include "nsCOMArray.h"
-#include "nsCOMPtr.h"
-#include "nsILoadInfo.h"    // nsSecurityFlags
-#include "nsThreadUtils.h"  // GetMainThreadSerialEventTarget
-#include "nsURIHashKey.h"
 #include "mozilla/Attributes.h"  // MOZ_RAII
 #include "mozilla/CORSMode.h"
-#include "mozilla/MaybeOneOf.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/dom/ReferrerPolicyBinding.h"
+#include "mozilla/MaybeOneOf.h"
 #include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/UniquePtr.h"
+
+#include "ImportMap.h"
+#include "LoadedScript.h"
+#include "nsCOMArray.h"
+#include "nsCOMPtr.h"
+#include "nsILoadInfo.h"  // nsSecurityFlags
+#include "nsRefPtrHashtable.h"
+#include "nsThreadUtils.h"  // GetMainThreadSerialEventTarget
+#include "nsURIHashKey.h"
 #include "ResolvedModuleSet.h"
 #include "ResolveResult.h"
+#include "ScriptLoadRequestList.h"
+
+#include "js/ColumnNumber.h"  // JS::ColumnNumberOneOrigin
+#include "js/Modules.h"
+#include "js/TypeDecls.h"  // JS::MutableHandle, JS::Handle, JS::Root
 
 class nsIConsoleReportCollector;
 class nsIURI;

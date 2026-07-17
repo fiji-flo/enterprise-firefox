@@ -165,6 +165,8 @@ add_task(async function test_reload_tabs_message_bar() {
   ok(reloadButton, "Reload button exists in the message bar");
 
   info("Click the message bar body (not the button) should not reload tabs");
+  // Disable a11y checks on the message bar click: we're deliberately verifying
+  // that this isn't interactive by clicking it and verifying no effect.
   AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
   synthesizeClick(reloadTabsHint);
   // Give any potential reload/hide logic a chance to run before checking.

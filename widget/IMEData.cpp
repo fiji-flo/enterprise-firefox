@@ -5,14 +5,12 @@
 #include "IMEData.h"
 
 #include "ContentData.h"
-#include "gfxFontUtils.h"
 #include "TextEvents.h"
-
+#include "gfxFontUtils.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ToString.h"
-#include "mozilla/WritingModes.h"
 #include "mozilla/Utf16.h"
-
+#include "mozilla/WritingModes.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 

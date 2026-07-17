@@ -559,13 +559,23 @@ export const NimbusTestUtils = {
       });
     },
 
+    get PREFFLIPS_RESTORED() {
+      const { Phase } = lazy.NimbusMigrations;
+
+      return NimbusTestUtils.makeMigrationState({
+        [Phase.INIT_STARTED]: "separate-rollout-opt-out",
+        [Phase.AFTER_STORE_INITIALIZED]: "bug-2054546-mitigation",
+        [Phase.AFTER_REMOTE_SETTINGS_UPDATE]: "firefox-labs-enrollments",
+      });
+    },
+
     /**
      * A migration state that represents all migrations applied.
      *
      * @type {Record<Phase, number>}
      */
     get LATEST() {
-      return NimbusTestUtils.migrationState.GRADUATED_FIREFOX_LABS_JPEG_XL;
+      return NimbusTestUtils.migrationState.PREFFLIPS_RESTORED;
     },
   },
 
@@ -1419,6 +1429,36 @@ export const NimbusTestUtils = {
     const db = (store ?? ExperimentAPI.manager.store)._db;
 
     await db?._flushNow();
+  },
+
+  /**
+   * Temporarily disable signature verification for Remote Settings clients used
+   * by Nimbus.
+   *
+   * NB: This is only required for browser tests.
+   *
+   * @returns {() => void} A callback that will restore signature verification
+   * to its previous state.
+   */
+  disableSignatureVerification() {
+    const { remoteSettingsClients } = ExperimentAPI._rsLoader;
+
+    const originalValues = Object.fromEntries(
+      Object.entries(remoteSettingsClients).map(([key, collection]) => [
+        key,
+        collection.verifySignature,
+      ])
+    );
+
+    for (const client of Object.values(remoteSettingsClients)) {
+      client.verifySignature = false;
+    }
+
+    return () => {
+      for (const [key, client] of Object.entries(remoteSettingsClients)) {
+        client.verifySignature = originalValues[key];
+      }
+    };
   },
 };
 

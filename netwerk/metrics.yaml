@@ -361,7 +361,6 @@ networking:
       - necko@mozilla.com
       - acreskey@mozilla.com
     expires: never
-    telemetry_mirror: DNS_LOOKUP_TIME
 
   trr_dns_start: &trr_dns_start
     type: labeled_timing_distribution
@@ -657,7 +656,6 @@ networking:
       - necko@mozilla.com
       - acreskey@mozilla.com
     expires: never
-    telemetry_mirror: NETWORKING_DOWNLOAD_THROUGHPUT_HTTP_2
 
   http_2_download_throughput_10_50: &http_2_download_throughput_10_50
     type: custom_distribution
@@ -707,7 +705,6 @@ networking:
       - necko@mozilla.com
       - acreskey@mozilla.com
     expires: never
-    telemetry_mirror: NETWORKING_DOWNLOAD_THROUGHPUT_HTTP_3
 
   http_3_download_throughput_10_50: &http_3_download_throughput_10_50
     type: custom_distribution
@@ -2914,7 +2911,6 @@ network:
     notification_emails:
       - necko@mozilla.com
     expires: never
-    telemetry_mirror: h#NETWORK_ID_ONLINE
 
   backgroundfilesaver_thread_count:
     type: custom_distribution
@@ -2995,7 +2991,6 @@ network:
       - necko@mozilla.com
       - kershaw@mozilla.com
     expires: never
-    telemetry_mirror: h#REL_PRELOAD_MISS_RATIO
 
   urlclassifier_harmful_addon_block:
     type: event

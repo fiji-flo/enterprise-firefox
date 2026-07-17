@@ -7,24 +7,24 @@
 #if defined(ACCESSIBILITY) && defined(XP_WIN)
 #  include "mozilla/a11y/Compatibility.h"
 #endif
+#include "PermissionMessageUtils.h"
 #include "mozilla/ClipboardContentAnalysisChild.h"
 #include "mozilla/ClipboardReadRequestChild.h"
 #include "mozilla/ClipboardWriteRequestChild.h"
 #include "mozilla/Components.h"
-#include "mozilla/dom/ContentChild.h"
-#include "mozilla/net/CookieJarSettings.h"
-#include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/WindowGlobalChild.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "nsArrayUtils.h"
 #include "nsBaseClipboard.h"
-#include "nsIContentAnalysis.h"
-#include "nsITransferable.h"
-#include "nsISupportsPrimitives.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
-#include "nsXULAppAPI.h"
 #include "nsContentUtils.h"
-#include "PermissionMessageUtils.h"
+#include "nsIContentAnalysis.h"
+#include "nsISupportsPrimitives.h"
+#include "nsITransferable.h"
+#include "nsXULAppAPI.h"
 
 using mozilla::ipc::ResponseRejectReason;
 using namespace mozilla;

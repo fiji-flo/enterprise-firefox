@@ -102,7 +102,7 @@ static constexpr uint32_t JitStackAlignment = 16;
 static constexpr uint32_t JitStackValueAlignment =
     JitStackAlignment / sizeof(Value);
 static const uint32_t WasmStackAlignment = 16;
-static const uint32_t WasmTrapInstructionLength = 2 * kInstrSize;
+static const uint32_t WasmTrapInstructionLength = kInstrSize;
 // See comments in wasm::GenerateFunctionPrologue.  The difference between these
 // is the size of the largest callable prologue on the platform.
 static constexpr uint32_t WasmCheckedCallEntryOffset = 0u;
@@ -163,11 +163,6 @@ class Assembler : public AssemblerShared,
   CompactBufferWriter dataRelocations_;
   Buffer m_buffer;
   bool isFinished = false;
-
-  // Return the Instruction at a given byte offset.
-  Instruction* getInstructionAt(BufferOffset offset) {
-    return m_buffer.getInst(offset);
-  }
 
   struct RelativePatch {
     // the offset within the code buffer where the value is loaded that
@@ -262,6 +257,11 @@ class Assembler : public AssemblerShared,
                              BufferOffset dest);
 
   void processCodeLabels(uint8_t* rawCode);
+
+  // Return the Instruction at a given byte offset.
+  Instruction* getInstructionAt(BufferOffset offset) {
+    return m_buffer.getInst(offset);
+  }
 
   // Get the next usable buffer offset. Note that a constant pool may be placed
   // here before the next instruction is emitted.

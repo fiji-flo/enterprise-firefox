@@ -8,10 +8,10 @@
 #import <Cocoa/Cocoa.h>
 
 #include "InputData.h"
-#include "nsRect.h"
-#include "imgIContainer.h"
-#include "nsTArray.h"
 #include "Units.h"
+#include "imgIContainer.h"
+#include "nsRect.h"
+#include "nsTArray.h"
 
 // This must be the last include:
 #include "nsObjCExceptions.h"

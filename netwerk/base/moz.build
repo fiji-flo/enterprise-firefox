@@ -98,6 +98,7 @@ XPIDL_SOURCES += [
     "nsISocketTransport.idl",
     "nsISocketTransportService.idl",
     "nsISpeculativeConnect.idl",
+    "nsISSLTokensCache.idl",
     "nsIStandardURL.idl",
     "nsIStreamListener.idl",
     "nsIStreamListenerTee.idl",
@@ -123,6 +124,9 @@ XPIDL_SOURCES += [
     "nsIURLParser.idl",
     "nsPISocketTransportService.idl",
 ]
+
+if CONFIG["ENABLE_TESTS"]:
+    XPIDL_SOURCES += ["nsISSLTokensCacheTest.idl"]
 
 XPIDL_MODULE = "necko"
 

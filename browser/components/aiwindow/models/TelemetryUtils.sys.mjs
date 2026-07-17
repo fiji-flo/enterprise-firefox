@@ -9,13 +9,14 @@ import {
   renderPrompt,
   checkMajorVersion,
 } from "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs";
-import { openAIEngine } from "moz-src:///browser/components/aiwindow/models/openAIEngine.sys.mjs";
 
 const lazy = XPCOMUtils.declareLazy({
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   ChatStore:
     "moz-src:///browser/components/aiwindow/ui/modules/ChatStore.sys.mjs",
+  openAIEngine:
+    "moz-src:///browser/components/aiwindow/models/openAIEngine.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", function () {
@@ -122,10 +123,10 @@ export class TelemetryPromptEngine {
       );
     }
 
-    engine.#engineInstance = await openAIEngine._createEngine({
+    engine.#engineInstance = await lazy.openAIEngine._createEngine({
       apiKey: "",
       backend: "openai",
-      baseURL: openAIEngine.endpoint,
+      baseURL: lazy.openAIEngine.endpoint,
       featureId: "llm-telemetry",
       flowId: null,
       modelId: promptRecord.model ?? null,
@@ -168,7 +169,7 @@ export class TelemetryPromptEngine {
    * @returns {Promise<object>} Raw LLM response
    */
   async run(conversation) {
-    const fxAccountToken = await openAIEngine.getFxAccountToken();
+    const fxAccountToken = await lazy.openAIEngine.getFxAccountToken();
     // The LLM-as-judge model needs the raw URLs, not the chat URL tokens.
     const messages = conversation.getMessagesInChatCompletionsFormat({
       applyUrlTokens: false,
@@ -380,7 +381,7 @@ export class TelemetryEngine {
       for (let attempt = 0; attempt < 3; attempt++) {
         if (attempt > 0) {
           await new Promise(resolve =>
-            lazy.setTimeout(resolve, 2000 * attempt)
+            lazy.setTimeout(resolve, 1000 * 2 ** attempt + Math.random() * 500)
           );
         }
         try {
@@ -393,14 +394,13 @@ export class TelemetryEngine {
           });
           lastError = null;
           break;
-        } catch (e) {
-          if (e.message?.includes("429")) {
-            // trying to catch 429 / rate-limiting errors; backoff and retry
-            lastError = e;
+        } catch (error) {
+          if (lazy.openAIEngine.is429Error(error)) {
+            lastError = error;
           } else {
             lazy.console.error(
               `Telemetry: evaluation failed for ${record.telemetry_name}:`,
-              e
+              error
             ); // other errors fail
             break;
           }

@@ -5,16 +5,18 @@
 #ifndef js_loader_ImportMap_h
 #define js_loader_ImportMap_h
 
-#include <functional>
-#include <map>
-
-#include "js/SourceText.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
+
+#include <functional>
+#include <map>
+
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 #include "ResolveResult.h"
+
+#include "js/SourceText.h"
 
 struct JSContext;
 class nsIScriptElement;

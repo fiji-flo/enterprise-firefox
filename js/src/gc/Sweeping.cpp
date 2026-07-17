@@ -2056,6 +2056,9 @@ void js::gc::BackgroundMarkTask::initialize(bool isConcurrent,
   this->isConcurrent = isConcurrent;
   this->budget = budget;
   this->interruptRequest = false;
+
+  // This must happen on the main thread.
+  gc->bufferRuntime().incOffThreadCount();
 }
 
 void js::gc::BackgroundMarkTask::run(AutoLockHelperThreadState& lock) {
@@ -2082,6 +2085,7 @@ void js::gc::BackgroundMarkTask::run(AutoLockHelperThreadState& lock) {
   }
 
   gc->maybeRequestGCAfterBackgroundTask(lock);
+  gc->bufferRuntime().decOffThreadCount();
 }
 
 void js::gc::BackgroundMarkTask::pause() {
@@ -2144,6 +2148,7 @@ void GCRuntime::resumeBackgroundMarking() {
     return;
   }
 
+  bufferRuntime().incOffThreadCount();
   markTask.start();
 }
 

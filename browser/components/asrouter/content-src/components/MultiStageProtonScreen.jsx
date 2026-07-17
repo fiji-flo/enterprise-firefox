@@ -923,7 +923,6 @@ export class ProtonScreen extends React.PureComponent {
           MultiStageUtils.getValidStyle(content.screen_style, [
             "overflow",
             "display",
-            "height",
           ])
         }
         role={ariaRole ?? "alertdialog"}
@@ -953,6 +952,7 @@ export class ProtonScreen extends React.PureComponent {
             MultiStageUtils.getValidStyle(content.screen_style, [
               "width",
               "padding",
+              "height",
             ])
           }
         >

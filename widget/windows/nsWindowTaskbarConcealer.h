@@ -5,8 +5,8 @@
 #ifndef WIDGET_WINDOWS_NSWINDOWTASKBARCONCEALER_H_
 #define WIDGET_WINDOWS_NSWINDOWTASKBARCONCEALER_H_
 
-#include "nsWindow.h"
 #include "mozilla/Maybe.h"
+#include "nsWindow.h"
 
 /**
  * nsWindow::TaskbarConcealer

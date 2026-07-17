@@ -10,20 +10,18 @@
 #include <cstdint>
 #include <cstring>
 
+#include "gtest/gtest.h"
 #include "nsArray.h"
 #include "nsArrayUtils.h"
+#include "nsClipboard.h"
 #include "nsComponentManagerUtils.h"
+#include "nsDataObjCollection.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsIFile.h"
-#include "nsNetUtil.h"
 #include "nsISupportsPrimitives.h"
 #include "nsITransferable.h"
-
-#include "nsClipboard.h"
-#include "nsDataObjCollection.h"
-
-#include "gtest/gtest.h"
+#include "nsNetUtil.h"
 
 // shims for conversion from cppunittest to gtest
 template <size_t N>

@@ -7,10 +7,16 @@
   --tab-group-suggestions-loading-animation-color-1: color-mix(in srgb, currentColor 5%, transparent);
   --tab-group-suggestions-loading-animation-color-2: color-mix(in srgb, currentColor 35%, transparent);
   --tab-min-height: 32px;
+  &[uidensity="compact"] {
+    --tab-min-height: 28px;
+    --tab-inline-padding: 6px;
+    --tab-group-line-toolbar-border-distance: 0;
+  }
   --tab-group-label-size: var(--tab-min-height);
   &[uidensity="touch"] {
     --tab-group-label-size: var(--tab-min-height);
   }
+
   @media not -moz-pref("browser.nova.enabled") {
     --tab-min-height: 36px;
     --tab-group-label-size: 24px;
@@ -21,6 +27,11 @@
     &[uidensity="touch"] {
       --tab-min-height: 41px;
       --tab-group-label-size: 27px;
+    }
+  }
+  @media -moz-pref("browser.nova.enabled") {
+    &[uidensity="compact"] {
+      --tab-block-margin: 4px;
     }
   }
   --tab-group-counter-size: 24px;
@@ -103,13 +114,8 @@
     --tab-margin-block: var(--tab-vertical-block-margin);
     --tab-inline-padding: var(--tab-vertical-inline-padding);
 
-    /* In compact mode, shrink the inline margin around vertical tabs and
-     * the new-tab button so they fit inside the (also shrunk) collapsed
-     * sidebar launcher. See browser.compactmode.auto.threshold and the
-     * matching launcher padding override in
-     * browser/themes/shared/sidebar.css. */
     &[uidensity="compact"] {
-      --tab-inner-inline-margin: var(--space-xsmall);
+      --tab-inner-inline-margin: 7px;
     }
   }
 }
@@ -1183,7 +1189,7 @@ tab-group > tab-split-view-wrapper {
 
     #tabbrowser-tabs:not([expanded]) & {
       .tab-group-line {
-        inset-inline-start: calc(((var(--space-medium)) * -1) + 2px) !important;
+        inset-inline-start: calc((var(--tab-inner-inline-margin) * -1) + 2px) !important;
       }
     }
 
@@ -1191,7 +1197,7 @@ tab-group > tab-split-view-wrapper {
       overflow: visible;
 
       .tab-group-line {
-        inset-inline-start: calc(var(--space-medium) * -1) !important;
+        inset-inline-start: calc(var(--tab-inner-inline-margin) * -1) !important;
         inset-block-start: calc(var(--space-xsmall) * -2);
         inset-block-end: calc(var(--space-xsmall) * -1);
       }
@@ -1221,6 +1227,11 @@ tab-group > tab-split-view-wrapper {
 
   .tab-group-line {
     inset-block-end: calc(var(--tab-group-line-toolbar-border-distance) - var(--tab-margin-block) - var(--split-view-padding-block));
+
+    :root[uidensity="compact"] & {
+      inset-block-end: calc(-1 * var(--tab-block-margin) - var(--split-view-padding-block));
+    }
+
     @media not -moz-pref("browser.nova.enabled") {
       inset-inline-start: calc(var(--space-small) * -2);
     }
@@ -1332,6 +1343,11 @@ tab-group > tab-split-view-wrapper {
     .tab-background {
       margin-inline: var(--space-xxsmall);
       margin-block: 0;
+
+      :root[uidensity="compact"] & {
+        --tab-collapsed-background-width: 24px;
+        --tab-min-height: 24px;
+      }
     }
 
     .tab-content {
@@ -1458,6 +1474,8 @@ tab-group > tab-split-view-wrapper {
   border-radius: var(--tab-border-radius);
   gap: var(--space-xsmall);
   grid-template-columns: 1fr;
+
+  margin-inline: calc(var(--tab-inline-padding) - var(--space-xsmall) - var(--space-medium));
 }
 
 #tabbrowser-tabs[orient="vertical"][expanded] tab-split-view-wrapper {
@@ -1521,21 +1539,21 @@ tab-group > tab-split-view-wrapper {
 
 /* Overrides for split-view-wrapped tabs in a collapsed vertical tabstrip */
 #tabbrowser-tabs[orient="vertical"]:not([expanded]) tab-split-view-wrapper {
+  margin-inline: calc(var(--tab-inner-inline-margin) - var(--space-xsmall));
+
   /* Prevent the close button from being cutoff by the bookmarks toolbar / nav bar
-  if split view is first in list if non-pinned vertical tabs */
+    if split view is first in list if non-pinned vertical tabs */
   &:first-child {
     margin-block-start: var(--space-xsmall);
   }
 
-  &:not([hasactivetab]) .tabbrowser-tab {
-    &:first-child {
-      border-block-end: 1px solid var(--toolbarbutton-icon-fill);
-      border-inline-end: transparent;
-    }
+  &:not([hasactivetab]) .tabbrowser-tab:first-child {
+    border-block-end: 1px solid var(--toolbarbutton-icon-fill);
+    border-inline-end: transparent;
+  }
 
-    &:last-child {
-      border-inline-start: transparent !important;
-    }
+  .tabbrowser-tab:last-child {
+    border-inline-start-width: 0;
   }
 
   /* Allow close button to overflow the split view wrapper */
@@ -1543,7 +1561,7 @@ tab-group > tab-split-view-wrapper {
     overflow: visible;
 
     .tab-background {
-      margin-inline: 0;
+      margin-inline: auto;
       margin-block: 0;
     }
 
@@ -1674,16 +1692,12 @@ tab-group > tab-split-view-wrapper {
   /* prettier-ignore */
   #tabbrowser-tabs[movingtab][movingtab-addToGroup]:not([movingtab-group], [movingtab-ungroup]) tab-split-view-wrapper[dragtarget] & {
     display: flex;
-    background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
-
-    @media -moz-pref("browser.nova.enabled") {
-      background-color: var(--dragover-tab-group-color);
-    }
+    background-color: var(--dragover-tab-group-color);
   }
 
   /* prettier-ignore */
   #tabbrowser-tabs[orient="vertical"][movingtab][movingtab-addToGroup]:not([expanded]) tab-split-view-wrapper[dragtarget] & {
-    inset-inline-start: calc(((var(--space-medium)) * -1) + 2px) !important;
+    inset-inline-start: calc((var(--tab-inner-inline-margin) * -1) + 2px) !important;
   }
 
   /* prettier-ignore */
@@ -1736,12 +1750,8 @@ tab-group > tab-split-view-wrapper {
   /* prettier-ignore */
   #tabbrowser-tabs[movingtab]:not([movingtab-group],[movingtab-ungroup]) .tabbrowser-tab:is(:active,[multiselected]) > .tab-stack > .tab-background > & {
     display: flex;
-    background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
+    background-color: var(--dragover-tab-group-color);
     border-radius: var(--border-radius-xsmall);
-
-    @media -moz-pref("browser.nova.enabled") {
-      background-color: var(--dragover-tab-group-color);
-    }
   }
 
   #tabbrowser-tabs:is([movingtab-group], [movingtab-ungroup]) &:is([selected], [multiselected]) {

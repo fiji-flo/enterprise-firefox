@@ -642,6 +642,17 @@ nodejs-22-win64:
         strip-components: 1
         add-prefix: node/
 
+nodejs-22-win-arm64:
+    description: nodejs 22 for arm64 Windows
+    fetch:
+        type: static-url
+        url: https://nodejs.org/dist/v22.16.0/node-v22.16.0-win-arm64.zip
+        sha256: 31e885dcd06355f67b4be8cca86464270d83d0f5b8d4e3d4369c16ed22a5f4fa
+        size: 31373500
+        artifact-name: nodejs.tar.zst
+        strip-components: 1
+        add-prefix: node/
+
 nodejs-22-source:
     description: nodejs 22 source
     fetch:

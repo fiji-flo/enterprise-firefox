@@ -19,8 +19,10 @@
 #include "gc/BufferAllocator-inl.h"
 
 #if defined(XP_WIN)
+// clang-format off
 #  include "util/WindowsWrapper.h"
 #  include <psapi.h>
+// clang-format on
 #elif defined(__wasi__)
 // Nothing.
 #else

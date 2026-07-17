@@ -3,35 +3,35 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsWaylandDisplay.h"
-#include "DMABufFormats.h"
-
-#include "base/message_loop.h"    // for MessageLoop
-#include "base/task.h"            // for NewRunnableMethod, etc
-#include "mozilla/gfx/Logging.h"  // for gfxCriticalNote
-#include "mozilla/StaticMutex.h"
-#include "mozilla/StaticPtr.h"
-#include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/StaticPrefs_general.h"
-#include "mozilla/Sprintf.h"
-#include "WidgetUtilsGtk.h"
-#include "nsGtkKeyUtils.h"
-#include "nsGtkUtils.h"
-#include "nsLayoutUtils.h"
-#include "nsWindow.h"
-#include "wayland-proxy.h"
-#include "ScreenHelperGTK.h"
-#include "nsIAppStartup.h"
-#include "nsServiceManagerUtils.h"
-#include "nsThreadUtils.h"
 
 #include <dlfcn.h>
+
+#include "DMABufFormats.h"
+#include "ScreenHelperGTK.h"
+#include "WidgetUtilsGtk.h"
+#include "base/message_loop.h"  // for MessageLoop
+#include "base/task.h"          // for NewRunnableMethod, etc
+#include "mozilla/Sprintf.h"
+#include "mozilla/StaticMutex.h"
+#include "mozilla/StaticPrefs_general.h"
+#include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/gfx/Logging.h"  // for gfxCriticalNote
+#include "nsGtkKeyUtils.h"
+#include "nsGtkUtils.h"
+#include "nsIAppStartup.h"
+#include "nsLayoutUtils.h"
+#include "nsServiceManagerUtils.h"
+#include "nsThreadUtils.h"
+#include "nsWindow.h"
+#include "wayland-proxy.h"
 
 #undef LOG
 #undef LOG_VERBOSE
 #ifdef MOZ_LOGGING
+#  include "Units.h"
 #  include "mozilla/Logging.h"
 #  include "nsTArray.h"
-#  include "Units.h"
 extern mozilla::LazyLogModule gWidgetWaylandLog;
 #  define LOG(...) \
     MOZ_LOG(gWidgetWaylandLog, mozilla::LogLevel::Debug, (__VA_ARGS__))

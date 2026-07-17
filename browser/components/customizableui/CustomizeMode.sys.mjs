@@ -2005,16 +2005,9 @@ export class CustomizeMode {
   setUIDensity(mode) {
     let win = this.#window;
     let gUIDensity = win.gUIDensity;
-    let currentDensity = gUIDensity.getCurrentDensity();
     let panel = win.document.getElementById("customization-uidensity-menu");
 
-    Services.prefs.setIntPref(gUIDensity.uiDensityPref, mode);
-
-    // If the user is choosing a different UI density mode while
-    // the mode is overriden to Touch, remove the override.
-    if (currentDensity.overridden) {
-      Services.prefs.setBoolPref(gUIDensity.autoTouchModePref, false);
-    }
+    gUIDensity.setUIDensity(mode);
 
     this.#onUIChange();
     panel.hidePopup();

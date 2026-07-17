@@ -47,6 +47,7 @@
 
 #if defined(MOZ_ENTERPRISE)
 #  include "mozilla/toolkit/components/felt/felt.h"
+#  include "nsIFelt.h"
 #  include "SpecialSystemDirectory.h"
 #endif
 
@@ -1530,6 +1531,10 @@ nsXULAppInfo::InvalidateCachesOnRestart() {
   return NS_OK;
 }
 
+bool mozilla::IsProfileEncryptedDatabases() {
+  return gProfileEncryptedDatabases;
+}
+
 nsresult mozilla::MarkProfileEncryptedDatabases() {
   // Append the EncryptedDatabases marker to compatibility.ini (modeled on
   // InvalidateCachesOnRestart above). Read back by CheckCompatibility() on the
@@ -2933,6 +2938,249 @@ static nsresult ProfileEncryptionMismatchDialog(const char* aMsgKey,
 #endif  // MOZ_WIDGET_ANDROID
 }
 
+#if defined(MOZ_ENTERPRISE)
+// Wipes the contents of the Felt UI scratch profile directory(ies) so that the
+// next startup behaves like a brand-new profile. Does not delete the directory
+// itself (its path is held in mProfD / mProfLD by the caller); only its direct
+// children. Recreates the directories with 0700 if missing.
+static nsresult ResetFeltUIScratchProfile(nsIFile* aProfileDir,
+                                          nsIFile* aLocalProfileDir) {
+  auto wipeDir = [](nsIFile* aDir) -> nsresult {
+    if (!aDir) {
+      return NS_OK;
+    }
+    bool exists = false;
+    nsresult rv = aDir->Exists(&exists);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (exists) {
+      nsCOMPtr<nsIDirectoryEnumerator> entries;
+      rv = aDir->GetDirectoryEntries(getter_AddRefs(entries));
+      NS_ENSURE_SUCCESS(rv, rv);
+      nsCOMPtr<nsIFile> entry;
+      while (NS_SUCCEEDED(entries->GetNextFile(getter_AddRefs(entry))) &&
+             entry) {
+        nsresult removeRv = entry->Remove(true);
+        if (NS_FAILED(removeRv)) {
+          NS_WARNING("ResetFeltUIScratchProfile: failed to remove entry");
+        }
+      }
+    }
+    rv = aDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+      return rv;
+    }
+    return NS_OK;
+  };
+
+  nsresult rv = wipeDir(aProfileDir);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool sameDir = false;
+  if (aProfileDir && aLocalProfileDir) {
+    (void)aProfileDir->Equals(aLocalProfileDir, &sameDir);
+  }
+  if (!sameDir) {
+    rv = wipeDir(aLocalProfileDir);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+// Handles the "build requires encrypted storage but the existing profile is
+// plaintext" case for the browsing-child (full Firefox) case. Presents a
+// three-button dialog asking the user to delete the old data and continue, keep
+// the old data and continue (creating a new encrypted profile alongside the old
+// one), or quit. On delete/keep, registers a new (salted) profile under the
+// original name, persists the change to profiles.ini, optionally removes the
+// old profile's files, and re-launches Firefox with the new profile.
+//
+// Returns NS_ERROR_LAUNCHED_CHILD_PROCESS on successful relaunch (caller treats
+// that like a clean exit). Returns NS_OK with *aExitFlag = true on quit.
+static nsresult HandleBrowsingChildEncryptionMismatch(
+    nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
+    nsToolkitProfileService* aProfileSvc, nsINativeAppSupport* aNative,
+    bool* aExitFlag, uint32_t* aDecision) {
+  MOZ_ASSERT(aProfileDir);
+  MOZ_ASSERT(aProfileSvc);
+  MOZ_ASSERT(aExitFlag);
+
+  enum class Choice { Delete, Keep, Quit };
+  Choice choice = Choice::Quit;
+
+  // Test-automation shortcut: when this env is set, skip the modal.
+  const char* autoConfirm = PR_GetEnv("MOZ_TEST_AUTO_CONFIRM_PROFILE_RESET");
+  if (autoConfirm && *autoConfirm) {
+    nsDependentCString val(autoConfirm);
+    if (val.EqualsLiteral("delete")) {
+      choice = Choice::Delete;
+    } else if (val.EqualsLiteral("keep")) {
+      choice = Choice::Keep;
+    } else {
+      choice = Choice::Quit;
+    }
+  } else {
+#  ifdef MOZ_WIDGET_ANDROID
+    Output(true, "Profile encryption migration required.\n");
+    *aExitFlag = true;
+    return NS_OK;
+#  else
+#    ifdef MOZ_BACKGROUNDTASKS
+    if (BackgroundTasks::IsBackgroundTaskMode()) {
+      printf_stderr(
+          "Profile encryption migration required in backgroundtask mode\n");
+      *aExitFlag = true;
+      return NS_OK;
+    }
+#    endif
+
+    nsresult rv;
+    ScopedXPCOMStartup xpcom;
+    rv = xpcom.Initialize();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = xpcom.SetWindowCreator(aNative);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+
+#    ifdef XP_MACOSX
+    InitializeMacApp();
+#    endif
+
+    {  // extra scope to release components before xpcom shutdown
+      nsCOMPtr<nsIStringBundleService> sbs =
+          mozilla::components::StringBundle::Service();
+      NS_ENSURE_TRUE(sbs, NS_ERROR_FAILURE);
+
+      nsCOMPtr<nsIStringBundle> sb;
+      sbs->CreateBundle(kProfileProperties, getter_AddRefs(sb));
+      NS_ENSURE_TRUE_LOG(sb, NS_ERROR_FAILURE);
+
+      // Prefer the branded product name (e.g. "Firefox Enterprise")
+      // over gAppData->name (the internal binary name, e.g. "Firefox").
+      // Fall back to gAppData->name if the branding bundle is unavailable.
+      nsAutoString appName;
+      {
+        nsCOMPtr<nsIStringBundle> brandBundle;
+        sbs->CreateBundle("chrome://branding/locale/brand.properties",
+                          getter_AddRefs(brandBundle));
+        if (brandBundle) {
+          brandBundle->GetStringFromName("brandShortName", appName);
+        }
+        if (appName.IsEmpty()) {
+          CopyUTF8toUTF16(mozilla::MakeStringSpan(gAppData->name), appName);
+        }
+      }
+      AutoTArray<nsString, 1> params = {appName};
+
+      nsAutoString msg;
+      rv =
+          sb->FormatStringFromName("profileNotEncryptedButPrefOn", params, msg);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      AutoTArray<nsString, 1> titleParams = {appName};
+      nsAutoString title;
+      rv = sb->FormatStringFromName("profileNotEncryptedButPrefOnTitle",
+                                    titleParams, title);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsAutoString btnDelete;
+      rv = sb->GetStringFromName("profileMismatchDeleteAndContinue", btnDelete);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsAutoString btnKeep;
+      rv = sb->GetStringFromName("profileMismatchKeepAndContinue", btnKeep);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsAutoString btnQuit;
+      rv = sb->GetStringFromName("profileMismatchQuit", btnQuit);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsIPromptService> ps(do_GetService(NS_PROMPTSERVICE_CONTRACTID));
+      NS_ENSURE_TRUE(ps, NS_ERROR_FAILURE);
+
+      const uint32_t flags = (nsIPromptService::BUTTON_TITLE_IS_STRING *
+                              nsIPromptService::BUTTON_POS_0) +
+                             (nsIPromptService::BUTTON_TITLE_IS_STRING *
+                              nsIPromptService::BUTTON_POS_1) +
+                             (nsIPromptService::BUTTON_TITLE_IS_STRING *
+                              nsIPromptService::BUTTON_POS_2);
+
+      int32_t button = 2;
+      bool checkState = false;
+      rv = ps->ConfirmEx(nullptr, title.get(), msg.get(), flags,
+                         btnDelete.get(), btnKeep.get(), btnQuit.get(), nullptr,
+                         &checkState, &button);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      switch (button) {
+        case 0:
+          choice = Choice::Delete;
+          break;
+        case 1:
+          choice = Choice::Keep;
+          break;
+        default:
+          choice = Choice::Quit;
+          break;
+      }
+    }
+#  endif  // MOZ_WIDGET_ANDROID
+  }
+
+  if (choice == Choice::Quit) {
+    *aExitFlag = true;
+    return NS_OK;
+  }
+
+  // Find the old profile registration and hand it to the profile service,
+  // which renames it aside, creates a fresh (salted) registration under the
+  // original name, optionally drops the old registration + files in the
+  // background, and returns the new profile.
+  nsCOMPtr<nsIToolkitProfile> oldProfile;
+  nsresult rv = aProfileSvc->GetProfileByDir(aProfileDir, aLocalProfileDir,
+                                             getter_AddRefs(oldProfile));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!oldProfile) {
+    NS_WARNING(
+        "HandleBrowsingChildEncryptionMismatch: no profile registration "
+        "matches the active profile directory");
+    *aExitFlag = true;
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIToolkitProfile> newProfile;
+  rv = aProfileSvc->ApplyEncryptionMismatchRecovery(
+      oldProfile, /*aDeleteOldFiles*/ choice == Choice::Delete,
+      getter_AddRefs(newProfile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aProfileSvc->Flush();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Resolve the new profile's directories and re-launch into them.
+  nsCOMPtr<nsIFile> newRoot;
+  rv = newProfile->GetRootDir(getter_AddRefs(newRoot));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIFile> newLocal;
+  rv = newProfile->GetLocalDir(getter_AddRefs(newLocal));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  SaveFileToEnv("XRE_PROFILE_PATH", newRoot);
+  SaveFileToEnv("XRE_PROFILE_LOCAL_PATH", newLocal);
+
+  *aExitFlag = true;
+  rv = NS_OK;
+  if (choice == Choice::Delete) {
+    *aDecision = nsIFelt::FeltEncryptionExitCode_Delete;
+    rv = NS_ERROR_RESTART_FORCED;
+  } else if (choice == Choice::Keep) {
+    *aDecision = nsIFelt::FeltEncryptionExitCode_Archive;
+    rv = NS_ERROR_RESTART_FORCED;
+  }
+  return rv;
+}
+#endif  // MOZ_ENTERPRISE
+
 static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
                                               nsIFile* aProfileLocalDir,
                                               nsIProfileUnlocker* aUnlocker,
@@ -4027,12 +4275,23 @@ static EncryptionCompatResult CheckEncryptionCompatibility(nsIFile* aProfileDir,
   }
 
   // Pref on, marker absent (or =0). Disambiguate by header inspection:
-  // - empty profile or already-encrypted DBs -> OK (the marker is
-  //   (re)written by the storage layer on profile-after-change).
+  // - empty profile or already-encrypted DBs -> OK; eagerly mark the profile
+  //   so mozStorage's Service::initialize (which runs after this gate but
+  //   before any DB open writes the marker) sees the latched in-memory flag
+  //   and registers obfsvfs as the default VFS. Without this eager mark the
+  //   first launch of a fresh enterprise profile would silently open the
+  //   first batch of databases through the plain VFS and never encrypt them.
   // - plaintext DBs present -> refuse, migration required.
-  if (!gProfileEncryptedDatabases &&
-      DetectEncryptedDBHeader(aProfileDir) == DBHeaderResult::Plaintext) {
-    return EncryptionCompatResult::RefuseMigrationRequired;
+  if (!gProfileEncryptedDatabases) {
+    if (DetectEncryptedDBHeader(aProfileDir) == DBHeaderResult::Plaintext) {
+      return EncryptionCompatResult::RefuseMigrationRequired;
+    }
+    // Append the marker on disk and update the in-memory flag in lockstep
+    // so the rest of startup (mozStorage, the encryption code path) reads a
+    // consistent decision.
+    if (NS_SUCCEEDED(mozilla::MarkProfileEncryptedDatabases())) {
+      gProfileEncryptedDatabases = true;
+    }
   }
 
   return EncryptionCompatResult::OK;
@@ -5828,6 +6087,37 @@ int XREMain::XRE_mainStartup(bool* aExitFlag,
         StaticPrefs::security_storage_encryption_sqlite_enabled();
     EncryptionCompatResult ec =
         CheckEncryptionCompatibility(mProfD, prefEnabled);
+#if defined(MOZ_ENTERPRISE)
+    // Enterprise: prefer recovery over a hard refusal when the profile is
+    // plaintext but the build requires encryption. Felt UI uses a scratch
+    // profile directory whose contents are disposable, so silently wipe and
+    // re-check. The full Firefox ("Felt browser") path puts up a 3-button
+    // dialog and either deletes/keeps the old profile, then relaunches into a
+    // freshly-created encrypted profile.
+    if (ec == EncryptionCompatResult::RefuseMigrationRequired) {
+      if (is_felt_ui()) {
+        nsresult wipeRv = ResetFeltUIScratchProfile(mProfD, mProfLD);
+        if (NS_SUCCEEDED(wipeRv)) {
+          ec = CheckEncryptionCompatibility(mProfD, prefEnabled);
+        } else {
+          NS_WARNING(
+              "Felt UI scratch profile wipe failed; falling through to "
+              "refusal");
+        }
+      } else if (is_felt_browser()) {
+        uint32_t decision = 0;
+        nsresult handleRv = HandleBrowsingChildEncryptionMismatch(
+            mProfD, mProfLD, mProfileSvc, mNativeApp, aExitFlag, &decision);
+        *aExitFlag = true;
+        if (handleRv == NS_ERROR_RESTART_FORCED) {
+          mozilla::AppShutdown::DoImmediateExit(decision);
+          return 0;
+        }
+        // Quit path (NS_OK with *aExitFlag=true) or failure: exit cleanly.
+        return 0;
+      }
+    }
+#endif  // MOZ_ENTERPRISE
     if (ec != EncryptionCompatResult::OK) {
       const char* msgKey =
           ec == EncryptionCompatResult::RefuseEncryptedButPrefOff
@@ -5842,6 +6132,45 @@ int XREMain::XRE_mainStartup(bool* aExitFlag,
       return 0;
     }
   }
+
+#if defined(MOZ_ENTERPRISE)
+  // SQLite at-rest encryption + Profile Refresh: copy the source profile's NSS
+  // key databases into the new profile here, in XRE_mainStartup, BEFORE
+  // anything brings NSS up. With encryption enabled NSS is initialized before
+  // the profile migrator runs; on first init it creates a fresh key4.db with a
+  // new SDR master key, and the migrator's copyTo() will not overwrite an
+  // existing key4.db -- so the source SDR key never reaches the new profile and
+  // the migrated logins / FxA secure data cannot be decrypted. key4.db does not
+  // exist in the freshly created reset profile yet at this point, so copying
+  // the source key DBs now makes NSS initialize from them. (The migrator's
+  // later copy of these same files becomes a no-op; see
+  // FirefoxProfileMigrator.)
+  if (gDoProfileReset && gResetOldProfile && mProfD) {
+    nsCOMPtr<nsIFile> srcRoot = gResetOldProfile->GetRootDir();
+    if (srcRoot) {
+      auto copyIfAbsent = [&](const nsAString& aName) {
+        nsCOMPtr<nsIFile> src, dst;
+        if (NS_FAILED(srcRoot->Clone(getter_AddRefs(src))) ||
+            NS_FAILED(mProfD->Clone(getter_AddRefs(dst)))) {
+          return;
+        }
+        src->Append(aName);
+        dst->Append(aName);
+        bool srcEx = false, dstEx = false;
+        src->Exists(&srcEx);
+        dst->Exists(&dstEx);
+        if (srcEx && !dstEx) {
+          if (NS_FAILED(src->CopyTo(mProfD, u""_ns))) {
+            NS_WARNING(
+                "Failed to copy source NSS key DB into the reset profile");
+          }
+        }
+      };
+      copyIfAbsent(u"key4.db"_ns);
+      copyIfAbsent(u"key3.db"_ns);
+    }
+  }
+#endif
 
 #ifdef MOZ_BLOCK_PROFILE_DOWNGRADE
   // The argument check must come first so the argument is always removed from
@@ -6152,6 +6481,50 @@ nsresult XREMain::XRE_mainRun() {
             } else {
               aKey = MOZ_APP_NAME;
             }
+
+#if defined(MOZ_ENTERPRISE)
+            // SQLite at-rest encryption: record the source profile path in the
+            // new profile so the storage layer can transfer the source's
+            // per-database DEKs into the refreshed keystore on first open. The
+            // migrator copies the (encrypted) databases, but their DEKs live in
+            // the source keystore; without the source DEK the storage layer
+            // would mint a fresh one and the copied contents would be
+            // unreadable. Written here -- before migration and before
+            // profile-do-change, hence before any database service opens --
+            // because the migrator's own resources run too late to beat the
+            // earliest opens (e.g. permissions, logins).
+            nsCOMPtr<nsIFile> newProfDir;
+            if (!aProfilePath.IsEmpty() &&
+                NS_SUCCEEDED(NS_GetSpecialDirectory(
+                    NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(newProfDir)))) {
+              nsCOMPtr<nsIFile> marker;
+              if (NS_SUCCEEDED(newProfDir->Clone(getter_AddRefs(marker)))) {
+                marker->Append(u".sqlite-refresh-source"_ns);
+                nsCOMPtr<nsIOutputStream> out;
+                nsresult mrv =
+                    NS_NewLocalFileOutputStream(getter_AddRefs(out), marker);
+                if (NS_SUCCEEDED(mrv)) {
+                  uint32_t written = 0;
+                  mrv = out->Write(aProfilePath.get(), aProfilePath.Length(),
+                                   &written);
+                  if (NS_SUCCEEDED(mrv) && written != aProfilePath.Length()) {
+                    mrv = NS_ERROR_UNEXPECTED;
+                  }
+                  nsresult crv = out->Close();
+                  if (NS_SUCCEEDED(mrv)) {
+                    mrv = crv;
+                  }
+                }
+                if (NS_FAILED(mrv)) {
+                  // A truncated marker would point the refreshed browser's DEK
+                  // transfer at a wrong source path, so remove it instead of
+                  // leaving a partial file behind.
+                  marker->Remove(/* aRecursive */ false);
+                  NS_WARNING("Failed to write .sqlite-refresh-source marker");
+                }
+              }
+            }
+#endif
           }
 #ifdef XP_MACOSX
           // Necessary for migration wizard to be accessible.
@@ -6415,7 +6788,7 @@ nsresult XREMain::XRE_mainRun() {
       free(tempArgv);
       NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
-#  ifdef MOZILLA_OFFICIAL
+#  if defined(MOZILLA_OFFICIAL) || defined(DMG_INSTALL_HELPER_DEBUG)
       // Check if we're running from a DMG or an app translocated location and
       // allow the user to install to the Applications directory.
       if (MacRunFromDmgUtils::MaybeInstallAndRelaunch()) {

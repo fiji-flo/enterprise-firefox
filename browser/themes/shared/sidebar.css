@@ -20,6 +20,10 @@
     padding-block-end: var(--space-small);
     position: relative;
     z-index: var(--browser-area-z-index-sidebar);
+
+    :root[uidensity="compact"] & {
+      width: 280px;
+    }
   }
 
   &[sidebarcommand="viewGenaiChatSidebar"] {
@@ -293,7 +297,15 @@ sidebar-main,
   --sidebar-launcher-button-padding-inline: round(var(--space-medium), 0.5px);
 
   &[uidensity="compact"] {
-    --sidebar-launcher-button-padding-inline: round(var(--space-xsmall), 0.5px);
+    /* 32px icon button + 2 * 2px = 36px collapsed sidebar. */
+    --sidebar-launcher-button-padding-inline: 2px;
+
+    --sidebar-expanded-launcher-width: 240px;
+
+    /* 28px icon button + 2 * 7px = 42px collapsed sidebar. */
+    @media -moz-pref("sidebar.verticalTabs") {
+      --sidebar-launcher-button-padding-inline: 7px;
+    }
   }
 
   @media -moz-pref("browser.nova.enabled") and (not -moz-pref("sidebar.verticalTabs")) {
@@ -354,6 +366,10 @@ sidebar-main,
     }
 
     @media -moz-pref("browser.nova.enabled") {
+      :root[uidensity="compact"] & {
+        --chrome-window-gap: 2px;
+        margin-block-start: var(--chrome-window-gap);
+      }
       border-radius: var(--chrome-block-radius);
       background-color: var(--toolbar-background-color);
       position: absolute;
@@ -450,6 +466,9 @@ sidebar-main,
     }
 
     @media -moz-pref("browser.nova.enabled") {
+      :root[uidensity="compact"] & {
+        --chrome-window-gap: 2px;
+      }
       &:not([sidebar-positionend])[sidebar-panel-open] {
         margin-inline-start: calc(var(--sidebar-launcher-collapsed-width) + var(--chrome-window-gap));
       }
@@ -496,6 +515,11 @@ sidebar-main,
     width: var(--chrome-window-gap);
     border-inline: none;
     margin-inline: calc(-1 * var(--chrome-window-gap) + 1px);
+
+    :root[uidensity="compact"] & {
+      width: 2px;
+      margin-inline: -2px;
+    }
   }
 
   /* When no panel is open, the launcher splitter sits between sidebar-main and
@@ -503,6 +527,11 @@ sidebar-main,
    * between sidebar-main and the content area matches the sidebar-box case. */
   #sidebar-container:not([sidebar-panel-open]) + #sidebar-launcher-splitter {
     margin-inline: calc(-1 * var(--chrome-window-gap) + 1px);
+
+    :root[uidensity="compact"] & {
+      width: 2px;
+      margin-inline: -2px;
+    }
   }
 
   /* When the closest split-view panel is selected, its outline extends into

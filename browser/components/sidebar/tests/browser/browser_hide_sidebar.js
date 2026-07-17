@@ -38,6 +38,7 @@ add_setup(async () => {
     set: [
       ["sidebar.animation.enabled", false],
       ["sidebar.main.tools", "syncedtabs,history,bookmarks"],
+      ["sidebar.updatedBookmarks.enabled", true],
       [VERTICAL_TABS_PREF, false],
     ],
   });

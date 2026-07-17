@@ -347,9 +347,11 @@ add_task(async function test_nova_disabled_uses_legacy_promo() {
   let { win, tab } = await openTabAndWaitForRender();
 
   await SpecialPowers.spawn(tab, [], async function () {
+    const promo = content.document.querySelector(".promo");
+    ok(promo, "Legacy promo markup is used when Nova is disabled");
     ok(
-      content.document.querySelector(".promo"),
-      "Legacy promo markup is used when Nova is disabled"
+      ContentTaskUtils.isVisible(promo),
+      "Legacy promo is visible when Nova is disabled"
     );
     is(
       content.document.getElementById("nova-promo"),

@@ -5,17 +5,18 @@
 #ifndef SystemGlobal_h_
 #define SystemGlobal_h_
 
-#include "js/loader/ModuleLoaderBase.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StorageAccess.h"
-#include "nsISupports.h"
-#include "nsWeakReference.h"
+
 #include "nsIGlobalObject.h"
 #include "nsIScriptObjectPrincipal.h"
+#include "nsISupports.h"
 #include "nsIXPCScriptable.h"
+#include "nsWeakReference.h"
 
 #include "js/HeapAPI.h"
+#include "js/loader/ModuleLoaderBase.h"
 
 class nsICookieJarSettings;
 class XPCWrappedNative;

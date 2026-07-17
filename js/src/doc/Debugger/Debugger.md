@@ -129,19 +129,6 @@ the debuggee's execution should proceed. However, note that a <code>{
 return: <i>value</i> }</code> resumption value is treated like `undefined`
 ("continue normally"); <i>value</i> is ignored.
 
-### `onPromiseSettled(promise)`
-A Promise object, referenced by the [`Debugger.Object`][object] instance
-*promise* that was allocated within a debuggee scope, has settled (either
-fulfilled or rejected). The Promise's state, fulfillment or rejection
-value, and the allocation and resolution stacks can be obtained using the
-Promise-related accessor properties of the [`Debugger.Object`][object]
-instance *promise*.
-
-This handler method should return a [resumption value][rv] specifying how
-the debuggee's execution should proceed. However, note that a <code>{
-return: <i>value</i> }</code> resumption value is treated like `undefined`
-("continue normally"); <i>value</i> is ignored.
-
 ### `onDebuggerStatement(frame)`
 Debuggee code has executed a <i>debugger</i> statement in <i>frame</i>.
 This method should return a [resumption value][rv] specifying how the

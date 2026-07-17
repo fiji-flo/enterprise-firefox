@@ -227,8 +227,8 @@ export class UrlbarChildController {
   receiveResults(queryContext) {
     return this.#parent.receiveResults(queryContext);
   }
-  removeResult(result) {
-    return this.#parent.removeResult(result);
+  removeResult(result, options) {
+    return this.#parent.removeResult(result, options);
   }
   setLastQueryContextCache(queryContext) {
     return this.#parent.setLastQueryContextCache(queryContext);

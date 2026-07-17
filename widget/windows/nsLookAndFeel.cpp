@@ -3,19 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsLookAndFeel.h"
+
+#include <shellapi.h>
 #include <stdint.h>
 #include <windows.h>
-#include <shellapi.h>
-#include "nsStyleConsts.h"
-#include "nsUXThemeConstants.h"
-#include "nsWindowDefs.h"
-#include "nsWindowsHelpers.h"
+
 #include "WinUtils.h"
 #include "WindowsUIUtils.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/glean/WidgetWindowsMetrics.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/widget/WinRegistry.h"
+#include "nsStyleConsts.h"
+#include "nsUXThemeConstants.h"
+#include "nsWindowDefs.h"
+#include "nsWindowsHelpers.h"
 
 #define AVG2(a, b) (((a) + (b) + 1) >> 1)
 

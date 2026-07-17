@@ -6,25 +6,26 @@
 #include "MPRISServiceHandler.h"
 
 #include <stdint.h>
+
 #include <unordered_map>
 
+#include "AsyncDBus.h"
 #include "MPRISInterfaceDescription.h"
-#include "mozilla/dom/MediaControlUtils.h"
+#include "WidgetUtilsGtk.h"
 #include "mozilla/GRefPtr.h"
 #include "mozilla/GUniquePtr.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/XREAppData.h"
-#include "nsXULAppAPI.h"
-#include "nsIXULAppInfo.h"
+#include "mozilla/dom/MediaControlUtils.h"
+#include "nsAppRunner.h"
 #include "nsIOutputStream.h"
+#include "nsIXULAppInfo.h"
 #include "nsNetUtil.h"
 #include "nsServiceManagerUtils.h"
-#include "WidgetUtilsGtk.h"
-#include "AsyncDBus.h"
+#include "nsXULAppAPI.h"
 #include "prio.h"
-#include "nsAppRunner.h"
 
 #define LOGMPRIS(msg, ...)                   \
   MOZ_LOG(gMediaControlLog, LogLevel::Debug, \

@@ -457,12 +457,15 @@ add_task(async function test_collapsed_launcher_width_triggers_compact() {
 // launcher must visibly shrink in compact mode for the trigger to stay stable.
 // Verify the CSS custom property that drives the launcher button padding.
 add_task(async function test_compact_shrinks_launcher_padding() {
+  // The compact launcher padding branches on sidebar.verticalTabs, so pin it
+  // off to make the expected value deterministic.
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", false]],
+  });
+
   await withNewWindow(async win => {
     let medium = cssVar(win, "--space-medium");
-    let xsmall = cssVar(win, "--space-xsmall");
     let roundedMedium = `round(${medium}, 0.5px)`;
-    let roundedXsmall = `round(${xsmall}, 0.5px)`;
-    isnot(medium, xsmall, "Sanity: the space tokens have different values");
 
     win.gUIDensity.update(win.gUIDensity.MODE_NORMAL);
     is(
@@ -472,14 +475,17 @@ add_task(async function test_compact_shrinks_launcher_padding() {
     );
 
     win.gUIDensity.update(win.gUIDensity.MODE_COMPACT);
+    // 32px icon button + 2 * 2px = 36px collapsed sidebar.
     is(
       cssVar(win, "--sidebar-launcher-button-padding-inline"),
-      roundedXsmall,
-      "Launcher button padding shrinks to --space-xsmall in compact density"
+      "2px",
+      "Launcher button padding shrinks in compact density"
     );
 
     win.gUIDensity.update(win.gUIDensity.MODE_NORMAL);
   });
+
+  await SpecialPowers.popPrefEnv();
 });
 
 // Compact mode also shrinks the inline margin around vertical tabs so they fit
@@ -493,18 +499,17 @@ add_task(async function test_compact_shrinks_vertical_tab_margin() {
   });
 
   await withNewWindow(async win => {
-    let xsmall = cssVar(win, "--space-xsmall");
-
     win.gUIDensity.update(win.gUIDensity.MODE_NORMAL);
     let normalMargin = cssVar(win, "--tab-inner-inline-margin");
 
     win.gUIDensity.update(win.gUIDensity.MODE_COMPACT);
     let compactMargin = cssVar(win, "--tab-inner-inline-margin");
 
+    // 28px icon button + 2 * 7px = 42px collapsed sidebar.
     is(
       compactMargin,
-      xsmall,
-      "Vertical tab inner inline margin is --space-xsmall in compact density"
+      "7px",
+      "Vertical tab inner inline margin shrinks in compact density"
     );
     isnot(
       compactMargin,

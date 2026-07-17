@@ -5,30 +5,33 @@
 #ifndef MOZ_WAYLAND_DISPLAY_H_
 #define MOZ_WAYLAND_DISPLAY_H_
 
+#include <gbm.h>
 #include <time.h>
-#include "DMABufDevice.h"
 
+// clang-format off
+// The protocol headers depend on declarations in mozwayland.h
 #include "mozilla/widget/mozwayland.h"
+// clang-format on
+
+#include "DMABufDevice.h"
+#include "mozilla/widget/color-management-v1-client-protocol.h"
+#include "mozilla/widget/color-representation-v1-client-protocol.h"
 #include "mozilla/widget/fractional-scale-v1-client-protocol.h"
 #include "mozilla/widget/gtk-primary-selection-client-protocol.h"
 #include "mozilla/widget/idle-inhibit-unstable-v1-client-protocol.h"
 #include "mozilla/widget/kde-appmenu-client-protocol.h"
 #include "mozilla/widget/linux-dmabuf-unstable-v1-client-protocol.h"
-#include "mozilla/widget/primary-selection-unstable-v1-client-protocol.h"
 #include "mozilla/widget/pointer-constraints-unstable-v1-client-protocol.h"
 #include "mozilla/widget/pointer-gestures-unstable-v1-client-protocol.h"
+#include "mozilla/widget/primary-selection-unstable-v1-client-protocol.h"
 #include "mozilla/widget/relative-pointer-unstable-v1-client-protocol.h"
 #include "mozilla/widget/viewporter-client-protocol.h"
 #include "mozilla/widget/xdg-activation-v1-client-protocol.h"
 #include "mozilla/widget/xdg-output-unstable-v1-client-protocol.h"
-#include "mozilla/widget/color-management-v1-client-protocol.h"
-#include "mozilla/widget/color-representation-v1-client-protocol.h"
+#include "mozilla/widget/xdg-session-management-v1-client-protocol.h"
 #include "mozilla/widget/xdg-shell-client-protocol.h"
 #include "mozilla/widget/xx-fractional-scale-v2-client-protocol.h"
 #include "mozilla/widget/xx-pip-v1-client-protocol.h"
-#include "mozilla/widget/xdg-session-management-v1-client-protocol.h"
-
-#include <gbm.h>
 
 using GdkMonitor = struct _GdkMonitor;
 

@@ -907,6 +907,12 @@ class GCStructPtr : public BarrieredBase<T> {
     this->unbarrieredSet(v);
   }
 
+#ifdef JS_GC_CONCURRENT_MARKING
+  void unbarrieredSet(T ptr) { this->unbarrieredAtomicSet(ptr); }
+#else
+  using BarrieredBase<T>::unbarrieredSet;
+#endif
+
   T get() const { return this->unbarrieredGet(); }
   operator T() const { return get(); }
   T operator->() const { return get(); }

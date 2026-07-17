@@ -12,6 +12,21 @@ const { OnboardingMessageProvider } = ChromeUtils.importESModule(
   "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs"
 );
 
+const { ClientEnvironmentBase } = ChromeUtils.importESModule(
+  "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs"
+);
+
+// All `os.*` targeting attributes resolve to ClientEnvironmentBase.os,
+// regardless of the machine actually running the test. We stub that getter's
+// result with the whole `os` object used during targeting evaluation rather
+// than relying on the test runner's real OS.
+const OS_WITHOUT_PIN_PROMPT = { isWindows: false };
+const OS_WITH_WIN_PIN_PROMPT = {
+  isWindows: true,
+  windowsBuildNumber: 22621,
+  windowsUBR: 2400,
+};
+
 function makeSplashScreen() {
   const message = OnboardingMessageProvider.getPreonboardingMessages().find(
     m => m.id === "NEW_USER_TOU_ONBOARDING"
@@ -113,6 +128,7 @@ add_task(async function test_aboutwelcome_mr_template_easy_setup_default() {
   await pushPrefs(["browser.shell.checkDefaultBrowser", true]);
   sandbox.stub(ShellService, "doesAppNeedPin").returns(true);
   sandbox.stub(ShellService, "isDefaultBrowser").returns(false);
+  sandbox.stub(ClientEnvironmentBase, "os").get(() => OS_WITHOUT_PIN_PROMPT);
 
   await clearHistoryAndBookmarks();
 
@@ -139,6 +155,7 @@ add_task(async function test_aboutwelcome_mr_template_easy_setup_needs_pin() {
   await pushPrefs(["browser.shell.checkDefaultBrowser", true]);
   sandbox.stub(ShellService, "doesAppNeedPin").returns(true);
   sandbox.stub(ShellService, "isDefaultBrowser").returns(true);
+  sandbox.stub(ClientEnvironmentBase, "os").get(() => OS_WITHOUT_PIN_PROMPT);
 
   await clearHistoryAndBookmarks();
 
@@ -157,6 +174,39 @@ add_task(async function test_aboutwelcome_mr_template_easy_setup_needs_pin() {
   await popPrefs();
   sandbox.restore();
 });
+
+/**
+ * Test MR template easy setup content - Browser is not pinned, not set as
+ * default, and Windows will show its own OS-level pin consent prompt. The
+ * pin checkbox should be suppressed (PIN_FIREFOX_TASKBAR_WIN_OS_PROMPT
+ * silently pins instead) but the default-browser checkbox should still show.
+ */
+add_task(
+  async function test_aboutwelcome_mr_template_easy_setup_win_os_pin_prompt() {
+    const sandbox = sinon.createSandbox();
+    await pushPrefs(["browser.shell.checkDefaultBrowser", true]);
+    sandbox.stub(ShellService, "doesAppNeedPin").returns(true);
+    sandbox.stub(ShellService, "isDefaultBrowser").returns(false);
+    sandbox.stub(ClientEnvironmentBase, "os").get(() => OS_WITH_WIN_PIN_PROMPT);
+
+    await clearHistoryAndBookmarks();
+
+    const { browser, cleanup } = await openMRAboutWelcome();
+
+    await test_screen_content(
+      browser,
+      "renders easy setup with only default checkbox when Windows will show its own pin prompt",
+      //Expected selectors:
+      ["main.AW_EASY_SETUP", "#checkbox-2"],
+      //Unexpected selectors:
+      ["#checkbox-1"]
+    );
+
+    await cleanup();
+    await popPrefs();
+    sandbox.restore();
+  }
+);
 
 /**
  * Test MR template easy setup content - Browser is pinned and

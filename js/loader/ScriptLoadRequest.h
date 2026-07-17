@@ -5,10 +5,6 @@
 #ifndef js_loader_ScriptLoadRequest_h
 #define js_loader_ScriptLoadRequest_h
 
-#include "js/experimental/JSStencil.h"
-#include "js/RootingAPI.h"
-#include "js/SourceText.h"
-#include "js/TypeDecls.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/CacheExpirationTime.h"
 #include "mozilla/dom/SRIMetadata.h"
@@ -17,11 +13,17 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/SharedSubResourceCache.h"  // mozilla::SubResourceNetworkMetadataHolder
 #include "mozilla/StaticPrefs_dom.h"
+
+#include "LoadedScript.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIGlobalObject.h"
-#include "LoadedScript.h"
-#include "ScriptKind.h"
 #include "ScriptFetchOptions.h"
+#include "ScriptKind.h"
+
+#include "js/experimental/JSStencil.h"
+#include "js/RootingAPI.h"
+#include "js/SourceText.h"
+#include "js/TypeDecls.h"
 
 namespace mozilla::dom {
 

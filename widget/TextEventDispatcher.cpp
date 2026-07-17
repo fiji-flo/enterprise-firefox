@@ -7,7 +7,6 @@
 #include "IMEData.h"
 #include "PuppetWidget.h"
 #include "TextEvents.h"
-
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Utf16.h"
 #include "nsCharTraits.h"

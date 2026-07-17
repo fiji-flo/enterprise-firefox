@@ -16,7 +16,9 @@ import androidx.compose.ui.test.assertAny
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
@@ -45,6 +47,7 @@ import mozilla.components.compose.browser.toolbar.concept.BrowserToolbarTestTags
 import mozilla.components.compose.browser.toolbar.concept.BrowserToolbarTestTags.SEARCH_SELECTOR
 import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
+import org.mozilla.fenix.bookmarks.BookmarksTestTag.BOOKMARK_PLACEHOLDER
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
 import org.mozilla.fenix.helpers.AppAndSystemHelper.isPackageInstalled
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_QUICK_SEARCH
@@ -222,6 +225,25 @@ class SearchRobot(private val composeTestRule: ComposeTestRule) {
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    fun verifyBookmarkSearchSuggestionsAreDisplayed(vararg searchSuggestions: String) {
+        composeTestRule.waitForIdle()
+        for (searchSuggestion in searchSuggestions) {
+            Log.i(TAG, "verifyBookmarkSearchSuggestionsAreDisplayed: Trying to perform \"Close soft keyboard\" action.")
+            closeSoftKeyboard()
+            Log.i(TAG, "verifyBookmarkSearchSuggestionsAreDisplayed: Performed \"Close soft keyboard\" action.")
+            Log.i(TAG, "verifyBookmarkSearchSuggestionsAreDisplayed: Waiting for $waitingTime ms until $searchSuggestion search suggestion exists.")
+            composeTestRule.waitUntilAtLeastOneExists(
+                hasText(searchSuggestion, substring = true),
+                waitingTime,
+            )
+            composeTestRule
+                .onNode(hasText(searchSuggestion, substring = true))
+                .assertIsDisplayed()
+            Log.i(TAG, "verifyBookmarkSearchSuggestionsAreDisplayed: Verified $searchSuggestion search suggestion exists.")
+        }
+    }
+
     fun verifySuggestionsAreNotDisplayed(vararg searchSuggestions: String) {
         Log.i(TAG, "verifySuggestionsAreNotDisplayed: Waiting for compose test rule to be idle")
         this@SearchRobot.composeTestRule.waitForIdle()
@@ -234,6 +256,19 @@ class SearchRobot(private val composeTestRule: ComposeTestRule) {
                         .not(),
                 )
             Log.i(TAG, "verifySuggestionsAreNotDisplayed: Verified that there are no $searchSuggestion related search suggestions")
+        }
+    }
+
+    fun verifyBookmarkSuggestionsAreNotDisplayed(vararg searchSuggestions: String) {
+        Log.i(TAG, "verifyBookmarkSuggestionsAreNotDisplayed: Waiting for compose test rule to be idle")
+        this@SearchRobot.composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyBookmarkSuggestionsAreNotDisplayed: Waited for compose test rule to be idle")
+        for (searchSuggestion in searchSuggestions) {
+            Log.i(TAG, "verifyBookmarkSuggestionsAreNotDisplayed: Trying to verify that there are no $searchSuggestion related search suggestions")
+            this@SearchRobot.composeTestRule
+                .onNodeWithText(searchSuggestion)
+                .assertIsNotDisplayed()
+            Log.i(TAG, "verifyBookmarkSuggestionsAreNotDisplayed: Verified that there are no $searchSuggestion related search suggestions")
         }
     }
 
@@ -332,6 +367,14 @@ class SearchRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifySearchBarPlaceholder: Verification successful")
     }
 
+    fun verifyBookmarkSearchBarPlaceholder() {
+        Log.i(TAG, "verifyBookmarkSearchBarPlaceholder: Verify placeholder is shown")
+        this@SearchRobot.composeTestRule
+            .onNodeWithTag(BOOKMARK_PLACEHOLDER, useUnmergedTree = true)
+            .assertIsDisplayed()
+        Log.i(TAG, "verifyBookmarkSearchBarPlaceholder: Verification successful")
+    }
+
     @OptIn(ExperimentalTestApi::class)
     fun verifySearchShortcutList(vararg searchEngineNames: String, isSearchEngineDisplayed: Boolean) {
         for (searchEngineName in searchEngineNames) {
@@ -414,6 +457,27 @@ class SearchRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "typeSearch: Waiting for Compose to be idle")
         composeTestRule.waitForIdle()
         Log.i(TAG, "typeSearch: Compose is now idle")
+    }
+
+    fun typeBookmarkSearch(searchTerm: String) {
+        Log.i(TAG, "typeBookmarkSearch: Waiting for search box to appear")
+        composeTestRule.waitUntil(waitingTime) {
+            composeTestRule.onAllNodesWithTag(ADDRESSBAR_SEARCH_BOX)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        Log.i(TAG, "typeBookmarkSearch: Search box is ready")
+
+        Log.i(TAG, "typeBookmarkSearch: Performing text replacement with '$searchTerm'")
+        composeTestRule
+            .onNode(
+                hasSetTextAction() and hasAnyAncestor(hasTestTag(ADDRESSBAR_SEARCH_BOX)),
+            ).performTextReplacement(searchTerm)
+
+        Log.i(TAG, "typeBookmarkSearch: Text replacement done")
+
+        Log.i(TAG, "typeBookmarkSearch: Waiting for Compose to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "typeBookmarkSearch: Compose is now idle")
     }
 
     @OptIn(ExperimentalTestApi::class)

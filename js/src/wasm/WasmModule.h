@@ -17,9 +17,8 @@
 #ifndef wasm_module_h
 #define wasm_module_h
 
-#include "js/WasmModule.h"
 #include "js/BuildId.h"
-
+#include "js/WasmModule.h"
 #include "wasm/WasmCode.h"
 #include "wasm/WasmException.h"
 #include "wasm/WasmJS.h"
@@ -162,9 +161,9 @@ class Module : public JS::WasmModule {
 
   // Instantiate this module with the given imports:
 
-  bool instantiate(JSContext* cx, ImportValues& imports,
-                   HandleObject instanceProto,
-                   MutableHandle<WasmInstanceObject*> instanceObj) const;
+  [[nodiscard]] bool instantiate(
+      JSContext* cx, ImportValues& imports, HandleObject instanceProto,
+      MutableHandle<WasmInstanceObject*> instanceObj) const;
 
   // Tier-2 compilation may be initiated after the Module is constructed at
   // most once. When tier-2 compilation completes, ModuleGenerator calls

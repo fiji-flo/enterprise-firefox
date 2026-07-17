@@ -331,10 +331,6 @@ notes = "Upstream project which we pin."
 audit-as-crates-io = true
 notes = "Upstream project which we pin."
 
-[policy.wgpu-core-deps-windows-linux-android]
-audit-as-crates-io = true
-notes = "Upstream project which we pin."
-
 [policy.wgpu-hal]
 audit-as-crates-io = true
 notes = "Upstream project which we pin."

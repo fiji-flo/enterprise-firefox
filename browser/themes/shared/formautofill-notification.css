@@ -96,6 +96,12 @@
   text-decoration: line-through;
 }
 
+.address-capture-img-address,
+.address-capture-img-email {
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
 .address-capture-img-address {
   list-style-image: url("chrome://browser/skin/formautofill/icon-capture-address-fields.svg");
 }

@@ -24,6 +24,8 @@
     <string name="history_search_hint">Search history</string>
     <!-- Placeholder text shown in search bar when using bookmarks search -->
     <string name="bookmark_search_hint">Search bookmarks</string>
+    <!-- Content description for the toolbar back button while searching bookmarks -->
+    <string name="bookmark_close_search_description">Go back and close search</string>
     <!-- Placeholder text shown in search bar when using tabs search -->
     <string name="tab_search_hint">Search tabs</string>
     <!-- Placeholder text shown in the search bar when using application search engines -->
@@ -1966,6 +1968,10 @@
     <string name="bookmark_select_folder_new_folder_button_title">New folder</string>
     <!-- Bookmark snackbar message for moving a single item. %1$s is the title of the item being moved and %2$s is the new parent folder of the bookmark -->
     <string name="bookmark_moved_single_item">Moved %1$s to %2$s</string>
+    <!-- Text for bookmark search page when there are no results. -->
+    <string name="bookmark_no_search_results">No matches found.</string>
+    <!-- Additional text for bookmark search page when there are no results. -->
+    <string name="bookmark_no_search_results_additional_text">Try another search!</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

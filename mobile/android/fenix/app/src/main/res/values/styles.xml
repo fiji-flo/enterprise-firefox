@@ -4,7 +4,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="SplashScreenThemeBase" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="windowSplashScreenBackground">@color/fx_mobile_splashscreen_background</item>
         <item name="postSplashScreenTheme">@style/NormalTheme</item>
         <item name="windowSplashScreenAnimationDuration">12000</item>
@@ -169,6 +169,12 @@
         <item name="mozac_ic_private_mode_circle_fill_icon_color">@color/fx_mobile_on_surface</item>
         <item name="mozac_ic_shield_slash_bg_fill_critical">?attr/colorOnSurface</item>
         <item name="mozac_ic_shield_slash_fill_critical">?attr/colorError</item>
+        <item name="mozac_ic_extensions_warning_bg_fill_critical">?attr/colorOnSurfaceVariant</item>
+        <item name="mozac_ic_extensions_warning_fill_critical">?attr/colorError</item>
+        <item name="mozac_ic_avatar_warning_bg_fill_critical">?attr/colorOnSurfaceVariant</item>
+        <item name="mozac_ic_avatar_warning_fill_critical">?attr/colorError</item>
+        <item name="mozac_ic_lock_slash_bg_fill_critical">?attr/colorOnSurfaceVariant</item>
+        <item name="mozac_ic_lock_slash_fill_critical">?attr/colorError</item>
 
         <item name="tabCounterTintColor">?attr/colorOnSurface</item>
     </style>
@@ -451,6 +457,12 @@
         <item name="mozac_ic_private_mode_circle_fill_icon_color">@color/fx_mobile_private_layer_color_2</item>
         <item name="mozac_ic_shield_slash_bg_fill_critical">?attr/colorOnSurface</item>
         <item name="mozac_ic_shield_slash_fill_critical">?attr/colorError</item>
+        <item name="mozac_ic_extensions_warning_bg_fill_critical">?attr/colorOnSurfaceVariant</item>
+        <item name="mozac_ic_extensions_warning_fill_critical">?attr/colorError</item>
+        <item name="mozac_ic_avatar_warning_bg_fill_critical">?attr/colorOnSurfaceVariant</item>
+        <item name="mozac_ic_avatar_warning_fill_critical">?attr/colorError</item>
+        <item name="mozac_ic_lock_slash_bg_fill_critical">?attr/colorOnSurfaceVariant</item>
+        <item name="mozac_ic_lock_slash_fill_critical">?attr/colorError</item>
 
         <item name="tabCounterTintColor">?attr/colorOnSurface</item>
     </style>

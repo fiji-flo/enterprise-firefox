@@ -157,10 +157,6 @@ export class UrlbarProviderUnitConversion extends UrlbarProvider {
   }
 
   onEngagement(queryContext, controller, details) {
-    let { element } = details;
-    const { textContent } = element.querySelector(
-      ".urlbarView-dynamic-unitConversion-output"
-    );
-    lazy.ClipboardHelper.copyString(textContent);
+    lazy.ClipboardHelper.copyString(details.result.payload.output);
   }
 }

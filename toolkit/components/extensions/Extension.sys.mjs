@@ -3412,7 +3412,7 @@ export class Extension extends ExtensionData {
   /** @type {Map<string, Map<string, any>>} */
   persistentListeners;
 
-  /** @type {import("ExtensionShortcuts.sys.mjs").ExtensionShortcuts} */
+  /** @type {import("./ExtensionShortcuts.sys.mjs").ExtensionShortcuts} */
   shortcuts;
 
   /**

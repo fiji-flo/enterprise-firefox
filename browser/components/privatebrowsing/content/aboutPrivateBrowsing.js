@@ -272,6 +272,7 @@ function renderLegacyPromo({
   // Only make promo section visible after adding content
   // and translations to prevent layout shifting in page
   container.classList.add("promo-visible");
+  container.hidden = false;
   return true;
 }
 

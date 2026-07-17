@@ -30,7 +30,7 @@ panel-list {
   @media (not (forced-colors)) and (not -moz-pref("browser.nova.enabled")) {
     --panel-list-background-color: light-dark(color-mix(in srgb, var(--color-violet-30) 5%, white), var(--color-violet-110));
     --panel-list-border-color: light-dark(var(--color-purple-20), var(--color-gray-70));
-    --panel-list-color: light-dark(var(--color-violet-110), var(--color-violet-0));
+    --panel-list-text-color: light-dark(var(--color-violet-110), var(--color-violet-0));
     --button-background-color-hover: light-dark(var(--color-violet-0), var(--color-violet-100));
   }
 }
@@ -51,7 +51,7 @@ panel-list {
 
     @media not (forced-colors) {
       --panel-list-border-color: light-dark(var(--color-violet-desaturated-20), var(--color-violet-desaturated-50));
-      --panel-list-color: light-dark(var(--color-violet-90), var(--color-gray-0));
+      --panel-list-text-color: light-dark(var(--color-violet-90), var(--color-gray-0));
       --panel-section-header-color: light-dark(
         color-mix(in srgb, var(--color-violet-desaturated-90) 70%, transparent),
         color-mix(in srgb, var(--color-violet-desaturated-0) 70%, transparent)

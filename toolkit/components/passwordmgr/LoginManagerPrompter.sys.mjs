@@ -592,6 +592,7 @@ export class LoginManagerPrompter {
     const options = Object.assign(
       {
         timeout: Date.now() + timeoutMs,
+        autofocus: true,
         persistWhileVisible: true,
         passwordNotificationType: type,
         hideClose: true,

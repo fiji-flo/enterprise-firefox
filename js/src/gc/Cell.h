@@ -691,11 +691,11 @@ class alignas(gc::CellAlignBytes) CellWithLengthAndFlags : public Cell {
   }
 
 #if JS_GC_CONCURRENT_MARKING
-  uintptr_t headerFlagsFieldForTracing() const { return headerFlagsField(); }
-#else
   uintptr_t headerFlagsFieldForTracing() const {
     return headerFlagsFieldAtomic();
   }
+#else
+  uintptr_t headerFlagsFieldForTracing() const { return headerFlagsField(); }
 #endif
 
   void setHeaderFlagBit(uint32_t flag) {

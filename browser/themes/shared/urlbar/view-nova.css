@@ -232,8 +232,19 @@
 @media screen and (min-height: 600px) {
   /* Enable wrapping when the window is narrow (the "wrap" attribute, set in JS)
      but not too short, since wrapping in that case would cause fewer rows to be
-     shown. Wrap the URL under the title and other no-wrap elements. */
-  .urlbarView-results[wrap] > .urlbarView-row[has-url] > .urlbarView-row-inner > .urlbarView-row-body > .urlbarView-row-body-top {
+     shown. Wrap the URL under the title and other no-wrap elements.
+
+     Switch-to-tab rows are excluded because their URL is collapsed, which would
+     leave an empty second row and misplace the chiclet. The exception is when
+     `action-override` is active: then the chiclet is hidden and the URL is
+     shown, so it should wrap under the title like other rows. */
+  .urlbarView-results[wrap] > .urlbarView-row[has-url]:not([type="switchtab"]) > .urlbarView-row-inner > .urlbarView-row-body > .urlbarView-row-body-top,
+  .urlbarView[action-override]
+    .urlbarView-results[wrap]
+    > .urlbarView-row[has-url][type="switchtab"]
+    > .urlbarView-row-inner
+    > .urlbarView-row-body
+    > .urlbarView-row-body-top {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 0;
     grid-template-areas:

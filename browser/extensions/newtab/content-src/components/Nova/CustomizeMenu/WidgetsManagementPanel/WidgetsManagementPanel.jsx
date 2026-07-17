@@ -232,7 +232,7 @@ function WidgetsManagementPanel({
                     ontoggle={onToggleWidget}
                     data-preference="widgets.crossword.enabled"
                     data-event-source="WIDGET_CROSSWORD"
-                    data-l10n-id="newtab-crossword-widget-toggle"
+                    label="Crossword"
                   ></moz-toggle>
                 </div>
               )}

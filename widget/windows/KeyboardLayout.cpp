@@ -4,17 +4,25 @@
 
 #include "KeyboardLayout.h"
 
+#include <windows.h>
+#include <winnls.h>
+#include <winuser.h>
+
+#include <algorithm>
+
+#include "WidgetUtils.h"
+#include "WinUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Logging.h"
-#include "mozilla/MouseEvents.h"
 #include "mozilla/MiscEvents.h"
+#include "mozilla/MouseEvents.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TextEvents.h"
-#include "mozilla/widget/WinRegistry.h"
 #include "mozilla/Utf16.h"
-
+#include "mozilla/widget/WinRegistry.h"
+#include "npapi.h"
 #include "nsExceptionHandler.h"
 #include "nsGkAtoms.h"
 #include "nsIUserIdleServiceInternal.h"
@@ -25,16 +33,6 @@
 #include "nsTArray.h"
 #include "nsUnicharUtils.h"
 #include "nsWindowDbg.h"
-
-#include "WidgetUtils.h"
-#include "WinUtils.h"
-
-#include "npapi.h"
-
-#include <windows.h>
-#include <winnls.h>
-#include <winuser.h>
-#include <algorithm>
 
 #ifndef WINABLEAPI
 #  include <winable.h>

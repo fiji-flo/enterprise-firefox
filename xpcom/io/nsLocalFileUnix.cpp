@@ -15,7 +15,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FilePreferences.h"
@@ -58,7 +57,6 @@
 #  include <Carbon/Carbon.h>
 
 #  include "CocoaFileUtils.h"
-#  include "mozilla/Base64.h"
 
 static nsresult MacErrorMapper(OSErr inErr);
 #endif

@@ -5,10 +5,10 @@
 @import url("chrome://browser/skin/tabbrowser/tab.tokens.css");
 
 #fxview-tab-row-secondary-button {
-  display: none;
+  visibility: hidden;
 
   :host(:hover) & {
-    display: inline;
+    visibility: visible;
   }
 }
 

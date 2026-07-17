@@ -8,15 +8,13 @@
 #include <oleidl.h>
 #include <shldisp.h>
 
-#include "mozilla/glue/WinUtils.h"
 #include "mozilla/LazyIdleThread.h"
-#include "nsCOMPtr.h"
-#include "nsString.h"
-#include "nsIFile.h"
-#include "nsIURI.h"
-#include "nsIStreamListener.h"
-#include "nsIChannel.h"
+#include "mozilla/glue/WinUtils.h"
 #include "nsCOMArray.h"
+#include "nsCOMPtr.h"
+#include "nsIChannel.h"
+#include "nsIFile.h"
+#include "nsIStreamListener.h"
 #include "nsITimer.h"
 #include "nsIURI.h"
 #include "nsString.h"

@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 6.1.291
- * pdfjsBuild = 54af14598
+ * pdfjsVersion = 6.1.318
+ * pdfjsBuild = c661ba140
  */
 
 ;// ./src/shared/util.js
@@ -2001,7 +2001,7 @@ class FloatingToolbar {
 }
 
 ;// ./src/shared/internal_evt.js
-const INTERNAL_EVT = "e346fd1d-1013-4234-a46a-b4cc7e956840";
+const INTERNAL_EVT = "a3b00899-c0a2-439c-bd67-55750f5907e1";
 const internalOpt = Object.freeze({
   internal: INTERNAL_EVT
 });
@@ -2625,7 +2625,7 @@ class AnnotationEditorUIManager {
       capture: true,
       signal
     });
-    window.addEventListener("beforeunload", this.#beforeUnload.bind(this), {
+    window.addEventListener("beforeunload", this.endCurrentEditing.bind(this), {
       capture: true,
       signal
     });
@@ -2981,7 +2981,7 @@ class AnnotationEditorUIManager {
   commentSelection(methodOfCreation = "") {
     this.highlightSelection(methodOfCreation, true);
   }
-  #beforeUnload(e) {
+  endCurrentEditing() {
     this.commitOrRemove();
     this.currentLayer?.endDrawingSession(false);
   }
@@ -14216,7 +14216,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "6.1.291",
+    apiVersion: "6.1.318",
     data,
     password,
     disableAutoFetch,
@@ -15877,8 +15877,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "6.1.291";
-const build = "54af14598";
+const version = "6.1.318";
+const build = "c661ba140";
 
 ;// ./src/display/editor/color_picker.js
 

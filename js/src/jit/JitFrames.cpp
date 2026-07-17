@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "jit/JitFrames-inl.h"
-
 #include "mozilla/ScopeExit.h"
 
 #include <algorithm>
@@ -36,6 +34,7 @@
 
 #include "builtin/Sorting-inl.h"
 #include "debugger/DebugAPI-inl.h"
+#include "jit/JitFrames-inl.h"
 #include "jit/JSJitFrameIter-inl.h"
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSScript-inl.h"
@@ -1813,14 +1812,13 @@ Value SnapshotIterator::allocationValue(const RValueAllocation& alloc,
       return NullValue();
 
     case RValueAllocation::DOUBLE_REG:
-      return JS::CanonicalizedDoubleValue(fromRegister<double>(alloc.fpuReg()));
+      return DoubleValue(fromRegister<double>(alloc.fpuReg()));
 
     case RValueAllocation::FLOAT32_REG:
-      return JS::CanonicalizedDoubleValue(fromRegister<float>(alloc.fpuReg()));
+      return DoubleValue(fromRegister<float>(alloc.fpuReg()));
 
     case RValueAllocation::FLOAT32_STACK:
-      return JS::CanonicalizedDoubleValue(
-          ReadFrameFloat32Slot(fp_, alloc.stackOffset()));
+      return DoubleValue(ReadFrameFloat32Slot(fp_, alloc.stackOffset()));
 
     case RValueAllocation::TYPED_REG:
       return FromTypedPayload(alloc.knownType(), fromRegister(alloc.reg2()));
@@ -1828,8 +1826,7 @@ Value SnapshotIterator::allocationValue(const RValueAllocation& alloc,
     case RValueAllocation::TYPED_STACK: {
       switch (alloc.knownType()) {
         case JSVAL_TYPE_DOUBLE:
-          return JS::CanonicalizedDoubleValue(
-              ReadFrameDoubleSlot(fp_, alloc.stackOffset2()));
+          return DoubleValue(ReadFrameDoubleSlot(fp_, alloc.stackOffset2()));
         case JSVAL_TYPE_INT32:
           return Int32Value(ReadFrameInt32Slot(fp_, alloc.stackOffset2()));
         case JSVAL_TYPE_BOOLEAN:

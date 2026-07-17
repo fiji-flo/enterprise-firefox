@@ -14,7 +14,6 @@
  */
 
 #include "builtin/Date.h"
-#include "js/Date.h"
 
 #include "mozilla/Atomics.h"
 #include "mozilla/Casting.h"
@@ -30,6 +29,8 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "jstypes.h"
+
+#include "js/Date.h"
 
 #if JS_HAS_INTL_API
 #  include "builtin/intl/DateTimeFormat.h"

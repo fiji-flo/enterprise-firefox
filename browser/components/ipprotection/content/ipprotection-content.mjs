@@ -284,6 +284,8 @@ export default class IPProtectionContentElement extends MozLitElement {
         .hasExclusion=${hasExclusion}
         .isActivating=${this.state.isActivating}
         .showLocationButtonBadge=${this.state.showLocationButtonBadge}
+        .isPremium=${ifDefined(this.state.isPremium)}
+        .hasUpgraded=${this.state.hasUpgraded}
       ></ipprotection-status-card>
     `;
   }

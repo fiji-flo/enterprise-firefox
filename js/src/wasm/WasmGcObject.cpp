@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "wasm/WasmGcObject-inl.h"
-
 #include "mozilla/DebugOnly.h"
 
 #include "gc/Tracer.h"
@@ -28,6 +26,7 @@
 #include "gc/GCContext-inl.h"  // GCContext::removeCellMemory
 #include "gc/ObjectKind-inl.h"
 #include "vm/JSContext-inl.h"
+#include "wasm/WasmGcObject-inl.h"
 
 using namespace js;
 using namespace wasm;

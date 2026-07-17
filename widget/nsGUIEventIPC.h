@@ -7,14 +7,12 @@
 
 #include <fmt/format.h>
 
+#include "InputData.h"
 #include "ipc/EnumSerializer.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ContentCache.h"
 #include "mozilla/GfxMessageUtils.h"
-#include "mozilla/dom/Touch.h"
-#include "mozilla/ipc/URIUtils.h"  // for ParamTraits<nsIURI*>
-#include "mozilla/layers/LayersMessageUtils.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
@@ -22,7 +20,9 @@
 #include "mozilla/TouchEvents.h"
 #include "mozilla/WheelHandlingHelper.h"  // for WheelDeltaAdjustmentStrategy
 #include "mozilla/dom/Selection.h"
-#include "InputData.h"
+#include "mozilla/dom/Touch.h"
+#include "mozilla/ipc/URIUtils.h"  // for ParamTraits<nsIURI*>
+#include "mozilla/layers/LayersMessageUtils.h"
 
 namespace IPC {
 

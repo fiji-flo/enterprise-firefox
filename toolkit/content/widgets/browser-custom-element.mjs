@@ -632,7 +632,9 @@ export class MozBrowser extends MozElements.MozElementMixin(XULFrameElement) {
 
   get browsingContext() {
     if (this.frameLoader) {
-      return this.frameLoader.browsingContext;
+      return /** @type {CanonicalBrowsingContext} */ (
+        this.frameLoader.browsingContext
+      );
     }
     return null;
   }

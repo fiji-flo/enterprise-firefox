@@ -511,7 +511,7 @@ private fun WebExtensionMenuItemPreview() {
             // Web extensions may have multi-colored assets with no tint.
             WebExtensionMenuItem(
                 label = "colorful icon",
-                iconPainter = painterResource(iconsR.drawable.mozac_ic_shield_slash_critical_24),
+                iconPainter = painterResource(iconsR.drawable.mozac_ic_shield_slash_multicolor_24),
                 iconTint = Color.Unspecified,
                 enabled = true,
                 badgeText = "17",

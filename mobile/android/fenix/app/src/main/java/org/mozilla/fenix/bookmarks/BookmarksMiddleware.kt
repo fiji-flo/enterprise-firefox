@@ -6,6 +6,8 @@ package org.mozilla.fenix.bookmarks
 
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
@@ -26,6 +28,11 @@ import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 
 private const val WARN_OPEN_ALL_SIZE = 15
+
+private const val SEARCH_LIMIT = 75
+
+// Add a search delay to prevent database fetches as user is still typing
+private const val SEARCH_DELAY_MS = 250L
 
 /**
  * A middleware for handling side-effects in response to [BookmarksAction]s.
@@ -75,6 +82,8 @@ internal class BookmarksMiddleware(
     private val importEvents: () -> Flow<FenixImporterEvent>,
     private val lifecycleScope: CoroutineScope,
 ) : Middleware<BookmarksState, BookmarksAction> {
+
+    private var searchJob: Job? = null
 
     @Suppress("LongMethod", "CognitiveComplexMethod", "CyclomaticComplexMethod")
     override fun invoke(
@@ -386,9 +395,36 @@ internal class BookmarksMiddleware(
             is ImportAction.ImportFailed -> {
                 store.dispatch(SnackbarAction.ImportFailed)
             }
+            is SearchAction.SearchQueryChanged -> {
+                searchJob?.cancel()
+                searchJob = lifecycleScope.launch {
+                    if (action.query.isEmpty()) {
+                        store.dispatch(SearchAction.ReceivedSearchResults(listOf()))
+                    } else {
+                        delay(SEARCH_DELAY_MS)
+                        val searchResults = bookmarksStorage.searchBookmarks(
+                            query = action.query,
+                            limit = SEARCH_LIMIT,
+                        ).getOrNull()
+                        val bookmarkItems = searchResults?.mapNotNull {
+                            Result.runCatching { it.toBookmarkItem() }.getOrNull()
+                        } ?: listOf()
+
+                        ensureActive()
+
+                        store.dispatch(SearchAction.ReceivedSearchResults(bookmarkItems))
+                    }
+                }
+            }
+            is SearchAction.SearchDismissed -> {
+                searchJob?.cancel()
+                store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
+            }
+
             ImportAction.ImportStarted,
             ImportAction.ImportCancelled,
-            SearchClicked,
+            SearchAction.SearchClicked,
+            is SearchAction.ReceivedSearchResults,
             RootOverflowMenuClicked,
             RootOverflowMenuDismissed,
             SelectFolderAction.SearchClicked,
@@ -403,7 +439,6 @@ internal class BookmarksMiddleware(
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarksLoaded,
-            is SearchDismissed,
             is EditFolderAction.TitleChanged,
             is AddFolderAction.FolderCreated,
             is AddFolderAction.TitleChanged,
@@ -569,29 +604,27 @@ internal class BookmarksMiddleware(
 
     private suspend fun BookmarkNode.childItems(): List<BookmarkItem> = this.children
         ?.mapNotNull { node ->
-            Result.runCatching {
-                when (node.type) {
-                    BookmarkNodeType.ITEM -> BookmarkItem.Bookmark(
-                        url = node.url!!,
-                        title = node.title ?: node.url ?: "",
-                        previewImageUrl = node.url!!,
-                        dateAdded = node.dateAdded,
-                        guid = node.guid,
-                        position = node.position,
-                    )
-
-                    BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
-                        title = node.title ?: "",
-                        dateAdded = node.dateAdded,
-                        guid = node.guid,
-                        position = node.position,
-                        nestedItemCount = bookmarksStorage.countBookmarksInTrees(listOf(node.guid)).toInt(),
-                    )
-
-                    BookmarkNodeType.SEPARATOR -> null
-                }
-            }.getOrNull()
+            Result.runCatching { node.toBookmarkItem() }.getOrNull()
         } ?: listOf()
+
+    private suspend fun BookmarkNode.toBookmarkItem(): BookmarkItem? = when (this.type) {
+        BookmarkNodeType.ITEM -> BookmarkItem.Bookmark(
+            url = url!!,
+            title = title ?: url ?: "",
+            previewImageUrl = url!!,
+            guid = guid,
+            position = position,
+            dateAdded = dateAdded,
+        )
+        BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
+            title = title ?: "",
+            guid = guid,
+            position = position,
+            dateAdded = dateAdded,
+            nestedItemCount = bookmarksStorage.countBookmarksInTrees(listOf(guid)).toInt(),
+        )
+        BookmarkNodeType.SEPARATOR -> null
+    }
 
     private suspend fun openSelectedInTabs(
         preReductionState: BookmarksState,

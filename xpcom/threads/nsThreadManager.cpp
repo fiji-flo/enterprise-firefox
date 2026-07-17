@@ -447,12 +447,12 @@ void nsThreadManager::ShutdownMainThread() {
   // that PutEvent cannot succeed if the event would be left in the main thread
   // queue after our final call to NS_ProcessPendingEvents.
   // See comments in `nsThread::ThreadFunc` for a more detailed explanation.
-  while (true) {
-    if (mMainThread->mEvents->ShutdownIfNoPendingEvents()) {
-      break;
-    }
+  //
+  // Always process at least once before dooming the queue to ensure any
+  // pending microtask processing takes place.
+  do {
     NS_ProcessPendingEvents(mMainThread);
-  }
+  } while (!mMainThread->mEvents->ShutdownIfNoPendingEvents());
 
   // Normally thread shutdown clears the observer for the thread, but since the
   // main thread is special we do it manually here after we're sure all events

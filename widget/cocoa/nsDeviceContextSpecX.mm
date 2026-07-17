@@ -5,29 +5,29 @@
 #include "nsDeviceContextSpecX.h"
 
 #import <Cocoa/Cocoa.h>
-#include "mozilla/gfx/PrintPromise.h"
 #include <CoreFoundation/CoreFoundation.h>
 #include <unistd.h>
+#include "mozilla/gfx/PrintPromise.h"
 
 #ifdef MOZ_ENABLE_SKIA_PDF
 #  include "mozilla/gfx/PrintTargetSkPDF.h"
 #endif
-#include "mozilla/gfx/PrintTargetCG.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/gfx/PrintTargetCG.h"
 #include "mozilla/glean/PrintingMetrics.h"
 
 #include "AppleUtils.h"
-#include "nsCocoaUtils.h"
 #include "nsCRT.h"
 #include "nsCUPSShim.h"
+#include "nsCocoaUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsILocalFileMac.h"
 #include "nsIOutputStream.h"
 #include "nsPaper.h"
-#include "nsPrinterListCUPS.h"
 #include "nsPrintSettingsX.h"
+#include "nsPrinterListCUPS.h"
 #include "nsQueryObject.h"
 #include "prenv.h"
 

@@ -56,6 +56,10 @@ async function makeValidators() {
   );
 
   const messageValidators = {
+    action_only: await schemaValidatorFor(
+      "resource://testing-common/ActionOnlyMessage.schema.json",
+      { common: true }
+    ),
     bookmarks_bar_button: await schemaValidatorFor(
       "resource://testing-common/BookmarksBarButton.schema.json",
       { common: true }

@@ -6,13 +6,13 @@
 #define nsBaseClipboard_h_
 
 #include "mozilla/Array.h"
-#include "mozilla/dom/PContent.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MoveOnlyFunction.h"
 #include "mozilla/Result.h"
+#include "mozilla/dom/PContent.h"
+#include "nsCOMPtr.h"
 #include "nsIClipboard.h"
 #include "nsITransferable.h"
-#include "nsCOMPtr.h"
 
 extern mozilla::LazyLogModule gWidgetClipboardLog;
 #define MOZ_CLIPBOARD_LOG(...) \

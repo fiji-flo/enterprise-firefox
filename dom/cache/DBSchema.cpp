@@ -2334,7 +2334,7 @@ Result<nsID, nsresult> ExtractId(mozIStorageStatement& aState, uint32_t aPos) {
                                                    GetUTF8String, aPos));
 
   nsID id;
-  QM_TRY(OkIf(id.Parse(idString.get())), Err(NS_ERROR_UNEXPECTED));
+  QM_TRY(OkIf(id.Parse(idString)), Err(NS_ERROR_UNEXPECTED));
 
   return id;
 }
@@ -3178,7 +3178,7 @@ class BodyDiskSizeGetterFunction final : public mozIStorageFunction {
                                                      GetUTF8String, 0));
 
     nsID id{};
-    QM_TRY(OkIf(id.Parse(idString.get())), Err(NS_ERROR_UNEXPECTED));
+    QM_TRY(OkIf(id.Parse(idString)), Err(NS_ERROR_UNEXPECTED));
 
     QM_TRY_INSPECT(
         const auto& fileSize,

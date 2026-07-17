@@ -73,8 +73,8 @@ add_task(async function () {
   Assert.ok(view.selectedElement.isConnected, "selectedElement is connected");
   Assert.equal(view.selectedElementIndex, 0, "selectedElementIndex is correct");
   Assert.deepEqual(
-    view.getResultFromElement(view.selectedElement),
-    result,
+    view.getResultFromElement(view.selectedElement).payload,
+    result.payload,
     "result is the expected one"
   );
   Assert.notEqual(

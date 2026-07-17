@@ -1043,9 +1043,14 @@ already_AddRefed<SourceSurface> NVImage::GetAsSourceSurface() {
   // logics in PlanarYCbCrImage::GetAsSourceSurface().
   auto ySize = mData.YDataSize();
   auto cbcrSize = mData.CbCrDataSize();
-  const int bufferLength =
-      ySize.height * mData.mYStride + cbcrSize.height * cbcrSize.width * 2;
-  auto buffer = MakeUnique<uint8_t[]>(bufferLength);
+  auto bufferLength = CheckedInt32(ySize.height) * mData.mYStride +
+                      CheckedInt32(cbcrSize.height) * cbcrSize.width * 2;
+  if (!bufferLength.isValid()) {
+    NS_ERROR("Image buffer length exceeds integer limits.");
+    return nullptr;
+  }
+
+  auto buffer = MakeUnique<uint8_t[]>(bufferLength.value());
 
   Data aData = mData;
   aData.mCbCrStride = cbcrSize.width;
@@ -1118,9 +1123,15 @@ nsresult NVImage::BuildSurfaceDescriptorBuffer(
 
   RefPtr<gfx::DataSourceSurface> sourceSurface = mSourceSurface.Get();
   if (!sourceSurface) {
-    const int bufferLength =
-        ySize.height * mData.mYStride + cbcrSize.height * cbcrSize.width * 2;
-    buffer = MakeUnique<uint8_t[]>(bufferLength);
+    auto bufferLength = CheckedInt32(ySize.height) * mData.mYStride +
+                        CheckedInt32(cbcrSize.height) * cbcrSize.width * 2;
+
+    if (!bufferLength.isValid()) {
+      NS_ERROR("Image buffer length exceeds integer limits.");
+      return NS_ERROR_FAILURE;
+    }
+
+    buffer = MakeUnique<uint8_t[]>(bufferLength.value());
     aData.mYChannel = buffer.get();
 
     if (mData.mCbChannel < mData.mCrChannel) {  // NV12

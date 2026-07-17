@@ -153,6 +153,13 @@ class HookSqliteMutex {
     wrapped_mutex_methods.xMutexEnter = wrapped_MutexEnter;
     wrapped_mutex_methods.xMutexTry = wrapped_MutexTry;
     do_check_ok(::sqlite3_config(SQLITE_CONFIG_MUTEX, &wrapped_mutex_methods));
+    // Re-initialize SQLite (with the wrapped mutex methods now installed) so
+    // the test body doesn't run against a shut-down mutex subsystem. Opening a
+    // connection normally re-initializes, but the encryption open-path steps
+    // the process-wide keystore connection (GetEncryptionKey) before that,
+    // which asserts winMutex_isInit==1 on Windows.
+    mozilla::AutoSQLiteLifetime::Init();
+    do_check_ok(mozilla::AutoSQLiteLifetime::getInitResult());
   }
 
   ~HookSqliteMutex() {

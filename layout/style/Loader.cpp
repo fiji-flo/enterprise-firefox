@@ -1561,7 +1561,8 @@ void Loader::AddPerformanceEntryForCachedSheet(SheetLoadData& aLoadData) {
       start, end, mDocument);
 }
 
-void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus) {
+void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus,
+                             bool aCanFireEvents) {
   aData.mSheet->PropagateUseCountersTo(mDocument);
   if (MaybePutIntoLoadsPerformed(aData) &&
       aData.mShouldEmulateNotificationsForCachedLoad) {
@@ -1608,12 +1609,13 @@ void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus) {
            obs.get(), &aData, aData.ShouldDefer()));
       obs->StyleSheetLoaded(aData.mSheet, aData.ShouldDefer(), aStatus);
     }
-
-    if (loadDispatcher) {
+  }
+  if (loadDispatcher) {
+    if (aCanFireEvents) {
       loadDispatcher->RunDOMEventWhenSafe();
+    } else {
+      loadDispatcher->PostDOMEvent();
     }
-  } else if (loadDispatcher) {
-    loadDispatcher->PostDOMEvent();
   }
 }
 

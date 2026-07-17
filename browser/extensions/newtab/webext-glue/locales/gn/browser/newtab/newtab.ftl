@@ -192,23 +192,38 @@ newtab-privacy-across-sites =
        *[other] Opaite tendaitápe { $count }
     }
 
+## Privacy widget — empty state
+
+# Shown when no trackers have been blocked yet today.
+newtab-privacy-empty = { -brand-short-name } ojoko tapykuehoita oikundaha aja. Ko’ápe ojehecháta.
+
 ## Privacy widget — informational messages
 ##
 ## Rotating "info" secondary messages. Each message has a body plus a matched
 ## "-cta" button label sharing the same id stem (the CTA button isn't rendered
 ## yet; the labels are authored so the pairing is ready).
 
+newtab-privacy-message-info-1 = { -brand-short-name } ojoko tapykuehoita ijehegui oikundaha aja.
 newtab-privacy-message-info-1-cta = Ehecha ñemo’ãrã
+newtab-privacy-message-info-2 = Tapykueho jejoko oipytyvõ ani hag̃ua mba’apohaguasu ohapykueho ñandutípe.
 newtab-privacy-message-info-2-cta = Ehecha ñemo’ãrã
+newtab-privacy-message-info-3 = Heta tenda oreko tapykuehoha, upévare mba’apohaguasu eike’ỹhague ohapykueho ñandutípe.
 newtab-privacy-message-info-3-cta = Ehecha ñemo’ãrã
+newtab-privacy-message-info-4 = Eiporavóvo { -brand-short-name } he’ise eiporavoha ñemo’ã ijypykue rupi.
 newtab-privacy-message-info-4-cta = Ehecha ñemo’ãrã
+newtab-privacy-message-info-5 = Umi tapykuehoha jokopyre he’ise sa’ive mba’apohaguasu nde rapykuehoha.
 newtab-privacy-message-info-5-cta = Ehecha ñemo’ãrã
+newtab-privacy-message-info-6 = Ereko ne mba’ekuaarã { -brand-short-name } ndive. Ore norovendéi, hákatu ambue kundahára ojapokuaa.
 newtab-privacy-message-info-6-cta = Eikuaave
 newtab-privacy-message-info-7 = Ehecha mba’e tapykuehoha { -brand-short-name } ojoko.
 newtab-privacy-message-info-7-cta = Ehecha ñemo’ãrã
+newtab-privacy-message-info-8 = Eikundahávo { -brand-short-name } ndive eykeko { -vendor-short-name } rembipota ojapóvo ñanduti iporãvéva.
 newtab-privacy-message-info-8-cta = Eikuaave
+newtab-privacy-message-info-9 = Ejapo { -brand-short-name } ne kundahára rehayhuvéva tekoñemi juajupyrépe g̃uarã.
 newtab-privacy-message-info-9-cta = Ejapo chugui yjypykuéva
+newtab-privacy-message-info-10 = Eñongatu ñe’ẽñemi { -brand-short-name }-pe eipuru hag̃ua jeike tekorosãme opaite hendápe.
 newtab-privacy-message-info-10-cta = Eho ñe’ẽñemíme
+newtab-privacy-message-info-11 = Eikuaa mba’éichapa { -brand-short-name } oipytyvõ ñekundaha ñemiverãme.
 newtab-privacy-message-info-11-cta = Eikuaave
 newtab-privacy-message-info-12-cta = Ehecha ñemo’ãrã
 newtab-privacy-message-info-13-cta = Ehecha ñemo’ãrã

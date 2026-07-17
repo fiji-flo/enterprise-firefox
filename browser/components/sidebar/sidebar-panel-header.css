@@ -21,7 +21,7 @@
   margin-block-end: var(--space-small);
 
   > h4 {
-    margin-block: var(--space-large);
+    margin-block: var(--sidebar-panel-header-heading-margin-block);
   }
 }
 

@@ -135,6 +135,7 @@ class TestInitializeVerticalTabs(MarionetteTestCase):
                 "tabbrowser-tabs",
                 "new-tab-button",
                 "alltabs-button",
+                "ai-window-toggle",
             ],
             msg="The tabstrip was populated with the expected defaults",
         )

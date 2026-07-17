@@ -115,6 +115,14 @@ add_task(async function acknowledgeFeedbackAndDismissal() {
     resultIndex: RESULT_INDEX,
   });
 
+  // The feedback acknowledgment is applied to the row content-side; on the
+  // message path it arrives asynchronously over the actor. Immediate in-process.
+  await BrowserTestUtils.waitForMutationCondition(
+    details.element.row,
+    { attributes: true, attributeFilter: ["feedback-acknowledgment"] },
+    () => details.element.row.hasAttribute("feedback-acknowledgment")
+  );
+
   Assert.equal(
     gTestProvider.commandCount[FEEDBACK_COMMAND],
     1,
@@ -274,11 +282,22 @@ async function doDismissTest({
 
   let resultCount = UrlbarTestUtils.getResultCount(window);
 
+  // On the message path the dismissal round-trips over the actor (the
+  // engagement runs parent-side, calls removeResult, and notifies back), so the
+  // row updates asynchronously. Await the removal notification; it fires
+  // synchronously on the in-process path.
+  let promiseRemoved = UrlbarTestUtils.promiseControllerNotification(
+    window,
+    "onQueryResultRemoved"
+  );
+
   // Click the command.
   await UrlbarTestUtils.openResultMenuAndClickItem(window, command, {
     resultIndex,
     openByMouse: true,
   });
+
+  await promiseRemoved;
 
   Assert.equal(
     gTestProvider.commandCount[command],
@@ -430,16 +449,18 @@ class TestProvider extends UrlbarTestUtils.TestProvider {
           controller.view.acknowledgeFeedback(details.result);
           break;
         case DISMISS_ONE_COMMAND:
-          details.result.acknowledgeDismissalL10n = {
-            id: "firefox-suggest-dismissal-acknowledgment-one",
-          };
-          controller.removeResult(details.result);
+          controller.removeResult(details.result, {
+            acknowledgeDismissalL10n: {
+              id: "firefox-suggest-dismissal-acknowledgment-one",
+            },
+          });
           break;
         case DISMISS_ALL_COMMAND:
-          details.result.acknowledgeDismissalL10n = {
-            id: "urlbar-result-dismissal-acknowledgment-all",
-          };
-          controller.removeResult(details.result);
+          controller.removeResult(details.result, {
+            acknowledgeDismissalL10n: {
+              id: "urlbar-result-dismissal-acknowledgment-all",
+            },
+          });
           break;
       }
     }

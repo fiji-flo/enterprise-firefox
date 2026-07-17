@@ -202,7 +202,8 @@
           "moz-src:///browser/components/tabbrowser/AsyncTabSwitcher.sys.mjs",
         OpenInTabsUtils:
           "moz-src:///browser/components/tabbrowser/OpenInTabsUtils.sys.mjs",
-        PictureInPicture: "resource://gre/modules/PictureInPicture.sys.mjs",
+        PictureInPicture:
+          "moz-src:///toolkit/components/pictureinpicture/PictureInPicture.sys.mjs",
         SmartTabGroupingManager:
           "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs",
         SponsorProtection:

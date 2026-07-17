@@ -110,15 +110,19 @@ class ProviderQuickActions extends ActionsProvider {
     return this.#actions.get(key);
   }
 
-  onPick(queryContext, controller, element) {
-    this.pickAction(queryContext, controller, element);
+  onPick(queryContext, controller, actionResult) {
+    this.pickAction(
+      queryContext,
+      controller,
+      actionResult.key,
+      actionResult.dataset.inputLength
+    );
   }
 
-  pickAction(queryContext, controller, element) {
-    let action = element.dataset.action;
-    let inputLength = Math.min(element.dataset.inputLength, 10);
-    Glean.urlbarQuickaction.picked[`${action}-${inputLength}`].add(1);
-    let options = this.#actions.get(action).onPick(queryContext, controller);
+  pickAction(queryContext, controller, key, inputLength) {
+    inputLength = Math.min(inputLength, 10);
+    Glean.urlbarQuickaction.picked[`${key}-${inputLength}`].add(1);
+    let options = this.#actions.get(key).onPick(queryContext, controller);
     if (options?.focusContent) {
       controller.browserWindow.gBrowser.selectedBrowser.focus();
     }

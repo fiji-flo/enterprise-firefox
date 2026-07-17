@@ -16,9 +16,12 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.filter
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnyChild
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasParent
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -1106,6 +1109,14 @@ abstract class BasePage(
                     composeRule.onNodeWithContentDescription(selector.value, substring = true)
                 } catch (_: Exception) {
                     Log.i("mozGetElement", "Compose node not found for content description: ${selector.value}"); null
+                }
+            }
+
+            SelectorStrategy.COMPOSE_EDITABLE_BY_ANCESTOR_TAG -> {
+                try {
+                    composeRule.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(selector.value)))
+                } catch (_: Exception) {
+                    Log.i("mozGetElement", "Editable compose node not found under tag: ${selector.value}"); null
                 }
             }
 

@@ -10,7 +10,6 @@
 #include "ContentChild.h"
 #include "GMPServiceChild.h"
 #include "GeckoProfiler.h"
-#include "Geolocation.h"
 #include "HandlerServiceChild.h"
 #include "ScrollingMetrics.h"
 #include "imgLoader.h"
@@ -23,6 +22,7 @@
 #include "mozilla/ClipboardReadRequestChild.h"
 #include "mozilla/Components.h"
 #include "mozilla/FOGIPC.h"
+#include "mozilla/GeolocationService.h"
 #include "mozilla/HangDetails.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/Logging.h"
@@ -2436,8 +2436,7 @@ mozilla::ipc::IPCResult ContentChild::RecvForceGlobalReflow(
 
 mozilla::ipc::IPCResult ContentChild::RecvGeolocationUpdate(
     nsIDOMGeoPosition* aPosition) {
-  RefPtr<nsGeolocationService> gs =
-      nsGeolocationService::GetGeolocationService();
+  RefPtr<GeolocationService> gs = GeolocationService::GetGeolocationService();
   if (!gs) {
     return IPC_OK();
   }
@@ -2447,8 +2446,7 @@ mozilla::ipc::IPCResult ContentChild::RecvGeolocationUpdate(
 
 mozilla::ipc::IPCResult ContentChild::RecvGeolocationError(
     const uint16_t& errorCode) {
-  RefPtr<nsGeolocationService> gs =
-      nsGeolocationService::GetGeolocationService();
+  RefPtr<GeolocationService> gs = GeolocationService::GetGeolocationService();
   if (!gs) {
     return IPC_OK();
   }

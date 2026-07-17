@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "builtin/MapObject-inl.h"
 #include "builtin/MapObject.h"
 
 #include "jsapi.h"
@@ -23,6 +22,7 @@
 #include "vm/SelfHosting.h"
 #include "vm/SymbolType.h"
 
+#include "builtin/MapObject-inl.h"
 #include "builtin/OrderedHashTableObject-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
@@ -45,8 +45,9 @@ static Value NormalizeDoubleValue(double d) {
     return Int32Value(i);
   }
 
-  // Normalize the sign bit of a NaN.
-  return JS::CanonicalizedDoubleValue(d);
+  // JS::Value can store NaN values with the sign bit set. Use JS::DoubleValue
+  // to ensure the canonical NaN is used.
+  return DoubleValue(d);
 }
 
 bool HashableValue::setValue(JSContext* cx, const Value& v) {

@@ -10083,12 +10083,34 @@ dialog:dir(rtl)::after {
   justify-content: space-between;
   margin-block-end: var(--space-xsmall);
 }
+.crossword-title-wrapper .crossword-badge-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  min-inline-size: 0;
+}
 .crossword-title-wrapper h3 {
   margin-block: 0;
   font-weight: var(--font-weight);
   font-size: var(--font-size-root);
 }
+.crossword-title-wrapper .crossword-new-badge {
+  flex: none;
+  background-color: var(--badge-background-color-filled);
+  border-radius: var(--badge-border-radius);
+  text-transform: uppercase;
+  --badge-padding-block: 1px;
+  --badge-padding-inline: var(--space-small);
+  --badge-background-color-filled: var(--color-green-40);
+  --badge-text-color: var(--badge-text-color-filled);
+  --badge-border-color: transparent;
+}
 
+@media (forced-colors: active) {
+  .crossword-new-badge {
+    --badge-background-color-filled: AccentColor;
+  }
+}
 .crossword-context-menu-wrapper {
   opacity: 0;
   pointer-events: none;
@@ -10110,6 +10132,7 @@ dialog:dir(rtl)::after {
 
 .crossword-frame {
   flex: 1;
+  min-block-size: 0;
   width: 100%;
   border: none;
   border-radius: var(--border-radius-medium);

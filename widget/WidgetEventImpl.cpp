@@ -10,7 +10,6 @@
 #include "TextEventDispatcher.h"
 #include "TextEvents.h"
 #include "TouchEvents.h"
-
 #include "mozilla/EventForwards.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/Maybe.h"
@@ -34,10 +33,10 @@
 #include "nsPrintfCString.h"
 
 #if defined(XP_WIN)
+#  include "WinUtils.h"
+#  include "npapi.h"
 #  include "windef.h"
 #  include "winnetwk.h"
-#  include "npapi.h"
-#  include "WinUtils.h"
 #endif  // #if defined (XP_WIN)
 
 #if defined(MOZ_WIDGET_GTK) || defined(XP_MACOSX)

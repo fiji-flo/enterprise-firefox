@@ -151,6 +151,7 @@ preprocessed_intervention_files = [
     "bug2012708-myordbok.com-fix_layout.css",
     "bug2012760-snowplowmap.a2gov.org-fix_ticker_performance.css",
     "bug2012789-zoopla.co.uk.js",
+    "bug2015406-tiktok.com-fix_reply_button.css",
     "bug2015962-usbank.com-fix_minimum_font_size.css",
     "bug2016030-prodamus.ru-fix_hidden_content.css",
     "bug2018892-museumofpragueai.com-hide_mic_icon.css",

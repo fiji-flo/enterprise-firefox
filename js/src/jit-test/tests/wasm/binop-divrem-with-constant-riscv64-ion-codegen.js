@@ -1,7 +1,6 @@
 // |jit-test| skip-if: !hasDisassembler() || wasmCompileMode() != "ion" || !getBuildConfiguration("riscv64"); include:codegen-riscv64-test.js
 
-const WasmTrapIns = `csrwi     csr_cycle, 0x6
-                     ebreak`;
+const WasmTrapIns = `csrwi     csr_cycle, 0x6`;
 
 // Signed 32-bit division with constants.
 const i32_div_s = [
@@ -36,7 +35,7 @@ const i32_div_s = [
   {
     divisor: -1,
     expected: `lui       t4, 0xfff80000
-               bne       a0, t4, 12 -> 0x${HEX}+
+               bne       a0, t4, 8 -> 0x${HEX}+
                ${WasmTrapIns}
                negw      a0, a0`,
   },
@@ -250,7 +249,7 @@ const i64_div_s = [
     expected: `(bseti    t4, zero, 63)
             | (li        t4, -1
                slli      t4, t4, 63)
-               bne       a0, t4, 12 -> 0x${HEX}+
+               bne       a0, t4, 8 -> 0x${HEX}+
                ${WasmTrapIns}
                neg       a0, a0`,
   },
@@ -675,7 +674,7 @@ const i64_rem_s = [
                neg       a0, a0
               (zext\\.w  a0, a0)
             | (slli      a0, a0, 32
-               srli      a0, a0, 32) 
+               srli      a0, a0, 32)
                neg       a0, a0`,
   },
   {

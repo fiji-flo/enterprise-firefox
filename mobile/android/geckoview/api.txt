@@ -2293,6 +2293,7 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread public IPProtectionController.AuthProvider getAuthProvider();
     method @HandlerThread @NonNull public GeckoResult<Void> getCountryList();
     method @Nullable @UiThread public IPProtectionController.Delegate getDelegate();
+    method @Nullable @UiThread public IPProtectionController.GpiProvider getGpiProvider();
     method @HandlerThread @NonNull public GeckoResult<IPProtectionController.ProxyState> getProxyState();
     method @HandlerThread @NonNull public GeckoResult<Integer> getServiceState();
     method @HandlerThread @NonNull public GeckoResult<Void> init();
@@ -2300,6 +2301,7 @@ package org.mozilla.geckoview {
     method @HandlerThread @NonNull public GeckoResult<Void> refreshUsage();
     method @UiThread public void setAuthProvider(@Nullable IPProtectionController.AuthProvider);
     method @UiThread public void setDelegate(@Nullable IPProtectionController.Delegate);
+    method @UiThread public void setGpiProvider(@Nullable IPProtectionController.GpiProvider);
     method @HandlerThread @NonNull public GeckoResult<Void> uninit();
     field public static final int SERVICE_STATE_OPTED_OUT = 3;
     field public static final int SERVICE_STATE_READY = 4;
@@ -2309,7 +2311,7 @@ package org.mozilla.geckoview {
   }
 
   public static interface IPProtectionController.AuthProvider {
-    method @NonNull @UiThread default public GeckoResult<String> getToken();
+    method @NonNull @UiThread default public GeckoResult<String> onTokenRequest();
   }
 
   public static class IPProtectionController.Country {
@@ -2329,6 +2331,11 @@ package org.mozilla.geckoview {
     ctor protected EnrollResult();
     field @Nullable public final String error;
     field public final boolean isEnrolledAndEntitled;
+  }
+
+  public static interface IPProtectionController.GpiProvider {
+    method @NonNull @UiThread default public GeckoResult<String> onTokenRequest();
+    method @NonNull @UiThread default public GeckoResult<Void> warmUp();
   }
 
   public static class IPProtectionController.IPProxyException extends RuntimeException {

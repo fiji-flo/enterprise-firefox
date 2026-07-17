@@ -5,20 +5,20 @@
 #ifndef SANDBOXPRIVATE_H_
 #define SANDBOXPRIVATE_H_
 
+#include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/net/CookieJarSettings.h"
+
 #include "nsContentUtils.h"
 #include "nsIGlobalObject.h"
-#include "nsIScriptObjectPrincipal.h"
 #include "nsIPrincipal.h"
+#include "nsIScriptObjectPrincipal.h"
 #include "nsWeakReference.h"
 #include "nsWrapperCache.h"
 
 #include "js/loader/ModuleLoaderBase.h"
-
 #include "js/Object.h"  // JS::GetPrivate, JS::SetPrivate
 #include "js/RootingAPI.h"
 

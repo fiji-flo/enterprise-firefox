@@ -540,7 +540,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isBookmarked = isBookmarked,
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
-                                    isPrivate = isPrivate,
                                     isReaderViewActive = isReaderViewActive,
                                     isMoreMenuHighlighted = isOpenInAppMenuHighlighted ||
                                             summarizationMenuState.overflowMenuHighlighted,
@@ -775,7 +774,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isPdf = customTab?.content?.isPdf == true,
                                     isDesktopMode = isDesktopMode,
                                     isSandboxCustomTab = args.isSandboxCustomTab,
-                                    isPrivate = isPrivate,
                                     isExtensionsExpanded = isExtensionsExpanded,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     isAllWebExtensionsDisabled = isAllWebExtensionsDisabled,

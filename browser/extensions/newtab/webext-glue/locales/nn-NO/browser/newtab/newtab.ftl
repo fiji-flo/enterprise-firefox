@@ -219,6 +219,7 @@ newtab-privacy-message-info-7 = Sjå kva for nokre sporarar { -brand-short-name 
 newtab-privacy-message-info-7-cta = Vis vern
 newtab-privacy-message-info-8 = Surfing med { -brand-short-name } støttar oppdraget til { -vendor-short-name } om å skape eit betre internett.
 newtab-privacy-message-info-8-cta = Les meir
+newtab-privacy-message-info-9 = Gjer { -brand-short-name } til din føretrekte nettlesar for innebygd personvern.
 newtab-privacy-message-info-9-cta = Bruk som standard
 newtab-privacy-message-info-10 = Lagre passord i { -brand-short-name } for å bruke sterke, unike påloggingar overalt.
 newtab-privacy-message-info-10-cta = Gå til passord
@@ -248,6 +249,7 @@ newtab-privacy-message-promo-vpn-3 = Slå på innebygd VPN for å halde plasseri
 newtab-privacy-message-promo-vpn-3-cta = Opne VPN
 newtab-privacy-message-promo-private-window-1 = Prøv eit privat vindauge for å surfe meir privat når du deler datamaskin med andre.
 newtab-privacy-message-promo-private-window-1-cta = Opne privat vindauge
+newtab-privacy-message-promo-relay-1 = Reserver den verkelege e-postadressa di for folk du stolar på; bruk eit e-postalias for registreringar.
 newtab-privacy-message-promo-relay-1-cta = Få e-postalias
 newtab-privacy-message-promo-relay-2 = Vern innboksen din mot spam med gratis e-postalias.
 newtab-privacy-message-promo-relay-2-cta = Få e-postalias
@@ -259,13 +261,48 @@ newtab-privacy-message-promo-relay-3-cta = Få e-postalias
 ## Earned "celebration" moments (milestones, daily cap, streak, first
 ## protection). Count-bearing ones interpolate { $count }.
 
+# Variables:
+#   $count (number) - Trackers blocked this week
+newtab-privacy-message-milestone-week =
+    { $count ->
+        [one] { $count } sporar blokkert denne veka. Sjå kva { -brand-short-name } held unna
+       *[other] { $count } sporarar blokkerte denne veka. Sjå kva { -brand-short-name } held unna
+    }
 newtab-privacy-message-milestone-week-cta = Vis vern
+# Variables:
+#   $count (number) - Trackers blocked this month
+newtab-privacy-message-milestone-month =
+    { $count ->
+        [one] { $count } sporar blokkert denne månaden. Eitt lite steg for personvern. Eitt stort steg for sinnsro.
+       *[other] { $count } sporarar blokkerte denne månaden. Eitt lite steg for personvern. Eitt stort steg for sinnsro.
+    }
 newtab-privacy-message-milestone-month-cta = Vis vern
+# Variables:
+#   $count (number) - Trackers blocked this year
+newtab-privacy-message-milestone-year =
+    { $count ->
+        [one] { $count } sporar blokkert i år. Det er eit sterkt år for ivaretaking av personvernet ditt.
+       *[other] { $count } sporarar blokkerte i år. Det er eit sterkt år for ivaretaking av personvernet ditt.
+    }
 newtab-privacy-message-milestone-year-cta = Vis vern
+# Variables:
+#   $count (number) - Trackers blocked all-time
+newtab-privacy-message-milestone-total =
+    { $count ->
+        [one] { $count } sporar blokkert. Det er eit stort framsteg for personvern på dine vilkår.
+       *[other] { $count } sporarar blokkerte. Det er eit stort framsteg for personvern på dine vilkår.
+    }
 newtab-privacy-message-milestone-total-cta = Vis vern
 # Shown when today's blocked-tracker count reaches the display cap ("100+").
 newtab-privacy-message-daily-cap = (Over 100 sporarar vart blokkerte i dag.) Færre sporarar betyr meir personvern.
 newtab-privacy-message-daily-cap-cta = Vis vern
+# Variables:
+#   $count (number) - Consecutive days the user has had trackers blocked
+newtab-privacy-message-streak =
+    { $count ->
+        [one] Du har vore verna { $count } dag på rad.
+       *[other] Du har vore verna { $count } dagar på rad.
+    }
 newtab-privacy-message-streak-cta = Vis vern
 # Shown the first time the tracker count goes above zero.
 newtab-privacy-message-first-protection = Surf vidare, { -brand-short-name } blokkerer framleis sporingsverktøy.

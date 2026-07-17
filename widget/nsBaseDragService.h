@@ -5,22 +5,22 @@
 #ifndef nsBaseDragService_h_
 #define nsBaseDragService_h_
 
-#include "nsIDragService.h"
-#include "nsIDragSession.h"
-#include "nsCOMPtr.h"
-#include "nsIFrame.h"
-#include "nsRect.h"
-#include "nsPoint.h"
-#include "nsString.h"
+#include "Units.h"
+#include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/RemoteDragStartData.h"
-#include "mozilla/Logging.h"
 #include "mozilla/widget/WidgetLogging.h"
-#include "nsTArray.h"
+#include "nsCOMPtr.h"
+#include "nsIDragService.h"
+#include "nsIDragSession.h"
+#include "nsIFrame.h"
+#include "nsPoint.h"
+#include "nsRect.h"
 #include "nsRegion.h"
-#include "Units.h"
+#include "nsString.h"
+#include "nsTArray.h"
 
 #define MOZ_DRAGSERVICE_LOG DRAGSERVICE_LOGD
 #define MOZ_DRAGSERVICE_LOG_ENABLED() \

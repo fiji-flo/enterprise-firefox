@@ -189,18 +189,21 @@ Preferences.addSetting({
   set(val, { uiDensityPref }) {
     let { id } = uiDensityPref.pref;
     let gUIDensity = getUIDensity();
+    // For an explicit choice, go through gUIDensity.setUIDensity so that any
+    // active density override (e.g. touch forced by tablet mode) is cleared,
+    // matching the Customize panel.
     switch (val) {
       case "auto":
         Services.prefs.clearUserPref(id);
         break;
       case "compact":
-        Services.prefs.setIntPref(id, gUIDensity.MODE_COMPACT);
+        gUIDensity.setUIDensity(gUIDensity.MODE_COMPACT);
         break;
       case "touch":
-        Services.prefs.setIntPref(id, gUIDensity.MODE_TOUCH);
+        gUIDensity.setUIDensity(gUIDensity.MODE_TOUCH);
         break;
       default:
-        Services.prefs.setIntPref(id, gUIDensity.MODE_NORMAL);
+        gUIDensity.setUIDensity(gUIDensity.MODE_NORMAL);
         break;
     }
   },
@@ -363,7 +366,7 @@ SettingGroupManager.registerGroups({
   },
   browserIconEntry: {
     l10nId: "appearance-browser-icon-entry-group",
-    iconSrc: "chrome://browser/skin/customize.svg",
+    iconSrc: "chrome://browser/skin/sidebar/firefox.svg",
     headingLevel: 2,
     controlAttrs: { badge: "new" },
     items: [

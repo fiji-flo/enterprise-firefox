@@ -13,6 +13,7 @@
 #include <stdint.h>  // uint32_t
 
 #include "jstypes.h"  // JS_PUBLIC_API
+
 #include "js/TypeDecls.h"
 #include "js/Utility.h"
 

@@ -2,33 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <gdk/gdkwayland.h>
-#include <gdk/gdkkeysyms-compat.h>
-#include <dlfcn.h>
-
-#include "nsWindow.h"
 #include "nsWindowWayland.h"
 
+#include <dlfcn.h>
+#include <gdk/gdkkeysyms-compat.h>
+#include <gdk/gdkwayland.h>
+
+#include "WaylandVsyncSource.h"
+#include "WidgetUtilsGtk.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_widget.h"
+#include "mozilla/VsyncDispatcher.h"
+#include "mozilla/gfx/Logging.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
+#include "nsAppShell.h"
 #include "nsDragService.h"
+#include "nsGtkKeyUtils.h"
 #include "nsGtkUtils.h"
 #include "nsIAppWindow.h"
-#include "nsAppShell.h"
 #include "nsIClipboard.h"
 #include "nsIDocShell.h"
 #include "nsISessionStoreFunctions.h"
-#include "nsPIDOMWindow.h"
-#include "nsMenuPopupFrame.h"
-#include "WaylandVsyncSource.h"
-#include "WidgetUtilsGtk.h"
-#include "mozilla/gfx/Logging.h"
-#include "mozilla/layers/WebRenderLayerManager.h"
-#include "mozilla/PresShell.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/VsyncDispatcher.h"
-#include "nsGtkKeyUtils.h"
-#include "nsWaylandDisplay.h"
 #include "nsIUUIDGenerator.h"
+#include "nsMenuPopupFrame.h"
+#include "nsPIDOMWindow.h"
+#include "nsWaylandDisplay.h"
+#include "nsWindow.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;

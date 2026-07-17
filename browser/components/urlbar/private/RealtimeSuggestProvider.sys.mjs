@@ -605,8 +605,9 @@ export class RealtimeSuggestProvider extends SuggestProvider {
       }
       case "not_interested": {
         lazy.UrlbarPrefs.set(this.suggestPref, false);
-        result.acknowledgeDismissalL10n = this.acknowledgeDismissalL10n;
-        controller.removeResult(result);
+        controller.removeResult(result, {
+          acknowledgeDismissalL10n: this.acknowledgeDismissalL10n,
+        });
         break;
       }
       case "show_less_frequently": {
@@ -643,16 +644,18 @@ export class RealtimeSuggestProvider extends SuggestProvider {
           "quicksuggest.realtimeOptIn.dismissTypes",
           this.realtimeType
         );
-        details.result.acknowledgeDismissalL10n = this.acknowledgeDismissalL10n;
-        controller.removeResult(details.result);
+        controller.removeResult(details.result, {
+          acknowledgeDismissalL10n: this.acknowledgeDismissalL10n,
+        });
         break;
       }
       case "not_interested": {
         lazy.UrlbarPrefs.set("suggest.realtimeOptIn", false);
-        details.result.acknowledgeDismissalL10n = {
-          id: "urlbar-result-dismissal-acknowledgment-all",
-        };
-        controller.removeResult(details.result);
+        controller.removeResult(details.result, {
+          acknowledgeDismissalL10n: {
+            id: "urlbar-result-dismissal-acknowledgment-all",
+          },
+        });
         break;
       }
     }

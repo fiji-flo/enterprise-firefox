@@ -7,9 +7,6 @@
 #define _nsNSSComponent_h_
 
 #include "nsINSSComponent.h"
-#ifdef ENABLE_TESTS
-#  include "nsISSLTokensCacheTest.h"
-#endif
 
 #include "EnterpriseRoots.h"
 #include "ScopedNSSTypes.h"
@@ -74,13 +71,7 @@ class AutoSearchingForClientAuthCertificates {
 };
 
 // Implementation of the PSM component interface.
-class nsNSSComponent final : public nsINSSComponent,
-                             public nsIObserver
-#ifdef ENABLE_TESTS
-    ,
-                             public nsISSLTokensCacheTest
-#endif
-{
+class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
  public:
   // LoadLoadableCertsTask updates mLoadableCertsLoaded and
   // mLoadableCertsLoadedResult and then signals mLoadableCertsLoadedMonitor.
@@ -94,9 +85,6 @@ class nsNSSComponent final : public nsINSSComponent,
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSINSSCOMPONENT
   NS_DECL_NSIOBSERVER
-#ifdef ENABLE_TESTS
-  NS_DECL_NSISSLTOKENSCACHETEST
-#endif
 
   nsresult Init();
 
@@ -107,12 +95,6 @@ class nsNSSComponent final : public nsINSSComponent,
                                   SSLVersionRange defaults);
 
   static nsresult SetEnabledTLSVersions();
-
-  // This function does the actual work of clearing the session cache. It is to
-  // be used by the socket process (where there is no nsINSSComponent) and
-  // internally by nsNSSComponent.
-  // NB: NSS must have already been initialized before this is called.
-  static void DoClearSSLExternalAndInternalSessionCache();
 
  protected:
   ~nsNSSComponent();

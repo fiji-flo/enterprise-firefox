@@ -62,6 +62,7 @@ import org.mozilla.fenix.components.appstate.setup.checklist.getSetupChecklistCo
 import org.mozilla.fenix.components.appstate.sports.SportsWidgetState
 import org.mozilla.fenix.components.bookmarks.lastSavedFolderCache
 import org.mozilla.fenix.components.ipprotection.IPProtection
+import org.mozilla.fenix.components.ipprotection.IPProtectionAuthSources
 import org.mozilla.fenix.components.llm.Llm
 import org.mozilla.fenix.components.llm.ext.accessTokenProvider
 import org.mozilla.fenix.components.metrics.MetricsMiddleware
@@ -550,7 +551,10 @@ class Components(private val context: Context) {
             engine = core.engine,
             browserStore = core.store,
             syncStore = backgroundServices.syncStore,
-            lazyFxaAccountManager = lazy { backgroundServices.accountManager },
+            authSources = IPProtectionAuthSources(
+                fxaAccountManager = lazy { backgroundServices.accountManager },
+                integrityClient = lazy { integrityClient },
+            ),
             lazyAppStore = lazy { appStore },
             settings = settings,
             context = context,

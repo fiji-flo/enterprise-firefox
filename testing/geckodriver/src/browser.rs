@@ -135,9 +135,6 @@ impl LocalBrowser {
         if jsdebugger {
             runner.arg("--jsdebugger");
         }
-        if system_access {
-            runner.arg("--remote-allow-system-access");
-        }
         if let Some(args) = options.args.as_ref() {
             runner.args(args);
         }
@@ -147,6 +144,10 @@ impl LocalBrowser {
             .env("MOZ_CRASHREPORTER", "1")
             .env("MOZ_CRASHREPORTER_NO_REPORT", "1")
             .env("MOZ_CRASHREPORTER_SHUTDOWN", "1");
+
+        if system_access {
+            runner.env("MOZ_REMOTE_ALLOW_SYSTEM_ACCESS", "1");
+        }
 
         let process = match runner.start() {
             Ok(process) => process,
@@ -549,8 +550,8 @@ mod tests {
     use super::*;
     use crate::browser::read_marionette_port;
     use crate::capabilities::{FirefoxOptions, ProfileType};
-    use base64::prelude::BASE64_STANDARD;
     use base64::Engine;
+    use base64::prelude::BASE64_STANDARD;
     use mozprofile::preferences::{Pref, PrefValue};
     use mozprofile::profile::Profile;
     use serde_json::{Map, Value};

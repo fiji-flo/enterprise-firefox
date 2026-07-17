@@ -2185,30 +2185,30 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
     }
 
     case LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS:
-      retval.set(JS_NumberValue(limits.maxTexUnits));
+      retval.setNumber(limits.maxTexUnits);
       return;
     case LOCAL_GL_MAX_TEXTURE_SIZE:
-      retval.set(JS_NumberValue(limits.maxTex2dSize));
+      retval.setNumber(limits.maxTex2dSize);
       return;
     case LOCAL_GL_MAX_CUBE_MAP_TEXTURE_SIZE:
-      retval.set(JS_NumberValue(limits.maxTexCubeSize));
+      retval.setNumber(limits.maxTexCubeSize);
       return;
     case LOCAL_GL_MAX_VERTEX_ATTRIBS:
-      retval.set(JS_NumberValue(limits.maxVertexAttribs));
+      retval.setNumber(limits.maxVertexAttribs);
       return;
 
     case LOCAL_GL_MAX_VIEWS_OVR:
       if (IsExtensionEnabled(WebGLExtensionID::OVR_multiview2)) {
-        retval.set(JS_NumberValue(limits.maxMultiviewLayers));
+        retval.setNumber(limits.maxMultiviewLayers);
         return;
       }
       break;
 
     case LOCAL_GL_PACK_ALIGNMENT:
-      retval.set(JS_NumberValue(state.mPixelPackState.alignmentInTypeElems));
+      retval.setNumber(state.mPixelPackState.alignmentInTypeElems);
       return;
     case LOCAL_GL_UNPACK_ALIGNMENT:
-      retval.set(JS_NumberValue(state.mPixelUnpackState.alignmentInTypeElems));
+      retval.setNumber(state.mPixelUnpackState.alignmentInTypeElems);
       return;
 
     case dom::WebGLRenderingContext_Binding::UNPACK_FLIP_Y_WEBGL:
@@ -2218,12 +2218,12 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
       retval.set(JS::BooleanValue(state.mPixelUnpackState.premultiplyAlpha));
       return;
     case dom::WebGLRenderingContext_Binding::UNPACK_COLORSPACE_CONVERSION_WEBGL:
-      retval.set(JS_NumberValue(state.mPixelUnpackState.colorspaceConversion));
+      retval.setNumber(state.mPixelUnpackState.colorspaceConversion);
       return;
 
     case dom::WEBGL_provoking_vertex_Binding::PROVOKING_VERTEX_WEBGL:
       if (!IsExtensionEnabled(WebGLExtensionID::WEBGL_provoking_vertex)) break;
-      retval.set(JS_NumberValue(UnderlyingValue(state.mProvokingVertex)));
+      retval.setNumber(UnderlyingValue(state.mProvokingVertex));
       return;
 
     case LOCAL_GL_DEPTH_CLAMP:
@@ -2297,7 +2297,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
         return;
 
       case LOCAL_GL_MAX_CLIENT_WAIT_TIMEOUT_WEBGL:
-        retval.set(JS_NumberValue(webgl::kMaxClientWaitSyncTimeoutNS));
+        retval.setNumber(webgl::kMaxClientWaitSyncTimeoutNS);
         return;
 
       case LOCAL_GL_PIXEL_PACK_BUFFER_BINDING:
@@ -2344,45 +2344,45 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
         return;
 
       case LOCAL_GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS:
-        retval.set(JS_NumberValue(webgl::kMaxTransformFeedbackSeparateAttribs));
+        retval.setNumber(webgl::kMaxTransformFeedbackSeparateAttribs);
         return;
       case LOCAL_GL_MAX_UNIFORM_BUFFER_BINDINGS:
-        retval.set(JS_NumberValue(limits.maxUniformBufferBindings));
+        retval.setNumber(limits.maxUniformBufferBindings);
         return;
       case LOCAL_GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT:
-        retval.set(JS_NumberValue(limits.uniformBufferOffsetAlignment));
+        retval.setNumber(limits.uniformBufferOffsetAlignment);
         return;
       case LOCAL_GL_MAX_3D_TEXTURE_SIZE:
-        retval.set(JS_NumberValue(limits.maxTex3dSize));
+        retval.setNumber(limits.maxTex3dSize);
         return;
       case LOCAL_GL_MAX_ARRAY_TEXTURE_LAYERS:
-        retval.set(JS_NumberValue(limits.maxTexArrayLayers));
+        retval.setNumber(limits.maxTexArrayLayers);
         return;
 
       case LOCAL_GL_PACK_ROW_LENGTH:
-        retval.set(JS_NumberValue(state.mPixelPackState.rowLength));
+        retval.setNumber(state.mPixelPackState.rowLength);
         return;
       case LOCAL_GL_PACK_SKIP_PIXELS:
-        retval.set(JS_NumberValue(state.mPixelPackState.skipPixels));
+        retval.setNumber(state.mPixelPackState.skipPixels);
         return;
       case LOCAL_GL_PACK_SKIP_ROWS:
-        retval.set(JS_NumberValue(state.mPixelPackState.skipRows));
+        retval.setNumber(state.mPixelPackState.skipRows);
         return;
 
       case LOCAL_GL_UNPACK_IMAGE_HEIGHT:
-        retval.set(JS_NumberValue(state.mPixelUnpackState.imageHeight));
+        retval.setNumber(state.mPixelUnpackState.imageHeight);
         return;
       case LOCAL_GL_UNPACK_ROW_LENGTH:
-        retval.set(JS_NumberValue(state.mPixelUnpackState.rowLength));
+        retval.setNumber(state.mPixelUnpackState.rowLength);
         return;
       case LOCAL_GL_UNPACK_SKIP_IMAGES:
-        retval.set(JS_NumberValue(state.mPixelUnpackState.skipImages));
+        retval.setNumber(state.mPixelUnpackState.skipImages);
         return;
       case LOCAL_GL_UNPACK_SKIP_PIXELS:
-        retval.set(JS_NumberValue(state.mPixelUnpackState.skipPixels));
+        retval.setNumber(state.mPixelUnpackState.skipPixels);
         return;
       case LOCAL_GL_UNPACK_SKIP_ROWS:
-        retval.set(JS_NumberValue(state.mPixelUnpackState.skipRows));
+        retval.setNumber(state.mPixelUnpackState.skipRows);
         return;
     }  // switch pname
   }  // if webgl2
@@ -2596,12 +2596,12 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
           if (readType == LOCAL_GL_HALF_FLOAT && !mIsWebGL2) {
             readType = LOCAL_GL_HALF_FLOAT_OES;
           }
-          retval.set(JS_NumberValue(readType));
+          retval.setNumber(readType);
           return;
         }
 
         default:
-          retval.set(JS_NumberValue(*maybe));
+          retval.setNumber(*maybe);
           return;
       }
     }
@@ -2627,7 +2627,7 @@ void ClientWebGLContext::GetBufferParameter(
     return ret;
   }();
   if (maybe) {
-    retval.set(JS_NumberValue(*maybe));
+    retval.setNumber(*maybe);
   }
 }
 
@@ -2720,7 +2720,7 @@ void ClientWebGLContext::GetFramebufferAttachmentParameter(
 
   const auto maybe = fnGet(pname);
   if (maybe) {
-    retval.set(JS_NumberValue(*maybe));
+    retval.setNumber(*maybe);
   }
 }
 
@@ -2752,7 +2752,7 @@ void ClientWebGLContext::GetRenderbufferParameter(
     return ret;
   }();
   if (maybe) {
-    retval.set(JS_NumberValue(*maybe));
+    retval.setNumber(*maybe);
   }
 }
 
@@ -2816,7 +2816,7 @@ void ClientWebGLContext::GetIndexedParameter(
       }
 
       default:
-        retval.set(JS_NumberValue(*maybe));
+        retval.setNumber(*maybe);
         return;
     }
   }
@@ -4276,7 +4276,7 @@ void ClientWebGLContext::GetTexParameter(
         break;
 
       default:
-        retval.set(JS_NumberValue(*maybe));
+        retval.setNumber(*maybe);
         break;
     }
   }
@@ -5064,7 +5064,7 @@ void ClientWebGLContext::GetVertexAttrib(JSContext* cx, GLuint index,
         break;
 
       default:
-        retval.set(JS_NumberValue(*maybe));
+        retval.setNumber(*maybe);
         break;
     }
   }
@@ -5545,11 +5545,11 @@ void ClientWebGLContext::GetQuery(JSContext* cx, GLenum specificTarget,
     if (pname == LOCAL_GL_QUERY_COUNTER_BITS) {
       switch (specificTarget) {
         case LOCAL_GL_TIME_ELAPSED_EXT:
-          retval.set(JS_NumberValue(limits.queryCounterBitsTimeElapsed));
+          retval.setNumber(limits.queryCounterBitsTimeElapsed);
           return;
 
         case LOCAL_GL_TIMESTAMP_EXT:
-          retval.set(JS_NumberValue(limits.queryCounterBitsTimestamp));
+          retval.setNumber(limits.queryCounterBitsTimestamp);
           return;
 
         default:
@@ -5617,7 +5617,7 @@ void ClientWebGLContext::GetQueryParameter(
       break;
 
     default:
-      retval.set(JS_NumberValue(*maybe));
+      retval.setNumber(*maybe);
       break;
   }
 }
@@ -5744,7 +5744,7 @@ void ClientWebGLContext::GetSamplerParameter(
     return ret;
   }();
   if (maybe) {
-    retval.set(JS_NumberValue(*maybe));
+    retval.setNumber(*maybe);
   }
 }
 
@@ -5817,17 +5817,17 @@ void ClientWebGLContext::GetSyncParameter(
   retval.set([&]() -> JS::Value {
     switch (pname) {
       case LOCAL_GL_OBJECT_TYPE:
-        return JS_NumberValue(LOCAL_GL_SYNC_FENCE);
+        return JS::NumberValue(LOCAL_GL_SYNC_FENCE);
       case LOCAL_GL_SYNC_CONDITION:
-        return JS_NumberValue(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE);
+        return JS::NumberValue(LOCAL_GL_SYNC_GPU_COMMANDS_COMPLETE);
       case LOCAL_GL_SYNC_FLAGS:
-        return JS_NumberValue(0);
+        return JS::NumberValue(0);
       case LOCAL_GL_SYNC_STATUS: {
         const auto res = ClientWaitSync(sync, 0, 0);
         const auto signaled = (res == LOCAL_GL_ALREADY_SIGNALED ||
                                res == LOCAL_GL_CONDITION_SATISFIED);
-        return JS_NumberValue(signaled ? LOCAL_GL_SIGNALED
-                                       : LOCAL_GL_UNSIGNALED);
+        return JS::NumberValue(signaled ? LOCAL_GL_SIGNALED
+                                        : LOCAL_GL_UNSIGNALED);
       }
       default:
         EnqueueError_ArgEnum("pname", pname);
@@ -6536,13 +6536,13 @@ void ClientWebGLContext::GetActiveUniformBlockParameter(
   retval.set([&]() -> JS::Value {
     switch (pname) {
       case LOCAL_GL_UNIFORM_BLOCK_BINDING:
-        return JS_NumberValue(prog.mUniformBlockBindings[index]);
+        return JS::NumberValue(prog.mUniformBlockBindings[index]);
 
       case LOCAL_GL_UNIFORM_BLOCK_DATA_SIZE:
-        return JS_NumberValue(block.dataSize);
+        return JS::NumberValue(block.dataSize);
 
       case LOCAL_GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS:
-        return JS_NumberValue(block.activeUniformIndices.size());
+        return JS::NumberValue(block.activeUniformIndices.size());
 
       case LOCAL_GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES: {
         const auto& indices = block.activeUniformIndices;
@@ -6593,27 +6593,27 @@ void ClientWebGLContext::GetActiveUniforms(
     JS::Rooted<JS::Value> value(cx);
     switch (pname) {
       case LOCAL_GL_UNIFORM_TYPE:
-        value = JS_NumberValue(uniform.elemType);
+        value = JS::NumberValue(uniform.elemType);
         break;
 
       case LOCAL_GL_UNIFORM_SIZE:
-        value = JS_NumberValue(uniform.elemCount);
+        value = JS::NumberValue(uniform.elemCount);
         break;
 
       case LOCAL_GL_UNIFORM_BLOCK_INDEX:
-        value = JS_NumberValue(uniform.block_index);
+        value = JS::NumberValue(uniform.block_index);
         break;
 
       case LOCAL_GL_UNIFORM_OFFSET:
-        value = JS_NumberValue(uniform.block_offset);
+        value = JS::NumberValue(uniform.block_offset);
         break;
 
       case LOCAL_GL_UNIFORM_ARRAY_STRIDE:
-        value = JS_NumberValue(uniform.block_arrayStride);
+        value = JS::NumberValue(uniform.block_arrayStride);
         break;
 
       case LOCAL_GL_UNIFORM_MATRIX_STRIDE:
-        value = JS_NumberValue(uniform.block_matrixStride);
+        value = JS::NumberValue(uniform.block_matrixStride);
         break;
 
       case LOCAL_GL_UNIFORM_IS_ROW_MAJOR:
@@ -6917,7 +6917,7 @@ void ClientWebGLContext::GetProgramParameter(
             shaders += 1;
           }
         }
-        return JS_NumberValue(shaders);
+        return JS::NumberValue(shaders);
       }
       default:
         break;
@@ -6930,22 +6930,22 @@ void ClientWebGLContext::GetProgramParameter(
         return JS::BooleanValue(res.success);
 
       case LOCAL_GL_ACTIVE_ATTRIBUTES:
-        return JS_NumberValue(res.active.activeAttribs.size());
+        return JS::NumberValue(res.active.activeAttribs.size());
 
       case LOCAL_GL_ACTIVE_UNIFORMS:
-        return JS_NumberValue(res.active.activeUniforms.size());
+        return JS::NumberValue(res.active.activeUniforms.size());
 
       case LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER_MODE:
         if (!mIsWebGL2) break;
-        return JS_NumberValue(res.tfBufferMode);
+        return JS::NumberValue(res.tfBufferMode);
 
       case LOCAL_GL_TRANSFORM_FEEDBACK_VARYINGS:
         if (!mIsWebGL2) break;
-        return JS_NumberValue(res.active.activeTfVaryings.size());
+        return JS::NumberValue(res.active.activeTfVaryings.size());
 
       case LOCAL_GL_ACTIVE_UNIFORM_BLOCKS:
         if (!mIsWebGL2) break;
-        return JS_NumberValue(res.active.activeUniformBlocks.size());
+        return JS::NumberValue(res.active.activeUniformBlocks.size());
 
       default:
         break;
@@ -7000,7 +7000,7 @@ void ClientWebGLContext::GetShaderParameter(
   retval.set([&]() -> JS::Value {
     switch (pname) {
       case LOCAL_GL_SHADER_TYPE:
-        return JS_NumberValue(shader.mType);
+        return JS::NumberValue(shader.mType);
 
       case LOCAL_GL_DELETE_STATUS:  // "Is flagged for deletion?"
         return JS::BooleanValue(!shader.mKeepAlive);

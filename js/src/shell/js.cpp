@@ -65,6 +65,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "jstypes.h"
+
 #include "fmt/format.h"
 #ifndef JS_WITHOUT_NSPR
 #  include "prerror.h"
@@ -4824,7 +4825,7 @@ static bool ShapeOf(JSContext* cx, unsigned argc, JS::Value* vp) {
     return false;
   }
   JSObject* obj = &args[0].toObject();
-  args.rval().set(JS_NumberValue(double(uintptr_t(obj->shape()) >> 3)));
+  args.rval().setNumber(double(uintptr_t(obj->shape()) >> 3));
   return true;
 }
 
@@ -11300,7 +11301,7 @@ static bool dom_get_x(JSContext* cx, HandleObject obj, void* self,
                       JSJitGetterCallArgs args) {
   MOZ_ASSERT(JS::GetClass(obj) == GetDomClass());
   MOZ_ASSERT(self == DOM_PRIVATE_VALUE);
-  args.rval().set(JS_NumberValue(double(3.14)));
+  args.rval().setNumber(double(3.14));
   return true;
 }
 
@@ -12604,6 +12605,12 @@ static bool SetGCParameterFromArg(JSContext* cx, char* arg) {
             "Error: Could not parse '%s' as decimal for GC parameter '%s'\n",
             valueStr, name);
     return false;
+  }
+
+  // Some Params are not yet fuzzing safe and so we silently skip changing said
+  // parameters.
+  if (fuzzingSafe && !IsGCParameterFuzzingSafe(key)) {
+    return true;
   }
 
   uint32_t paramValue = uint32_t(value);

@@ -6,6 +6,8 @@ support-files = [
   "annotate_list.txt",
 ]
 
+["browser_about_url_classifier.js"]
+
 ["browser_content_classifier_blocking.js"]
 
 ["browser_content_classifier_engines_pref.js"]

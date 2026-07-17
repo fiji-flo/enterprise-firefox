@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "xpcprivate.h"
-#include "xpc_make_class.h"
-
-#include "nsContentUtils.h"
-#include "SystemGlobal.h"
-#include "mozilla/Result.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/dom/IndexedDatabaseManager.h"
+#include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/Result.h"
+
+#include "nsContentUtils.h"
+#include "SystemGlobal.h"
+#include "xpc_make_class.h"
+#include "xpcprivate.h"
 
 using namespace mozilla::dom;
 

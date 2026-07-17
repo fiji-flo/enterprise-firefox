@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "debugger/Object-inl.h"
-
 #include "mozilla/Maybe.h"   // for Maybe, Nothing, Some
 #include "mozilla/Range.h"   // for Range
 #include "mozilla/Result.h"  // for Result
@@ -69,6 +67,7 @@
 #include "vm/StringType.h"               // for JSAtom, PropertyName
 #include "vm/WrapperObject.h"            // for JSObject::is, WrapperObject
 
+#include "debugger/Object-inl.h"
 #include "gc/StableCellHasher-inl.h"
 #include "vm/Compartment-inl.h"  // for Compartment::wrap
 #include "vm/JSObject-inl.h"  // for GetObjectClassName, InitClass, NewObjectWithGivenProtoAndKind, ToPropertyKey

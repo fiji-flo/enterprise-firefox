@@ -6,9 +6,10 @@ use crate::{
     error::{error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, OwnedErrorBuffer},
     make_byte_buf,
     telemetry::build_telemetry_struct,
-    wgpu_string, AdapterInformation, BufferMapResult, ByteBuf, CommandEncoderAction, DeviceAction,
-    FfiSlice, Message, PipelineError, QueueWriteAction, QueueWriteDataSource, ServerMessage,
-    ShaderModuleCompilationMessage, SwapChainId, TextureAction,
+    wgpu_string, AdapterInformation, BindingCommand, BufferMapResult, ByteBuf,
+    CommandEncoderCommand, DebugCommand, DeviceAction, FfiSlice, Message, PipelineError,
+    QueueWriteAction, QueueWriteDataSource, RenderBundleEncoderCommand, RenderCommand,
+    ServerMessage, ShaderModuleCompilationMessage, SwapChainId, TextureAction,
 };
 
 use nsstring::{nsACString, nsCString};
@@ -2426,18 +2427,12 @@ impl Global {
                     }
                 }
             }
-            DeviceAction::CreateRenderBundle(id, mut encoder, desc) => {
-                let (_, error) = self.render_bundle_encoder_finish(&mut encoder, &desc, Some(id));
+            DeviceAction::CreateRenderBundleEncoder(id, desc) => {
+                let (_, error) =
+                    self.device_create_render_bundle_encoder_with_id(device_id, &desc, Some(id));
                 if let Some(err) = error {
                     error_buf.init(err, device_id);
                 }
-            }
-            DeviceAction::CreateRenderBundleError(buffer_id, label) => {
-                self.create_render_bundle_error(
-                    device_id,
-                    Some(buffer_id),
-                    &wgt::RenderBundleDescriptor { label },
-                );
             }
             DeviceAction::CreateQuerySet(id, desc) => {
                 let (_, error) = self.device_create_query_set(device_id, &desc, Some(id));
@@ -2495,114 +2490,237 @@ impl Global {
         }
     }
 
-    fn command_encoder_action(
+    fn render_bundle_encoder_command(
         &self,
         device_id: id::DeviceId,
-        self_id: id::CommandEncoderId,
-        action: CommandEncoderAction,
+        id: id::RenderBundleEncoderId,
+        cmd: RenderBundleEncoderCommand,
         error_buf: &mut OwnedErrorBuffer,
     ) {
-        match action {
-            CommandEncoderAction::CopyBufferToBuffer {
-                src,
-                src_offset,
-                dst,
-                dst_offset,
+        let res = match cmd {
+            RenderBundleEncoderCommand::BindingCommand(binding_command) => match binding_command {
+                BindingCommand::SetBindGroup {
+                    index,
+                    bind_group,
+                    dynamic_offsets,
+                } => self.render_bundle_encoder_set_bind_group_with_id(
+                    id,
+                    index,
+                    bind_group,
+                    &dynamic_offsets,
+                ),
+                BindingCommand::SetImmediates { range_offset, data } => {
+                    self.render_bundle_encoder_set_immediates_with_id(id, range_offset, &data)
+                }
+            },
+            RenderBundleEncoderCommand::RenderCommand(render_command) => match render_command {
+                RenderCommand::SetPipeline(pipeline_id) => {
+                    self.render_bundle_encoder_set_pipeline_with_id(id, pipeline_id)
+                }
+                RenderCommand::SetIndexBuffer {
+                    buffer,
+                    index_format,
+                    offset,
+                    size,
+                } => self.render_bundle_encoder_set_index_buffer_with_id(
+                    id,
+                    buffer,
+                    index_format,
+                    offset,
+                    size.and_then(core::num::NonZeroU64::new), // pass size directly once https://github.com/gfx-rs/wgpu/issues/3170 is resolved
+                ),
+                RenderCommand::SetVertexBuffer {
+                    slot,
+                    buffer,
+                    offset,
+                    size,
+                } => self.render_bundle_encoder_set_vertex_buffer_with_id(
+                    id,
+                    slot,
+                    buffer,
+                    offset,
+                    size.and_then(core::num::NonZeroU64::new), // pass size directly once https://github.com/gfx-rs/wgpu/issues/3170 is resolved
+                ),
+                RenderCommand::Draw {
+                    vertex_count,
+                    instance_count,
+                    first_vertex,
+                    first_instance,
+                } => self.render_bundle_encoder_draw_with_id(
+                    id,
+                    vertex_count,
+                    instance_count,
+                    first_vertex,
+                    first_instance,
+                ),
+                RenderCommand::DrawIndexed {
+                    index_count,
+                    instance_count,
+                    first_index,
+                    base_vertex,
+                    first_instance,
+                } => self.render_bundle_encoder_draw_indexed_with_id(
+                    id,
+                    index_count,
+                    instance_count,
+                    first_index,
+                    base_vertex,
+                    first_instance,
+                ),
+                RenderCommand::DrawIndirect {
+                    indirect_buffer,
+                    indirect_offset,
+                } => self.render_bundle_encoder_draw_indirect_with_id(
+                    id,
+                    indirect_buffer,
+                    indirect_offset,
+                ),
+                RenderCommand::DrawIndexedIndirect {
+                    indirect_buffer,
+                    indirect_offset,
+                } => self.render_bundle_encoder_draw_indexed_indirect_with_id(
+                    id,
+                    indirect_buffer,
+                    indirect_offset,
+                ),
+            },
+            RenderBundleEncoderCommand::DebugCommand(debug_command) => match debug_command {
+                DebugCommand::PushDebugGroup(label) => {
+                    self.render_bundle_encoder_push_debug_group_with_id(id, &label)
+                }
+                DebugCommand::PopDebugGroup => {
+                    self.render_bundle_encoder_pop_debug_group_with_id(id)
+                }
+                DebugCommand::InsertDebugMarker(label) => {
+                    self.render_bundle_encoder_insert_debug_marker_with_id(id, &label)
+                }
+            },
+            RenderBundleEncoderCommand::Finish {
+                desc,
+                render_bundle_id,
+            } => {
+                let (_, error) =
+                    self.render_bundle_encoder_finish_with_id(id, &desc, Some(render_bundle_id));
+                if let Some(err) = error {
+                    error_buf.init(err, device_id);
+                }
+                Ok(())
+            }
+        };
+        if let Err(err) = res {
+            error_buf.init(err, device_id);
+        }
+    }
+
+    fn command_encoder_command(
+        &self,
+        device_id: id::DeviceId,
+        id: id::CommandEncoderId,
+        cmd: CommandEncoderCommand,
+        error_buf: &mut OwnedErrorBuffer,
+    ) {
+        let res = match cmd {
+            CommandEncoderCommand::BeginRenderPass {
+                desc,
+                render_pass_encoder_id,
+            } => {
+                let (_, err) = self.command_encoder_begin_render_pass_with_id(
+                    id,
+                    &desc,
+                    Some(render_pass_encoder_id),
+                );
+                if let Some(err) = err {
+                    error_buf.init(err, device_id);
+                }
+                Ok(())
+            }
+            CommandEncoderCommand::BeginComputePass {
+                desc,
+                compute_pass_encoder_id,
+            } => {
+                let (_, err) = self.command_encoder_begin_compute_pass_with_id(
+                    id,
+                    &desc,
+                    Some(compute_pass_encoder_id),
+                );
+                if let Some(err) = err {
+                    error_buf.init(err, device_id);
+                }
+                Ok(())
+            }
+            CommandEncoderCommand::CopyBufferToBuffer {
+                source,
+                source_offset,
+                destination,
+                destination_offset,
                 size,
+            } => self.command_encoder_copy_buffer_to_buffer(
+                id,
+                source,
+                source_offset,
+                destination,
+                destination_offset,
+                size,
+            ),
+            CommandEncoderCommand::CopyBufferToTexture {
+                source,
+                destination,
+                copy_size,
+            } => self.command_encoder_copy_buffer_to_texture(id, &source, &destination, &copy_size),
+            CommandEncoderCommand::CopyTextureToBuffer {
+                source,
+                destination,
+                copy_size,
+            } => self.command_encoder_copy_texture_to_buffer(id, &source, &destination, &copy_size),
+            CommandEncoderCommand::CopyTextureToTexture {
+                source,
+                destination,
+                copy_size,
             } => {
-                if let Err(err) = self.command_encoder_copy_buffer_to_buffer(
-                    self_id, src, src_offset, dst, dst_offset, size,
-                ) {
-                    error_buf.init(err, device_id);
-                }
+                self.command_encoder_copy_texture_to_texture(id, &source, &destination, &copy_size)
             }
-            CommandEncoderAction::CopyBufferToTexture { src, dst, size } => {
-                if let Err(err) =
-                    self.command_encoder_copy_buffer_to_texture(self_id, &src, &dst, &size)
-                {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::CopyTextureToBuffer { src, dst, size } => {
-                if let Err(err) =
-                    self.command_encoder_copy_texture_to_buffer(self_id, &src, &dst, &size)
-                {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::CopyTextureToTexture { src, dst, size } => {
-                if let Err(err) =
-                    self.command_encoder_copy_texture_to_texture(self_id, &src, &dst, &size)
-                {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::RunComputePass { .. } => unimplemented!(),
-            CommandEncoderAction::WriteTimestamp {
+            CommandEncoderCommand::ClearBuffer {
+                buffer,
+                offset,
+                size,
+            } => self.command_encoder_clear_buffer(id, buffer, offset, size),
+            CommandEncoderCommand::ResolveQuerySet {
                 query_set,
-                query_index,
-            } => {
-                if let Err(err) =
-                    self.command_encoder_write_timestamp(self_id, query_set, query_index)
-                {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::ResolveQuerySet {
-                query_set,
-                start_query,
+                first_query,
                 query_count,
                 destination,
                 destination_offset,
+            } => self.command_encoder_resolve_query_set(
+                id,
+                query_set,
+                first_query,
+                query_count,
+                destination,
+                destination_offset,
+            ),
+            CommandEncoderCommand::DebugCommand(debug_command) => match debug_command {
+                DebugCommand::PushDebugGroup(label) => {
+                    self.command_encoder_push_debug_group(id, &label)
+                }
+                DebugCommand::PopDebugGroup => self.command_encoder_pop_debug_group(id),
+                DebugCommand::InsertDebugMarker(label) => {
+                    self.command_encoder_insert_debug_marker(id, &label)
+                }
+            },
+            CommandEncoderCommand::Finish {
+                desc,
+                command_buffer_id,
             } => {
-                if let Err(err) = self.command_encoder_resolve_query_set(
-                    self_id,
-                    query_set,
-                    start_query,
-                    query_count,
-                    destination,
-                    destination_offset,
-                ) {
+                let (_, label_and_error) =
+                    self.command_encoder_finish(id, &desc, Some(command_buffer_id));
+                if let Some((_label, err)) = label_and_error {
                     error_buf.init(err, device_id);
                 }
+                Ok(())
             }
-            CommandEncoderAction::RunRenderPass { .. } => unimplemented!(),
-            CommandEncoderAction::ClearBuffer { dst, offset, size } => {
-                if let Err(err) = self.command_encoder_clear_buffer(self_id, dst, offset, size) {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::ClearTexture {
-                dst,
-                ref subresource_range,
-            } => {
-                if let Err(err) =
-                    self.command_encoder_clear_texture(self_id, dst, subresource_range)
-                {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::PushDebugGroup(marker) => {
-                if let Err(err) = self.command_encoder_push_debug_group(self_id, &marker) {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::PopDebugGroup => {
-                if let Err(err) = self.command_encoder_pop_debug_group(self_id) {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::InsertDebugMarker(marker) => {
-                if let Err(err) = self.command_encoder_insert_debug_marker(self_id, &marker) {
-                    error_buf.init(err, device_id);
-                }
-            }
-            CommandEncoderAction::BuildAccelerationStructures { .. } => {
-                unreachable!("internal error: attempted to build acceleration structures")
-            }
-            CommandEncoderAction::TransitionResources { .. } => {
-                unreachable!("internal error: attempted to transition resources")
-            }
+        };
+        if let Err(err) = res {
+            error_buf.init(err, device_id);
         }
     }
 }
@@ -2910,21 +3028,17 @@ unsafe fn process_message(
         Message::Texture(device_id, id, action) => {
             global.texture_action(device_id, id, action, error_buf)
         }
-        Message::CommandEncoder(device_id, id, action) => {
-            global.command_encoder_action(device_id, id, action, error_buf)
+        Message::RenderBundleEncoder(device_id, id, cmd) => {
+            global.render_bundle_encoder_command(device_id, id, cmd, error_buf)
         }
-        Message::CommandEncoderFinish(device_id, command_encoder_id, command_buffer_id, desc) => {
-            let (_, label_and_error) =
-                global.command_encoder_finish(command_encoder_id, &desc, Some(command_buffer_id));
-            if let Some((_label, err)) = label_and_error {
-                error_buf.init(err, device_id);
-            }
+        Message::CommandEncoder(device_id, id, cmd) => {
+            global.command_encoder_command(device_id, id, cmd, error_buf)
         }
-        Message::ReplayRenderPass(device_id, id, pass) => {
-            crate::command::replay_render_pass(global, device_id, id, &pass, error_buf);
+        Message::RenderPassEncoder(device_id, id, cmd) => {
+            crate::command::render_pass_encoder_command(global, device_id, id, cmd, error_buf);
         }
-        Message::ReplayComputePass(device_id, id, pass) => {
-            crate::command::replay_compute_pass(global, device_id, id, &pass, error_buf);
+        Message::ComputePassEncoder(device_id, id, cmd) => {
+            crate::command::compute_pass_encoder_command(global, device_id, id, cmd, error_buf);
         }
         Message::QueueWrite {
             device_id,
@@ -3087,9 +3201,9 @@ unsafe fn process_message(
             global.buffer_drop(id)
         }
         Message::DropCommandEncoder(id) => global.command_encoder_drop(id),
-        Message::DropRenderPassEncoder(_id) => {}
-        Message::DropComputePassEncoder(_id) => {}
-        Message::DropRenderBundleEncoder(_id) => {}
+        Message::DropRenderPassEncoder(id) => global.render_pass_drop(id),
+        Message::DropComputePassEncoder(id) => global.compute_pass_drop(id),
+        Message::DropRenderBundleEncoder(id) => global.render_bundle_encoder_drop(id),
         Message::DropCommandBuffer(id) => global.command_buffer_drop(id),
         Message::DropRenderBundle(id) => global.render_bundle_drop(id),
         Message::DropBindGroupLayout(id) => global.bind_group_layout_drop(id),

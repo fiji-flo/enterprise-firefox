@@ -418,10 +418,11 @@ export class WeatherSuggestions extends SuggestProvider {
       case RESULT_MENU_COMMAND.DISMISS:
         this.logger.info("Dismissing weather result");
         lazy.UrlbarPrefs.set("suggest.weather", false);
-        result.acknowledgeDismissalL10n = {
-          id: "urlbar-dismissal-acknowledgment-weather",
-        };
-        controller.removeResult(result);
+        controller.removeResult(result, {
+          acknowledgeDismissalL10n: {
+            id: "urlbar-dismissal-acknowledgment-weather",
+          },
+        });
         break;
       case RESULT_MENU_COMMAND.INACCURATE_LOCATION:
         // Currently the only way we record this feedback is in the Glean

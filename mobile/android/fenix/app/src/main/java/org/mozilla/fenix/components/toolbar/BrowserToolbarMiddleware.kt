@@ -887,7 +887,8 @@ class BrowserToolbarMiddleware(
                 private = browsingMode.isPrivate,
             )
         } else {
-            val focusOnAddressBar = !settings.enableHomepageSearchBar
+            val focusOnAddressBar =
+                !settings.enableHomepageSearchBar && !settings.enableHomepageTrendingRecentSearch
 
             browsingModeManager.mode = browsingMode
             navController.navigate(

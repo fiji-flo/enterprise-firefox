@@ -5,11 +5,12 @@
 #include "AsyncClipboardRequest.h"
 
 #ifdef MOZ_WAYLAND
-#  include <sys/mman.h>
 #  include <fcntl.h>
 #  include <gio/gunixinputstream.h>
-#  include <glib.h>
 #  include <glib-unix.h>
+#  include <glib.h>
+#  include <sys/mman.h>
+
 #  include "RetrievalContextWayland.h"
 #endif
 

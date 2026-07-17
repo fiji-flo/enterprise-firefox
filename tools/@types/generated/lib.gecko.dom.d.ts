@@ -64,7 +64,7 @@ interface AnimationEventInit extends EventInit {
 
 interface AnimationPlaybackEventInit extends EventInit {
     currentTime?: CSSNumberish | null;
-    timelineTime?: number | null;
+    timelineTime?: CSSNumberish | null;
 }
 
 interface AnimationPropertyDetails {
@@ -866,6 +866,7 @@ interface EffectTiming {
 }
 
 interface ElementCreationOptions {
+    customElementRegistry?: CustomElementRegistry | null;
     is?: string;
     pseudo?: string;
 }
@@ -4663,8 +4664,6 @@ interface WebExtensionInit {
     baseURL: string;
     contentScripts?: WebExtensionContentScriptInit[];
     extensionPageCSP?: string | null;
-    sandboxPageCSP?: string | null;
-    sandboxPages?: MatchGlobOrString[] | null;
     hasRecommendedState?: boolean;
     id: string;
     ignoreQuarantine?: boolean;
@@ -4675,6 +4674,8 @@ interface WebExtensionInit {
     name?: string;
     permissions?: string[];
     readyPromise?: Promise<WebExtensionPolicy | null>;
+    sandboxPageCSP?: string | null;
+    sandboxPages?: MatchGlobOrString[] | null;
     temporarilyInstalled?: boolean;
     type?: string;
     version?: string;
@@ -5287,7 +5288,7 @@ interface AnimationFrameProvider {
 
 interface AnimationPlaybackEvent extends Event {
     readonly currentTime: CSSNumberish | null;
-    readonly timelineTime: number | null;
+    readonly timelineTime: CSSNumberish | null;
 }
 
 declare var AnimationPlaybackEvent: {
@@ -6834,6 +6835,7 @@ interface CSSStyleProperties extends CSSStyleDeclaration {
     MozFontLanguageOverride: string;
     MozForceBrokenImageIcon: string;
     MozHyphens: string;
+    MozImageDecoding: string;
     MozMarginEnd: string;
     MozMarginStart: string;
     MozOrient: string;
@@ -7115,6 +7117,7 @@ interface CSSStyleProperties extends CSSStyleDeclaration {
     letterSpacing: string;
     lightingColor: string;
     lineBreak: string;
+    lineClamp: string;
     lineHeight: string;
     linkParameters: string;
     listStyle: string;
@@ -7132,6 +7135,7 @@ interface CSSStyleProperties extends CSSStyleDeclaration {
     marginLeft: string;
     marginRight: string;
     marginTop: string;
+    marginTrim: string;
     marker: string;
     markerEnd: string;
     markerMid: string;
@@ -7649,7 +7653,6 @@ interface CanonicalBrowsingContext extends BrowsingContext {
     goForward(aCancelContentJSEpoch?: number, aRequireUserInteraction?: boolean, aUserActivation?: boolean): void;
     goToIndex(aIndex: number, aCancelContentJSEpoch?: number, aUserActivation?: boolean): void;
     loadURI(aURI: URI, aOptions?: LoadURIOptions): void;
-    notifyMediaMutedChanged(muted: boolean): void;
     notifyStartDelayedAutoplayMedia(): void;
     print(aPrintSettings: nsIPrintSettings): Promise<void>;
     reload(aReloadFlags: number): void;
@@ -7949,7 +7952,7 @@ interface ChannelWrapper extends EventTarget {
     getRequestHeaders(): MozHTTPHeader[];
     getResponseHeaders(): MozHTTPHeader[];
     redirectTo(url: URI): void;
-    registerTraceableChannel(extension: WebExtensionPolicy, remoteTab: RemoteTab | null): void;
+    registerTraceableChannel(extension: WebExtensionPolicy): void;
     resume(): void;
     setRequestHeader(header: string, value: string, merge?: boolean): void;
     setResponseHeader(header: string, value: string, merge?: boolean): void;
@@ -18167,11 +18170,13 @@ declare var RTCDataChannelEvent: {
 };
 
 interface RTCDtlsTransportEventMap {
+    "error": Event;
     "statechange": Event;
 }
 
 interface RTCDtlsTransport extends EventTarget {
     readonly iceTransport: RTCIceTransport;
+    onerror: ((this: RTCDtlsTransport, ev: Event) => any) | null;
     onstatechange: ((this: RTCDtlsTransport, ev: Event) => any) | null;
     readonly state: RTCDtlsTransportState;
     getRemoteCertificates(): ArrayBuffer[];
@@ -18398,16 +18403,6 @@ declare var RTCPeerConnectionIceEvent: {
     isInstance: IsInstance<RTCPeerConnectionIceEvent>;
 };
 
-interface RTCPeerConnectionStatic {
-    registerPeerConnectionLifecycleCallback(cb: PeerConnectionLifecycleCallback): void;
-}
-
-declare var RTCPeerConnectionStatic: {
-    prototype: RTCPeerConnectionStatic;
-    new(): RTCPeerConnectionStatic;
-    isInstance: IsInstance<RTCPeerConnectionStatic>;
-};
-
 interface RTCRtpReceiver {
     jitterBufferTarget: DOMHighResTimeStamp | null;
     readonly track: MediaStreamTrack;
@@ -18547,6 +18542,10 @@ declare var RadioNodeList: {
 
 interface Range extends AbstractRange {
     readonly commonAncestorContainer: Node;
+    readonly mayCrossShadowBoundaryEndContainer: Node;
+    readonly mayCrossShadowBoundaryEndOffset: number;
+    readonly mayCrossShadowBoundaryStartContainer: Node;
+    readonly mayCrossShadowBoundaryStartOffset: number;
     cloneContents(): DocumentFragment;
     cloneRange(): Range;
     collapse(toStart?: boolean): void;
@@ -23593,6 +23592,7 @@ interface WebExtensionPolicy {
     permissions: string[];
     readonly privateBrowsingAllowed: boolean;
     readonly readyPromise: any;
+    readonly sandboxPageCSP: string;
     readonly temporarilyInstalled: boolean;
     readonly type: string;
     readonly version: string;
@@ -25969,6 +25969,7 @@ interface WindowGlobalParent extends WindowContext {
     readonly contentParentId: number;
     readonly cookieJarSettings: nsICookieJarSettings | null;
     readonly documentChannel: MozChannel | null;
+    readonly documentPartitionedPrincipal: Principal;
     readonly documentPrincipal: Principal;
     readonly documentStoragePrincipal: Principal;
     readonly documentTitle: string;
@@ -26972,6 +26973,7 @@ declare namespace ChromeUtils {
     function registerWindowActor(aName: string, aOptions?: WindowActorOptions): void;
     function releaseAssert(condition: boolean, message?: string): void;
     function requestProcInfo(): Promise<ParentProcInfoDictionary>;
+    function requestXDGActivationToken(): Promise<string | null>;
     function resetLastExternalProtocolIframeAllowed(): void;
     function saveHeapSnapshot(boundaries?: HeapSnapshotBoundaries): string;
     function saveHeapSnapshotGetId(boundaries?: HeapSnapshotBoundaries): string;
@@ -27390,10 +27392,6 @@ interface OnBeforeUnloadEventHandlerNonNull {
 
 interface OnErrorEventHandlerNonNull {
     (event: Event | string, source?: string, lineno?: number, column?: number, error?: any): any;
-}
-
-interface PeerConnectionLifecycleCallback {
-    (pc: RTCPeerConnection, windowId: number, eventType: RTCLifecycleEvent): void;
 }
 
 interface PerformanceObserverCallback {
@@ -28371,7 +28369,6 @@ type RTCIceRole = "controlled" | "controlling" | "unknown";
 type RTCIceTcpCandidateType = "active" | "passive" | "so";
 type RTCIceTransportPolicy = "all" | "relay";
 type RTCIceTransportState = "checking" | "closed" | "completed" | "connected" | "disconnected" | "failed" | "new";
-type RTCLifecycleEvent = "connectionstatechange" | "iceconnectionstatechange" | "icegatheringstatechange" | "initialized";
 type RTCPeerConnectionState = "closed" | "connected" | "connecting" | "disconnected" | "failed" | "new";
 type RTCPriorityType = "high" | "low" | "medium" | "very-low";
 type RTCRtcpMuxPolicy = "negotiate" | "require";

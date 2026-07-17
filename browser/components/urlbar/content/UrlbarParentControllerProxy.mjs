@@ -198,11 +198,17 @@ export class UrlbarParentControllerProxy {
 
   /**
    * @param {UrlbarResult} result The result to remove.
+   * @param {object} [options] Options forwarded to the parent controller's
+   *   removeResult.
+   * @param {object} [options.acknowledgeDismissalL10n]
+   *   When the result is being dismissed, the l10n for the acknowledgment tip
+   *   that replaces its row.
    */
-  removeResult(result) {
+  removeResult(result, options) {
     this.#actor.sendAsyncMessage("RemoveResult", {
       instanceId: this.#instanceId,
       result: result.toWire(),
+      options,
     });
   }
 

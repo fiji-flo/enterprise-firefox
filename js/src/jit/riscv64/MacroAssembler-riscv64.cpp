@@ -2763,10 +2763,9 @@ CodeOffset MacroAssembler::nopPatchableToCall() {
 }
 
 FaultingCodeOffset MacroAssembler::wasmTrapInstruction() {
-  AutoForbidPoolsAndNops afp(this, 2);
-  FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
-  illegal_trap(kWasmTrapCode);
-  ebreak();
+  AutoForbidPoolsAndNops afp(this, 1);
+  FaultingCodeOffset fco(currentOffset());
+  illegal_trap(kWasmTrapCode);  // "csrwi csr_cycle, 0x6"
   return fco;
 }
 
@@ -4774,32 +4773,38 @@ static void CompareExchange(MacroAssembler& masm,
       if (signExtend) {
         masm.SignExtendByte(valueTemp, oldval);
         masm.SignExtendByte(output, output);
-        masm.SignExtendByte(newval, newval);
       } else {
         masm.andi(valueTemp, oldval, 0xff);
         masm.andi(output, output, 0xff);
-        masm.andi(newval, newval, 0xff);
       }
       break;
     case 2:
       if (signExtend) {
         masm.SignExtendShort(valueTemp, oldval);
         masm.SignExtendShort(output, output);
-        masm.SignExtendShort(newval, newval);
       } else {
         UseScratchRegisterScope temps(&masm);
         Register mask = temps.Acquire();
         masm.ma_li(mask, Imm32(0xffff));
         masm.and_(valueTemp, oldval, mask);
         masm.and_(output, output, mask);
-        masm.and_(newval, newval, mask);
       }
       break;
   }
 
   masm.ma_b(output, valueTemp, &end, Assembler::NotEqual, ShortJump);
 
-  masm.sllw(valueTemp, newval, offsetTemp);
+  switch (nbytes) {
+    case 1:
+      masm.andi(valueTemp, newval, 0xff);
+      break;
+    case 2:
+      masm.slli(valueTemp, newval, 48);
+      masm.srli(valueTemp, valueTemp, 48);
+      break;
+  }
+
+  masm.sllw(valueTemp, valueTemp, offsetTemp);
   if (masm.HasZbbExtension()) {
     masm.andn(scratch1, scratch1, maskTemp);
   } else {
@@ -5508,13 +5513,13 @@ void MacroAssemblerRiscv64::ma_add64(Register rd, Register rs, Imm64 rt) {
 }
 
 void MacroAssemblerRiscv64::ma_sub32(Register rd, Register rs, Imm32 rt) {
-  if (is_int12(-rt.value)) {
+  if (is_int12(int32_t(-uint32_t(rt.value)))) {
     // No subi instr, use addi(x, y, -imm).
     addiw(rd, rs, static_cast<int32_t>(-rt.value));
-  } else if (is_two_int12(rt.value)) {
-    auto [first, second] = ToTwoInt12(rt.value);
-    addiw(rd, rs, -first);
-    addiw(rd, rd, -second);
+  } else if (is_two_int12(int32_t(-uint32_t(rt.value)))) {
+    auto [first, second] = ToTwoInt12(-rt.value);
+    addiw(rd, rs, first);
+    addiw(rd, rd, second);
   } else {
     UseScratchRegisterScope temps(this);
     Register scratch = temps.Acquire();
@@ -5527,10 +5532,10 @@ void MacroAssemblerRiscv64::ma_sub64(Register rd, Register rs, Imm64 rt) {
   if (is_int12(-rt.value)) {
     // No subi instr, use addi(x, y, -imm).
     addi(rd, rs, static_cast<int32_t>(-rt.value));
-  } else if (is_two_int12(rt.value)) {
-    auto [first, second] = ToTwoInt12(rt.value);
-    addi(rd, rs, -first);
-    addi(rd, rd, -second);
+  } else if (is_two_int12(-rt.value)) {
+    auto [first, second] = ToTwoInt12(-rt.value);
+    addi(rd, rs, first);
+    addi(rd, rd, second);
   } else {
     // li handles the relocation.
     UseScratchRegisterScope temps(this);

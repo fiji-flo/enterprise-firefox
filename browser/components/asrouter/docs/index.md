@@ -97,6 +97,8 @@ menu-message
 
 - Explore key terms in the [Messaging System Glossary](./messaging-glossary.md).
 
+- Learn which actions, triggers, and context properties work on which surfaces in [Messaging Surface Compatibility](./messaging-surfaces.md).
+
 - Learn more about messaging experimentation through [Nimbus](https://experimenter.info/) in the [Messaging System: Experimenter Onboarding](https://mozilla-hub.atlassian.net/wiki/spaces/FIREFOX/pages/233406786/OMC+Experimenter+Onboarding).
 
 - [Messaging system schemas]
@@ -123,6 +125,7 @@ debugging-docs
 frequency-caps
 first-run
 messaging-glossary
+messaging-surfaces
 remote_cfr
 targeting-attributes
 targeting-guide

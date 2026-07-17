@@ -52,157 +52,147 @@
  **************************************************************
  **************************************************************/
 
+#include "nsWindow.h"
+
+#include <appmodel.h>
+#include <commctrl.h>
+#include <mmsystem.h>  // needed for WIN32_LEAN_AND_MEAN
+#include <process.h>
+#include <propkey.h>
+#include <propvarutil.h>
+#include <psapi.h>
+#include <richedit.h>
+#include <rpc.h>
+#include <shellapi.h>
+#include <unknwn.h>
+#include <windows.h>
+#include <wtsapi32.h>
+#include <zmouse.h>
+
+#include <algorithm>
+
+#include "InProcessWinCompositorWidget.h"
+#include "InputDeviceUtils.h"
+#include "KeyboardLayout.h"
+#include "ScreenHelperWin.h"
+#include "SystemTimeConverter.h"
+#include "WidgetUtils.h"
+#include "WinMouseScrollHandler.h"
+#include "WinTaskbar.h"
+#include "WinWindowOcclusionTracker.h"
 #include "gfx2DGlue.h"
+#include "gfxConfig.h"
+#include "gfxDWriteFonts.h"
 #include "gfxEnv.h"
 #include "gfxPlatform.h"
-
+#include "gfxWindowsPlatform.h"
+#include "imgIContainer.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/Components.h"
 #include "mozilla/Likely.h"
-#include "mozilla/PreXULSkeletonUI.h"
 #include "mozilla/Logging.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/PreXULSkeletonUI.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_gfx.h"
+#include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/StaticPrefs_ui.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/SwipeTracker.h"
-#include "mozilla/TouchEvents.h"
+#include "mozilla/TextEventDispatcherListener.h"
+#include "mozilla/TextEvents.h"  // For WidgetKeyboardEvent
 #include "mozilla/TimeStamp.h"
-
-#include "mozilla/ipc/MessageChannel.h"
-#include <algorithm>
-
-#include "mozilla/widget/WinEventObserver.h"
-#include "mozilla/widget/WinMessages.h"
-#include "nsLookAndFeel.h"
-#include "nsMenuPopupFrame.h"
-#include "nsWindow.h"
-#include "nsWindowTaskbarConcealer.h"
-#include "nsAppRunner.h"
-
-#include <appmodel.h>
-#include <shellapi.h>
-#include <windows.h>
-#include <wtsapi32.h>
-#include <process.h>
-#include <commctrl.h>
-#include <unknwn.h>
-#include <psapi.h>
-#include <rpc.h>
-#include <propvarutil.h>
-#include <propkey.h>
-
-#include "mozilla/Logging.h"
-#include "prtime.h"
-#include "prenv.h"
-
-#include "nsComponentManagerUtils.h"
-#include "nsContentUtils.h"
-#include "nsISupportsPrimitives.h"
-#include "nsITheme.h"
-#include "nsIObserverService.h"
-#include "nsIScreenManager.h"
-#include "imgIContainer.h"
-#include "nsIFile.h"
-#include "nsIRollupListener.h"
-#include "nsIClipboard.h"
-#include "WinMouseScrollHandler.h"
-#include "nsFontMetrics.h"
-#include "nsIFontEnumerator.h"
-#include "nsFont.h"
-#include "nsRect.h"
-#include "nsThreadUtils.h"
-#include "nsNativeCharsetUtils.h"
-#include "nsCRT.h"
-#include "nsAppDirectoryServiceDefs.h"
-#include "nsWidgetsCID.h"
-#include "nsTHashtable.h"
-#include "nsHashKeys.h"
-#include "nsString.h"
-#include "mozilla/Components.h"
-#include "nsNativeThemeWin.h"
-#include "nsXULPopupManager.h"
-#include "nsWindowsDllInterceptor.h"
-#include "nsLayoutUtils.h"
-#include "nsWindowGfx.h"
-#include "gfxWindowsPlatform.h"
-#include "gfxDWriteFonts.h"
-#include "nsPrintfCString.h"
-#include "mozilla/Preferences.h"
-#include "SystemTimeConverter.h"
-#include "WinTaskbar.h"
-#include "WidgetUtils.h"
-#include "WinWindowOcclusionTracker.h"
-#include "nsIWidgetListener.h"
+#include "mozilla/TouchEvents.h"
+#include "mozilla/WindowsVersion.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/intl/LocaleService.h"
+#include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
-#include "mozilla/WindowsVersion.h"
-#include "mozilla/TextEvents.h"  // For WidgetKeyboardEvent
-#include "mozilla/TextEventDispatcherListener.h"
-#include "mozilla/widget/nsAutoRollup.h"
 #include "mozilla/widget/PlatformWidgetTypes.h"
 #include "mozilla/widget/Screen.h"
-#include "nsStyleConsts.h"
+#include "mozilla/widget/WinEventObserver.h"
+#include "mozilla/widget/WinMessages.h"
+#include "mozilla/widget/nsAutoRollup.h"
+#include "nsAppDirectoryServiceDefs.h"
+#include "nsAppRunner.h"
 #include "nsBidiKeyboard.h"
-#include "nsStyleConsts.h"
-#include "gfxConfig.h"
-#include "InProcessWinCompositorWidget.h"
-#include "InputDeviceUtils.h"
-#include "ScreenHelperWin.h"
-#include "mozilla/StaticPrefs_apz.h"
-#include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/StaticPrefs_gfx.h"
-#include "mozilla/StaticPrefs_layout.h"
-#include "mozilla/StaticPrefs_ui.h"
-#include "mozilla/StaticPrefs_widget.h"
-#include "nsNativeAppSupportWin.h"
-
+#include "nsCRT.h"
+#include "nsComponentManagerUtils.h"
+#include "nsContentUtils.h"
+#include "nsFont.h"
+#include "nsFontMetrics.h"
+#include "nsHashKeys.h"
+#include "nsIClipboard.h"
+#include "nsIFile.h"
+#include "nsIFontEnumerator.h"
 #include "nsIGfxInfo.h"
-#include "nsUXThemeConstants.h"
-#include "KeyboardLayout.h"
+#include "nsIObserverService.h"
+#include "nsIRollupListener.h"
+#include "nsIScreenManager.h"
+#include "nsISupportsPrimitives.h"
+#include "nsITheme.h"
+#include "nsIWidgetListener.h"
+#include "nsLayoutUtils.h"
+#include "nsLookAndFeel.h"
+#include "nsMenuPopupFrame.h"
+#include "nsNativeAppSupportWin.h"
+#include "nsNativeCharsetUtils.h"
 #include "nsNativeDragTarget.h"
-#include <mmsystem.h>  // needed for WIN32_LEAN_AND_MEAN
-#include <zmouse.h>
-#include <richedit.h>
+#include "nsNativeThemeWin.h"
+#include "nsPrintfCString.h"
+#include "nsRect.h"
+#include "nsString.h"
+#include "nsStyleConsts.h"
+#include "nsTHashtable.h"
+#include "nsThreadUtils.h"
+#include "nsUXThemeConstants.h"
+#include "nsWidgetsCID.h"
+#include "nsWindowGfx.h"
+#include "nsWindowTaskbarConcealer.h"
+#include "nsWindowsDllInterceptor.h"
+#include "nsXULPopupManager.h"
+#include "prenv.h"
+#include "prtime.h"
 
 #ifdef ACCESSIBILITY
 #  ifdef DEBUG
 #    include "mozilla/a11y/Logging.h"
 #  endif
-#  include "mozilla/a11y/Compatibility.h"
-#  include "oleidl.h"
 #  include <uiautomation.h>
 #  include <winuser.h>
-#  include "nsAccessibilityService.h"
+
+#  include "mozilla/a11y/Compatibility.h"
 #  include "mozilla/a11y/DocAccessible.h"
 #  include "mozilla/a11y/LazyInstantiator.h"
 #  include "mozilla/a11y/Platform.h"
+#  include "nsAccessibilityService.h"
+#  include "oleidl.h"
 #  if !defined(WINABLEAPI)
 #    include <winable.h>
 #  endif  // !defined(WINABLEAPI)
 #endif
 
-#include "WindowsUIUtils.h"
-
-#include "nsWindowDefs.h"
-
-#include "nsCrashOnException.h"
-
-#include "nsIContent.h"
-
-#include "mozilla/BackgroundHangMonitor.h"
-#include "WinIMEHandler.h"
-
-#include "npapi.h"
-
 #include <d3d11.h>
+
+#include "WinIMEHandler.h"
+#include "WindowsUIUtils.h"
+#include "mozilla/BackgroundHangMonitor.h"
+#include "npapi.h"
+#include "nsCrashOnException.h"
+#include "nsIContent.h"
+#include "nsWindowDefs.h"
 
 // ERROR from wingdi.h (below) gets undefined by some code.
 // #define ERROR               0
@@ -213,17 +203,15 @@
 #  define SM_CONVERTIBLESLATEMODE 0x2003
 #endif
 
+#include "DirectManipulationOwner.h"
+#include "InputData.h"
+#include "mozilla/TaskController.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/layers/APZInputBridge.h"
+#include "mozilla/layers/IAPZCTreeManager.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layers/KnowsCompositor.h"
-#include "InputData.h"
-
-#include "mozilla/TaskController.h"
 #include "mozilla/webrender/WebRenderAPI.h"
-#include "mozilla/layers/IAPZCTreeManager.h"
-
-#include "DirectManipulationOwner.h"
 
 #if defined(MOZ_ENTERPRISE)
 #  include "mozilla/toolkit/components/felt/felt.h"
@@ -6445,6 +6433,9 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp) {
       return;
     }
   }
+
+  // Recompute tiled state.
+  SetIsTiled(mWnd && ::IsWindowArranged(mWnd));
 
   // Notify visibility change when window is activated.
   if (!(wp->flags & SWP_NOACTIVATE) && NeedsToTrackWindowOcclusionState()) {

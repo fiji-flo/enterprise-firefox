@@ -49,6 +49,7 @@ DIRS += [
     "find",
     "forgetaboutsite",
     "gecko-trace",
+    "geolocation",
     "glean",
     "httpsonlyerror",
     "jsoncpp",

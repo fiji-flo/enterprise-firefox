@@ -33,8 +33,8 @@ smartwindow-document-title = New Tab
 
 ## Smart Window Toggle Button
 
-toolbar-button-ai-window-toggle =
-    .label = Window Type
+toolbar-switcher-customizable-label =
+    .label = { -smart-window-brand-name } switcher
     .tooltiptext = Switch between Smart and Classic windows.
 
 ai-window-toggleview-switch-classic =
@@ -140,6 +140,9 @@ aiwindow-firstrun-model-allpurpose-body = Solid fit for most needs
 # $shortName (string) - The short name of the model version
 aiwindow-firstrun-model-flexible-label = Flexible: { $shortName }
 aiwindow-firstrun-model-flexible-body = Ready for a variety of tasks
+
+# Recommended represents the chat brand and model we recommend for users. Only affects European users.
+aiwindow-firstrun-model-recommended = Recommended
 
 aiwindow-firstrun-button = Let’s go
 aiwindow-firstrun-back-button = Back

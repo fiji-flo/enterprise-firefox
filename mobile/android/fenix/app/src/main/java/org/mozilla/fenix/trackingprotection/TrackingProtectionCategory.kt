@@ -20,7 +20,7 @@ enum class TrackingProtectionCategory(
     SOCIAL_MEDIA_TRACKERS(
         R.string.etp_social_media_trackers_title,
         R.string.etp_social_media_trackers_description,
-        iconsR.drawable.mozac_ic_social_tracker_24,
+        iconsR.drawable.mozac_ic_thumbs_down_24,
     ),
     CROSS_SITE_TRACKING_COOKIES(
         R.string.etp_cookies_title,

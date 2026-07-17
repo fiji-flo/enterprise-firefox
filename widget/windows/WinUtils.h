@@ -5,12 +5,14 @@
 #ifndef mozilla_widget_WinUtils_h_
 #define mozilla_widget_WinUtils_h_
 
-#include "nscore.h"
-#include <windows.h>
+#include <dwmapi.h>
 #include <shobjidl.h>
 #include <uxtheme.h>
-#include <dwmapi.h>
+#include <windows.h>
+
 #include <utility>
+
+#include "nscore.h"
 
 // Undo the windows.h damage
 #undef GetMessage
@@ -19,20 +21,14 @@
 #undef GetBinaryType
 #undef RemoveDirectory
 
-#include "nsString.h"
-#include "nsRegion.h"
-#include "nsRect.h"
-
-#include "nsIRunnable.h"
 #include "nsICryptoHash.h"
+#include "nsIRunnable.h"
+#include "nsRect.h"
+#include "nsRegion.h"
+#include "nsString.h"
 #ifdef MOZ_PLACES
 #  include "nsIFaviconService.h"
 #endif
-#include "nsIDownloader.h"
-#include "nsIURI.h"
-#include "nsIWidget.h"
-#include "nsWindowsHelpers.h"
-
 #include "mozilla/EventForwards.h"
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/UniquePtr.h"
@@ -40,6 +36,10 @@
 #include "mozilla/WindowsDpiAwareness.h"
 #include "mozilla/WindowsProcessMitigations.h"
 #include "mozilla/gfx/2D.h"
+#include "nsIDownloader.h"
+#include "nsIURI.h"
+#include "nsIWidget.h"
+#include "nsWindowsHelpers.h"
 
 /**
  * NS_INLINE_DECL_IUNKNOWN_REFCOUNTING should be used for defining and

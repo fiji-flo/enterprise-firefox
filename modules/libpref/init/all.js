@@ -4013,12 +4013,19 @@ pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false
 pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false, locked);
 #endif
 
-// Locked so end users cannot toggle SQLite encryption from about:config or
-// user.js. Enterprise policies (Preferences allowlist) and our keystore
-// auto-recovery use the unlock/setDefault/relock dance to override.
-// Defined in StaticPrefList.yaml; locked here because the YAML has no
-// "locked" attribute.
-pref("security.storage.encryption.sqlite.enabled", false, locked);
+#if defined(MOZ_ENTERPRISE) && !defined(MOZ_THUNDERBIRD)
+// SQLite at-rest encryption enabled by default on enterprise Firefox builds.
+// Per-DB DEKs are wrapped under a Password KEK keyed by the enterprise
+// primarySecret. Intentionally not `locked`: the authoritative profile-local
+// signal that gates obfsvfs's default-VFS registration is compatibility.ini's
+// EncryptedDatabases marker (set eagerly in CheckEncryptionCompatibility,
+// read back via IsProfileEncryptedDatabases()), and a declarative `locked`
+// here would silently mask the test-manifest `prefs = [..]` overrides that
+// the encryption-aware xpcshell tests rely on. Gated on !MOZ_THUNDERBIRD so
+// Thunderbird (which can in principle be built with --enable-enterprise too)
+// stays plaintext for now.
+pref("security.storage.encryption.sqlite.enabled", true);
+#endif
 
 // Preferences for the form autofill toolkit component.
 // The truthy values of "extensions.formautofill.addresses.available"

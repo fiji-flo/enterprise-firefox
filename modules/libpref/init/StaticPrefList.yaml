@@ -521,11 +521,7 @@
 #     applies to touchpad scrolling)
 - name: apz.axis_lock.mode
   type: RelaxedAtomicInt32
-#if defined(XP_MACOSX) && !defined(NIGHTLY_BUILD)
-  value: 3
-#else
   value: 2
-#endif
   mirror: always
 
 - name: apz.content_response_timeout
@@ -10620,6 +10616,14 @@
   mirror: always
   rust: true
 
+# Whether to enable the CSS margin-trim property
+# https://drafts.csswg.org/css-box-4/#margin-trim
+- name: layout.css.margin-trim.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 # Whether to enable CSS Module Scripts support.
 # https://html.spec.whatwg.org/#creating-a-css-module-script
 - name: layout.css.module-scripts.enabled
@@ -11276,7 +11280,7 @@
 # https://drafts.csswg.org/css-inline-3/#text-box-shorthand
 - name: layout.css.text-box.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Maximum number of lines to try balancing.
@@ -13925,11 +13929,7 @@
 
 - name: media.webrtc.hw.h264.enabled
   type: RelaxedAtomicBool
-#if defined(MOZ_WIDGET_ANDROID)
   value: true
-#else
-  value: @IS_NIGHTLY_BUILD@
-#endif
   mirror: always
 
 - name: media.webrtc.codec.video.av1.enabled
@@ -19143,7 +19143,11 @@
 # ciphertext. Read at Connection::initialize, not hot-reloadable.
 - name: security.storage.encryption.sqlite.enabled
   type: RelaxedAtomicBool
+#if defined(MOZ_ENTERPRISE) && !defined(MOZ_THUNDERBIRD)
+  value: true
+#else
   value: false
+#endif
   mirror: always
 
 - name: security.tls13.aes_128_gcm_sha256
@@ -20591,7 +20595,7 @@
 # fast input devices (bug 1098981).
 - name: widget.gtk.x11-key-repeat-throttle.enabled
   type: bool
-  value: true
+  value: false
   mirror: always
 
 # Whether we enable rounded bottom corners on GTK by default.

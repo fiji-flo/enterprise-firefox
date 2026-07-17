@@ -110,10 +110,7 @@ export class BackupUIChild extends JSWindowActorChild {
         widget.dispatchEvent(evt);
       }
     } else if (event.type == "BackupUI:GetBackupFileInfo") {
-      let { backupFile } = event.detail;
-      this.sendAsyncMessage("GetBackupFileInfo", {
-        backupFile,
-      });
+      this.sendAsyncMessage("GetBackupFileInfo");
     } else if (event.type == "BackupUI:RestoreFromBackupFile") {
       let { backupPassword, restoreType, source } = event.detail;
       let result = await this.sendQuery("RestoreFromBackupFile", {

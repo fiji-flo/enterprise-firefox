@@ -18,6 +18,7 @@ fetch the ``.sym``, parse it, resolve each requested offset.
 
 import contextlib
 import gzip
+import threading
 import urllib.parse
 import urllib.request
 from bisect import bisect
@@ -116,8 +117,26 @@ def get_file_url(module, config):
         return None
 
 
+# Symbol-fetch errors are logged once per exception type, so a systemic failure
+# (an SSL, proxy, or DNS error that makes every fetch fail) names its cause in
+# the log instead of being swallowed, without flooding it with a line per fetch.
+# OS-library fetches that legitimately 404 are not errors and are not logged.
+_fetch_error_lock = threading.Lock()
+_logged_fetch_error_types = set()
+
+
+def _log_fetch_error(url, error):
+    error_type = type(error).__name__
+    with _fetch_error_lock:
+        if error_type in _logged_fetch_error_types:
+            return
+        _logged_fetch_error_types.add(error_type)
+    print(f"  Symbol fetch failed ({error_type}): {error} [{url}]", flush=True)
+
+
 def fetch_url(url):
     result = False, ""
+    last_error = None
     try:
         with contextlib.closing(
             urllib.request.urlopen(url, timeout=_FETCH_TIMEOUT_SECONDS)
@@ -128,7 +147,8 @@ def fetch_url(url):
             if response_code != 200:
                 result = False, ""
             return True, decode_response(response)
-    except OSError:
+    except OSError as error:
+        last_error = error
         result = False, ""
 
     if not result[0]:
@@ -142,9 +162,14 @@ def fetch_url(url):
                 if response_code != 200:
                     result = False, ""
                 return True, decode_response(response)
-        except OSError:
+        except OSError as error:
+            last_error = error
             result = False, ""
 
+    # Reached only when both attempts failed. Surface a network/TLS/proxy error
+    # (the silent OSError that makes a broken run look clean) by naming it.
+    if last_error is not None:
+        _log_fetch_error(url, last_error)
     return result
 
 
@@ -236,6 +261,12 @@ def symbolicate_modules(frames_by_module, config, max_workers=16):
 
     total = len(frames_by_module)
     result = {}
+    # Track resolved vs unsymbolicated frames separately. Counting every entry
+    # as "resolved" hid total symbol-fetch failures behind a healthy-looking
+    # counter: a failed fetch falls back to (UNSYMBOLICATED, ...) but still
+    # counted the same as a real resolution.
+    resolved = 0
+    unsymbolicated = 0
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             executor.submit(process_module, module, list(offsets), config)
@@ -248,10 +279,21 @@ def symbolicate_modules(frames_by_module, config, max_workers=16):
         for done, future in enumerate(as_completed(futures), 1):
             for key, value in future.result():
                 result[key] = value
+                if value[0] == UNSYMBOLICATED:
+                    unsymbolicated += 1
+                else:
+                    resolved += 1
             if done % _SYMBOLICATE_PROGRESS_EVERY == 0 or done == total:
                 print(
                     f"  ...symbolicated {done}/{total} modules "
-                    f"({len(result)} frames resolved)",
+                    f"({resolved} resolved, {unsymbolicated} unsymbolicated)",
                     flush=True,
                 )
+    if unsymbolicated > resolved:
+        print(
+            f"  WARNING: {unsymbolicated} of {resolved + unsymbolicated} frames "
+            "are unsymbolicated; symbol fetching is likely failing (check access "
+            "to the symbol server).",
+            flush=True,
+        )
     return result

@@ -109,6 +109,8 @@ class SocketProcessChild final : public PSocketProcessChild {
 
   mozilla::ipc::IPCResult RecvClearSessionCache(
       ClearSessionCacheResolver&& aResolve);
+  mozilla::ipc::IPCResult RecvClearPrivateBrowsingSessionCache(
+      ClearPrivateBrowsingSessionCacheResolver&& aResolve);
 
   already_AddRefed<PTRRServiceChild> AllocPTRRServiceChild(
       const bool& aCaptiveIsPassed, const bool& aParentalControlEnabled,

@@ -7,9 +7,9 @@
 #include "nsIWinTaskbar.h"
 #define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
 
+#include "WinUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_widget.h"
-#include "WinUtils.h"
 
 using namespace mozilla;
 

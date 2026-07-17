@@ -14,19 +14,19 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/glean/WidgetCocoaMetrics.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/ToString.h"
 #include "mozilla/Utf16.h"
+#include "mozilla/glean/WidgetCocoaMetrics.h"
 
+#include "WidgetUtils.h"
+#include "nsBidiUtils.h"
+#include "nsCocoaUtils.h"
 #include "nsCocoaWindow.h"
 #include "nsObjCExceptions.h"
-#include "nsBidiUtils.h"
-#include "nsToolkit.h"
-#include "nsCocoaUtils.h"
-#include "WidgetUtils.h"
 #include "nsPrintfCString.h"
+#include "nsToolkit.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;

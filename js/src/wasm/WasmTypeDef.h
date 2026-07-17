@@ -21,7 +21,6 @@
 #include "mozilla/HashTable.h"
 
 #include "js/RefCounted.h"
-
 #include "wasm/WasmCodegenConstants.h"
 #include "wasm/WasmCompileArgs.h"
 #include "wasm/WasmConstants.h"

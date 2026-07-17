@@ -6,8 +6,6 @@
  * JS atom table.
  */
 
-#include "vm/JSAtomUtils-inl.h"
-
 #include "mozilla/HashFunctions.h"  // mozilla::HashString
 #include "mozilla/RangedPtr.h"
 
@@ -29,7 +27,9 @@
 #include "vm/StringType.h"
 #include "vm/SymbolType.h"
 #include "vm/WellKnownAtom.h"  // WellKnownAtomInfo, WellKnownAtomId, wellKnownAtomInfos
+
 #include "gc/AtomMarking-inl.h"
+#include "vm/JSAtomUtils-inl.h"
 #include "vm/JSContext-inl.h"
 #include "vm/Realm-inl.h"
 #include "vm/StringType-inl.h"

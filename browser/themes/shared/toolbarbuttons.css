@@ -33,7 +33,6 @@
   }
 
   /* Smart window properties */
-  --smartwindow-ai-toggle-padding: 4px;
   --smartwindow-ask-btn-gradient: linear-gradient(
     117deg,
     rgba(50, 27, 253, 0.3) -17.87%,
@@ -387,8 +386,12 @@ toolbar .toolbaritem-combined-buttons {
    to prevent users from accidentally clicking it. We don't however need
    to show this disabled state, as the flicker that it generates is short
    enough to be visible but not long enough to explain anything to users. */
-#reload-button[disabled]:not(:-moz-window-inactive) > .toolbarbutton-icon {
-  opacity: 1 !important;
+#reload-button[disabled]:not(:-moz-window-inactive) {
+  opacity: 1;
+
+  &:hover > .toolbarbutton-icon {
+    background-color: var(--toolbarbutton-background-color-hover);
+  }
 }
 
 /* Bookmark buttons */

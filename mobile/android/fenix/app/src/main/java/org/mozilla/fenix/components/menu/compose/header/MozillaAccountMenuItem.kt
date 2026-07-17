@@ -60,7 +60,6 @@ private val AVATAR_SIZE = 24.dp
 internal fun MozillaAccountMenuItem(
     account: Account?,
     accountState: AccountState,
-    isPrivate: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -116,7 +115,6 @@ internal fun MozillaAccountMenuItem(
             AvatarIcon(
                 account = account,
                 accountState = accountState,
-                isPrivate = isPrivate,
             )
 
             Spacer(modifier = Modifier.width(FirefoxTheme.layout.space.static200))
@@ -159,18 +157,9 @@ private fun FallbackAvatarIcon() {
 }
 
 @Composable
-private fun PrivateWarningAvatarIcon() {
-    Icon(
-        painter = painterResource(id = iconsR.drawable.mozac_ic_avatar_warning_circle_fill_critical_private_24),
-        contentDescription = null,
-        tint = Color.Unspecified,
-    )
-}
-
-@Composable
 private fun WarningAvatarIcon() {
     Icon(
-        painter = painterResource(id = iconsR.drawable.mozac_ic_avatar_warning_circle_fill_critical_24),
+        painter = painterResource(id = iconsR.drawable.mozac_ic_avatar_warning_circle_fill_multicolor_24),
         contentDescription = null,
         tint = Color.Unspecified,
     )
@@ -180,11 +169,8 @@ private fun WarningAvatarIcon() {
 private fun AvatarIcon(
     account: Account?,
     accountState: AccountState,
-    isPrivate: Boolean,
 ) {
-    if (accountState is AuthenticationProblem && isPrivate) {
-        PrivateWarningAvatarIcon()
-    } else if (accountState is AuthenticationProblem) {
+    if (accountState is AuthenticationProblem) {
         WarningAvatarIcon()
     } else {
         val avatarUrl = account?.avatar?.url
@@ -278,7 +264,6 @@ private fun MozillaAccountMenuItemPreview(
                 MozillaAccountMenuItem(
                     account = state.value.account,
                     accountState = state.value.accountState,
-                    isPrivate = state.value.isPrivate,
                     onClick = {},
                 )
             }

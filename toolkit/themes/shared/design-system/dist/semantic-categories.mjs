@@ -757,6 +757,10 @@ export const tokensTable = {
       name: "--toggle-dot-background-color-on-pressed",
     },
     {
+      value: "var(--background-color-box)",
+      name: "--panel-list-background-color",
+    },
+    {
       value: "var(--button-background-color-menu)",
       name: "--box-button-background-color",
     },
@@ -1341,6 +1345,10 @@ export const tokensTable = {
       value: "var(--border-color-interactive)",
       name: "--visual-picker-item-border-color",
     },
+    {
+      value: "var(--border-color-deemphasized)",
+      name: "--panel-list-border-color",
+    },
     { value: "var(--border-color)", name: "--box-border-color" },
   ],
   "border-radius": [
@@ -1406,6 +1414,8 @@ export const tokensTable = {
       value: "var(--border-radius-medium)",
       name: "--visual-picker-item-border-radius",
     },
+    { value: "0", name: "--panel-item-button-border-radius" },
+    { value: "var(--panel-border-radius)", name: "--panel-list-border-radius" },
     { value: "var(--border-radius-medium)", name: "--box-border-radius" },
     {
       value: "calc(var(--box-border-radius) - var(--box-border-width))",
@@ -1495,6 +1505,7 @@ export const tokensTable = {
       name: "--panel-box-shadow",
     },
     { value: "var(--box-shadow-level-3)", name: "--popup-box-shadow" },
+    { value: "var(--popup-box-shadow)", name: "--panel-list-box-shadow" },
     { value: "var(--box-shadow-level-1)", name: "--tab-box-shadow-selected" },
   ],
   color: [
@@ -2133,6 +2144,17 @@ export const tokensTable = {
     { value: "var(--space-large)", name: "--select-space-inline-small" },
     { value: "1px", name: "--toggle-dot-margin" },
     { value: "calc(-1 * var(--dimension-2))", name: "--toggle-inset" },
+    { value: "4px", name: "--panel-item-badge-inset-block-start" },
+    { value: "24px", name: "--panel-item-badge-inset-inline-start" },
+    { value: "0", name: "--panel-item-button-margin" },
+    {
+      value: "var(--space-xsmall) var(--space-small)",
+      name: "--panel-item-button-padding",
+    },
+    {
+      value: "var(--space-xxlarge)",
+      name: "--panel-item-button-padding-inline-start",
+    },
     { value: "var(--space-large)", name: "--box-padding" },
     { value: "var(--dimension-4)", name: "--tab-margin-block" },
     { value: "6px", name: "--tab-close-button-padding" },
@@ -2728,6 +2750,7 @@ export const tokensTable = {
       value: "var(--button-text-color-disabled)",
       name: "--select-text-color-disabled",
     },
+    { value: "var(--text-color)", name: "--panel-list-text-color" },
     { value: "var(--button-text-color-menu)", name: "--box-button-text-color" },
     {
       value: "var(--button-text-color-menu-hover)",
@@ -5080,6 +5103,17 @@ export const variableLookupTable = {
   "visual-picker-item-border-radius": "var(--border-radius-medium)",
   "visual-picker-item-border-width": "var(--border-width)",
   "visual-picker-item-border-width-checked": "calc(var(--border-width) * 3)",
+  "panel-item-badge-inset-block-start": "4px",
+  "panel-item-badge-inset-inline-start": "24px",
+  "panel-item-button-border-radius": "0",
+  "panel-item-button-margin": "0",
+  "panel-item-button-padding": "var(--space-xsmall) var(--space-small)",
+  "panel-item-button-padding-inline-start": "var(--space-xxlarge)",
+  "panel-list-background-color": "var(--background-color-box)",
+  "panel-list-border-color": "var(--border-color-deemphasized)",
+  "panel-list-border-radius": "var(--panel-border-radius)",
+  "panel-list-box-shadow": "var(--popup-box-shadow)",
+  "panel-list-text-color": "var(--text-color)",
   "box-border": "var(--box-border-width) solid var(--box-border-color)",
   "box-border-width": "var(--border-width)",
   "box-border-color": "var(--border-color)",

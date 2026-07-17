@@ -607,6 +607,7 @@ function init_all() {
     ) {
       SettingPaneManager.registerPane("browserIcon", {
         parent: "appearance",
+        iconSrc: "chrome://browser/skin/sidebar/firefox.svg",
         l10nId: "appearance-browser-icon-subpage-title",
         groupIds: ["browserIconBasic", "browserIconBonus"],
         module: "chrome://browser/content/preferences/config/browser-icon.mjs",

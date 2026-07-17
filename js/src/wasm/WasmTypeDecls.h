@@ -18,6 +18,7 @@
 #define wasm_type_decls_h
 
 #include "NamespaceImports.h"
+
 #include "gc/Barrier.h"
 #include "js/GCVector.h"
 #include "js/HashTable.h"
@@ -58,6 +59,7 @@ class Instance;
 class Module;
 #ifdef ENABLE_WASM_COMPONENTS
 class Component;
+class ComponentInstance;
 #endif
 
 class Code;

@@ -5,11 +5,11 @@
 #ifndef MOZ_WAYLAND_SURFACE_H_
 #define MOZ_WAYLAND_SURFACE_H_
 
-#include "nsWaylandDisplay.h"
-#include "mozilla/Mutex.h"
-#include "mozilla/Atomics.h"
 #include "WaylandSurfaceLock.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/GRefPtr.h"
+#include "mozilla/Mutex.h"
+#include "nsWaylandDisplay.h"
 
 /* Workaround for bug at wayland-util.h,
  * present in wayland-devel < 1.12

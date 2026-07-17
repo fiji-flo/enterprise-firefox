@@ -74,7 +74,6 @@ details summary,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
   user-select: none;
   /* Reserve a leading gutter for the expand/collapse chevron so the folder icon
      stays aligned whether or not the folder has children. The gutter is the
@@ -163,7 +162,7 @@ details {
 
 sidebar-bookmark-row {
   border-radius: var(--border-radius-circle);
-  height: var(--size-item-large);
+  height: var(--sidebar-panel-list-item-height, var(--size-item-large));
   align-items: center;
 
   &:hover:not([selected]) {

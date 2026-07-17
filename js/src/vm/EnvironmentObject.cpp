@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "vm/EnvironmentObject-inl.h"
-
 #include "mozilla/Maybe.h"
 
 #include "builtin/Array.h"
@@ -33,6 +31,7 @@
 #include "gc/WeakMap-inl.h"
 #include "vm/ArgumentsObject-inl.h"
 #include "vm/BytecodeIterator-inl.h"
+#include "vm/EnvironmentObject-inl.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;

@@ -2,38 +2,43 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsAppShell.h"
+
+#include <errno.h>
+#include <fcntl.h>
+#include <gdk/gdk.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <gdk/gdk.h>
-#include "nsAppShell.h"
-#include "nsBaseAppShell.h"
-#include "nsWindow.h"
-#include "mozilla/Logging.h"
-#include "prenv.h"
+
 #include "mozilla/BackgroundHangMonitor.h"
+#include "mozilla/GRefPtr.h"
+#include "mozilla/GUniquePtr.h"
 #include "mozilla/Hal.h"
+#include "mozilla/Logging.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerThreadSleep.h"
-#include "mozilla/GUniquePtr.h"
-#include "mozilla/GRefPtr.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/WidgetUtils.h"
-#include "nsIPowerManagerService.h"
+#include "nsAppShell.h"
+#include "nsBaseAppShell.h"
+#include "nsCRT.h"
 #include "nsIObserverService.h"
-#include "mozilla/Preferences.h"
+#include "nsIPowerManagerService.h"
+#include "nsWindow.h"
+#include "prenv.h"
 #ifdef MOZ_ENABLE_DBUS
 #  include <gio/gio.h>
+
 #  include "WidgetUtilsGtk.h"
 #endif
+#include "HeadlessScreenHelper.h"
+#include "ScreenHelperGTK.h"
 #include "WakeLockListener.h"
 #include "gfxPlatform.h"
-#include "nsAppRunner.h"
 #include "mozilla/XREAppData.h"
-#include "ScreenHelperGTK.h"
-#include "HeadlessScreenHelper.h"
 #include "mozilla/widget/ScreenManager.h"
+#include "nsAppRunner.h"
 #ifdef MOZ_WAYLAND
 #  include "nsWaylandDisplay.h"
 #endif

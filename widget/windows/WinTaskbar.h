@@ -6,8 +6,8 @@
 #ifndef WinTaskbar_h_
 #define WinTaskbar_h_
 
-#include <windows.h>
 #include <shobjidl.h>
+#include <windows.h>
 #undef LogSeverity  // SetupAPI.h #defines this as DWORD
 #include "nsIWinTaskbar.h"
 

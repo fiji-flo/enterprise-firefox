@@ -460,14 +460,15 @@ struct ModuleMetadata : public ShareableBase<ModuleMetadata> {
     return !!codeMeta && codeMeta->init();
   }
 
-  bool addDefinedFunc(ValTypeVector&& params, ValTypeVector&& results,
-                      bool declareForRef = false,
-                      mozilla::Maybe<CacheableName>&& optionalExportedName =
-                          mozilla::Nothing());
-  bool addDefinedFuncWithType(uint32_t funcTypeIndex,
-                              bool declareForRef = false,
-                              mozilla::Maybe<CacheableName>&&
-                                  optionalExportedName = mozilla::Nothing());
+  [[nodiscard]] bool addDefinedFunc(
+      ValTypeVector&& params, ValTypeVector&& results,
+      bool declareForRef = false,
+      mozilla::Maybe<CacheableName>&& optionalExportedName =
+          mozilla::Nothing());
+  [[nodiscard]] bool addDefinedFuncWithType(
+      uint32_t funcTypeIndex, bool declareForRef = false,
+      mozilla::Maybe<CacheableName>&& optionalExportedName =
+          mozilla::Nothing());
   bool addImportedFunc(ValTypeVector&& params, ValTypeVector&& results,
                        CacheableName&& importModName,
                        CacheableName&& importFieldName);

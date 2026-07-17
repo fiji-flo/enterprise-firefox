@@ -19,7 +19,6 @@ import androidx.navigation.NavDirections
 import androidx.navigation.NavHostController
 import androidx.navigation.fragment.findNavController
 import kotlinx.coroutines.flow.MutableSharedFlow
-import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.Mode
@@ -33,8 +32,6 @@ import org.mozilla.fenix.components.QrScanFenixFeature
 import org.mozilla.fenix.components.VoiceSearchFeature
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.components.metrics.MetricsUtils
-import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.share.ShareSource
 import org.mozilla.fenix.e2e.SystemInsetsPaddedFragment
 import org.mozilla.fenix.ext.bookmarkStorage
@@ -43,13 +40,8 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.pbmlock.registerForVerification
 import org.mozilla.fenix.pbmlock.verifyUser
-import org.mozilla.fenix.search.BrowserStoreToFenixSearchMapperMiddleware
 import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware
 import org.mozilla.fenix.search.BrowserToolbarSearchStatusSyncMiddleware
-import org.mozilla.fenix.search.BrowserToolbarToFenixSearchMapperMiddleware
-import org.mozilla.fenix.search.FenixSearchMiddleware
-import org.mozilla.fenix.search.SearchFragmentStore
-import org.mozilla.fenix.search.createInitialSearchFragmentState
 import org.mozilla.fenix.tabstray.redux.state.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -96,10 +88,9 @@ class BookmarkFragment : Fragment(), SystemInsetsPaddedFragment {
         savedInstanceState: Bundle?,
     ): View {
         val toolbarStore = buildToolbarStore()
-        val searchStore = buildSearchStore(toolbarStore)
         val buildStore = { composeNavController: NavHostController ->
-            val appStore = requireComponents.appStore
-            val navController = this@BookmarkFragment.findNavController()
+                val appStore = requireComponents.appStore
+                val navController = this@BookmarkFragment.findNavController()
 
             val store by fragmentStore(
                 BookmarksState.default.copy(
@@ -205,10 +196,6 @@ class BookmarkFragment : Fragment(), SystemInsetsPaddedFragment {
                 BookmarksScreen(
                     buildStore = buildStore,
                     appStore = requireComponents.appStore,
-                    toolbarStore = toolbarStore,
-                    searchStore = searchStore,
-                    bookmarksSearchEngine = requireComponents.core.store.state.search.searchEngines
-                        .firstOrNull { it.id == BOOKMARKS_SEARCH_ENGINE_ID },
                 )
             }
         }
@@ -250,48 +237,6 @@ class BookmarkFragment : Fragment(), SystemInsetsPaddedFragment {
                     browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager,
                     settings = requireComponents.settings,
                     scope = lifecycleScope,
-                ),
-            ),
-        )
-    }.value
-
-    private fun buildSearchStore(
-        toolbarStore: BrowserToolbarStore,
-    ) = fragmentStore(
-        createInitialSearchFragmentState(
-            context = requireContext(),
-            components = requireComponents,
-            tabId = null,
-            pastedText = null,
-            searchAccessPoint = MetricsUtils.Source.NONE,
-        ),
-    ) {
-        val lifecycleScope = viewLifecycleOwner.lifecycle.coroutineScope
-
-        SearchFragmentStore(
-            initialState = it,
-            middleware = listOf(
-                BrowserToolbarToFenixSearchMapperMiddleware(
-                    toolbarStore = toolbarStore,
-                    browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager,
-                    scope = lifecycleScope,
-                ),
-                BrowserStoreToFenixSearchMapperMiddleware(
-                    browserStore = requireComponents.core.store,
-                    scope = lifecycleScope,
-                    appStore = requireComponents.appStore,
-                ),
-                FenixSearchMiddleware(
-                    fragment = this@BookmarkFragment,
-                    engine = requireComponents.core.engine,
-                    useCases = requireComponents.useCases,
-                    nimbusComponents = requireComponents.nimbus,
-                    settings = requireComponents.settings,
-                    appStore = requireComponents.appStore,
-                    browserStore = requireComponents.core.store,
-                    toolbarStore = toolbarStore,
-                    navController = this@BookmarkFragment.findNavController(),
-                    browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager,
                 ),
             ),
         )

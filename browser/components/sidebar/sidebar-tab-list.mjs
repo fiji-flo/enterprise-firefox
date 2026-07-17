@@ -349,7 +349,7 @@ export class SidebarTabRow extends FxviewTabRowBase {
           () => html`${this.#domainTemplate()} ${this.timeTemplate()}`
         )}
       </a>
-      ${this.secondaryButtonTemplate()} ${this.#containerIndicatorTemplate()}
+      ${this.#containerIndicatorTemplate()} ${this.secondaryButtonTemplate()}
     `;
   }
 }

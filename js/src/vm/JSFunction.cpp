@@ -6,8 +6,6 @@
  * JS function support.
  */
 
-#include "vm/JSFunction-inl.h"
-
 #include "mozilla/Maybe.h"
 
 #include "jsapi.h"
@@ -54,7 +52,9 @@
 #include "vm/StringObject.h"
 #include "wasm/WasmCode.h"
 #include "wasm/WasmInstance.h"
+
 #include "vm/Interpreter-inl.h"
+#include "vm/JSFunction-inl.h"
 #include "vm/JSScript-inl.h"
 
 using namespace js;
@@ -1392,16 +1392,39 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
         return false;
       }
 
-      // Steps 14.a-b, 14.d.i-ii.
-      str = ToString<CanGC>(cx, args[i]);
-      if (!str) {
-        return false;
+      // Dynamic Code Brand Checks Proposal
+      //
+      // CreateDynamicFunction ( constructor, newTarget, kind, parameterArgs,
+      //                         bodyArg )
+      // https://tc39.es/proposal-dynamic-code-brand-checks/#sec-createdynamicfunction
+      //
+      // Step 8.b. Let parameterString be no-code.
+      str = nullptr;
+
+      // Step 8.c. If arg is an Object, set parameterString to
+      //           HostGetCodeForEval(arg).
+      if (args[i].isObject()) {
+        JS::Rooted<JSObject*> obj(cx, &args[i].toObject());
+        if (!cx->getCodeForEval(obj, &str)) {
+          return false;
+        }
       }
 
+      // Step 8.d. If parameterString is no-code, set parameterString to
+      //           ? ToString(arg).
+      if (!str) {
+        str = ToString<CanGC>(cx, args[i]);
+        if (!str) {
+          return false;
+        }
+      }
+
+      // Step 8.e. Append parameterString to parameterStrings.
       if (!parameterStrings.append(str)) {
         return false;
       }
 
+      // ES2018 draft
       // Steps 14.b, 14.d.iii.
       if (!sb.append(str)) {
         return false;
@@ -1430,12 +1453,36 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
   }
 
   JS::RootedValue bodyArg(cx);
-  RootedString bodyString(cx);
+
+  // Dynamic Code Brand Checks Proposal
+  //
+  // CreateDynamicFunction ( constructor, newTarget, kind, parameterArgs,
+  //                         bodyArg )
+  // https://tc39.es/proposal-dynamic-code-brand-checks/#sec-createdynamicfunction
+  //
+  // Step 10. Let bodyString be no-code.
+  JS::Rooted<JSString*> bodyString(cx);
   if (args.length() > 0) {
-    // Steps 13, 14.e, 15.
     bodyArg = args[args.length() - 1];
-    bodyString = ToString<CanGC>(cx, bodyArg);
-    if (!bodyString || !sb.append(bodyString)) {
+
+    // Step 11. If bodyArg is an Object, set bodyString to
+    //          HostGetCodeForEval(bodyArg).
+    if (bodyArg.isObject()) {
+      JS::Rooted<JSObject*> obj(cx, &bodyArg.toObject());
+      if (!cx->getCodeForEval(obj, &bodyString)) {
+        return false;
+      }
+    }
+
+    // Step 12. If bodyString is no-code, set bodyString to ? ToString(bodyArg).
+    if (!bodyString) {
+      bodyString = ToString<CanGC>(cx, bodyArg);
+      if (!bodyString) {
+        return false;
+      }
+    }
+
+    if (!sb.append(bodyString)) {
       return false;
     }
   }
@@ -1455,6 +1502,16 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
     return false;
   }
 
+  // Dynamic Code Brand Checks Proposal
+  //
+  // CreateDynamicFunction ( constructor, newTarget, kind, parameterArgs,
+  //                         bodyArg )
+  // https://tc39.es/proposal-dynamic-code-brand-checks/#sec-createdynamicfunction
+  //
+  // Step 19. Perform ? HostEnsureCanCompileStrings(
+  //             currentRealm, parameterStrings, bodyString, sourceString,
+  //             FUNCTION, parameterArgs, bodyArg )
+  //
   // Block this call if security callbacks forbid it.
   bool canCompileStrings = cx->bypassCSPForDebugger;
 
@@ -1471,6 +1528,7 @@ static bool CreateDynamicFunction(JSContext* cx, const CallArgs& args,
     return false;
   }
 
+  // ES2018 draft
   // Steps 7.a-b, 8.a-b, 9.a-b, 16-28.
   AutoStableStringChars linearChars(cx);
   if (!linearChars.initTwoByte(cx, functionText)) {

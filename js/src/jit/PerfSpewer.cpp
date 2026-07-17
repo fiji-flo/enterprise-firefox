@@ -4,6 +4,7 @@
 
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Printf.h"
+
 #include "js/Utility.h"
 
 #if defined(JS_ION_PERF) && defined(XP_UNIX)
@@ -58,8 +59,6 @@ pid_t gettid_pthread() {
 #  define gettid() gettid_pthread()
 #endif
 
-#include "jit/PerfSpewer.h"
-
 #include <atomic>
 
 #include "jit/BaselineFrameInfo.h"
@@ -69,6 +68,7 @@ pid_t gettid_pthread() {
 #include "jit/LIR.h"
 #include "jit/MIR-wasm.h"
 #include "jit/MIR.h"
+#include "jit/PerfSpewer.h"
 #include "js/ColumnNumber.h"  // JS::LimitedColumnNumberOneOrigin, JS::ColumnNumberOffset
 #include "js/Exception.h"
 #include "js/JitCodeAPI.h"
@@ -77,8 +77,11 @@ pid_t gettid_pthread() {
 #include "vm/MutexIDs.h"
 
 #ifdef XP_WIN
+// clang-format off
 #  include "util/WindowsWrapper.h"
 #  include <evntprov.h>
+// clang-format on
+
 #  include <string>
 
 const GUID PROVIDER_JSCRIPT9 = {

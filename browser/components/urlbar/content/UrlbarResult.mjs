@@ -494,6 +494,7 @@ export class UrlbarResult {
       rowLabel: this.#rowLabel,
       showFeedbackMenu: this.#showFeedbackMenu,
       suggestedIndex: this.#suggestedIndex,
+      testForceNewContent: this.#testForceNewContent,
       payload: this.#payload,
       highlights: this.#highlights,
       rowIndex: this.rowIndex,
