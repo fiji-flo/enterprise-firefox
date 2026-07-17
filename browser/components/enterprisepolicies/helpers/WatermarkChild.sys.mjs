@@ -76,7 +76,8 @@ function watermarkSvg(doc, config, patternId) {
   let secondRowText = templateWatermarkText(config.secondaryCopy, config);
 
   let svg = doc.createElementNS(SVG_NS, "svg");
-  svg.style.cssText = "position: absolute !important; inset: 0 !important; width: 100%; height: 100%;";
+  svg.style.cssText =
+    "position: absolute !important; inset: 0 !important; width: 100%; height: 100%;";
 
   let pattern = doc.createElementNS(SVG_NS, "pattern");
   pattern.setAttribute("id", patternId);
