@@ -265,8 +265,6 @@ policy-UseSystemPrintDialog = Print using the system print dialog.
 
 policy-VisualSearchEnabled = Enable or disable visual search.
 
-policy-Watermark = Display a tiled, diagonal watermark over a list of websites.
-
 # “format” refers to the format used for the value of this policy.
 policy-WebsiteFilter = Block websites from being visited. See documentation for more details on the format.
 
