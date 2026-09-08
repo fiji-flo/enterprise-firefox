@@ -267,9 +267,22 @@ fn try_run(config: &mut Arc<Config>) -> anyhow::Result<bool> {
         //
         // When we are testing, glean will already be initialized (if needed).
         #[cfg(not(test))]
-        let _glean_handle = glean::InitOptions::from_config(&config)
-            .init()
-            .context("failed to acquire Glean store")?;
+        let _glean_handle = {
+            #[cfg_attr(any(mock, not(feature = "enterprise")), allow(unused_mut))]
+            let mut options = glean::InitOptions::from_config(&config);
+            // Send telemetry to the enterprise console, deriving the endpoint
+            // from the crash submission URL (the `ServerURL` annotation)
+            // resolved by `load_extra_file` above.
+            #[cfg(all(not(mock), feature = "enterprise"))]
+            options.set_server_url(
+                enterprise_prefs::console_glean_url(
+                    config.report_url.as_ref().and_then(|s| s.to_str()),
+                    config.app_data_dir.as_deref(),
+                )
+                .context("failed to resolve the enterprise telemetry endpoint")?,
+            );
+            options.init().context("failed to acquire Glean store")?
+        };
 
         logic::ReportCrash::new(config.clone(), extra)?.run()
     }

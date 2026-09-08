@@ -7,6 +7,17 @@
 use crate::std::{env, io::stdin};
 use crate::{glean, logging, net::ping};
 
+/// The user application data directory, derived from the crash data path.
+///
+/// `CrashManager` always passes `UAppData/Crash Reports`, so the parent of the
+/// given path is the directory holding `felt.json`.
+#[cfg(all(not(mock), feature = "enterprise"))]
+fn app_data_dir(data_path: &::std::ffi::OsStr) -> Option<::std::path::PathBuf> {
+    ::std::path::Path::new(data_path)
+        .parent()
+        .map(::std::path::Path::to_path_buf)
+}
+
 pub fn main() {
     logging::init();
 
@@ -17,18 +28,27 @@ pub fn main() {
     let extra: serde_json::Value =
         serde_json::from_reader(stdin()).expect("failed to read extra data from stdin");
 
-    let _glean_handle = glean::InitOptions {
+    #[cfg(all(not(mock), feature = "enterprise"))]
+    let app_data_dir = app_data_dir(&data_path);
+
+    #[cfg_attr(any(mock, not(feature = "enterprise")), allow(unused_mut))]
+    let mut options = glean::InitOptions {
         data_dir: data_path.into(),
         locale: None,
         // Assume that this is only invoked to send a ping when upload is enabled.
         upload_enabled: true,
-        // No annotation available here; the console address is read from
-        // AutoConfig during init.
-        #[cfg(all(not(mock), feature = "enterprise"))]
+        #[cfg(feature = "enterprise")]
         server_url: None,
-    }
-    .init()
-    .expect("failed to acquire Glean store");
+    };
+    // No `ServerURL` annotation is available here, so the endpoint is derived
+    // from the console address in AutoConfig (or, on generic builds, the
+    // environment variable or felt.json).
+    #[cfg(all(not(mock), feature = "enterprise"))]
+    options.set_server_url(
+        crate::enterprise_prefs::console_glean_url(None, app_data_dir.as_deref())
+            .expect("failed to resolve the enterprise telemetry endpoint"),
+    );
+    let _glean_handle = options.init().expect("failed to acquire Glean store");
 
     ping::CrashPing {
         extra: &extra,
@@ -54,15 +74,23 @@ pub fn cleanup_main() {
         .parse()
         .expect("invalid upload enabled value");
 
-    let _glean_handle = glean::InitOptions {
+    #[cfg(all(not(mock), feature = "enterprise"))]
+    let app_data_dir = app_data_dir(&data_path);
+
+    #[cfg_attr(any(mock, not(feature = "enterprise")), allow(unused_mut))]
+    let mut options = glean::InitOptions {
         data_dir: data_path.into(),
         locale: None,
         upload_enabled,
-        #[cfg(all(not(mock), feature = "enterprise"))]
+        #[cfg(feature = "enterprise")]
         server_url: None,
-    }
-    .init()
-    .expect("failed to acquire Glean store");
+    };
+    #[cfg(all(not(mock), feature = "enterprise"))]
+    options.set_server_url(
+        crate::enterprise_prefs::console_glean_url(None, app_data_dir.as_deref())
+            .expect("failed to resolve the enterprise telemetry endpoint"),
+    );
+    let _glean_handle = options.init().expect("failed to acquire Glean store");
 
     // Sleep for a short period for Glean to do its thing in the background (and so that
     // `glean::shutdown()` won't log a warning about waiting for init to complete).

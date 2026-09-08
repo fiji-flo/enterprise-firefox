@@ -16,9 +16,11 @@ pub struct InitOptions {
     pub data_dir: ::std::path::PathBuf,
     pub locale: Option<String>,
     pub upload_enabled: bool,
-    /// The crash submission endpoint (`ServerURL` annotation), used to recover
-    /// the enterprise console base without reading AutoConfig when available.
-    #[cfg(all(not(mock), feature = "enterprise"))]
+    /// The server to send telemetry to, overriding the default endpoint.
+    /// Set to the console telemetry endpoint (see
+    /// `enterprise_prefs::console_glean_url`); mock builds always use a fixed
+    /// example endpoint.
+    #[cfg(feature = "enterprise")]
     pub server_url: Option<String>,
 }
 
@@ -80,20 +82,21 @@ impl InitOptions {
 
         let upload_enabled = determine_telemetry_enabled(cfg.profile_dir.as_deref());
 
-        #[cfg(all(not(mock), feature = "enterprise"))]
-        let server_url = cfg
-            .report_url
-            .as_ref()
-            .and_then(|s| s.to_str())
-            .map(str::to_owned);
-
         InitOptions {
             data_dir,
             locale,
             upload_enabled,
-            #[cfg(all(not(mock), feature = "enterprise"))]
-            server_url,
+            #[cfg(feature = "enterprise")]
+            server_url: None,
         }
+    }
+
+    /// Set the server to which telemetry is sent, overriding the default
+    /// endpoint.
+    #[cfg(feature = "enterprise")]
+    #[cfg_attr(mock, allow(dead_code))]
+    pub fn set_server_url(&mut self, url: String) {
+        self.server_url = Some(url);
     }
 
     /// Initialize glean.
@@ -113,8 +116,6 @@ impl InitOptions {
     }
 
     fn init_glean(self) -> anyhow::Result<crashping::InitGlean> {
-        #[cfg(all(not(mock), feature = "enterprise"))]
-        let server_url = self.server_url;
         let mut data_dir = if cfg!(mock) {
             // Use a (non-mocked) temp directory since glean won't access our mocked API.
             ::std::env::temp_dir().join("crashreporter-mock")
@@ -143,16 +144,14 @@ impl InitOptions {
         init_glean.configuration.uploader = Some(Box::new(uploader::Uploader::new()));
         init_glean.configuration.upload_enabled = self.upload_enabled;
 
+        #[cfg(feature = "enterprise")]
+        if let Some(url) = self.server_url {
+            init_glean.configuration.server_endpoint = Some(url);
+        }
         #[cfg(mock)]
         {
             init_glean.configuration.server_endpoint =
                 Some("https://incoming.glean.example.com".to_owned());
-        }
-        #[cfg(all(not(mock), feature = "enterprise"))]
-        {
-            init_glean.configuration.server_endpoint = Some(
-                crate::enterprise_prefs::console_glean_url(server_url.as_deref())?,
-            );
         }
 
         Ok(init_glean)
