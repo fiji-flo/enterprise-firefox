@@ -83,6 +83,15 @@ known_errors = [
     {"message": "_refreshSession()"},
     {"message": "Unable to update user icon in badge without user information"},
     {"message": "enterprise.logo_url pref is not set, skipping logo update"},
+    {
+        "message": "Failed to resolve the console address, Error: Console address is the generic placeholder and no stored address exists"
+    },
+    {
+        "message": "Error in processing browser-before-ui-startup for EnterpriseEndpoints.init"
+    },
+    {
+        "message": "Error: Console address is the generic placeholder and no stored address exists"
+    },
 ]
 
 # Same rules apply here - please don't add anything! - but headless runs
